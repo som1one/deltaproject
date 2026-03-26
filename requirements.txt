@@ -1,0 +1,17 @@
+# FastAPI и ASGI-сервер
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# Асинхронный PostgreSQL: SQLAlchemy 2 + asyncpg
+sqlalchemy[asyncio]>=2.0.36
+asyncpg>=0.30.0
+
+# Синхронный драйвер для Alembic CLI (postgresql+psycopg://)
+psycopg[binary]>=3.2.0
+
+# Миграции схемы (Alembic использует синхронный движок; URL см. alembic.ini / env.py)
+alembic>=1.14.0
+
+# Настройки из окружения
+pydantic-settings>=2.6.0
+python-dotenv>=1.0.0

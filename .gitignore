@@ -1,0 +1,33 @@
+# Виртуальное окружение
+.venv/
+venv/
+.envrc
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Переменные окружения с секретами
+.env
+.env.local
+.env.*.local
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Логи и артефакты
+*.log
+dist/
+build/
+*.egg-info/
