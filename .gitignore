@@ -1,9 +1,19 @@
-# Виртуальное окружение
+# Виртуальные окружения
 .venv/
+.venv
 venv/
+env/
+ENV/
+env.bak/
+venv.bak/
 .envrc
 
-# Кэш Python
+# Переменные окружения и секреты
+.env
+.env.local
+.env.*.local
+
+# Python cache / artifacts
 __pycache__/
 *.py[cod]
 *$py.class
@@ -13,12 +23,11 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
-
-# Переменные окружения с секретами
-.env
-.env.local
-.env.*.local
+build/
+dist/
+*.egg-info/
 
 # IDE / OS
 .idea/
@@ -26,8 +35,9 @@ htmlcov/
 *.swp
 .DS_Store
 
-# Логи и артефакты
+# Логи
 *.log
-dist/
-build/
-*.egg-info/
+
+# Cursor
+.cursorignore
+.cursorindexingignore
