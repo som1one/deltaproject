@@ -1,6 +1,7 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import String
+from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID, INET
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -15,5 +16,22 @@ class UserSession(Base):
         primary_key=True,
         default=uuid.uuid4,
     )
-    ip: Mapped[str] = mapped_column(INET, nullable=False)
+    ip: Mapped[str] = mapped_column(INET, nullable=False, index=True)
     agent: Mapped[str] = mapped_column(String(512), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    session_kind: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        default="login",
+        server_default="login",
+    )

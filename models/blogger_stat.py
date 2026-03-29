@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import ForeignKey, Integer, Float
+from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,5 +23,5 @@ class BloggerStat(Base):
         index=True,
     )
     deals: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    earn: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    earn: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     workers: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

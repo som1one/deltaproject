@@ -15,3 +15,9 @@ alembic>=1.14.0
 # Настройки из окружения
 pydantic-settings>=2.6.0
 python-dotenv>=1.0.0
+
+# JWT (HS256)
+PyJWT>=2.9.0
+
+# Rate limiting (in-memory по IP)
+slowapi>=0.1.9

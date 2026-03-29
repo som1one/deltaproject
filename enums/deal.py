@@ -2,6 +2,10 @@ import enum
 
 
 class DealStatus(str, enum.Enum):
-    AGREE = "AGREE"
+    """Жизненный цикл сделки (линейные переходы)."""
+
+    NEW = "NEW"
+    REVIEW = "REVIEW"
+    CONFIRMED = "CONFIRMED"
     PAID = "PAID"
-    CLOSE = "CLOSE"
+    COMPLETED = "COMPLETED"

@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import ForeignKey, Integer, Float
+from sqlalchemy import ForeignKey, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,5 +24,5 @@ class WorkerStat(Base):
     )
     deals: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     agree: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    paid: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    earn: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    paid: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    earn: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
