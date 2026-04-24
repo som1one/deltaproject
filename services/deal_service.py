@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import or_, select
@@ -15,20 +15,69 @@ from models.deal_admin_log import DealAdminLog
 from models.ledger_entry import LedgerEntry
 from models.user import User
 from models.worker_stat import WorkerStat
-from schemas.deal import DealCreate
+
+from schemas.deal import DealCreate, DealRead
 from services.finance_scheme_service import (
     distribute_price_kopeks,
     get_or_create_scheme_for_blogger,
 )
 
 
-_ALLOWED_NEXT: dict[DealStatus, frozenset[DealStatus]] = {
-    DealStatus.NEW: frozenset({DealStatus.REVIEW}),
-    DealStatus.REVIEW: frozenset({DealStatus.CONFIRMED}),
-    DealStatus.CONFIRMED: frozenset({DealStatus.PAID}),
-    DealStatus.PAID: frozenset({DealStatus.COMPLETED}),
-    DealStatus.COMPLETED: frozenset(),
-}
+def deal_distribution_amount_kopeks(deal: Deal) -> int:
+    if deal.agreed_price_kopeks is not None:
+        return int(deal.agreed_price_kopeks)
+    return int(deal.price)
+
+
+def _blogger_masked(deal: Deal) -> bool:
+    """До подтверждения админом блогер не видит контакты заказчика и сумму."""
+    return deal.status in (DealStatus.NEW, DealStatus.REVIEW)
+
+
+async def deal_to_read(deal: Deal, viewer: User, db: AsyncSession) -> DealRead:
+    amount = deal_distribution_amount_kopeks(deal)
+    masked = viewer.role == UserRole.BLOGER and _blogger_masked(deal)
+    finance_visible = viewer.role != UserRole.BLOGER or not _blogger_masked(deal)
+    if viewer.role == UserRole.ADMIN:
+        finance_visible = True
+        masked = False
+
+    eff = 0 if masked else amount
+    price_out = 0 if masked else int(deal.price)
+    tg_out = "—" if masked else deal.seller_tg
+    num_out = "—" if masked else deal.seller_number
+
+    pw = pb = pp = None
+    if finance_visible:
+        scheme = await get_or_create_scheme_for_blogger(deal.bloger_id, db)
+        wk, bk, _uk, pk = distribute_price_kopeks(amount, scheme)
+        if viewer.role == UserRole.ADMIN:
+            pw, pb, pp = wk, bk, pk
+        elif viewer.role == UserRole.WORKER:
+            pw = wk
+        elif viewer.role == UserRole.BLOGER:
+            pb = bk
+
+    return DealRead(
+        id=deal.id,
+        worker_id=deal.worker_id,
+        bloger_id=deal.bloger_id,
+        shop_link=deal.shop_link,
+        item_name=deal.item_name,
+        status=deal.status,
+        price=price_out,
+        seller_tg=tg_out,
+        seller_number=num_out,
+        created_at=deal.created_at,
+        client_contacted_at=deal.client_contacted_at,
+        agreed_price_kopeks=None if masked else deal.agreed_price_kopeks,
+        effective_price_kopeks=eff,
+        sensitive_masked=masked,
+        finance_visible=finance_visible,
+        preview_worker_kopeks=pw,
+        preview_blogger_kopeks=pb,
+        preview_platform_kopeks=pp,
+    )
 
 
 def _paid_idempotency_keys(deal_id: uuid.UUID) -> tuple[str, str, str, str]:
@@ -83,7 +132,8 @@ async def _accrue_paid_deal(deal: Deal, db: AsyncSession) -> None:
         )
 
     scheme = await get_or_create_scheme_for_blogger(deal.bloger_id, db)
-    wk, bk, uk, pk = distribute_price_kopeks(deal.price, scheme)
+    dist = deal_distribution_amount_kopeks(deal)
+    wk, bk, uk, pk = distribute_price_kopeks(dist, scheme)
 
     upline_user: User | None = None
     if bloger_user.linked_to is not None:
@@ -139,7 +189,8 @@ async def _apply_completed_stats(deal: Deal, db: AsyncSession) -> None:
             detail="Блогер сделки не найден",
         )
     scheme = await get_or_create_scheme_for_blogger(deal.bloger_id, db)
-    wk, bk, uk, _pk = distribute_price_kopeks(deal.price, scheme)
+    dist = deal_distribution_amount_kopeks(deal)
+    wk, bk, uk, _pk = distribute_price_kopeks(dist, scheme)
 
     upline_user: User | None = None
     if bloger_user.linked_to is not None:
@@ -155,7 +206,7 @@ async def _apply_completed_stats(deal: Deal, db: AsyncSession) -> None:
 
     wstat.deals += 1
     wstat.agree += 1
-    wstat.paid += deal.price
+    wstat.paid += deal_distribution_amount_kopeks(deal)
     wstat.earn += wk
 
     bstat.deals += 1
@@ -173,10 +224,10 @@ async def create_deal(worker: User, body: DealCreate, db: AsyncSession) -> Deal:
             detail="Создавать сделки может только работник",
         )
     blogger = await db.get(User, body.bloger_id)
-    if blogger is None or blogger.role != UserRole.BLOGER:
+    if blogger is None or blogger.role != UserRole.BLOGER or not blogger.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Указан несуществующий или не-блогер",
+            detail="Указан несуществующий, неактивный или не-блогер",
         )
     deal = Deal(
         worker_id=worker.id,
@@ -223,24 +274,33 @@ async def patch_deal_status(
     await db.refresh(deal)
 
     old_status = deal.status
-    allowed = _ALLOWED_NEXT.get(old_status, frozenset())
-    if new_status not in allowed:
+
+    if user.role == UserRole.WORKER:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Недопустимый переход статуса сделки",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Работник не меняет статус: принятие — у блогера, дальше — администратор",
         )
 
-    deal.status = new_status
+    if user.role == UserRole.BLOGER:
+        if deal.bloger_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Это не ваша сделка",
+            )
+        if not (old_status == DealStatus.NEW and new_status == DealStatus.REVIEW):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Блогер может только принять заявку: статус NEW → REVIEW",
+            )
+        deal.status = new_status
+        await db.commit()
+        await db.refresh(deal)
+        return deal
 
-    if new_status == DealStatus.PAID and old_status != DealStatus.PAID:
-        await _accrue_paid_deal(deal, db)
-
-    if new_status == DealStatus.COMPLETED and old_status != DealStatus.COMPLETED:
-        await _apply_completed_stats(deal, db)
-
-    await db.commit()
-    await db.refresh(deal)
-    return deal
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Смена статуса доступна блогеру или через админку",
+    )
 
 
 async def list_deals_for_user(user: User, db: AsyncSession) -> list[Deal]:
@@ -333,9 +393,15 @@ async def admin_patch_deal_status(
 
     deal.status = new_status
 
+    if new_status == DealStatus.CONFIRMED and deal.client_contacted_at is None:
+        deal.client_contacted_at = datetime.now(UTC)
+
     # При переводе в PAID гарантируем начисления (идемпотентно внутри _accrue_paid_deal).
     if _status_order(new_status) >= _status_order(DealStatus.PAID) and _status_order(old_status) < _status_order(DealStatus.PAID):
         await _accrue_paid_deal(deal, db)
+
+    if new_status == DealStatus.COMPLETED and old_status != DealStatus.COMPLETED:
+        await _apply_completed_stats(deal, db)
 
     db.add(
         DealAdminLog(
@@ -345,6 +411,40 @@ async def admin_patch_deal_status(
             old_status=old_status,
             new_status=new_status,
             reason=reason.strip(),
+        ),
+    )
+    await db.commit()
+    await db.refresh(deal)
+    return deal
+
+
+async def admin_set_agreed_price(
+    deal_id: uuid.UUID,
+    admin_user: User,
+    agreed_price_kopeks: int,
+    reason: str,
+    db: AsyncSession,
+) -> Deal:
+    deal = (
+        await db.execute(select(Deal).where(Deal.id == deal_id).with_for_update())
+    ).scalar_one_or_none()
+    if deal is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Сделка не найдена")
+    if deal.status != DealStatus.CONFIRMED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Согласованную сумму задают в статусе CONFIRMED (до перевода в PAID)",
+        )
+    prev = deal.agreed_price_kopeks
+    deal.agreed_price_kopeks = agreed_price_kopeks
+    db.add(
+        DealAdminLog(
+            deal_id=deal.id,
+            admin_id=admin_user.id,
+            action="agreed_price",
+            old_status=deal.status,
+            new_status=deal.status,
+            reason=f"{reason.strip()} | agreed_price_kopeks: {prev} -> {agreed_price_kopeks}",
         ),
     )
     await db.commit()

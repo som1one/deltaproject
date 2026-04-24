@@ -31,7 +31,12 @@ class LedgerEntry(Base):
     )
     amount_kopeks: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[LedgerEntryStatus] = mapped_column(
-        SQLEnum(LedgerEntryStatus, name="ledger_entry_status", native_enum=True),
+        SQLEnum(
+            LedgerEntryStatus,
+            name="ledger_entry_status",
+            native_enum=True,
+            values_callable=lambda enum_cls: [item.value for item in enum_cls],
+        ),
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
@@ -47,3 +52,4 @@ class LedgerEntry(Base):
     )
     idempotency_key: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True)
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    yookassa_payout_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)

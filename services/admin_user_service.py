@@ -1,14 +1,29 @@
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from enums.ledger import LedgerEntryStatus
 from enums.user import UserRole
 from models.ledger_entry import LedgerEntry
 from models.user import User
-from schemas.admin import AdminUserPatch
+from schemas.admin import (
+    AdminBloggerCreateRequest,
+    AdminBloggerCabinetStatsRead,
+    AdminUserStatsResponse,
+    AdminWorkerCabinetStatsRead,
+    AdminUserPatch,
+)
+from services.ledger_service import sum_pending_confirmation_kopeks
+from services.me_service import get_or_create_blogger_stat, get_or_create_worker_stat
+from utils.blogger_credentials import (
+    build_blogger_internal_email,
+    generate_blogger_password,
+    normalize_blogger_nickname,
+)
+from utils.security import hash_password
 
 
 async def admin_list_users(
@@ -28,8 +43,12 @@ async def admin_list_users(
         count_stmt = count_stmt.where(User.role == role)
     if email is not None and email.strip():
         email_q = email.strip().lower()
-        base = base.where(func.lower(User.email).like(f"%{email_q}%"))
-        count_stmt = count_stmt.where(func.lower(User.email).like(f"%{email_q}%"))
+        matcher = or_(
+            func.lower(User.email).like(f"%{email_q}%"),
+            func.lower(func.coalesce(User.nickname, "")).like(f"%{email_q}%"),
+        )
+        base = base.where(matcher)
+        count_stmt = count_stmt.where(matcher)
     if linked_to is not None:
         base = base.where(User.linked_to == linked_to)
         count_stmt = count_stmt.where(User.linked_to == linked_to)
@@ -55,6 +74,7 @@ async def admin_patch_user(
     db: AsyncSession,
 ) -> User:
     user = await admin_get_user(user_id, db)
+    target_role = body.role if body.role is not None else user.role
 
     if body.email is not None:
         email_value = str(body.email).strip().lower()
@@ -68,6 +88,23 @@ async def admin_patch_user(
         user.telegram = body.telegram
     if body.name is not None:
         user.name = body.name
+    if body.nickname is not None:
+        if target_role != UserRole.BLOGER:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ник задаётся только для роли блогера",
+            )
+        try:
+            nickname_value = normalize_blogger_nickname(body.nickname)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+        conflict = await db.execute(
+            select(User).where(User.nickname == nickname_value, User.id != user.id),
+        )
+        if conflict.scalar_one_or_none():
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ник уже занят")
+        user.nickname = nickname_value
+        user.email = build_blogger_internal_email(nickname_value)
     if body.percent is not None:
         user.percent = float(body.percent)
     if body.is_active is not None:
@@ -94,9 +131,82 @@ async def admin_patch_user(
             )
         user.role = body.role
 
+    if body.blogger_cabinet_pin is not None:
+        if user.role != UserRole.BLOGER:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="PIN кабинета задаётся только для роли блогер",
+            )
+        if body.blogger_cabinet_pin == "":
+            user.blogger_cabinet_pin_hash = None
+            user.blogger_cabinet_pin_set_at = None
+        else:
+            user.blogger_cabinet_pin_hash = hash_password(body.blogger_cabinet_pin)
+            user.blogger_cabinet_pin_set_at = datetime.now(UTC)
+
     await db.commit()
     await db.refresh(user)
     return user
+
+
+async def admin_create_blogger(
+    body: AdminBloggerCreateRequest,
+    db: AsyncSession,
+) -> tuple[User, str]:
+    try:
+        nickname = normalize_blogger_nickname(body.nickname)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    conflict = await db.execute(select(User).where(User.nickname == nickname))
+    if conflict.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ник уже занят")
+
+    display_name = body.name.strip() if body.name and body.name.strip() else nickname
+    telegram = body.telegram.strip() if body.telegram and body.telegram.strip() else None
+    password = generate_blogger_password()
+    user = User(
+        name=display_name,
+        email=build_blogger_internal_email(nickname),
+        nickname=nickname,
+        telegram=telegram,
+        hash_pass=hash_password(password),
+        role=UserRole.BLOGER,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user, password
+
+
+async def admin_get_user_stats(user_id: uuid.UUID, db: AsyncSession) -> AdminUserStatsResponse:
+    user = await admin_get_user(user_id, db)
+    if user.role == UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Статистика кабинета для роли администратора не предусмотрена",
+        )
+    pending = await sum_pending_confirmation_kopeks(user.id, db)
+    if user.role == UserRole.WORKER:
+        row = await get_or_create_worker_stat(user.id, db)
+        return AdminWorkerCabinetStatsRead(
+            deals=row.deals,
+            agree=row.agree,
+            paid=row.paid,
+            earn=row.earn,
+            balance_pending_confirmation_kopeks=pending,
+        )
+    if user.role == UserRole.BLOGER:
+        row = await get_or_create_blogger_stat(user.id, db)
+        return AdminBloggerCabinetStatsRead(
+            deals=row.deals,
+            earn=row.earn,
+            workers=row.workers,
+            balance_pending_confirmation_kopeks=pending,
+        )
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Неизвестная роль",
+    )
 
 
 async def admin_get_user_ledger(

@@ -7,10 +7,12 @@ from models.blogger_stat import BloggerStat
 from models.deal import Deal
 from models.deal_admin_log import DealAdminLog
 from models.ledger_entry import LedgerEntry
+from models.question import Question
 from models.referral import ReferralLink
 from models.user import User
 from models.user_session import UserSession
 from models.worker_stat import WorkerStat
+from models.worker_message_script import WorkerMessageScript
 
 __all__ = [
     "Base",
@@ -21,9 +23,11 @@ __all__ = [
     "DealStatus",
     "LedgerEntry",
     "LedgerEntryStatus",
+    "Question",
     "ReferralLink",
     "User",
     "UserRole",
     "UserSession",
     "WorkerStat",
+    "WorkerMessageScript",
 ]

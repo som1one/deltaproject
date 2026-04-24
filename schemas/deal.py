@@ -31,6 +31,13 @@ class AdminDealRecalcFinanceRequest(BaseModel):
     reason: Annotated[str, Field(min_length=1, max_length=4000)]
 
 
+class AdminDealAgreedPricePatch(BaseModel):
+    """Согласованная сумма сделки (копейки); если не задана — используется price при начислениях."""
+
+    agreed_price_kopeks: Annotated[int, Field(gt=0)]
+    reason: Annotated[str, Field(min_length=1, max_length=4000)]
+
+
 class DealRead(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -44,3 +51,19 @@ class DealRead(BaseModel):
     seller_tg: str
     seller_number: str
     created_at: datetime
+    client_contacted_at: datetime | None = None
+    agreed_price_kopeks: int | None = None
+    effective_price_kopeks: int = Field(
+        description="Сумма для расчёта долей (agreed_price_kopeks или price)",
+    )
+    sensitive_masked: bool = Field(
+        default=False,
+        description="True — блогеру скрыты контакты заказчика и сумма до этапа подтверждения админом",
+    )
+    finance_visible: bool = Field(
+        default=True,
+        description="False — не показывать превью долей (до контакта с заказчиком)",
+    )
+    preview_worker_kopeks: int | None = None
+    preview_blogger_kopeks: int | None = None
+    preview_platform_kopeks: int | None = None

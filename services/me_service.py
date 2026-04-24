@@ -1,28 +1,106 @@
-from fastapi import HTTPException, status
-from sqlalchemy import select
+from uuid import UUID
+
+from fastapi import HTTPException, Request, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from enums.deal import DealStatus
+from enums.user import UserRole
 from models.blogger_stat import BloggerStat
+from models.deal import Deal
+from models.referral import ReferralLink
 from models.user import User
 from models.worker_stat import WorkerStat
-from schemas.me import UserMePatch, UserMeRead
+from schemas.me import PayoutCardSet, UserMePatch, UserMeRead, WorkerMeStatsRead
+from core.settings import settings
 from services.ledger_service import sum_pending_confirmation_kopeks
+from utils.blogger_cabinet_unlock import (
+    BLOGGER_CABINET_COOKIE_NAME,
+    BLOGGER_CABINET_HEADER_NAME,
+    verify_blogger_cabinet_unlock_token,
+)
+from utils.card_hash import card_fingerprint, last4, luhn_ok, normalize_pan
 from utils.security import hash_password, verify_password
 
 
-async def user_to_me_read(user: User, db: AsyncSession) -> UserMeRead:
+def _blogger_cabinet_locked(user: User, request: Request | None) -> bool:
+    if user.role != UserRole.BLOGER:
+        return False
+    if not user.blogger_cabinet_pin_hash:
+        return False
+    if request is None:
+        return True
+    raw = request.headers.get(BLOGGER_CABINET_HEADER_NAME) or request.cookies.get(
+        BLOGGER_CABINET_COOKIE_NAME,
+    )
+    token = (raw or "").strip()
+    if token and verify_blogger_cabinet_unlock_token(token, user.id):
+        return False
+    return True
+
+
+async def referral_invite_url_for_worker(user: User, db: AsyncSession) -> str | None:
+    if user.role != UserRole.WORKER or user.linked_to is None:
+        return None
+    result = await db.execute(
+        select(ReferralLink).where(ReferralLink.user_id == user.linked_to),
+    )
+    row = result.scalar_one_or_none()
+    return row.link if row else None
+
+
+async def user_to_me_read(
+    user: User,
+    db: AsyncSession,
+    request: Request | None = None,
+) -> UserMeRead:
     pending = await sum_pending_confirmation_kopeks(user.id, db)
+    ref_url = await referral_invite_url_for_worker(user, db)
     return UserMeRead(
         id=user.id,
         name=user.name,
         email=user.email,
+        nickname=user.nickname,
         telegram=user.telegram,
         role=user.role,
         linked_to=user.linked_to,
         percent=user.percent,
         balance=user.balance,
         balance_pending_confirmation_kopeks=pending,
+        payout_card_last4=user.payout_card_last4,
+        blogger_cabinet_locked=_blogger_cabinet_locked(user, request),
+        referral_invite_url=ref_url,
     )
+
+
+async def set_me_payout_card(user: User, body: PayoutCardSet, db: AsyncSession) -> User:
+    if user.role not in (UserRole.WORKER, UserRole.BLOGER):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Карту для вывода могут указать только работник или блогер",
+        )
+    pepper = settings.payout_card_pepper.strip()
+    if not pepper:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Сохранение реквизитов карты отключено: не задан PAYOUT_CARD_PEPPER",
+        )
+    pan = normalize_pan(body.card_number)
+    if len(pan) < 13 or len(pan) > 19:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Некорректная длина номера карты",
+        )
+    if not luhn_ok(pan):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Некорректный номер карты",
+        )
+    user.payout_card_hash = card_fingerprint(pan, pepper)
+    user.payout_card_last4 = last4(pan)
+    await db.commit()
+    await db.refresh(user)
+    return user
 
 
 async def apply_me_patch(user: User, body: UserMePatch, db: AsyncSession) -> User:
@@ -52,6 +130,30 @@ async def apply_me_patch(user: User, body: UserMePatch, db: AsyncSession) -> Use
     await db.commit()
     await db.refresh(user)
     return user
+
+
+async def compute_worker_me_stats(user_id: UUID, db: AsyncSession) -> WorkerMeStatsRead:
+    """Считает сделки по статусам; earn берётся из worker_stats (начисления по завершённым)."""
+
+    row = await get_or_create_worker_stat(user_id, db)
+    result = await db.execute(
+        select(Deal.status, func.count(Deal.id)).where(Deal.worker_id == user_id).group_by(Deal.status),
+    )
+    by_status: dict[DealStatus, int] = {status: int(cnt) for status, cnt in result.all()}
+    deals_total = sum(by_status.values())
+    agree = (
+        by_status.get(DealStatus.CONFIRMED, 0)
+        + by_status.get(DealStatus.PAID, 0)
+        + by_status.get(DealStatus.COMPLETED, 0)
+    )
+    paid_deals = by_status.get(DealStatus.PAID, 0) + by_status.get(DealStatus.COMPLETED, 0)
+    return WorkerMeStatsRead(
+        role=UserRole.WORKER,
+        deals=deals_total,
+        agree=agree,
+        paid=paid_deals,
+        earn=row.earn,
+    )
 
 
 async def get_or_create_worker_stat(user_id, db: AsyncSession) -> WorkerStat:

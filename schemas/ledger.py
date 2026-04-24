@@ -19,6 +19,7 @@ class LedgerEntryRead(BaseModel):
     updated_at: datetime
     idempotency_key: str | None
     note: str | None
+    yookassa_payout_id: str | None = None
 
 
 class LedgerListResponse(BaseModel):
@@ -28,6 +29,17 @@ class LedgerListResponse(BaseModel):
 
 class PayoutRequestCreate(BaseModel):
     amount_kopeks: Annotated[int, Field(gt=0, description="Сумма выплаты в копейках")]
+    payout_token: Annotated[
+        str | None,
+        Field(None, description="Токен карты из виджета ЮKassa (обязателен при включённых выплатах)"),
+    ] = None
+
+
+class PayoutWidgetConfigResponse(BaseModel):
+    """Публичные параметры для инициализации виджета сбора карты."""
+
+    enabled: bool = Field(description="Показывать виджет и требовать payout_token")
+    gateway_id: str | None = Field(None, description="account_id для PayoutsData (шлюз)")
 
 
 class AdminLedgerStatusPatch(BaseModel):

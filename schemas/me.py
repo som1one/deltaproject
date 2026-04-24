@@ -15,12 +15,31 @@ class UserMeRead(BaseModel):
     id: uuid.UUID
     name: str
     email: str
+    nickname: str | None
     telegram: str | None
     role: UserRole
     linked_to: uuid.UUID | None
     percent: float
     balance: int
     balance_pending_confirmation_kopeks: int = 0
+    payout_card_last4: str | None = None
+    blogger_cabinet_locked: bool = False
+    referral_invite_url: str | None = None
+
+
+class CabinetUnlockBody(BaseModel):
+    pin: Annotated[str, Field(min_length=1, max_length=64)]
+
+
+class CabinetUnlockResponse(BaseModel):
+    ok: bool = True
+    unlock_token: str
+
+
+class PayoutCardSet(BaseModel):
+    """Номер карты только для вычисления отпечатка; PAN в БД не сохраняется."""
+
+    card_number: Annotated[str, Field(min_length=12, max_length=32)]
 
 
 class UserMePatch(BaseModel):
@@ -48,13 +67,15 @@ class UserMePatch(BaseModel):
 
 
 class WorkerMeStatsRead(BaseModel):
+    """Статистика кабинета работника (агрегаты по сделкам + накопленный заработок)."""
+
     model_config = {"from_attributes": True}
 
     role: Literal[UserRole.WORKER] = UserRole.WORKER
-    deals: int
-    agree: int
-    paid: int
-    earn: int
+    deals: int = Field(description="Число созданных сделок (все статусы)")
+    agree: int = Field(description="Сделок в статусе подтверждена и далее")
+    paid: int = Field(description="Оплаченных сделок (PAID и COMPLETED)")
+    earn: int = Field(description="Заработано работником, копейки (по завершённым сделкам)")
 
 
 class BloggerMeStatsRead(BaseModel):

@@ -10,7 +10,7 @@ from dependencies.auth import get_current_user
 from dependencies.database import get_db
 from models.user import User
 from schemas.deal import DealCreate, DealRead, DealStatusPatch
-from services.deal_service import create_deal, get_deal_for_user, patch_deal_status
+from services.deal_service import create_deal, deal_to_read, get_deal_for_user, patch_deal_status
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -24,7 +24,7 @@ async def create_deal_endpoint(
     user: Annotated[User, Depends(get_current_user)],
 ) -> DealRead:
     deal = await create_deal(user, body, db)
-    return DealRead.model_validate(deal)
+    return await deal_to_read(deal, user, db)
 
 
 @router.patch("/{deal_id}", response_model=DealRead)
@@ -42,7 +42,7 @@ async def patch_deal_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Сделка не найдена",
         )
-    return DealRead.model_validate(deal)
+    return await deal_to_read(deal, user, db)
 
 
 @router.get("/{deal_id}", response_model=DealRead)
@@ -59,4 +59,4 @@ async def get_deal_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Сделка не найдена",
         )
-    return DealRead.model_validate(deal)
+    return await deal_to_read(deal, user, db)

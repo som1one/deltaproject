@@ -42,6 +42,11 @@ class Deal(Base):
         server_default=func.now(),
         nullable=False,
     )
+    client_contacted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    agreed_price_kopeks: Mapped[int | None] = mapped_column(Integer, nullable=True)
     price: Mapped[int] = mapped_column(Integer, nullable=False)
     seller_tg: Mapped[str] = mapped_column(String(255), nullable=False)
     seller_number: Mapped[str] = mapped_column(String(64), nullable=False)

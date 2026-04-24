@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,6 +28,16 @@ class Settings(BaseSettings):
         validation_alias="JWT_EXPIRATION_TIME",
         description="TTL access-токена в секундах",
     )
+    blogger_cabinet_unlock_secret: str = Field(
+        default="",
+        validation_alias="BLOGGER_CABINET_UNLOCK_SECRET",
+        description="Секрет HMAC для cookie/токена разблокировки кабинета блогера; пусто — используется JWT_SECRET_KEY",
+    )
+    blogger_cabinet_unlock_ttl_seconds: int = Field(
+        default=604_800,
+        validation_alias="BLOGGER_CABINET_UNLOCK_TTL_SECONDS",
+        description="Срок жизни разблокировки кабинета блогера (секунды)",
+    )
     refresh_token_secret_key: str = Field(
         ...,
         validation_alias="REFRESH_TOKEN_SECRET_KEY",
@@ -36,6 +46,46 @@ class Settings(BaseSettings):
         default=86_400,
         validation_alias="REFRESH_TOKEN_EXPIRATION_TIME",
         description="TTL refresh-токена в секундах",
+    )
+    telegram_oauth_enabled: bool = Field(
+        default=False,
+        validation_alias="TELEGRAM_OAUTH_ENABLED",
+        description="Включить Telegram OAuth Login",
+    )
+    telegram_oauth_client_id: str = Field(
+        default="",
+        validation_alias=AliasChoices("TELEGRAM_OAUTH_CLIENT_ID", "TELEGRAM_OAUTH_СLIENT_ID"),
+        description="Client ID из BotFather для Telegram Login library / OIDC",
+    )
+    telegram_oauth_client_secret: str = Field(
+        default="",
+        validation_alias="TELEGRAM_OAUTH_CLIENT_SECRET",
+        description="Client Secret из BotFather для Telegram Login / OIDC",
+    )
+    telegram_oauth_issuer: str = Field(
+        default="https://oauth.telegram.org",
+        validation_alias="TELEGRAM_OAUTH_ISSUER",
+        description="Issuer для проверки Telegram id_token",
+    )
+    telegram_oauth_jwks_url: str = Field(
+        default="https://oauth.telegram.org/.well-known/jwks.json",
+        validation_alias="TELEGRAM_OAUTH_JWKS_URL",
+        description="JWKS endpoint для проверки подписи Telegram id_token",
+    )
+    telegram_oauth_bot_username: str = Field(
+        default="",
+        validation_alias="TELEGRAM_OAUTH_BOT_USERNAME",
+        description="Username Telegram-бота без @, например my_auth_bot",
+    )
+    telegram_oauth_bot_token: str = Field(
+        default="",
+        validation_alias="TELEGRAM_OAUTH_BOT_TOKEN",
+        description="Bot token для проверки подписи Telegram OAuth",
+    )
+    telegram_oauth_max_age_seconds: int = Field(
+        default=300,
+        validation_alias="TELEGRAM_OAUTH_MAX_AGE_SECONDS",
+        description="Макс. возраст auth_date Telegram OAuth (секунды)",
     )
 
     register_max_sessions_per_ip: int = Field(
@@ -112,6 +162,56 @@ class Settings(BaseSettings):
         validation_alias="RATE_LIMIT_DEAL_READ",
         description="SlowAPI: GET сделки и GET /me/deals",
     )
+
+    payout_card_pepper: str = Field(
+        default="",
+        validation_alias="PAYOUT_CARD_PEPPER",
+        description="Секрет для SHA-256 отпечатка карты (не хранить PAN в БД)",
+    )
+
+    yukassa_payout_enabled: bool = Field(
+        default=False,
+        validation_alias="YUKASSA_PAYOUT_ENABLED",
+        description="Включить вывод через ЮKassa (виджет + API выплат)",
+    )
+    yukassa_payout_shop_id: str = Field(
+        default="",
+        validation_alias="YUKASSA_PAYOUT_SHOP_ID",
+        description="shopId для Basic Auth API выплат (ЛК ЮKassa)",
+    )
+    yukassa_payout_secret_key: str = Field(
+        default="",
+        validation_alias="YUKASSA_PAYOUT_SECRET_KEY",
+        description="Секретный ключ для API выплат",
+    )
+    yukassa_payout_gateway_id: str = Field(
+        default="",
+        validation_alias="YUKASSA_PAYOUT_GATEWAY_ID",
+        description="Идентификатор шлюза (agentId) для виджета сбора карты",
+    )
+    yukassa_webhook_secret: str = Field(
+        default="",
+        validation_alias="YUKASSA_WEBHOOK_SECRET",
+        description="Если задан — заголовок X-Yukassa-Webhook-Secret должен совпадать",
+    )
+
+    @property
+    def yukassa_payout_active(self) -> bool:
+        """Выплаты через API ЮKassa (требуются shop id и секрет)."""
+        return self.yukassa_payout_enabled and bool(
+            self.yukassa_payout_shop_id.strip(),
+        ) and bool(self.yukassa_payout_secret_key.strip())
+
+    @property
+    def yukassa_payout_widget_ready(self) -> bool:
+        """Можно показать виджет сбора карты (нужен gateway id)."""
+        return self.yukassa_payout_active and bool(self.yukassa_payout_gateway_id.strip())
+
+    @property
+    def telegram_oauth_ready(self) -> bool:
+        if not self.telegram_oauth_enabled:
+            return False
+        return bool(self.telegram_oauth_client_id.strip())
 
 
 settings = Settings()

@@ -5,10 +5,12 @@ from fastapi import HTTPException, status
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.settings import settings
 from enums.ledger import LedgerEntryStatus
 from models.ledger_entry import LedgerEntry
 from models.user import User
 from schemas.ledger import PayoutRequestCreate
+from services.yookassa_payout_client import YookassaPayoutError, create_payout
 
 
 _ACTIVE_PAYOUT_STATUSES = (
@@ -65,6 +67,43 @@ async def create_payout_request(user: User, body: PayoutRequestCreate, db: Async
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Недостаточно средств с учётом активных заявок на выплату",
         )
+
+    if settings.yukassa_payout_active:
+        if not body.payout_token or not str(body.payout_token).strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Укажите карту через форму ЮKassa (поле payout_token)",
+            )
+        entry = LedgerEntry(
+            user_id=user.id,
+            deal_id=None,
+            amount_kopeks=body.amount_kopeks,
+            status=LedgerEntryStatus.PAYOUT_REQUEST,
+        )
+        db.add(entry)
+        await db.flush()
+        try:
+            payout_id, y_status = await create_payout(
+                amount_kopeks=body.amount_kopeks,
+                payout_token=str(body.payout_token).strip(),
+                description=f"Выплата пользователю {user.id}",
+                metadata={"ledger_entry_id": str(entry.id), "user_id": str(user.id)},
+                idempotency_key=str(entry.id),
+            )
+        except YookassaPayoutError as e:
+            await db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=str(e),
+            ) from e
+        entry.yookassa_payout_id = payout_id
+        await db.commit()
+        await db.refresh(entry)
+        if y_status == "succeeded":
+            await apply_yukassa_payout_finished(entry.id, success=True, db=db, note=None)
+            await db.refresh(entry)
+        return entry
+
     entry = LedgerEntry(
         user_id=user.id,
         deal_id=None,
@@ -75,6 +114,44 @@ async def create_payout_request(user: User, body: PayoutRequestCreate, db: Async
     await db.commit()
     await db.refresh(entry)
     return entry
+
+
+async def apply_yukassa_payout_finished(
+    entry_id: uuid.UUID,
+    *,
+    success: bool,
+    db: AsyncSession,
+    note: str | None,
+) -> None:
+    """Завершение выплаты по вебхуку ЮKassa или сразу после create (status=succeeded). Идемпотентно."""
+    entry = (
+        await db.execute(select(LedgerEntry).where(LedgerEntry.id == entry_id).with_for_update())
+    ).scalar_one_or_none()
+    if entry is None:
+        return
+    if entry.status == LedgerEntryStatus.COMPLETED:
+        return
+    if entry.status == LedgerEntryStatus.REJECTED:
+        return
+    if entry.status not in _ACTIVE_PAYOUT_STATUSES:
+        return
+
+    if success:
+        user = (
+            await db.execute(select(User).where(User.id == entry.user_id).with_for_update())
+        ).scalar_one_or_none()
+        if user is None:
+            return
+        if user.balance < entry.amount_kopeks:
+            return
+        user.balance -= entry.amount_kopeks
+        entry.status = LedgerEntryStatus.COMPLETED
+    else:
+        entry.status = LedgerEntryStatus.REJECTED
+        if note:
+            entry.note = note
+    entry.updated_at = datetime.now(UTC)
+    await db.commit()
 
 
 async def admin_patch_ledger_status(

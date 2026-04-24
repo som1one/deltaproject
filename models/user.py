@@ -1,6 +1,7 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Boolean, Enum as SQLEnum, Float, ForeignKey, Index, Integer, String, text
+from sqlalchemy import Boolean, DateTime, Enum as SQLEnum, Float, ForeignKey, Index, Integer, String, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -26,13 +27,19 @@ class User(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False, index=True)
+    nickname: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
     telegram: Mapped[str | None] = mapped_column(String(255), nullable=True)
     hash_pass: Mapped[str] = mapped_column(String(255), nullable=False)
     percent: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     balance: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
     role: Mapped[UserRole] = mapped_column(
-        SQLEnum(UserRole, name="user_role", native_enum=True),
+        SQLEnum(
+            UserRole,
+            name="user_role",
+            native_enum=True,
+            values_callable=lambda enum_cls: [item.value for item in enum_cls],
+        ),
         nullable=False,
     )
     linked_to: Mapped[uuid.UUID | None] = mapped_column(
@@ -40,4 +47,11 @@ class User(Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
+    )
+    payout_card_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    payout_card_last4: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    blogger_cabinet_pin_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    blogger_cabinet_pin_set_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )
