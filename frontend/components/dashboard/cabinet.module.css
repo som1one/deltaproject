@@ -1,0 +1,1141 @@
+﻿/* =========================================================
+   Cabinet — Worker / Blogger dashboard.
+   Layout: identity header + stats + sidebar tabs + workspace.
+   Premium monochrome.
+   ========================================================= */
+
+/* ---------- Identity header ---------- */
+
+.identityCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.6rem;
+  align-items: center;
+  padding: 2.4rem 2.4rem;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(600px 240px at 8% 0%, rgba(255, 255, 255, 0.04), transparent 65%),
+    var(--surface-raised);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 4rem;
+}
+
+.identityCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.022), transparent 30%);
+  border-radius: inherit;
+}
+
+.identityCard > * {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.identityMain {
+  display: grid;
+  gap: 1.4rem;
+  min-width: 0;
+}
+
+.identityRole {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.32rem 0.9rem;
+  width: fit-content;
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-pill);
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  font-family: var(--font-narrow);
+  font-size: 0.62rem;
+  font-weight: 500;
+}
+
+.identityRole::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-strong);
+}
+
+.identityName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 3.4vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.04;
+  color: var(--text-strong);
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.identityMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.8rem;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0.55rem 0 0;
+  align-items: center;
+}
+
+.identityMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-body);
+}
+
+.identityMeta svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-soft);
+  flex-shrink: 0;
+}
+
+.identityMeta code {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.identityActions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .identityCard {
+    grid-template-columns: 1fr;
+    padding: 1.4rem 1.4rem;
+  }
+  .identityActions {
+    justify-content: flex-start;
+  }
+}
+
+/* ---------- Stats row ---------- */
+
+.statsRow {
+  margin-bottom: 2.2rem;
+}
+
+/* ---------- Tabbed shell ---------- */
+
+.shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 1.8rem;
+  align-items: start;
+}
+
+/* ---------- Sidebar ---------- */
+
+.sidebar {
+  position: sticky;
+  top: 6.4rem;
+  display: grid;
+  gap: 0.3rem;
+  padding: 1.1rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%);
+  border-radius: inherit;
+}
+
+.sidebarLabel {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+  padding: 0.8rem 0.7rem 0.6rem;
+}
+
+.tabBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  position: relative;
+  transition:
+    background var(--transition-base),
+    color var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.tabBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.tabBtnActive {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-strong);
+  border-color: var(--border-strong);
+}
+
+.tabBtnActive::before {
+  content: "";
+  position: absolute;
+  left: -0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 1.2rem;
+  background: var(--text-strong);
+  border-radius: 0 2px 2px 0;
+}
+
+.tabIcon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+  opacity: 0.55;
+  transition: opacity var(--transition-base);
+}
+
+.tabBtn:hover .tabIcon,
+.tabBtnActive .tabIcon {
+  opacity: 1;
+}
+
+.tabBadge {
+  margin-left: auto;
+  font-family: var(--font-narrow);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: var(--surface-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0.14rem 0.55rem;
+  color: var(--text-soft);
+  min-width: 1.4rem;
+  text-align: center;
+}
+
+.tabBtnActive .tabBadge {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text-strong);
+}
+
+.sidebarHelp {
+  margin: 0.85rem 0.4rem 0;
+  padding: 0.85rem 0.9rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-faint);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-soft);
+}
+
+/* ---------- Workspace ---------- */
+
+.workspace {
+  display: grid;
+  gap: 1.8rem;
+  min-width: 0;
+  animation: deltaTabFade 360ms var(--easing) both;
+}
+
+@keyframes deltaTabFade {
+  from { opacity: 0; transform: translateY(6px); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@media (max-width: 1080px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: static;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(140px, 1fr);
+    gap: 0.4rem;
+    overflow-x: auto;
+    padding: 0.7rem;
+  }
+  .sidebarLabel,
+  .sidebarHelp {
+    display: none;
+  }
+  .tabBtn {
+    white-space: nowrap;
+    justify-content: center;
+  }
+  .tabBtnActive::before {
+    display: none;
+  }
+}
+
+/* ---------- Mobile bottom nav (under 640px we hide sidebar entirely
+   and use a dedicated bottom bar; sidebar still visible 640-1080 as scroll row) ---------- */
+
+@media (max-width: 640px) {
+  .shell {
+    padding-bottom: 5rem;
+  }
+}
+
+/* ---------- Action / utility rows ---------- */
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.dealActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.toolbarRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.toolbarFilters {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.toolbarFilters select {
+  min-width: 12rem;
+}
+
+/* ---------- Empty state ---------- */
+
+.emptyState {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 2.6rem 1.2rem;
+  gap: 0.55rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+}
+
+.emptyIcon {
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+
+.emptyIcon svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  color: var(--text-strong);
+}
+
+.emptyText {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 44ch;
+}
+
+/* ---------- Skeleton loading ---------- */
+
+.skeletonGrid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.skeletonStat,
+.skeletonRow {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-faint);
+}
+
+.skeletonStat {
+  height: 6.6rem;
+}
+
+.skeletonRow {
+  height: 3rem;
+}
+
+.skeletonStat::after,
+.skeletonRow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 100%
+  );
+  animation: deltaShimmer 1.4s linear infinite;
+}
+
+@keyframes deltaShimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* ---------- Deal item / table cell helpers ---------- */
+
+.dealRowClickable {
+  cursor: pointer;
+}
+
+.dealRowClickable:hover td {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dealRowClickable:focus-visible {
+  outline: none;
+}
+
+.dealRowClickable:focus-visible td {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.dealRowClickable:focus-visible td:first-child {
+  box-shadow: inset 1px 0 0 var(--text-strong), inset 0 1px 0 var(--border-strong), inset 0 -1px 0 var(--border-strong);
+}
+
+.shopLink {
+  color: var(--text-muted);
+  text-decoration: none;
+  border-bottom: 1px dashed currentColor;
+  transition: color var(--transition-base), border-bottom-style var(--transition-base);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  word-break: break-all;
+}
+
+.shopLink:hover {
+  color: var(--text-strong);
+  border-bottom-style: solid;
+}
+
+.itemTitle {
+  display: block;
+  font-weight: 500;
+  color: var(--text-strong);
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.012em;
+}
+
+.contactCell {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.86rem;
+}
+
+.contactCell code {
+  font-family: var(--font-mono);
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.maskedCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-narrow);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.maskedCell::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.copyButton {
+  align-self: flex-start;
+}
+
+/* ---------- Mobile-friendly deal cards (used instead of tables on phones) ---------- */
+
+.dealCardList {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.dealCard {
+  display: grid;
+  gap: 0.7rem;
+  padding: 1.1rem 1.2rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--transition-base), transform var(--transition-base);
+}
+
+.dealCard:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.dealCardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.dealCardTitle {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.dealCardTitle .itemTitle {
+  font-size: 1.0rem;
+}
+
+.dealCardMeta {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+}
+
+.dealCardMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.dealCardMetaLabel {
+  font-family: var(--font-narrow);
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.dealCardMetaValue {
+  font-family: var(--font-mono);
+  color: var(--text);
+  font-size: 0.86rem;
+  text-align: right;
+  word-break: break-all;
+}
+
+.dealCardActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+}
+
+/* ---------- Script cards ---------- */
+
+.scriptGrid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.scriptCard {
+  padding: 1.2rem 1.3rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 0.6rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--transition-base), transform var(--transition-base);
+}
+
+.scriptCard::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.5);
+  transform: scaleY(0);
+  transform-origin: top center;
+  transition: transform var(--transition-slow);
+}
+
+.scriptCard:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.scriptCard:hover::before {
+  transform: scaleY(0.7);
+}
+
+.scriptCard h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  color: var(--text-strong);
+}
+
+.scriptCard p {
+  margin: 0;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 0.92rem;
+  max-height: 9rem;
+  overflow: auto;
+  padding-right: 0.4rem;
+}
+
+.scriptActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+}
+
+/* ---------- Referral card ---------- */
+
+.referralCard {
+  display: grid;
+  gap: 1rem;
+  padding: 1.7rem 1.9rem;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(420px 180px at 12% 0%, rgba(255, 255, 255, 0.06), transparent 60%),
+    radial-gradient(420px 180px at 100% 100%, rgba(255, 255, 255, 0.03), transparent 60%),
+    linear-gradient(135deg, #0a0a0a, #131313);
+  color: var(--text-strong);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid var(--border-strong);
+  position: relative;
+  overflow: hidden;
+}
+
+.referralCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 32%);
+  border-radius: inherit;
+}
+
+.referralCardArt {
+  position: absolute;
+  right: 1.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 96px;
+  height: 96px;
+  opacity: 0.18;
+  pointer-events: none;
+  filter: grayscale(1);
+}
+
+.referralLabel {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.64rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.referralValue {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: clamp(0.95rem, 1.6vw, 1.18rem);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--text-strong);
+  word-break: break-all;
+  padding-right: 6rem;
+  line-height: 1.4;
+}
+
+.referralActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.2rem;
+}
+
+/* ---------- Balance / pending tiles ---------- */
+
+.balanceTiles {
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 1.8rem;
+}
+
+.balanceTile {
+  padding: 1.55rem 1.65rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-faint);
+  display: grid;
+  gap: 0.6rem;
+  position: relative;
+}
+
+.balanceTile.accent {
+  border-color: var(--border-strong);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 60%),
+    var(--surface-inset);
+}
+
+.balanceTileLabel {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.balanceTileValue {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.6rem;
+  letter-spacing: -0.03em;
+  color: var(--text-strong);
+}
+
+.balanceTile.accent .balanceTileValue {
+  color: var(--text-strong);
+}
+
+.balanceTileNote {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-soft);
+  line-height: 1.45;
+}
+
+/* ---------- Profile section ---------- */
+
+.profileGrid {
+  display: grid;
+  gap: 1.4rem;
+}
+
+.profileBlock {
+  display: grid;
+  gap: 1rem;
+}
+
+.profileBlockTitle {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+/* ---------- Unlock card ---------- */
+
+.unlockShell {
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+  padding: 4rem 1rem;
+  position: relative;
+}
+
+.unlockShell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(600px 360px at 50% 35%, rgba(255, 255, 255, 0.04), transparent 65%);
+}
+
+.unlockCard {
+  width: min(460px, 100%);
+  display: grid;
+  gap: 1.1rem;
+  padding: 2.2rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-strong);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.unlockCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.025), transparent 30%);
+  border-radius: inherit;
+}
+
+.unlockCard > * {
+  position: relative;
+  z-index: 1;
+}
+
+.unlockIcon {
+  width: 2.6rem;
+  height: 2.6rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  margin-bottom: 0.2rem;
+}
+
+.unlockIcon svg {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.unlockCard h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text-strong);
+}
+
+.unlockCard p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+  font-size: 0.94rem;
+}
+
+/* ---------- Page-level loading / error fallback ---------- */
+
+.fullscreenState {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+  padding: 3rem 1rem;
+}
+
+.fullscreenStateInner {
+  width: min(420px, 100%);
+  text-align: center;
+  display: grid;
+  gap: 0.6rem;
+  justify-items: center;
+}
+
+@media (max-width: 720px) {
+  .referralCard {
+    padding: 1.4rem 1.4rem;
+  }
+  .referralCardArt {
+    width: 72px;
+    height: 72px;
+    right: 0.9rem;
+    opacity: 0.16;
+  }
+  .referralValue {
+    padding-right: 4.5rem;
+  }
+  .unlockCard {
+    padding: 1.7rem;
+  }
+  .scriptGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Deal details modal ---------- */
+
+.dealSummary,
+.dealFinance {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.95rem 1.05rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-faint);
+}
+
+.dealSummaryHead {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.dealSummaryText {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.dealSummaryGrid {
+  margin: 0.25rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.7rem 1.1rem;
+}
+
+.dealSummaryGrid div {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.dealSummaryGrid dt {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.dealSummaryGrid dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  color: var(--text-strong);
+  letter-spacing: -0.005em;
+  font-variant-numeric: tabular-nums;
+}
+
+.dealFinanceList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.dealFinanceList li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.dealFinanceList li:last-child {
+  border-bottom: none;
+}
+
+.dealFinanceTotal {
+  margin-top: 0.15rem;
+  padding-top: 0.6rem !important;
+  border-top: 1px solid var(--border);
+}
+
+.dealFinanceTotal .dealFinanceLabel {
+  color: var(--text-strong);
+}
+
+.dealFinanceTotal .dealFinanceValue {
+  font-size: 0.98rem;
+  color: var(--text-strong);
+}
+
+.dealFinanceLabel {
+  font-family: var(--font-narrow);
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.dealFinanceValue {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.dealFinanceEmpty {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.dealSupportLine {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+  text-align: right;
+}
+
+.dealSupportLink {
+  color: var(--text-muted);
+  text-decoration: none;
+  border-bottom: 1px dotted currentColor;
+  transition: color var(--transition-base), border-bottom-style var(--transition-base);
+}
+
+.dealSupportLink:hover {
+  color: var(--text-strong);
+  border-bottom-style: solid;
+}
+
+/* ---------- Edit panel inside deal modal ---------- */
+
+.dealEditCard {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem 1.05rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-faint);
+}
+
+.dealEditHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dealEditNote {
+  font-family: var(--font-narrow);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+/* ---------- Quick-action button row inside deal modal ---------- */
+
+.dealQuickActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.dealLinkButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.82rem;
+  letter-spacing: 0.005em;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    transform var(--transition-base),
+    color var(--transition-base);
+}
+
+.dealLinkButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
