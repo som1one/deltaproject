@@ -707,10 +707,6 @@ const IdentityHeader = ({
             <code>@{me.nickname}</code>
           </span>
         ) : null}
-        <span className={styles.identityMeta}>
-          <Icon d={ICONS.mail} />
-          <code>{me.email}</code>
-        </span>
         {me.telegram ? (
           <span className={styles.identityMeta}>
             <Icon d={ICONS.tg} />
@@ -791,20 +787,10 @@ const ProfileSection = ({
 }) => {
   const [profileForm, setProfileForm] = useState(buildProfileForm(me));
   const [payoutCard, setPayoutCard] = useState("");
-  const [emailRevealed, setEmailRevealed] = useState(false);
 
   useEffect(() => {
     setProfileForm(buildProfileForm(me));
-    setEmailRevealed(false);
   }, [me]);
-
-  const maskEmail = (email: string): string => {
-    if (!email) return "—";
-    const [local, domain] = email.split("@");
-    if (!domain) return "•".repeat(Math.min(local.length, 8));
-    const visibleLocal = local.slice(0, Math.min(2, local.length));
-    return `${visibleLocal}${"•".repeat(Math.max(local.length - visibleLocal.length, 4))}@${domain}`;
-  };
 
   return (
     <SectionCard
@@ -837,24 +823,6 @@ const ProfileSection = ({
               <TextInput value={me.telegram || "—"} readOnly disabled />
             </Field>
           ) : null}
-
-          <Field
-            label="Email"
-            help={emailRevealed ? "Виден полностью только сейчас." : "Скрыт, нажмите «Показать»."}
-          >
-            <div className={styles.profileEmailRow}>
-              <TextInput
-                value={emailRevealed ? profileForm.email : maskEmail(profileForm.email)}
-                readOnly={!emailRevealed}
-                onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })}
-                placeholder="you@delta.team"
-                type={emailRevealed ? "email" : "text"}
-              />
-              <Button kind="ghost" onClick={() => setEmailRevealed((v) => !v)}>
-                {emailRevealed ? "Скрыть" : "Показать"}
-              </Button>
-            </div>
-          </Field>
 
           <div className={styles.actionRow}>
             <Button onClick={() => onSave(profileForm)} disabled={mutationPending}>
