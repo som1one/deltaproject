@@ -10,6 +10,16 @@ from models.user import User
 from utils.security import hash_password
 
 
+def _normalize_async_dsn(url: str) -> str:
+    if not url:
+        return url
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://") :]
+    if url.startswith("postgresql://"):
+        url = "postgresql+asyncpg://" + url[len("postgresql://") :]
+    return url
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Создает или обновляет единственного администратора платформы.",
@@ -27,7 +37,7 @@ async def create_or_update_single_admin(
     password: str,
     telegram: str | None,
 ) -> None:
-    init_db(settings.database_url)
+    init_db(_normalize_async_dsn(settings.database_url))
     factory = get_session_factory()
     try:
         async with factory() as db:

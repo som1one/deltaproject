@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
 
     jwt_secret_key: str = Field(..., validation_alias="JWT_SECRET_KEY")
-    jwt_algorithm: str = Field(default="HS256", validation_alias="JWT_ALGORITHM")
+    jwt_algorithm: str = Field(default="HS512", validation_alias="JWT_ALGORITHM")
     jwt_expiration_time: int = Field(
         default=3600,
         validation_alias="JWT_EXPIRATION_TIME",
@@ -86,6 +86,16 @@ class Settings(BaseSettings):
         default=300,
         validation_alias="TELEGRAM_OAUTH_MAX_AGE_SECONDS",
         description="Макс. возраст auth_date Telegram OAuth (секунды)",
+    )
+    telegram_oauth_redirect_uri: str = Field(
+        default="",
+        validation_alias="TELEGRAM_OAUTH_REDIRECT_URI",
+        description="URL, который зарегистрирован в BotFather как Allowed redirect_uri",
+    )
+    telegram_oauth_frontend_callback_url: str = Field(
+        default="",
+        validation_alias="TELEGRAM_OAUTH_FRONTEND_CALLBACK_URL",
+        description="Куда backend редиректит фронт после OAuth (страница /tg/callback)",
     )
 
     register_max_sessions_per_ip: int = Field(
@@ -163,6 +173,24 @@ class Settings(BaseSettings):
         description="SlowAPI: GET сделки и GET /me/deals",
     )
 
+    allowed_origins: str = Field(
+        default="",
+        validation_alias="ALLOWED_ORIGINS",
+        description=(
+            "Список прод-доменов фронтенда через запятую, "
+            "напр. https://app.example.com,https://admin.example.com. "
+            "Локалхост (localhost / 127.0.0.1) разрешается всегда."
+        ),
+    )
+
+    @property
+    def allowed_origins_list(self) -> list[str]:
+        return [
+            origin.strip()
+            for origin in self.allowed_origins.split(",")
+            if origin.strip()
+        ]
+
     payout_card_pepper: str = Field(
         default="",
         validation_alias="PAYOUT_CARD_PEPPER",
@@ -211,7 +239,12 @@ class Settings(BaseSettings):
     def telegram_oauth_ready(self) -> bool:
         if not self.telegram_oauth_enabled:
             return False
-        return bool(self.telegram_oauth_client_id.strip())
+        return (
+            bool(self.telegram_oauth_client_id.strip())
+            and bool(self.telegram_oauth_client_secret.strip())
+            and bool(self.telegram_oauth_redirect_uri.strip())
+            and bool(self.telegram_oauth_frontend_callback_url.strip())
+        )
 
 
 settings = Settings()

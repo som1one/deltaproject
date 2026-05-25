@@ -218,3 +218,63 @@ PostgreSQL
 интеграцию Telegram
 автоматические выплаты
 рейтинг работников
+
+
+---
+
+## Деплой на Railway (one-click)
+
+В репозитории уже лежат конфиги, чтобы поднять прод за пару минут: `railway.toml`, `Procfile`, `runtime.txt`, `scripts/railway_start.sh`, плюс `frontend/railway.toml` для второго сервиса. На билд/старт оба сервиса собираются нативным `Railpack` без Docker.
+
+### 1. Postgres
+
+Railway → ваш проект → `+ New` → `Database` → `PostgreSQL`. Сервис появится с переменной `DATABASE_URL` вида `postgresql://...`.
+
+### 2. Backend (этот репозиторий)
+
+`+ New` → `GitHub Repo` → `deltaproject`. Root Directory оставьте пустым — это и есть бэкенд.
+
+В сервисе → `Variables` добавьте:
+
+| Переменная | Значение |
+| --- | --- |
+| `DATABASE_URL` | Reference на Postgres → `DATABASE_URL` (бэкенд сам нормализует драйвер в `+asyncpg`). |
+| `JWT_SECRET_KEY` | `python -c "import secrets; print(secrets.token_urlsafe(64))"` |
+| `REFRESH_TOKEN_SECRET_KEY` | то же, но другая случайная строка |
+| `PAYOUT_CARD_PEPPER` | `secrets.token_urlsafe(32)` |
+| `ALLOWED_ORIGINS` | публичный URL фронтенд-сервиса (`https://...up.railway.app`) |
+| `APP_ENV` | `production` |
+| `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD` | (опц.) учётка единственного админа — создастся при первом деплое |
+
+Старт-скрипт `scripts/railway_start.sh` сам прогонит `alembic upgrade head`, при наличии `ADMIN_BOOTSTRAP_*` создаст/обновит администратора и поднимет `uvicorn` на `$PORT`. Healthcheck — `/health`.
+
+### 3. Frontend
+
+`+ New` → `GitHub Repo` → тот же репо. В `Settings → Service` укажите `Root Directory = frontend`. Конфиг `frontend/railway.toml` подцепится автоматически.
+
+`Variables`:
+
+| Переменная | Значение |
+| --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | публичный URL backend-сервиса (`https://...up.railway.app`) |
+| `NEXT_PUBLIC_APP_URL` | публичный URL самого фронта (его же домен) |
+
+Билд: `npm ci && npm run build`. Старт: `npm run start -- -p $PORT`.
+
+### 4. Готово
+
+Открываем `NEXT_PUBLIC_APP_URL` — всё работает. Каждый `git push` в `main` запускает новый деплой обоих сервисов: бэкенд гонит миграции и стартует `uvicorn`, фронт пересобирает Next.js.
+
+### Локально
+
+```bash
+docker compose up -d postgres
+cp .env.example .env             # подставьте секреты
+.venv\Scripts\python.exe -m alembic upgrade head
+.venv\Scripts\python.exe main.py
+
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```

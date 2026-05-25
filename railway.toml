@@ -1,0 +1,18 @@
+## Railway: backend service (FastAPI + Postgres)
+##
+## Этот файл нужен сервису бэкенда. В UI Railway:
+##   1. Создайте сервис из этого репо без указания Root Directory.
+##   2. В "Variables" подключите Postgres (см. README → "Деплой на Railway").
+##
+## Билд: Railway сам определяет Python и ставит requirements.txt.
+## Старт: миграции и опциональный bootstrap админа отрабатывают перед uvicorn.
+
+[build]
+builder = "RAILPACK"
+
+[deploy]
+startCommand = "bash scripts/railway_start.sh"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

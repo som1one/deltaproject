@@ -26,10 +26,26 @@ def _postgres_host_resolves() -> bool:
     return True
 
 
-def get_url() -> str:
-    url = settings.database_url
+def _normalize_dsn_for_psycopg(url: str) -> str:
+    """
+    Унифицируем форматы, которые могут приходить из облака:
+    ``postgres://...``      → ``postgresql+psycopg://...``
+    ``postgresql://...``    → ``postgresql+psycopg://...``
+    ``postgresql+asyncpg://`` → ``postgresql+psycopg://`` (alembic — синхронный).
+    """
+    if not url:
+        return url
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://") :]
     if "+asyncpg" in url:
         url = url.replace("postgresql+asyncpg", "postgresql+psycopg", 1)
+    elif url.startswith("postgresql://") and "+psycopg" not in url:
+        url = "postgresql+psycopg://" + url[len("postgresql://") :]
+    return url
+
+
+def get_url() -> str:
+    url = _normalize_dsn_for_psycopg(settings.database_url)
     # В docker-compose хост postgres есть только внутри сети контейнеров;
     # с Mac/Windows без extra_hosts имя не резолвится — подставляем localhost и порт из compose.
     if not _postgres_host_resolves():

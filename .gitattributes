@@ -1,0 +1,4 @@
+* text=auto eol=lf
+
+# В контейнере исполняется bash — нужен LF.
+*.sh text eol=lf
