@@ -795,7 +795,7 @@ const ProfileSection = ({
   return (
     <SectionCard
       title="Профиль и реквизиты"
-      lead="Имя, Telegram и роль управляются администратором. Карта для выплат хранится в виде хеша — мы видим только последние 4 цифры."
+      lead="Имя редактируете вы, никнейм и Telegram управляются администратором. Карта для выплат хранится в виде хеша — мы видим только последние 4 цифры."
     >
       <div className={styles.profileGrid}>
         <div className={styles.profileBlock}>
@@ -809,17 +809,17 @@ const ProfileSection = ({
               />
             </Field>
             {me.nickname ? (
-              <Field label="Никнейм" help="Меняет администратор">
+              <Field label="Никнейм">
                 <TextInput value={me.nickname} readOnly disabled />
               </Field>
             ) : (
-              <Field label="Telegram" help="Меняет администратор">
+              <Field label="Telegram">
                 <TextInput value={me.telegram || "—"} readOnly disabled />
               </Field>
             )}
           </TwoColumn>
           {me.nickname ? (
-            <Field label="Telegram" help="Меняет администратор">
+            <Field label="Telegram">
               <TextInput value={me.telegram || "—"} readOnly disabled />
             </Field>
           ) : null}
