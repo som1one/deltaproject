@@ -791,15 +791,25 @@ const ProfileSection = ({
 }) => {
   const [profileForm, setProfileForm] = useState(buildProfileForm(me));
   const [payoutCard, setPayoutCard] = useState("");
+  const [emailRevealed, setEmailRevealed] = useState(false);
 
   useEffect(() => {
     setProfileForm(buildProfileForm(me));
+    setEmailRevealed(false);
   }, [me]);
+
+  const maskEmail = (email: string): string => {
+    if (!email) return "—";
+    const [local, domain] = email.split("@");
+    if (!domain) return "•".repeat(Math.min(local.length, 8));
+    const visibleLocal = local.slice(0, Math.min(2, local.length));
+    return `${visibleLocal}${"•".repeat(Math.max(local.length - visibleLocal.length, 4))}@${domain}`;
+  };
 
   return (
     <SectionCard
       title="Профиль и реквизиты"
-      lead="Никнейм и роль управляются администратором. Карта для выплат хранится в виде хеша — мы видим только последние 4 цифры."
+      lead="Имя, Telegram и роль управляются администратором. Карта для выплат хранится в виде хеша — мы видим только последние 4 цифры."
     >
       <div className={styles.profileGrid}>
         <div className={styles.profileBlock}>
@@ -812,51 +822,40 @@ const ProfileSection = ({
                 placeholder="Как вас называть"
               />
             </Field>
-            <Field label="Никнейм" help="Меняет администратор">
-              <TextInput value={me.nickname || "—"} readOnly disabled />
-            </Field>
+            {me.nickname ? (
+              <Field label="Никнейм" help="Меняет администратор">
+                <TextInput value={me.nickname} readOnly disabled />
+              </Field>
+            ) : (
+              <Field label="Telegram" help="Меняет администратор">
+                <TextInput value={me.telegram || "—"} readOnly disabled />
+              </Field>
+            )}
           </TwoColumn>
-          <TwoColumn>
-            <Field label="Telegram">
-              <TextInput
-                value={profileForm.telegram}
-                onChange={(event) => setProfileForm({ ...profileForm, telegram: event.target.value })}
-                placeholder="@username"
-              />
+          {me.nickname ? (
+            <Field label="Telegram" help="Меняет администратор">
+              <TextInput value={me.telegram || "—"} readOnly disabled />
             </Field>
-            <Field label="Email">
+          ) : null}
+
+          <Field
+            label="Email"
+            help={emailRevealed ? "Виден полностью только сейчас." : "Скрыт, нажмите «Показать»."}
+          >
+            <div className={styles.profileEmailRow}>
               <TextInput
-                type="email"
-                value={profileForm.email}
+                value={emailRevealed ? profileForm.email : maskEmail(profileForm.email)}
+                readOnly={!emailRevealed}
                 onChange={(event) => setProfileForm({ ...profileForm, email: event.target.value })}
                 placeholder="you@delta.team"
+                type={emailRevealed ? "email" : "text"}
               />
-            </Field>
-          </TwoColumn>
-        </div>
+              <Button kind="ghost" onClick={() => setEmailRevealed((v) => !v)}>
+                {emailRevealed ? "Скрыть" : "Показать"}
+              </Button>
+            </div>
+          </Field>
 
-        <div className={styles.profileBlock}>
-          <p className={styles.profileBlockTitle}>Безопасность</p>
-          <TwoColumn>
-            <Field label="Новый пароль" help="Оставьте пустым, если не меняете">
-              <TextInput
-                type="password"
-                value={profileForm.password}
-                onChange={(event) => setProfileForm({ ...profileForm, password: event.target.value })}
-                placeholder="••••••••"
-                autoComplete="new-password"
-              />
-            </Field>
-            <Field label="Текущий пароль" help="Нужен только при смене пароля">
-              <TextInput
-                type="password"
-                value={profileForm.currentPassword}
-                onChange={(event) => setProfileForm({ ...profileForm, currentPassword: event.target.value })}
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
-            </Field>
-          </TwoColumn>
           <div className={styles.actionRow}>
             <Button onClick={() => onSave(profileForm)} disabled={mutationPending}>
               {mutationPending ? "Сохраняем…" : "Сохранить профиль"}
@@ -866,7 +865,7 @@ const ProfileSection = ({
 
         <div className={styles.profileBlock}>
           <p className={styles.profileBlockTitle}>Карта для выплат</p>
-          <TwoColumn>
+          <div className={styles.profilePayoutRow}>
             <Field
               label="Номер карты"
               help={me.payout_card_last4 ? `Сохранено: •••• ${me.payout_card_last4}` : "Платформа хранит хеш и последние 4 цифры."}
@@ -879,21 +878,19 @@ const ProfileSection = ({
                 autoComplete="cc-number"
               />
             </Field>
-            <div style={{ display: "flex", alignItems: "flex-end" }}>
-              <Button
-                kind="secondary"
-                onClick={() => {
-                  if (payoutCard.trim()) {
-                    onSetPayoutCard(payoutCard);
-                    setPayoutCard("");
-                  }
-                }}
-                disabled={mutationPending || !payoutCard.trim()}
-              >
-                Обновить карту
-              </Button>
-            </div>
-          </TwoColumn>
+            <Button
+              kind="secondary"
+              onClick={() => {
+                if (payoutCard.trim()) {
+                  onSetPayoutCard(payoutCard);
+                  setPayoutCard("");
+                }
+              }}
+              disabled={mutationPending || !payoutCard.trim()}
+            >
+              Обновить карту
+            </Button>
+          </div>
         </div>
       </div>
     </SectionCard>
