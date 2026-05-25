@@ -786,23 +786,43 @@
 
 @media (max-width: 640px) {
   .container {
-    width: calc(100% - 1.6rem);
+    width: calc(100% - 1.4rem);
+    padding: 1rem 0 5rem;
+  }
+
+  .nav {
+    padding: 0.85rem 0 1rem;
+    margin-bottom: 1.2rem;
   }
 
   .sectionCard {
-    padding: 1.2rem;
+    padding: 1rem 1.05rem;
+  }
+
+  .sectionTitle {
+    font-size: 0.98rem;
+  }
+
+  .sectionLead {
+    font-size: 0.86rem;
+    margin: 0 0 1rem;
   }
 
   .statCard {
-    padding: 1.2rem 1.2rem;
+    padding: 1rem 1rem;
   }
 
   .table th,
   .table td {
-    padding: 0.8rem 0.9rem;
+    padding: 0.7rem 0.8rem;
   }
 
   .modalCard {
-    padding: 1.3rem;
+    padding: 1.2rem;
+  }
+
+  .button {
+    padding: 0.65rem 1.1rem;
+    font-size: 0.84rem;
   }
 }

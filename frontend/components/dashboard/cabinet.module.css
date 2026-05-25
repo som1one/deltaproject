@@ -1375,3 +1375,229 @@
     justify-content: flex-start;
   }
 }
+
+
+/* =========================================================
+   Mobile-first cards for the deals list (replace the table).
+   Используются только на ≤720px; на десктопе спрятаны.
+   ========================================================= */
+
+.dealsMobileList {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0.55rem;
+}
+
+.dealsDesktopTable {
+  display: block;
+}
+
+.dealMobileCard {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-faint);
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
+}
+
+.dealMobileCard:hover,
+.dealMobileCard:focus-visible {
+  outline: none;
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.dealMobileTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.dealMobileTitle {
+  font-size: 0.94rem;
+  font-weight: 500;
+  color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.005em;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dealMobileFoot {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.dealMobilePrice {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.dealMobileDate {
+  font-family: var(--font-narrow);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.dealMobileAction {
+  margin-left: auto;
+}
+
+/* =========================================================
+   Mobile redesign — ≤720px.
+   Цели: меньше высоты, плотнее, без потери UX.
+   ========================================================= */
+
+@media (max-width: 720px) {
+  /* --- Identity card --- */
+  .identityCard {
+    padding: 1.05rem 1.1rem;
+    margin-bottom: 1.2rem;
+    gap: 0.8rem;
+  }
+  .identityMain {
+    gap: 0.55rem;
+  }
+  .identityRole {
+    padding: 0.22rem 0.7rem;
+    font-size: 0.55rem;
+  }
+  .identityName {
+    font-size: 1.4rem;
+  }
+  .identityMetaRow {
+    gap: 0.4rem 1rem;
+    font-size: 0.78rem;
+    margin-top: 0.2rem;
+  }
+  .identityMeta code {
+    font-size: 0.74rem;
+  }
+  .identityMeta svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* --- Balance tiles: 2x2 grid --- */
+  .balanceTiles {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    margin-bottom: 1rem;
+  }
+  .balanceTile {
+    padding: 0.85rem 0.95rem;
+    gap: 0.25rem;
+  }
+  .balanceTileLabel {
+    font-size: 0.56rem;
+    letter-spacing: 0.18em;
+  }
+  .balanceTileValue {
+    font-size: 1.2rem;
+  }
+  .balanceTileNote {
+    font-size: 0.72rem;
+    line-height: 1.35;
+    /* Прячем длинный nostalgia-текст, оставляя только короткий ключевой */
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* --- Shell + sidebar --- */
+  .shell {
+    gap: 1rem;
+    padding-bottom: 0;
+  }
+  .sidebar {
+    padding: 0.45rem;
+    gap: 0.3rem;
+    border-radius: var(--radius-md);
+  }
+  .tabBtn {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.78rem;
+    gap: 0.45rem;
+  }
+  .tabIcon {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+  .tabBadge {
+    padding: 0.08rem 0.42rem;
+    font-size: 0.6rem;
+    min-width: 1.1rem;
+  }
+
+  /* --- Workspace --- */
+  .workspace {
+    gap: 1rem;
+  }
+
+  /* --- SectionCard padding compact --- */
+  .toolbarRow {
+    gap: 0.5rem;
+    margin-bottom: 0.7rem;
+  }
+  .toolbarFilters {
+    width: 100%;
+  }
+
+  /* --- Deals: mobile list visible, desktop table hidden --- */
+  .dealsMobileList {
+    display: grid;
+  }
+  .dealsDesktopTable {
+    display: none;
+  }
+
+  /* --- Profile compact --- */
+  .profileGrid {
+    gap: 1rem;
+  }
+  .profileBlock {
+    gap: 0.7rem;
+  }
+  .profileBlockTitle {
+    padding-bottom: 0.4rem;
+  }
+
+  /* --- Action row buttons full-width --- */
+  .actionRow {
+    gap: 0.5rem;
+  }
+  .actionRow > * {
+    flex: 1 1 auto;
+  }
+
+  /* --- Deal card sub-row in cabinet --- */
+  .dealCardList {
+    gap: 0.55rem;
+  }
+}
+
+/* В очень узких телефонах прячем колонку «дата» в карточке сделок,
+   чтобы тайтл не жался. */
+@media (max-width: 380px) {
+  .dealMobileDate {
+    display: none;
+  }
+}

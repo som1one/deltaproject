@@ -14,6 +14,7 @@ import {
   formatMoney,
   formatNumber,
   formatRole,
+  formatShortDate,
 } from "@/lib/format";
 import type {
   DealRead,
@@ -66,6 +67,44 @@ const StatusCell = ({ deal }: { deal: DealRead }) => (
 
 const Masked = ({ children = "Скрыто" }: { children?: ReactNode }) => (
   <span className={styles.maskedCell}>{children}</span>
+);
+
+/** Мобильная карточка сделки. На ≥720px спрятана через CSS. */
+const DealMobileCard = ({
+  deal,
+  onOpen,
+  trailing,
+}: {
+  deal: DealRead;
+  onOpen: () => void;
+  /** Доп. кнопка справа внизу (например, «Принять» у блогера). */
+  trailing?: ReactNode;
+}) => (
+  <article
+    className={styles.dealMobileCard}
+    role="button"
+    tabIndex={0}
+    onClick={onOpen}
+    onKeyDown={(event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        onOpen();
+      }
+    }}
+    aria-label={`Открыть сделку ${deal.item_name}`}
+  >
+    <div className={styles.dealMobileTop}>
+      <span className={styles.dealMobileTitle}>{deal.item_name}</span>
+      <StatusPill tone={dealStatusTone(deal.status)}>{formatDealStatus(deal.status)}</StatusPill>
+    </div>
+    <div className={styles.dealMobileFoot}>
+      <span className={styles.dealMobilePrice}>
+        {deal.sensitive_masked ? "—" : formatMoney(deal.effective_price_kopeks || deal.price)}
+      </span>
+      <span className={styles.dealMobileDate}>{formatShortDate(deal.created_at)}</span>
+      {trailing ? <div className={styles.dealMobileAction}>{trailing}</div> : null}
+    </div>
+  </article>
 );
 
 const EmptyState = ({
@@ -1145,63 +1184,76 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                   action={statusFilter === "ALL" ? <Button onClick={() => setTab("create")}>Создать сделку</Button> : null}
                 />
               ) : (
-                <TableWrap>
-                  <DataTable>
-                    <thead>
-                      <tr>
-                        <th>Товар</th>
-                        <th>Статус</th>
-                        <th>Цена</th>
-                        <th>Контакт</th>
-                        <th>Создано</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredDeals.map((deal) => (
-                        <tr
-                          key={deal.id}
-                          className={styles.dealRowClickable}
-                          tabIndex={0}
-                          role="button"
-                          aria-label={`Открыть сделку ${deal.item_name}`}
-                          onClick={() => setActiveDealId(deal.id)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              setActiveDealId(deal.id);
-                            }
-                          }}
-                        >
-                          <td>
-                            <span className={styles.itemTitle}>{deal.item_name}</span>
-                            <a
-                              href={deal.shop_link}
-                              target="_blank"
-                              rel="noreferrer"
-                              className={styles.shopLink}
-                              onClick={(event) => event.stopPropagation()}
+                <>
+                  <ul className={styles.dealsMobileList}>
+                    {filteredDeals.map((deal) => (
+                      <DealMobileCard
+                        key={`m-${deal.id}`}
+                        deal={deal}
+                        onOpen={() => setActiveDealId(deal.id)}
+                      />
+                    ))}
+                  </ul>
+                  <div className={styles.dealsDesktopTable}>
+                    <TableWrap>
+                      <DataTable>
+                        <thead>
+                          <tr>
+                            <th>Товар</th>
+                            <th>Статус</th>
+                            <th>Цена</th>
+                            <th>Контакт</th>
+                            <th>Создано</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredDeals.map((deal) => (
+                            <tr
+                              key={deal.id}
+                              className={styles.dealRowClickable}
+                              tabIndex={0}
+                              role="button"
+                              aria-label={`Открыть сделку ${deal.item_name}`}
+                              onClick={() => setActiveDealId(deal.id)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  setActiveDealId(deal.id);
+                                }
+                              }}
                             >
-                              {deal.shop_link}
-                            </a>
-                          </td>
-                          <td><StatusCell deal={deal} /></td>
-                          <td>{formatMoney(deal.effective_price_kopeks || deal.price)}</td>
-                          <td>
-                            {deal.sensitive_masked ? (
-                              <Masked />
-                            ) : (
-                              <div className={styles.contactCell}>
-                                <code>{deal.seller_tg}</code>
-                                <code style={{ color: "var(--text-soft)" }}>{deal.seller_number}</code>
-                              </div>
-                            )}
-                          </td>
-                          <td>{formatDateTime(deal.created_at)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </DataTable>
-                </TableWrap>
+                              <td>
+                                <span className={styles.itemTitle}>{deal.item_name}</span>
+                                <a
+                                  href={deal.shop_link}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className={styles.shopLink}
+                                  onClick={(event) => event.stopPropagation()}
+                                >
+                                  {deal.shop_link}
+                                </a>
+                              </td>
+                              <td><StatusCell deal={deal} /></td>
+                              <td>{formatMoney(deal.effective_price_kopeks || deal.price)}</td>
+                              <td>
+                                {deal.sensitive_masked ? (
+                                  <Masked />
+                                ) : (
+                                  <div className={styles.contactCell}>
+                                    <code>{deal.seller_tg}</code>
+                                    <code style={{ color: "var(--text-soft)" }}>{deal.seller_number}</code>
+                                  </div>
+                                )}
+                              </td>
+                              <td>{formatDateTime(deal.created_at)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </DataTable>
+                    </TableWrap>
+                  </div>
+                </>
               )}
             </SectionCard>
           ) : null}
@@ -1530,78 +1582,102 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                   action={statusFilter === "ALL" ? <Button onClick={() => setTab("referral")}>К реферальной ссылке</Button> : null}
                 />
               ) : (
-                <TableWrap>
-                  <DataTable>
-                    <thead>
-                      <tr>
-                        <th>Товар</th>
-                        <th>Статус</th>
-                        <th>Цена</th>
-                        <th>Контакт</th>
-                        <th>Создано</th>
-                        <th>Действие</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredDeals.map((deal) => (
-                        <tr
-                          key={deal.id}
-                          className={styles.dealRowClickable}
-                          tabIndex={0}
-                          role="button"
-                          aria-label={`Открыть сделку ${deal.item_name}`}
-                          onClick={() => setActiveDealId(deal.id)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              setActiveDealId(deal.id);
-                            }
-                          }}
-                        >
-                          <td>
-                            <span className={styles.itemTitle}>{deal.item_name}</span>
-                            <a
-                              href={deal.shop_link}
-                              target="_blank"
-                              rel="noreferrer"
-                              className={styles.shopLink}
-                              onClick={(event) => event.stopPropagation()}
+                <>
+                  <ul className={styles.dealsMobileList}>
+                    {filteredDeals.map((deal) => (
+                      <DealMobileCard
+                        key={`m-${deal.id}`}
+                        deal={deal}
+                        onOpen={() => setActiveDealId(deal.id)}
+                        trailing={
+                          deal.status === "NEW" ? (
+                            <Button
+                              kind="secondary"
+                              onClick={() => acceptDealMutation.mutate(deal.id)}
+                              disabled={acceptDealMutation.isPending}
                             >
-                              {deal.shop_link}
-                            </a>
-                          </td>
-                          <td><StatusCell deal={deal} /></td>
-                          <td>{deal.sensitive_masked ? <Masked /> : formatMoney(deal.effective_price_kopeks || deal.price)}</td>
-                          <td>
-                            {deal.sensitive_masked ? (
-                              <Masked />
-                            ) : (
-                              <div className={styles.contactCell}>
-                                <code>{deal.seller_tg}</code>
-                                <code style={{ color: "var(--text-soft)" }}>{deal.seller_number}</code>
-                              </div>
-                            )}
-                          </td>
-                          <td>{formatDateTime(deal.created_at)}</td>
-                          <td onClick={(event) => event.stopPropagation()}>
-                            {deal.status === "NEW" ? (
-                              <Button
-                                onClick={() => acceptDealMutation.mutate(deal.id)}
-                                disabled={acceptDealMutation.isPending}
-                              >
-                                Принять
-                              </Button>
-                            ) : (
-                              <span style={{ color: "var(--text-soft)", fontSize: "0.86rem" }}>
-                                {deal.status === "REJECTED" ? "Отклонена" : "В работе"}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </DataTable>
-                </TableWrap>
+                              Принять
+                            </Button>
+                          ) : null
+                        }
+                      />
+                    ))}
+                  </ul>
+                  <div className={styles.dealsDesktopTable}>
+                    <TableWrap>
+                      <DataTable>
+                        <thead>
+                          <tr>
+                            <th>Товар</th>
+                            <th>Статус</th>
+                            <th>Цена</th>
+                            <th>Контакт</th>
+                            <th>Создано</th>
+                            <th>Действие</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredDeals.map((deal) => (
+                            <tr
+                              key={deal.id}
+                              className={styles.dealRowClickable}
+                              tabIndex={0}
+                              role="button"
+                              aria-label={`Открыть сделку ${deal.item_name}`}
+                              onClick={() => setActiveDealId(deal.id)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  setActiveDealId(deal.id);
+                                }
+                              }}
+                            >
+                              <td>
+                                <span className={styles.itemTitle}>{deal.item_name}</span>
+                                <a
+                                  href={deal.shop_link}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className={styles.shopLink}
+                                  onClick={(event) => event.stopPropagation()}
+                                >
+                                  {deal.shop_link}
+                                </a>
+                              </td>
+                              <td><StatusCell deal={deal} /></td>
+                              <td>{deal.sensitive_masked ? <Masked /> : formatMoney(deal.effective_price_kopeks || deal.price)}</td>
+                              <td>
+                                {deal.sensitive_masked ? (
+                                  <Masked />
+                                ) : (
+                                  <div className={styles.contactCell}>
+                                    <code>{deal.seller_tg}</code>
+                                    <code style={{ color: "var(--text-soft)" }}>{deal.seller_number}</code>
+                                  </div>
+                                )}
+                              </td>
+                              <td>{formatDateTime(deal.created_at)}</td>
+                              <td onClick={(event) => event.stopPropagation()}>
+                                {deal.status === "NEW" ? (
+                                  <Button
+                                    onClick={() => acceptDealMutation.mutate(deal.id)}
+                                    disabled={acceptDealMutation.isPending}
+                                  >
+                                    Принять
+                                  </Button>
+                                ) : (
+                                  <span style={{ color: "var(--text-soft)", fontSize: "0.86rem" }}>
+                                    {deal.status === "REJECTED" ? "Отклонена" : "В работе"}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </DataTable>
+                    </TableWrap>
+                  </div>
+                </>
               )}
             </SectionCard>
           ) : null}
