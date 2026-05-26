@@ -392,6 +392,9 @@
 .field {
   display: grid;
   gap: 0.45rem;
+  /* Без этого input в коротком поле растягивается на всю высоту соседа
+     с help-текстом — соседние пары в TwoColumn визуально едут. */
+  align-content: start;
 }
 
 .fieldLabel {
@@ -540,8 +543,9 @@
 
 .twoColumn {
   display: grid;
-  gap: 1rem;
+  gap: 1rem 1.2rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
 }
 
 .split {
