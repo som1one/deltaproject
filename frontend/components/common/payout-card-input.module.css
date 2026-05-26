@@ -65,9 +65,16 @@
 
 .card[data-brand="mir"] {
   background:
-    radial-gradient(120% 120% at 100% 0%, rgba(120, 220, 160, 0.18), transparent 60%),
-    linear-gradient(135deg, #0c1f17 0%, #163a25 50%, #0c1f17 100%);
-  border-color: rgba(120, 220, 160, 0.35);
+    radial-gradient(140% 140% at 100% 0%, rgba(120, 240, 180, 0.22), transparent 60%),
+    linear-gradient(135deg, #082218 0%, #114a30 50%, #082218 100%);
+  border-color: rgba(120, 240, 180, 0.4);
+}
+
+.card[data-brand="mir"] .cardBrand {
+  color: rgba(180, 255, 220, 0.92);
+  font-style: italic;
+  font-family: var(--font-display);
+  letter-spacing: 0.18em;
 }
 
 .card[data-brand="amex"] {

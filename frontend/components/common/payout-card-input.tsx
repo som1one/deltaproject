@@ -19,10 +19,22 @@ type CardBrand = "mir" | "mastercard" | "visa" | "amex" | "unknown";
 
 const detectBrand = (digits: string): CardBrand => {
   if (!digits) return "unknown";
-  if (/^(220[0-4])/.test(digits)) return "mir"; // МИР
+  // МИР — национальные карты РФ. Основной диапазон BIN 2200–2204.
+  if (/^220[0-4]/.test(digits)) return "mir";
+  // Visa
   if (/^4/.test(digits)) return "visa";
-  if (/^(5[1-5]|2[2-7])/.test(digits)) return "mastercard";
-  if (/^(34|37)/.test(digits)) return "amex";
+  // Mastercard: 51–55 либо 2221–2720.
+  if (/^5[1-5]/.test(digits)) return "mastercard";
+  if (/^2[2-7]/.test(digits)) {
+    if (digits.length >= 4) {
+      const head = Number(digits.slice(0, 4));
+      if (head >= 2221 && head <= 2720) return "mastercard";
+    } else {
+      return "mastercard";
+    }
+  }
+  // American Express
+  if (/^3[47]/.test(digits)) return "amex";
   return "unknown";
 };
 
@@ -84,6 +96,7 @@ export const PayoutCardInput = ({
   onSubmit: (rawDigits: string) => void;
 }) => {
   const [raw, setRaw] = useState(""); // только цифры
+  const [holder, setHolder] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,6 +119,12 @@ export const PayoutCardInput = ({
     setError(null);
   };
 
+  const handleHolder = (value: string) => {
+    // Латиница, пробелы, апостроф и дефис — как на тиснении карты.
+    const filtered = value.toUpperCase().replace(/[^A-ZА-ЯЁ \-']/g, "");
+    setHolder(filtered.slice(0, 40));
+  };
+
   const handleSubmit = () => {
     if (!isValidLength) {
       setError("Номер должен содержать 16 цифр (15 — для AmEx).");
@@ -117,6 +136,7 @@ export const PayoutCardInput = ({
     }
     onSubmit(raw);
     setRaw("");
+    setHolder("");
     setRevealed(false);
   };
 
@@ -130,7 +150,9 @@ export const PayoutCardInput = ({
         <div className={styles.cardFootRow}>
           <div className={styles.cardFootBlock}>
             <span className={styles.cardFootLabel}>Держатель</span>
-            <span className={styles.cardFootValue}>** ** ** **</span>
+            <span className={styles.cardFootValue}>
+              {holder.trim() ? holder : "ИМЯ ФАМИЛИЯ"}
+            </span>
           </div>
           <div className={styles.cardFootBlock}>
             <span className={styles.cardFootLabel}>Last 4</span>
@@ -149,7 +171,7 @@ export const PayoutCardInput = ({
             error ??
             (savedLast4
               ? `Сохранено: •••• ${savedLast4}. Платформа хранит хеш и последние 4 цифры.`
-              : "Платформа хранит хеш и последние 4 цифры.")
+              : "Поддерживаются МИР, Visa, Mastercard, AmEx. Платформа хранит только хеш и last4.")
           }
         >
           <div className={styles.inputRow}>
@@ -184,6 +206,18 @@ export const PayoutCardInput = ({
               </svg>
             </button>
           </div>
+        </Field>
+
+        <Field
+          label="Держатель карты"
+          help="Как на лицевой стороне. Используется только для предпросмотра — на сервер не уходит."
+        >
+          <TextInput
+            placeholder="IVAN IVANOV"
+            autoComplete="cc-name"
+            value={holder}
+            onChange={(event) => handleHolder(event.target.value)}
+          />
         </Field>
 
         {raw && !isValidLength ? (
