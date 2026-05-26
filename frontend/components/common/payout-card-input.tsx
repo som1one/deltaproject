@@ -177,12 +177,12 @@ export const PayoutCardInput = ({
               : "Поддерживаются МИР, БЕЛКАРТ, Visa, Mastercard, AmEx. Платформа хранит только хеш и last4.")
           }
         >
-          <div className={styles.inputRow}>
+          <div className={`${styles.inputRow}${revealed ? "" : ` ${styles.inputRowMasked}`}`}>
             <TextInput
               inputMode="numeric"
               autoComplete="cc-number"
               placeholder="2200 0000 0000 0000"
-              value={revealed ? formatted : maskedFormatted(formatted)}
+              value={formatted}
               onChange={(event) => handleChange(event.target.value)}
               aria-invalid={Boolean(error)}
             />
@@ -238,6 +238,9 @@ export const PayoutCardInput = ({
   );
 };
 
-/** Полностью замаскированный formatted-номер (буллеты на месте цифр). */
-const maskedFormatted = (formatted: string): string =>
+/** Полностью замаскированный formatted-номер (буллеты на месте цифр).
+ *  В компоненте больше не используется — маскировка делается через CSS,
+ *  чтобы не ломать набор и backspace в скрытом режиме. */
+const _maskedFormatted = (formatted: string): string =>
   formatted.replace(/\d/g, "•");
+void _maskedFormatted;

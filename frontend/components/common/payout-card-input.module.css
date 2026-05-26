@@ -187,6 +187,14 @@
   align-items: stretch;
 }
 
+/* Когда номер скрыт — прячем символы через CSS, не подменяя value.
+   Так не ломаются ввод, backspace и работа автозаполнения. */
+.inputRowMasked input {
+  -webkit-text-security: disc;
+  text-security: disc;
+  letter-spacing: 0.18em;
+}
+
 .eyeButton {
   display: inline-flex;
   align-items: center;
