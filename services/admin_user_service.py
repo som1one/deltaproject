@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from enums.ledger import LedgerEntryStatus
 from enums.user import UserRole
 from models.ledger_entry import LedgerEntry
+from models.referral import ReferralLink
 from models.user import User
 from schemas.admin import (
     AdminBloggerCreateRequest,
@@ -173,6 +174,10 @@ async def admin_create_blogger(
         role=UserRole.BLOGER,
     )
     db.add(user)
+    await db.flush()
+
+    # Сразу создаём реферальную ссылку, чтобы новый блогер видел её в кабинете.
+    db.add(ReferralLink(user_id=user.id, link=f"/ref/{nickname}"))
     await db.commit()
     await db.refresh(user)
     return user, password

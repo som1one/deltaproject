@@ -1,0 +1,415 @@
+﻿/* =========================================================
+   Admin вЂ” sidebar layout, workspace, password panel.
+   Class names preserved 1:1.
+   ========================================================= */
+
+.shell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 1.6rem;
+  align-items: start;
+}
+
+/* ---------- Sidebar ---------- */
+
+.sidebar {
+  position: sticky;
+  top: 5.6rem;
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.85rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 30%);
+  border-radius: inherit;
+}
+
+.sidebar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.sidebarLabel {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+  padding: 0.6rem 0.7rem 0.4rem;
+}
+
+.sidebarItem {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  width: 100%;
+  transition:
+    background var(--transition-base),
+    color var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.sidebarItem:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.sidebarItemActive {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+  border-color: var(--border-strong);
+  position: relative;
+}
+
+.sidebarItemActive::before {
+  content: "";
+  position: absolute;
+  left: -0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 1.2rem;
+  background: var(--text-strong);
+  border-radius: 0 2px 2px 0;
+}
+
+.sidebarItemActive:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+
+.sidebarItemIcon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity var(--transition-base);
+}
+
+.sidebarItem:hover .sidebarItemIcon,
+.sidebarItemActive .sidebarItemIcon {
+  opacity: 1;
+}
+
+.sidebarBadge {
+  font-family: var(--font-narrow);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: var(--surface-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0.12rem 0.55rem;
+  color: var(--text-soft);
+  margin-left: auto;
+  min-width: 1.4rem;
+  text-align: center;
+}
+
+.sidebarItemActive .sidebarBadge {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--text-strong);
+}
+
+/* ---------- Workspace ---------- */
+
+.workspace {
+  display: grid;
+  gap: 1.4rem;
+  min-width: 0;
+}
+
+.heroBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.heroBar > div:first-child {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.heroBar h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 2.6vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-strong);
+  line-height: 1.1;
+}
+
+.heroBar p {
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 60ch;
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+/* ---------- Two-column inner layout ---------- */
+
+.sideLayout {
+  display: grid;
+  gap: 1.2rem;
+  grid-template-columns: 1.2fr 0.85fr;
+  align-items: start;
+  min-width: 0;
+}
+
+.sideLayout > * {
+  min-width: 0;
+}
+
+/* ---------- Compact lists (scripts) ---------- */
+
+.compactList {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.scriptRow {
+  padding: 0.95rem 1.1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  cursor: pointer;
+  transition:
+    border-color var(--transition-base),
+    background var(--transition-base),
+    transform var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.scriptRow::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.5);
+  transform: scaleY(0);
+  transform-origin: top center;
+  transition: transform var(--transition-slow);
+}
+
+.scriptRow:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.scriptRow:hover::before {
+  transform: scaleY(0.6);
+}
+
+.scriptRow h3 {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-display);
+  font-size: 0.96rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text-strong);
+}
+
+.scriptRow p {
+  margin: 0;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---------- Selectable rows ---------- */
+
+.selectable {
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.selectable:hover td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.selected td {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-bottom-color: var(--border-strong);
+}
+
+.selected td:first-child {
+  position: relative;
+}
+
+.selected td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--text-strong);
+}
+
+.scriptRow.selected,
+.selected.scriptRow {
+  border-color: var(--border-strong);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%),
+    var(--surface-hover);
+}
+
+.scriptRow.selected::before,
+.selected.scriptRow::before {
+  transform: scaleY(1);
+}
+
+/* ---------- Password panel (generated credentials) ---------- */
+
+.passwordPanel {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.1rem 1.2rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  color: var(--text-strong);
+  border: 1px solid var(--border-strong);
+  position: relative;
+  overflow: hidden;
+}
+
+.passwordPanel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 40%);
+  border-radius: inherit;
+}
+
+.passwordPanel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.passwordPanelTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-family: var(--font-narrow);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  margin: 0 0 0.2rem;
+}
+
+.passwordPanelTitle::before {
+  content: "";
+  display: inline-block;
+  width: 0.95rem;
+  height: 0.95rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Crect x='3' y='7' width='10' height='8' rx='2' stroke='white' stroke-width='1.4'/%3E%3Cpath d='M5 7V5a3 3 0 0 1 6 0v2' stroke='white' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  flex-shrink: 0;
+}
+
+.passwordPanel code {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  color: var(--text-strong);
+  background: transparent;
+  padding: 0;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1080px) {
+  .shell {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+
+  .sidebar {
+    position: static;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(140px, 1fr);
+    gap: 0.4rem;
+    overflow-x: auto;
+    padding: 0.7rem;
+  }
+
+  .sidebarLabel {
+    display: none;
+  }
+
+  .sidebarItem {
+    white-space: nowrap;
+    justify-content: flex-start;
+  }
+
+  .sidebarItemActive::before {
+    display: none;
+  }
+
+  .sideLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .heroBar {
+    padding-bottom: 1rem;
+  }
+
+  .scriptRow {
+    padding: 0.85rem 1rem;
+  }
+}

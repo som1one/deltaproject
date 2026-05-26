@@ -39,14 +39,46 @@ def _blogger_cabinet_locked(user: User, request: Request | None) -> bool:
     return True
 
 
-async def referral_invite_url_for_worker(user: User, db: AsyncSession) -> str | None:
-    if user.role != UserRole.WORKER or user.linked_to is None:
-        return None
-    result = await db.execute(
-        select(ReferralLink).where(ReferralLink.user_id == user.linked_to),
-    )
-    row = result.scalar_one_or_none()
-    return row.link if row else None
+async def referral_invite_url(user: User, db: AsyncSession) -> str | None:
+    """
+    Возвращает реф-ссылку, которую разумно показать в `me`:
+    - воркеру — ссылку его блогера (если он привязан);
+    - блогеру — его собственную ссылку (если запись в ref_links уже есть,
+      иначе соберём из nickname на лету и положим в БД, чтобы не падать
+      на старых аккаунтах, созданных до автоматического создания записи).
+    """
+    if user.role == UserRole.WORKER:
+        if user.linked_to is None:
+            return None
+        result = await db.execute(
+            select(ReferralLink).where(ReferralLink.user_id == user.linked_to),
+        )
+        row = result.scalar_one_or_none()
+        return row.link if row else None
+
+    if user.role == UserRole.BLOGER:
+        result = await db.execute(
+            select(ReferralLink).where(ReferralLink.user_id == user.id),
+        )
+        row = result.scalar_one_or_none()
+        if row is not None:
+            return row.link
+        if not user.nickname:
+            return None
+        # Авто-восстановление: для блогеров без ref-записи в БД создаём её.
+        link = f"/ref/{user.nickname}"
+        try:
+            db.add(ReferralLink(user_id=user.id, link=link))
+            await db.commit()
+        except Exception:
+            await db.rollback()
+        return link
+
+    return None
+
+
+# Сохраняем старое имя для обратной совместимости.
+referral_invite_url_for_worker = referral_invite_url
 
 
 async def user_to_me_read(
@@ -55,7 +87,7 @@ async def user_to_me_read(
     request: Request | None = None,
 ) -> UserMeRead:
     pending = await sum_pending_confirmation_kopeks(user.id, db)
-    ref_url = await referral_invite_url_for_worker(user, db)
+    ref_url = await referral_invite_url(user, db)
     return UserMeRead(
         id=user.id,
         name=user.name,

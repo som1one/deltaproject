@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
 import { api } from "@/lib/api";
+import { appConfig } from "@/lib/config";
 import { useAuth } from "@/lib/auth-context";
 import {
   dealStatusTone,
@@ -69,6 +70,16 @@ const StatusCell = ({ deal }: { deal: DealRead }) => (
 const Masked = ({ children = "Скрыто" }: { children?: ReactNode }) => (
   <span className={styles.maskedCell}>{children}</span>
 );
+
+/** Превращает относительную ссылку (`/ref/<nick>`) в абсолютный URL,
+ *  чтобы её было удобно скопировать и отправить. */
+const absolutizeUrl = (raw: string | null | undefined): string => {
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const base = (appConfig.appUrl || "").replace(/\/+$/, "");
+  const path = raw.startsWith("/") ? raw : `/${raw}`;
+  return `${base}${path}`;
+};
 
 /** Мобильная карточка сделки. На ≥720px спрятана через CSS. */
 const DealMobileCard = ({
@@ -2018,17 +2029,17 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                   <img src="/images/referral-art.svg" alt="" aria-hidden="true" className={styles.referralCardArt} />
                   <p className={styles.referralLabel}>Ваша ссылка</p>
                   <p className={styles.referralValue}>
-                    {me.referral_invite_url || "Сгенерируется после первой настройки администратором"}
+                    {absolutizeUrl(me.referral_invite_url) || "Сгенерируется после первой настройки администратором"}
                   </p>
                   <div className={styles.referralActions}>
                     <CopyButton
-                      value={me.referral_invite_url || ""}
+                      value={absolutizeUrl(me.referral_invite_url)}
                       kind="primary"
                       label="Скопировать ссылку"
                       toastText="Ссылка скопирована в буфер"
                     />
                     {me.referral_invite_url ? (
-                      <Button kind="secondary" href={me.referral_invite_url}>
+                      <Button kind="secondary" href={absolutizeUrl(me.referral_invite_url)}>
                         <Icon d={ICONS.link} /> Открыть
                       </Button>
                     ) : null}

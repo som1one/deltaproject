@@ -473,7 +473,8 @@
   transition: color var(--transition-base), border-bottom-style var(--transition-base);
   font-family: var(--font-mono);
   font-size: 0.82rem;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .shopLink:hover {
@@ -593,7 +594,8 @@
   color: var(--text);
   font-size: 0.86rem;
   text-align: right;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .dealCardActions {
@@ -728,7 +730,10 @@
   font-weight: 500;
   letter-spacing: -0.005em;
   color: var(--text-strong);
-  word-break: break-all;
+  /* break-all ломает обычные слова в самой неожиданной точке.
+     anywhere переносит только при необходимости и любит длинные URL. */
+  overflow-wrap: anywhere;
+  word-break: normal;
   padding-right: 6rem;
   line-height: 1.4;
 }
@@ -1294,7 +1299,8 @@
   font-family: var(--font-mono);
   font-size: 0.9rem;
   color: var(--text-strong);
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
   letter-spacing: -0.005em;
 }
 
