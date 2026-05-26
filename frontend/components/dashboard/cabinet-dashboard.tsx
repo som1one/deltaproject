@@ -1373,33 +1373,57 @@ const ledgerTone = (status: LedgerEntryStatus): "active" | "success" | "muted" |
 };
 
 const LedgerTable = ({ items }: { items: LedgerEntryRead[] }) => (
-  <TableWrap>
-    <DataTable>
-      <thead>
-        <tr>
-          <th>Дата</th>
-          <th>Сумма</th>
-          <th>Статус</th>
-          <th>Заметка</th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((entry) => (
-          <tr key={entry.id}>
-            <td>{formatDateTime(entry.created_at)}</td>
-            <td style={{ fontFamily: "var(--font-mono)", color: entry.amount_kopeks < 0 ? "var(--status-danger)" : "var(--text-strong)" }}>
+  <>
+    <ul className={styles.ledgerMobileList}>
+      {items.map((entry) => (
+        <li key={`m-${entry.id}`} className={styles.ledgerMobileCard}>
+          <div className={styles.ledgerMobileTop}>
+            <span
+              className={styles.ledgerMobileAmount}
+              data-negative={entry.amount_kopeks < 0 ? "true" : undefined}
+            >
               {entry.amount_kopeks < 0 ? "−" : "+"}
               {formatMoney(Math.abs(entry.amount_kopeks))}
-            </td>
-            <td>
-              <StatusPill tone={ledgerTone(entry.status)}>{formatLedgerStatus(entry.status)}</StatusPill>
-            </td>
-            <td style={{ color: entry.note ? "var(--text)" : "var(--text-soft)" }}>{entry.note || "—"}</td>
-          </tr>
-        ))}
-      </tbody>
-    </DataTable>
-  </TableWrap>
+            </span>
+            <StatusPill tone={ledgerTone(entry.status)}>{formatLedgerStatus(entry.status)}</StatusPill>
+          </div>
+          <div className={styles.ledgerMobileFoot}>
+            <span className={styles.ledgerMobileDate}>{formatDateTime(entry.created_at)}</span>
+            {entry.note ? <span className={styles.ledgerMobileNote}>{entry.note}</span> : null}
+          </div>
+        </li>
+      ))}
+    </ul>
+    <div className={styles.dealsDesktopTable}>
+      <TableWrap>
+        <DataTable>
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Сумма</th>
+              <th>Статус</th>
+              <th>Заметка</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((entry) => (
+              <tr key={entry.id}>
+                <td>{formatDateTime(entry.created_at)}</td>
+                <td style={{ fontFamily: "var(--font-mono)", color: entry.amount_kopeks < 0 ? "var(--status-danger)" : "var(--text-strong)" }}>
+                  {entry.amount_kopeks < 0 ? "−" : "+"}
+                  {formatMoney(Math.abs(entry.amount_kopeks))}
+                </td>
+                <td>
+                  <StatusPill tone={ledgerTone(entry.status)}>{formatLedgerStatus(entry.status)}</StatusPill>
+                </td>
+                <td style={{ color: entry.note ? "var(--text)" : "var(--text-soft)" }}>{entry.note || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+      </TableWrap>
+    </div>
+  </>
 );
 
 /* =========================================================
