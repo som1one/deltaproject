@@ -734,37 +734,44 @@ const IdentityHeader = ({
   subtitle,
 }: {
   me: UserMeRead;
-  subtitle: string;
-}) => (
-  <header className={styles.identityCard}>
-    <div className={styles.identityMain}>
-      <span className={styles.identityRole}>{formatRole(me.role)} · {subtitle}</span>
-      <h1 className={styles.identityName}>{me.name}</h1>
-      <div className={styles.identityMetaRow}>
-        {me.nickname ? (
-          <span className={styles.identityMeta}>
-            <Icon d={ICONS.profile} />
-            <code>@{me.nickname}</code>
-          </span>
-        ) : null}
-        {me.telegram ? (
-          <span className={styles.identityMeta}>
-            <Icon d={ICONS.tg} />
-            <code>{me.telegram}</code>
-          </span>
-        ) : null}
-        <span className={styles.identityMeta}>
-          <Icon d={ICONS.card} />
-          {me.payout_card_last4 ? (
-            <code>•••• {me.payout_card_last4}</code>
-          ) : (
-            <span style={{ color: "var(--text-soft)" }}>карта не задана</span>
-          )}
+  subtitle?: string;
+}) => {
+  const role = formatRole(me.role);
+  const showSub = Boolean(subtitle && subtitle.toLowerCase() !== role.toLowerCase());
+  return (
+    <header className={styles.identityCard}>
+      <div className={styles.identityMain}>
+        <span className={styles.identityRole}>
+          {role}
+          {showSub ? <> · {subtitle}</> : null}
         </span>
+        <h1 className={styles.identityName}>{me.name}</h1>
+        <div className={styles.identityMetaRow}>
+          {me.nickname ? (
+            <span className={styles.identityMeta}>
+              <Icon d={ICONS.profile} />
+              <code>@{me.nickname}</code>
+            </span>
+          ) : null}
+          {me.telegram ? (
+            <span className={styles.identityMeta}>
+              <Icon d={ICONS.tg} />
+              <code>{me.telegram}</code>
+            </span>
+          ) : null}
+          <span className={styles.identityMeta}>
+            <Icon d={ICONS.card} />
+            {me.payout_card_last4 ? (
+              <code>•••• {me.payout_card_last4}</code>
+            ) : (
+              <span style={{ color: "var(--text-soft)" }}>карта не задана</span>
+            )}
+          </span>
+        </div>
       </div>
-    </div>
-  </header>
-);
+    </header>
+  );
+};
 
 /* =========================================================
    Sidebar tabs
@@ -1018,7 +1025,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
 
   return (
     <>
-      <IdentityHeader me={me} subtitle="воркер" />
+      <IdentityHeader me={me} />
 
       <div className={styles.balanceTiles}>
         <div className={`${styles.balanceTile} ${styles.accent}`}>
@@ -1822,7 +1829,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
 
   return (
     <>
-      <IdentityHeader me={me} subtitle="блогер" />
+      <IdentityHeader me={me} />
 
       <div className={styles.balanceTiles}>
         <div className={`${styles.balanceTile} ${styles.accent}`}>
