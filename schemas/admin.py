@@ -21,6 +21,7 @@ class AdminUserRead(BaseModel):
     percent: float
     balance: int
     is_active: bool
+    payout_card_last4: str | None = None
 
 
 class AdminUserPatch(BaseModel):

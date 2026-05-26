@@ -413,3 +413,20 @@
     padding: 0.85rem 1rem;
   }
 }
+
+
+/* Кликабельная ячейка (например, user_id в леджере → переход в карточку юзера). */
+.linkCell {
+  cursor: pointer;
+  position: relative;
+  color: var(--text-strong);
+  text-decoration: underline dotted;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+  transition: color var(--transition-base), text-decoration-color var(--transition-base);
+}
+
+.linkCell:hover {
+  color: var(--text-strong);
+  text-decoration-color: var(--text-strong);
+}
