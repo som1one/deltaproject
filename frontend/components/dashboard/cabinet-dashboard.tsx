@@ -42,6 +42,7 @@ import {
   NavLink,
 } from "@/components/common/ui";
 import { CopyButton } from "@/components/common/copy-button";
+import { PayoutCardInput } from "@/components/common/payout-card-input";
 import { useToast } from "@/components/common/toast";
 import { OverviewCharts } from "@/components/dashboard/overview-charts";
 import styles from "@/components/dashboard/cabinet.module.css";
@@ -825,7 +826,6 @@ const ProfileSection = ({
   onSetPayoutCard: (cardNumber: string) => void;
 }) => {
   const [profileForm, setProfileForm] = useState(buildProfileForm(me));
-  const [payoutCard, setPayoutCard] = useState("");
 
   useEffect(() => {
     setProfileForm(buildProfileForm(me));
@@ -872,32 +872,11 @@ const ProfileSection = ({
 
         <div className={styles.profileBlock}>
           <p className={styles.profileBlockTitle}>Карта для выплат</p>
-          <div className={styles.profilePayoutRow}>
-            <Field
-              label="Номер карты"
-              help={me.payout_card_last4 ? `Сохранено: •••• ${me.payout_card_last4}` : "Платформа хранит хеш и последние 4 цифры."}
-            >
-              <TextInput
-                inputMode="numeric"
-                value={payoutCard}
-                onChange={(event) => setPayoutCard(event.target.value)}
-                placeholder="2200 0000 0000 0000"
-                autoComplete="cc-number"
-              />
-            </Field>
-            <Button
-              kind="secondary"
-              onClick={() => {
-                if (payoutCard.trim()) {
-                  onSetPayoutCard(payoutCard);
-                  setPayoutCard("");
-                }
-              }}
-              disabled={mutationPending || !payoutCard.trim()}
-            >
-              Обновить карту
-            </Button>
-          </div>
+          <PayoutCardInput
+            savedLast4={me.payout_card_last4 ?? null}
+            pending={mutationPending}
+            onSubmit={(rawDigits) => onSetPayoutCard(rawDigits)}
+          />
         </div>
       </div>
     </SectionCard>

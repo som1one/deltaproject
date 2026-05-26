@@ -1,0 +1,192 @@
+/* =========================================================
+   Payout card input — premium card preview + form.
+   ========================================================= */
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: 1.4rem;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .shell {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* ---- Live card preview ---- */
+
+.card {
+  position: relative;
+  aspect-ratio: 1.586 / 1;
+  width: 100%;
+  max-width: 320px;
+  border-radius: 18px;
+  padding: 1.3rem 1.4rem 1.2rem;
+  color: var(--text-strong);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.6rem;
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(255, 255, 255, 0.12), transparent 60%),
+    linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%);
+  border: 1px solid var(--border-strong);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  overflow: hidden;
+  transition: border-color var(--transition-base);
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(280px 200px at 0% 100%, rgba(255, 255, 255, 0.05), transparent 60%);
+  pointer-events: none;
+}
+
+.card[data-brand="visa"] {
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(120, 160, 255, 0.18), transparent 60%),
+    linear-gradient(135deg, #0e1a3a 0%, #16265e 50%, #0e1a3a 100%);
+  border-color: rgba(120, 160, 255, 0.35);
+}
+
+.card[data-brand="mastercard"] {
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(255, 170, 110, 0.18), transparent 60%),
+    linear-gradient(135deg, #2a1410 0%, #4a1f15 50%, #2a1410 100%);
+  border-color: rgba(255, 140, 100, 0.35);
+}
+
+.card[data-brand="mir"] {
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(120, 220, 160, 0.18), transparent 60%),
+    linear-gradient(135deg, #0c1f17 0%, #163a25 50%, #0c1f17 100%);
+  border-color: rgba(120, 220, 160, 0.35);
+}
+
+.card[data-brand="amex"] {
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(160, 220, 255, 0.18), transparent 60%),
+    linear-gradient(135deg, #102230 0%, #1a3850 50%, #102230 100%);
+  border-color: rgba(160, 220, 255, 0.35);
+}
+
+.cardChip {
+  width: 36px;
+  height: 26px;
+  border-radius: 5px;
+  background:
+    linear-gradient(135deg, rgba(255, 215, 130, 0.95), rgba(170, 130, 60, 0.85)),
+    var(--surface-raised);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.45);
+  position: relative;
+  z-index: 1;
+}
+
+.cardChip::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  background: linear-gradient(0deg, transparent 45%, rgba(0, 0, 0, 0.25) 50%, transparent 55%);
+}
+
+.cardBrand {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.4rem;
+  font-family: var(--font-narrow);
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
+  z-index: 1;
+}
+
+.cardNumber {
+  font-family: var(--font-mono);
+  font-size: 1.15rem;
+  letter-spacing: 0.06em;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  word-spacing: 0.15em;
+  align-self: end;
+  z-index: 1;
+}
+
+.cardFootRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  z-index: 1;
+}
+
+.cardFootBlock {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.cardFootLabel {
+  font-family: var(--font-narrow);
+  font-size: 0.55rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.cardFootValue {
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  color: var(--text-strong);
+  letter-spacing: 0.05em;
+}
+
+/* ---- Form ---- */
+
+.form {
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
+}
+
+.inputRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.eyeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-inset);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base);
+}
+
+.eyeButton:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+.eyeButton svg {
+  width: 16px;
+  height: 16px;
+}

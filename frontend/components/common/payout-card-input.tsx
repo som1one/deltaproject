@@ -1,0 +1,206 @@
+"use client";
+
+import { useMemo, useState } from "react";
+
+import { Button, Field, Message, TextInput } from "@/components/common/ui";
+
+import styles from "./payout-card-input.module.css";
+
+/* =========================================================
+   Premium card input with live preview + masked formatting.
+   - Авто-форматирование «1234 5678 9012 3456»
+   - Детекция бренда (Visa / Mastercard / МИР / другая)
+   - Luhn-валидация перед сабмитом
+   - Поле отображается скрытым (буллетами), пока пользователь
+     не нажал «глаз». Бэк принимает только сырые цифры.
+   ========================================================= */
+
+type CardBrand = "mir" | "mastercard" | "visa" | "amex" | "unknown";
+
+const detectBrand = (digits: string): CardBrand => {
+  if (!digits) return "unknown";
+  if (/^(220[0-4])/.test(digits)) return "mir"; // МИР
+  if (/^4/.test(digits)) return "visa";
+  if (/^(5[1-5]|2[2-7])/.test(digits)) return "mastercard";
+  if (/^(34|37)/.test(digits)) return "amex";
+  return "unknown";
+};
+
+const BRAND_LABEL: Record<CardBrand, string> = {
+  mir: "МИР",
+  mastercard: "Mastercard",
+  visa: "Visa",
+  amex: "American Express",
+  unknown: "Карта",
+};
+
+/** Группирует цифры по 4 (для Amex — 4-6-5). */
+const formatCardNumber = (digits: string, brand: CardBrand): string => {
+  if (!digits) return "";
+  if (brand === "amex") {
+    const parts = [
+      digits.slice(0, 4),
+      digits.slice(4, 10),
+      digits.slice(10, 15),
+    ].filter(Boolean);
+    return parts.join(" ");
+  }
+  return digits.match(/.{1,4}/g)?.join(" ") ?? digits;
+};
+
+const luhnValid = (digits: string): boolean => {
+  if (digits.length < 13 || digits.length > 19) return false;
+  let sum = 0;
+  let alt = false;
+  for (let i = digits.length - 1; i >= 0; i -= 1) {
+    let n = Number(digits[i]);
+    if (alt) {
+      n *= 2;
+      if (n > 9) n -= 9;
+    }
+    sum += n;
+    alt = !alt;
+  }
+  return sum % 10 === 0;
+};
+
+const maskedDisplay = (digits: string, brand: CardBrand): string => {
+  if (!digits) return "•••• •••• •••• ••••";
+  const expectedLength = brand === "amex" ? 15 : 16;
+  const padded = digits + "•".repeat(Math.max(0, expectedLength - digits.length));
+  if (brand === "amex") {
+    return `${padded.slice(0, 4)} ${padded.slice(4, 10)} ${padded.slice(10, 15)}`;
+  }
+  return `${padded.slice(0, 4)} ${padded.slice(4, 8)} ${padded.slice(8, 12)} ${padded.slice(12, 16)}`;
+};
+
+export const PayoutCardInput = ({
+  savedLast4,
+  pending,
+  onSubmit,
+}: {
+  savedLast4: string | null;
+  pending: boolean;
+  onSubmit: (rawDigits: string) => void;
+}) => {
+  const [raw, setRaw] = useState(""); // только цифры
+  const [revealed, setRevealed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const brand = useMemo(() => detectBrand(raw), [raw]);
+  const formatted = useMemo(() => formatCardNumber(raw, brand), [raw, brand]);
+  const expectedLen = brand === "amex" ? 15 : 16;
+  const isValidLength = raw.length === expectedLen;
+  const isLuhnValid = isValidLength && luhnValid(raw);
+
+  const last4 = raw.slice(-4) || savedLast4 || "";
+  const previewNumber = raw
+    ? maskedDisplay(raw, brand)
+    : savedLast4
+      ? `•••• •••• •••• ${savedLast4}`
+      : maskedDisplay("", brand);
+
+  const handleChange = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, brand === "amex" ? 15 : 19);
+    setRaw(digits);
+    setError(null);
+  };
+
+  const handleSubmit = () => {
+    if (!isValidLength) {
+      setError("Номер должен содержать 16 цифр (15 — для AmEx).");
+      return;
+    }
+    if (!isLuhnValid) {
+      setError("Номер карты введён с ошибкой — проверьте цифры.");
+      return;
+    }
+    onSubmit(raw);
+    setRaw("");
+    setRevealed(false);
+  };
+
+  return (
+    <div className={styles.shell}>
+      {/* ---- Live card preview ---- */}
+      <div className={styles.card} data-brand={brand}>
+        <div className={styles.cardChip} aria-hidden />
+        <div className={styles.cardBrand}>{BRAND_LABEL[brand]}</div>
+        <div className={styles.cardNumber}>{previewNumber}</div>
+        <div className={styles.cardFootRow}>
+          <div className={styles.cardFootBlock}>
+            <span className={styles.cardFootLabel}>Держатель</span>
+            <span className={styles.cardFootValue}>** ** ** **</span>
+          </div>
+          <div className={styles.cardFootBlock}>
+            <span className={styles.cardFootLabel}>Last 4</span>
+            <span className={styles.cardFootValue}>
+              {last4 ? `•••• ${last4}` : "—"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ---- Form ---- */}
+      <div className={styles.form}>
+        <Field
+          label="Номер карты"
+          help={
+            error ??
+            (savedLast4
+              ? `Сохранено: •••• ${savedLast4}. Платформа хранит хеш и последние 4 цифры.`
+              : "Платформа хранит хеш и последние 4 цифры.")
+          }
+        >
+          <div className={styles.inputRow}>
+            <TextInput
+              inputMode="numeric"
+              autoComplete="cc-number"
+              placeholder="2200 0000 0000 0000"
+              value={revealed ? formatted : maskedFormatted(formatted)}
+              onChange={(event) => handleChange(event.target.value)}
+              aria-invalid={Boolean(error)}
+            />
+            <button
+              type="button"
+              className={styles.eyeButton}
+              onClick={() => setRevealed((v) => !v)}
+              aria-label={revealed ? "Скрыть номер" : "Показать номер"}
+              title={revealed ? "Скрыть номер" : "Показать номер"}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                {revealed ? (
+                  <>
+                    <path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </>
+                ) : (
+                  <>
+                    <path d="M3 3l18 18" />
+                    <path d="M10.6 6.2A9 9 0 0 1 12 6c5.5 0 9 6 9 6a16 16 0 0 1-3.2 3.6" />
+                    <path d="M6.2 7.4C4.1 8.9 3 12 3 12s3.5 6 9 6c1 0 2-.2 2.9-.5" />
+                  </>
+                )}
+              </svg>
+            </button>
+          </div>
+        </Field>
+
+        {raw && !isValidLength ? (
+          <Message tone="default">Введено цифр: {raw.length} / {expectedLen}.</Message>
+        ) : null}
+
+        <Button
+          onClick={handleSubmit}
+          disabled={pending || !isValidLength}
+        >
+          {pending ? "Сохраняем…" : savedLast4 ? "Обновить карту" : "Сохранить карту"}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+/** Полностью замаскированный formatted-номер (буллеты на месте цифр). */
+const maskedFormatted = (formatted: string): string =>
+  formatted.replace(/\d/g, "•");
