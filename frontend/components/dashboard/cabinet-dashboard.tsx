@@ -927,12 +927,15 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
   const [ledgerStatusFilter, setLedgerStatusFilter] = useState<LedgerEntryStatus | "ALL">("ALL");
   const [activeDealId, setActiveDealId] = useState<string | null>(null);
   const [activeLedgerId, setActiveLedgerId] = useState<string | null>(null);
+  const [payoutForm, setPayoutForm] = useState({ amount_rub: "" });
+  const [payoutError, setPayoutError] = useState<string | null>(null);
 
   const statsQuery = useQuery({ queryKey: ["me", "stats"], queryFn: api.getMeStats });
   const dealsQuery = useQuery({ queryKey: ["me", "deals"], queryFn: api.getMyDeals });
   const bloggersQuery = useQuery({ queryKey: ["me", "bloggers"], queryFn: api.getAvailableBloggers });
   const scriptsQuery = useQuery({ queryKey: ["me", "scripts"], queryFn: api.getWorkerScripts });
   const ledgerQuery = useQuery({ queryKey: ["me", "ledger"], queryFn: () => api.getLedger() });
+  const payoutWidgetQuery = useQuery({ queryKey: ["me", "payout-widget"], queryFn: api.getPayoutWidgetConfig });
 
   useEffect(() => {
     if (!dealForm.bloger_id && bloggersQuery.data && bloggersQuery.data.length > 0) {
@@ -968,6 +971,22 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
       queryClient.invalidateQueries({ queryKey: ["me"] });
     },
     onError: (error: Error) => setToast({ tone: "error", text: error.message }),
+  });
+
+  const payoutRequestMutation = useMutation({
+    mutationFn: () =>
+      api.requestPayout({
+        amount_kopeks: Math.round(Number(payoutForm.amount_rub.replace(",", ".")) * 100),
+        payout_token: null,
+      }),
+    onSuccess: () => {
+      setToast({ tone: "success", text: "Запрос на выплату отправлен администратору." });
+      setPayoutForm({ amount_rub: "" });
+      setPayoutError(null);
+      queryClient.invalidateQueries({ queryKey: ["me", "ledger"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+    },
+    onError: (error: Error) => setPayoutError(error.message),
   });
 
   const dealMutation = useMutation({
@@ -1295,6 +1314,83 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
 
           {tab === "finance" ? (
             <Stack>
+              <SectionCard
+                title="Запрос на выплату"
+                lead="Сумма уйдёт на привязанную карту после подтверждения администратором."
+              >
+                <div className={styles.payoutRow}>
+                  <div className={styles.payoutField}>
+                    <p className={styles.payoutLabel}>Доступно к выводу</p>
+                    <p className={styles.payoutAvailable}>{formatMoney(me.balance)}</p>
+                    {!me.payout_card_last4 ? (
+                      <p className={styles.payoutHint}>
+                        Привяжите карту в разделе «Профиль», иначе администратор не сможет провести перевод.
+                      </p>
+                    ) : (
+                      <p className={styles.payoutHint}>Карта: •••• {me.payout_card_last4}</p>
+                    )}
+                  </div>
+                  <Field
+                    label="Сумма, ₽"
+                    help={payoutError ?? undefined}
+                  >
+                    <TextInput
+                      inputMode="decimal"
+                      value={payoutForm.amount_rub}
+                      onChange={(event) => {
+                        setPayoutForm({ amount_rub: event.target.value });
+                        setPayoutError(null);
+                      }}
+                      placeholder="5000"
+                      aria-invalid={Boolean(payoutError)}
+                    />
+                  </Field>
+                  <div className={styles.payoutActions}>
+                    <Button
+                      kind="secondary"
+                      onClick={() =>
+                        setPayoutForm({ amount_rub: me.balance > 0 ? String(me.balance / 100) : "" })
+                      }
+                      disabled={me.balance <= 0 || payoutRequestMutation.isPending}
+                    >
+                      Всё
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const amountKopeks = Math.round(
+                          Number(payoutForm.amount_rub.replace(",", ".")) * 100,
+                        );
+                        if (!Number.isFinite(amountKopeks) || amountKopeks <= 0) {
+                          setPayoutError("Введите положительную сумму.");
+                          return;
+                        }
+                        if (amountKopeks > me.balance) {
+                          setPayoutError("Сумма больше доступного баланса.");
+                          return;
+                        }
+                        if (!me.payout_card_last4) {
+                          setPayoutError("Сначала привяжите карту в разделе «Профиль».");
+                          return;
+                        }
+                        payoutRequestMutation.mutate();
+                      }}
+                      disabled={
+                        payoutRequestMutation.isPending ||
+                        !payoutForm.amount_rub ||
+                        me.balance <= 0
+                      }
+                    >
+                      {payoutRequestMutation.isPending ? "Отправляем…" : "Запросить выплату"}
+                    </Button>
+                  </div>
+                </div>
+                {payoutWidgetQuery.data?.enabled ? (
+                  <Message tone="default">
+                    Доступна автоматическая выплата через виджет ЮKassa. Скоро появится прямо здесь.
+                  </Message>
+                ) : null}
+              </SectionCard>
+
               <SectionCard
                 title="Финансы"
                 lead="История начислений, заморозок и выплат."
