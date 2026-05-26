@@ -117,7 +117,9 @@ export const PayoutCardInput = ({
       : maskedDisplay("", brand);
 
   const handleChange = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, brand === "amex" ? 15 : 19);
+    // Жёсткий лимит: 16 цифр (для AmEx — 15). Лишние символы не принимаем.
+    const maxLen = brand === "amex" ? 15 : 16;
+    const digits = value.replace(/\D/g, "").slice(0, maxLen);
     setRaw(digits);
     setError(null);
   };
@@ -185,6 +187,7 @@ export const PayoutCardInput = ({
               value={formatted}
               onChange={(event) => handleChange(event.target.value)}
               aria-invalid={Boolean(error)}
+              maxLength={brand === "amex" ? 17 : 19}
             />
             <button
               type="button"
