@@ -15,12 +15,14 @@ import styles from "./payout-card-input.module.css";
      не нажал «глаз». Бэк принимает только сырые цифры.
    ========================================================= */
 
-type CardBrand = "mir" | "mastercard" | "visa" | "amex" | "unknown";
+type CardBrand = "mir" | "belcart" | "mastercard" | "visa" | "amex" | "unknown";
 
 const detectBrand = (digits: string): CardBrand => {
   if (!digits) return "unknown";
   // МИР — национальные карты РФ. Основной диапазон BIN 2200–2204.
   if (/^220[0-4]/.test(digits)) return "mir";
+  // БелКарт — белорусская национальная платёжная система. Стандартный BIN 9112.
+  if (/^9112/.test(digits)) return "belcart";
   // Visa
   if (/^4/.test(digits)) return "visa";
   // Mastercard: 51–55 либо 2221–2720.
@@ -40,6 +42,7 @@ const detectBrand = (digits: string): CardBrand => {
 
 const BRAND_LABEL: Record<CardBrand, string> = {
   mir: "МИР",
+  belcart: "БЕЛКАРТ",
   mastercard: "Mastercard",
   visa: "Visa",
   amex: "American Express",
@@ -171,7 +174,7 @@ export const PayoutCardInput = ({
             error ??
             (savedLast4
               ? `Сохранено: •••• ${savedLast4}. Платформа хранит хеш и последние 4 цифры.`
-              : "Поддерживаются МИР, Visa, Mastercard, AmEx. Платформа хранит только хеш и last4.")
+              : "Поддерживаются МИР, БЕЛКАРТ, Visa, Mastercard, AmEx. Платформа хранит только хеш и last4.")
           }
         >
           <div className={styles.inputRow}>

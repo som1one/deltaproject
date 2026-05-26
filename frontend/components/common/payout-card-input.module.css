@@ -77,6 +77,19 @@
   letter-spacing: 0.18em;
 }
 
+.card[data-brand="belcart"] {
+  background:
+    radial-gradient(140% 140% at 100% 0%, rgba(120, 200, 255, 0.22), transparent 60%),
+    linear-gradient(135deg, #0a1c34 0%, #16365e 50%, #0a1c34 100%);
+  border-color: rgba(120, 200, 255, 0.4);
+}
+
+.card[data-brand="belcart"] .cardBrand {
+  color: rgba(180, 220, 255, 0.95);
+  font-family: var(--font-display);
+  letter-spacing: 0.22em;
+}
+
 .card[data-brand="amex"] {
   background:
     radial-gradient(120% 120% at 100% 0%, rgba(160, 220, 255, 0.18), transparent 60%),
