@@ -825,4 +825,21 @@
     padding: 0.65rem 1.1rem;
     font-size: 0.84rem;
   }
+
+  /* На мобиле «actions» в шапке секции (например, «+ Новая сделка»)
+     становится полноценным CTA — растягивается на всю ширину карточки. */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+  }
+  .toolbar > * {
+    width: 100%;
+  }
+  .toolbar > * > .button,
+  .toolbar > .button {
+    width: 100%;
+    padding: 0.95rem 1.2rem;
+    font-size: 0.94rem;
+  }
 }
