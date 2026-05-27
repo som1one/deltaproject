@@ -1,0 +1,103 @@
+.inviteCard {
+  position: relative;
+  display: grid;
+  gap: 0.55rem;
+  padding: 1.6rem 1.8rem;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(560px 220px at 0% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
+    var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.inviteCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.025), transparent 30%);
+  border-radius: inherit;
+}
+
+.inviteCardGlow {
+  position: absolute;
+  inset: -40% -10% auto auto;
+  width: 22rem;
+  height: 22rem;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 60%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.inviteCard > * {
+  position: relative;
+  z-index: 1;
+}
+
+.inviteEyebrow {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.62rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.inviteScript {
+  margin: 0;
+  font-family: var(--font-script);
+  font-weight: 500;
+  font-size: clamp(1.6rem, 3.6vw, 2.2rem);
+  color: var(--text-strong);
+  letter-spacing: 0.005em;
+  line-height: 1.05;
+}
+
+.inviteUsername {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  letter-spacing: -0.005em;
+  color: var(--text);
+}
+
+.inviteState {
+  margin: 0.5rem 0 0;
+  font-family: var(--font-narrow);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.inviteState::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--status-success);
+  box-shadow: 0 0 8px var(--status-success);
+}
+
+.inviteStateError {
+  color: var(--status-danger);
+}
+
+.inviteStateError::before {
+  background: var(--status-danger);
+  box-shadow: 0 0 8px var(--status-danger);
+}
+
+.inviteActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 0.4rem;
+}

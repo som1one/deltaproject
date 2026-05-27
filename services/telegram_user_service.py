@@ -1,0 +1,95 @@
+"""Поиск/создание воркера по Telegram-аккаунту.
+
+Отделено от роутеров и от OAuth-клиента, чтобы оставаться
+переиспользуемым между разными flow (OIDC, виджет и т. п.).
+"""
+from __future__ import annotations
+
+import secrets
+from uuid import UUID
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from enums.user import UserRole
+from models.user import User
+from schemas.auth import RegisterRequest
+from services.auth_service import create_user
+
+
+def telegram_worker_email(telegram_id: str) -> str:
+    return f"tg_{telegram_id}@telegram.example.com"
+
+
+def _legacy_worker_email_by_username(username: str) -> str:
+    return f"tg_{username}@telegram.example.com"
+
+
+async def find_or_create_worker_by_telegram(
+    session: AsyncSession,
+    *,
+    telegram_id: str,
+    username: str,
+    name: str,
+    linked_to: UUID | None,
+) -> User:
+    """Возвращает воркера для данного Telegram ID, создавая при необходимости.
+
+    `username` — без префикса ``@``, нижнем регистре. ``linked_to``
+    проверяется на существование блогера; некорректное значение
+    игнорируется.
+    """
+    telegram_handle = f"@{username}" if username else None
+
+    # 1) основной поиск по синтетическому email с telegram_id
+    result = await session.execute(
+        select(User).where(User.email == telegram_worker_email(telegram_id))
+    )
+    user: User | None = result.scalar_one_or_none()
+
+    # 2) legacy: email по username
+    if user is None and username:
+        result = await session.execute(
+            select(User).where(User.email == _legacy_worker_email_by_username(username))
+        )
+        user = result.scalar_one_or_none()
+
+    # 3) legacy: по полю telegram (`@username`)
+    if user is None and telegram_handle:
+        result = await session.execute(
+            select(User).where(User.telegram == telegram_handle)
+        )
+        user = result.scalars().first()
+
+    if user is not None:
+        changed = False
+        if telegram_handle and user.telegram != telegram_handle:
+            user.telegram = telegram_handle
+            changed = True
+        canonical_email = telegram_worker_email(telegram_id)
+        if user.email != canonical_email:
+            user.email = canonical_email
+            changed = True
+        if changed:
+            await session.commit()
+            await session.refresh(user)
+        return user
+
+    validated_linked_to: UUID | None = None
+    if linked_to is not None:
+        ref_user = await session.get(User, linked_to)
+        if ref_user is not None and ref_user.role == UserRole.BLOGER:
+            validated_linked_to = linked_to
+
+    user = await create_user(
+        RegisterRequest(
+            name=name,
+            email=telegram_worker_email(telegram_id),
+            telegram=telegram_handle,
+            password=secrets.token_urlsafe(24),
+            role=UserRole.WORKER,
+            linked_to=validated_linked_to,
+        ),
+        session,
+    )
+    return user
