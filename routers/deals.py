@@ -9,8 +9,14 @@ from core.settings import settings
 from dependencies.auth import get_current_user
 from dependencies.database import get_db
 from models.user import User
-from schemas.deal import DealCreate, DealRead, DealStatusPatch
-from services.deal_service import create_deal, deal_to_read, get_deal_for_user, patch_deal_status
+from schemas.deal import DealCreate, DealFieldsPatch, DealRead, DealStatusPatch
+from services.deal_service import (
+    create_deal,
+    deal_to_read,
+    get_deal_for_user,
+    patch_deal_fields,
+    patch_deal_status,
+)
 
 router = APIRouter(prefix="/deals", tags=["deals"])
 
@@ -37,6 +43,33 @@ async def patch_deal_endpoint(
     user: Annotated[User, Depends(get_current_user)],
 ) -> DealRead:
     deal = await patch_deal_status(deal_id, user, body.status, db)
+    if deal is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Сделка не найдена",
+        )
+    return await deal_to_read(deal, user, db)
+
+
+@router.patch("/{deal_id}/fields", response_model=DealRead)
+@limiter.limit(settings.rate_limit_deal_mutate, key_func=key_user_id_or_client_ip)
+async def patch_deal_fields_endpoint(
+    request: Request,
+    deal_id: uuid.UUID,
+    body: DealFieldsPatch,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> DealRead:
+    deal = await patch_deal_fields(
+        deal_id,
+        user,
+        shop_link=body.shop_link,
+        item_name=body.item_name,
+        seller_tg=body.seller_tg,
+        seller_number=body.seller_number,
+        price=body.price,
+        db=db,
+    )
     if deal is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

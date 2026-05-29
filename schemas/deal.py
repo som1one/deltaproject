@@ -22,6 +22,16 @@ class DealStatusPatch(BaseModel):
     status: DealStatus
 
 
+class DealFieldsPatch(BaseModel):
+    """Частичное редактирование полей сделки воркером (только в статусе NEW)."""
+
+    shop_link: Annotated[str | None, Field(default=None, min_length=1, max_length=2048)] = None
+    item_name: Annotated[str | None, Field(default=None, min_length=1, max_length=512)] = None
+    seller_tg: Annotated[str | None, Field(default=None, min_length=1, max_length=255)] = None
+    seller_number: Annotated[str | None, Field(default=None, min_length=1, max_length=64)] = None
+    price: Annotated[int | None, Field(default=None, gt=0)] = None
+
+
 class AdminDealStatusPatch(BaseModel):
     status: DealStatus
     reason: Annotated[str, Field(min_length=1, max_length=4000)]

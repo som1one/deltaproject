@@ -41,6 +41,8 @@ async def deal_to_read(deal: Deal, viewer: User, db: AsyncSession) -> DealRead:
     if viewer.role == UserRole.ADMIN:
         finance_visible = True
         masked = False
+    if deal.status == DealStatus.REJECTED:
+        finance_visible = False
 
     eff = 0 if masked else amount
     price_out = 0 if masked else int(deal.price)
@@ -260,6 +262,54 @@ async def get_deal_for_user(
     return deal
 
 
+async def patch_deal_fields(
+    deal_id: uuid.UUID,
+    user: User,
+    *,
+    shop_link: str | None,
+    item_name: str | None,
+    seller_tg: str | None,
+    seller_number: str | None,
+    price: int | None,
+    db: AsyncSession,
+) -> Deal | None:
+    """Редактирование полей сделки. Доступно воркеру-владельцу в статусе NEW."""
+
+    deal = await get_deal_for_user(deal_id, user, db)
+    if deal is None:
+        return None
+
+    if user.role != UserRole.WORKER or deal.worker_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Редактировать сделку может только её автор",
+        )
+
+    if deal.status != DealStatus.NEW:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Менять данные можно только пока заявка в статусе «Новая»",
+        )
+
+    await db.execute(select(Deal).where(Deal.id == deal.id).with_for_update())
+    await db.refresh(deal)
+
+    if shop_link is not None:
+        deal.shop_link = shop_link.strip()
+    if item_name is not None:
+        deal.item_name = item_name.strip()
+    if seller_tg is not None:
+        deal.seller_tg = seller_tg.strip()
+    if seller_number is not None:
+        deal.seller_number = seller_number.strip()
+    if price is not None:
+        deal.price = price
+
+    await db.commit()
+    await db.refresh(deal)
+    return deal
+
+
 async def patch_deal_status(
     deal_id: uuid.UUID,
     user: User,
@@ -370,6 +420,8 @@ def _status_order(status_value: DealStatus) -> int:
         DealStatus.CONFIRMED: 2,
         DealStatus.PAID: 3,
         DealStatus.COMPLETED: 4,
+        # REJECTED — терминал, в линейный порядок не входит.
+        DealStatus.REJECTED: -1,
     }
     return order[status_value]
 
@@ -391,13 +443,29 @@ async def admin_patch_deal_status(
     if old_status == new_status:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Статус сделки уже установлен")
 
+    if old_status == DealStatus.REJECTED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Отклонённая сделка не может быть возвращена в работу",
+        )
+
+    if new_status == DealStatus.REJECTED and old_status not in (DealStatus.NEW, DealStatus.REVIEW):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Отклонять можно только новые или принятые блогером сделки",
+        )
+
     deal.status = new_status
 
     if new_status == DealStatus.CONFIRMED and deal.client_contacted_at is None:
         deal.client_contacted_at = datetime.now(UTC)
 
     # При переводе в PAID гарантируем начисления (идемпотентно внутри _accrue_paid_deal).
-    if _status_order(new_status) >= _status_order(DealStatus.PAID) and _status_order(old_status) < _status_order(DealStatus.PAID):
+    if (
+        new_status not in (DealStatus.REJECTED,)
+        and _status_order(new_status) >= _status_order(DealStatus.PAID)
+        and _status_order(old_status) < _status_order(DealStatus.PAID)
+    ):
         await _accrue_paid_deal(deal, db)
 
     if new_status == DealStatus.COMPLETED and old_status != DealStatus.COMPLETED:

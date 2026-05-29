@@ -29,6 +29,12 @@ jobs:
           pip install -r requirements.txt
 
       - name: Backend tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://app:app@127.0.0.1:5432/app
+          JWT_SECRET_KEY: ci-dummy-jwt-secret
+          REFRESH_TOKEN_SECRET_KEY: ci-dummy-refresh-secret
+          PAYOUT_CARD_PEPPER: ci-dummy-pepper
+          APP_ENV: test
         run: python -m pytest -q
 
       - name: Setup Node

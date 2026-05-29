@@ -24,7 +24,7 @@ def setup_logging(level: str = "INFO") -> None:
     )
     root.addHandler(handler)
 
-    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    logging.getLogger("uvicorn.access").setLevel(numeric)
     logging.getLogger("sqlalchemy.engine").setLevel(
         logging.INFO if numeric <= logging.DEBUG else logging.WARNING
     )

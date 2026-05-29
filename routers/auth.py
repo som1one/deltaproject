@@ -1,6 +1,8 @@
-import secrets
+from urllib.parse import urlencode
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import RedirectResponse
 from jwt.exceptions import PyJWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,34 +13,33 @@ from dependencies.database import get_db
 from enums.user import UserRole
 from models.user import User
 from schemas.auth import (
+    AdminLoginRequest,
     AuthTokensResponse,
     BloggerLoginRequest,
-    LoginRequest,
     RefreshRequest,
-    RegisterRequest,
-    TelegramOAuthCodeExchangeRequest,
-    TelegramOAuthCodeExchangeResponse,
-    TelegramWorkerLoginRequest,
-    TelegramWorkerRegisterRequest,
-)
-from schemas.auth import (
+    TelegramAuthExchangeRequest,
     TelegramOAuthConfigResponse,
-    TelegramOAuthVerifyRequest,
-    TelegramOAuthVerifyResponse,
 )
-from services.auth_service import create_user
 from services.session_service import (
     assert_login_allowed_for_ip,
     assert_referral_registration_allowed_for_ip,
     assert_registration_allowed_for_ip,
     record_user_session,
 )
+from services.telegram_oauth_client import (
+    TelegramOAuthError,
+    exchange_code,
+    verify_id_token,
+)
+from services.telegram_oauth_store import (
+    consume_exchange_ticket,
+    create_exchange_ticket,
+    create_signed_state,
+    verify_signed_state,
+)
+from services.telegram_user_service import find_or_create_worker_by_telegram
 from utils.blogger_credentials import normalize_blogger_nickname
 from utils.request_ip import get_client_ip
-from utils.telegram_oauth import (
-    exchange_telegram_oauth_code,
-    verify_telegram_oauth_id_token,
-)
 from utils.jwt_tokens import (
     create_access_token,
     create_refresh_token,
@@ -51,114 +52,215 @@ from utils.security import verify_password
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _telegram_worker_email(telegram_id: int) -> str:
-    return f"tg_{telegram_id}@telegram.example.com"
+def _telegram_redirect_uri() -> str:
+    """Где Telegram OAuth возвращает code. Должно совпадать с настройками в BotFather."""
+    base = settings.telegram_oauth_redirect_uri.strip()
+    if not base:
+        raise HTTPException(
+            status_code=503,
+            detail="TELEGRAM_OAUTH_REDIRECT_URI не настроен на сервере",
+        )
+    return base
 
 
-def _telegram_worker_legacy_email(username: str) -> str:
-    return f"tg_{username}@telegram.example.com"
+def _frontend_callback_url() -> str:
+    base = settings.telegram_oauth_frontend_callback_url.strip()
+    if not base:
+        raise HTTPException(
+            status_code=503,
+            detail="TELEGRAM_OAUTH_FRONTEND_CALLBACK_URL не настроен на сервере",
+        )
+    return base
 
 
-def _verify_telegram_request(
-    body: TelegramOAuthVerifyRequest | TelegramWorkerLoginRequest | TelegramWorkerRegisterRequest,
-) -> dict[str, object]:
-    if not settings.telegram_oauth_ready:
-        raise HTTPException(status_code=503, detail="Telegram OAuth не настроен на сервере")
-    return verify_telegram_oauth_id_token(
-        body.id_token,
-        client_id=settings.telegram_oauth_client_id,
-        issuer=settings.telegram_oauth_issuer,
-        jwks_url=settings.telegram_oauth_jwks_url,
-    )
-
-
-async def _find_worker_for_telegram(
-    db: AsyncSession,
-    telegram_id: int,
-    username: str,
-    telegram: str | None,
-) -> User | None:
-    result = await db.execute(select(User).where(User.email == _telegram_worker_email(telegram_id)))
-    user = result.scalar_one_or_none()
-    if user is not None:
-        return user
-    result = await db.execute(select(User).where(User.email == _telegram_worker_legacy_email(username)))
-    user = result.scalar_one_or_none()
-    if user is not None:
-        return user
-    if not telegram:
-        return None
-    result = await db.execute(select(User).where(User.telegram == telegram))
-    return result.scalars().first()
+def _frontend_redirect(*, ticket: str | None = None, error: str | None = None) -> RedirectResponse:
+    target = _frontend_callback_url()
+    params: dict[str, str] = {}
+    if ticket is not None:
+        params["exchange"] = ticket
+    if error is not None:
+        params["error"] = error
+    if params:
+        target = f"{target}?{urlencode(params)}"
+    return RedirectResponse(target, status_code=302)
 
 
 @router.get("/telegram/config", response_model=TelegramOAuthConfigResponse)
 async def telegram_oauth_config():
+    """Сообщает фронту, можно ли показывать кнопку «Войти через Telegram»."""
     if not settings.telegram_oauth_ready:
-        return TelegramOAuthConfigResponse(enabled=False, client_id=None)
-    return TelegramOAuthConfigResponse(
-        enabled=True,
-        client_id=settings.telegram_oauth_client_id.strip(),
-    )
+        return TelegramOAuthConfigResponse(enabled=False, bot_username=None)
+    bot_username = settings.telegram_oauth_bot_username.strip().lstrip("@") or None
+    return TelegramOAuthConfigResponse(enabled=True, bot_username=bot_username)
 
 
-@router.post("/telegram/verify", response_model=TelegramOAuthVerifyResponse)
+@router.get("/telegram/start")
 @limiter.limit(settings.rate_limit_login)
-async def verify_telegram_oauth(
+async def telegram_oauth_start(
     request: Request,
-    body: TelegramOAuthVerifyRequest,
-):
-    verified = _verify_telegram_request(body)
-    return TelegramOAuthVerifyResponse(**verified)
-
-
-@router.post("/telegram/exchange-code", response_model=TelegramOAuthCodeExchangeResponse)
-@limiter.limit(settings.rate_limit_login)
-async def telegram_exchange_code(
-    request: Request,
-    body: TelegramOAuthCodeExchangeRequest,
-):
-    if not settings.telegram_oauth_ready or not settings.telegram_oauth_client_secret.strip():
-        raise HTTPException(status_code=503, detail="Telegram OAuth не настроен на сервере")
-    id_token = await exchange_telegram_oauth_code(
-        code=body.code,
-        redirect_uri=body.redirect_uri,
-        code_verifier=body.code_verifier,
-        client_id=settings.telegram_oauth_client_id,
-        client_secret=settings.telegram_oauth_client_secret,
-    )
-    return TelegramOAuthCodeExchangeResponse(id_token=id_token)
-
-
-@router.post("/telegram/worker-login", response_model=AuthTokensResponse)
-@limiter.limit(settings.rate_limit_login)
-async def telegram_worker_login(
-    request: Request,
-    body: TelegramWorkerLoginRequest,
+    linked_to: UUID | None = Query(default=None),
     db: AsyncSession = Depends(get_db),
 ):
-    verified = _verify_telegram_request(body)
-    telegram_id = int(verified["telegram_id"])
-    username = str(verified["username"])
-    telegram = str(verified["telegram"]) if verified.get("telegram") else None
-    user = await _find_worker_for_telegram(db, telegram_id, username, telegram)
-    if user is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Аккаунт воркера не найден. Сначала зарегистрируйтесь через Telegram.",
+    """Top-level redirect на authorization endpoint Telegram OAuth.
+
+    Регистрационный лимит здесь же — авторизация может закончиться
+    созданием воркера.
+    """
+    if not settings.telegram_oauth_ready:
+        raise HTTPException(status_code=503, detail="Telegram-вход не настроен на сервере")
+
+    client_ip = get_client_ip(request)
+    await assert_registration_allowed_for_ip(db, client_ip)
+
+    if linked_to is not None:
+        ref_user = await db.get(User, linked_to)
+        if ref_user is None or ref_user.role != UserRole.BLOGER:
+            raise HTTPException(
+                status_code=400,
+                detail="Некорректный linked_to: нужен существующий блогер",
+            )
+        await assert_referral_registration_allowed_for_ip(db, client_ip, linked_to)
+
+    state = create_signed_state(
+        linked_to=str(linked_to) if linked_to else None,
+        client_ip=client_ip,
+    )
+    redirect_uri = _telegram_redirect_uri()
+
+    auth_url = (
+        f"{settings.telegram_oauth_issuer.rstrip('/')}/auth?"
+        + urlencode(
+            {
+                "response_type": "code",
+                "client_id": settings.telegram_oauth_client_id,
+                "redirect_uri": redirect_uri,
+                "scope": "openid profile",
+                "state": state.state,
+                "nonce": state.nonce,
+            }
         )
+    )
+    return RedirectResponse(auth_url, status_code=302)
+
+
+@router.get("/telegram/callback")
+async def telegram_oauth_callback(
+    request: Request,
+    code: str | None = Query(default=None),
+    state: str | None = Query(default=None),
+    error: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    """Принимает redirect от Telegram OAuth, выпускает одноразовый ticket.
+
+    Дальше фронт обменивает ``ticket`` на JWT-пары через ``/exchange``.
+    """
+    if error:
+        return _frontend_redirect(error=error)
+    if not code or not state:
+        return _frontend_redirect(error="missing_code_or_state")
+
+    state_entry = verify_signed_state(state)
+    if state_entry is None:
+        return _frontend_redirect(error="state_expired")
+
+    redirect_uri = settings.telegram_oauth_redirect_uri.strip()
+    if not redirect_uri:
+        return _frontend_redirect(error="server_misconfigured")
+
+    try:
+        id_token = await exchange_code(code=code, redirect_uri=redirect_uri)
+        claims = verify_id_token(id_token=id_token, expected_nonce=state_entry.nonce)
+    except TelegramOAuthError as exc:
+        return _frontend_redirect(error=str(exc))
+
+    linked_to_uuid: UUID | None = None
+    if state_entry.linked_to:
+        try:
+            linked_to_uuid = UUID(state_entry.linked_to)
+        except (TypeError, ValueError):
+            linked_to_uuid = None
+
+    user = await find_or_create_worker_by_telegram(
+        db,
+        telegram_id=claims.sub,
+        username=claims.preferred_username,
+        name=claims.name,
+        linked_to=linked_to_uuid,
+    )
+
+    if not user.is_active:
+        return _frontend_redirect(error="user_disabled")
+    if user.role != UserRole.WORKER:
+        return _frontend_redirect(error="not_worker")
+
+    access = create_access_token(user.id)
+    refresh = create_refresh_token(user.id)
+    ticket = await create_exchange_ticket(access_token=access, refresh_token=refresh)
+    return _frontend_redirect(ticket=ticket.ticket)
+
+
+@router.post("/telegram/exchange", response_model=AuthTokensResponse)
+@limiter.limit(settings.rate_limit_login)
+async def telegram_oauth_exchange(
+    request: Request,
+    body: TelegramAuthExchangeRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Обменивает одноразовый ticket из URL фронта на пару JWT."""
+    entry = await consume_exchange_ticket(body.ticket)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Ticket уже использован или истёк")
+
+    client_ip = get_client_ip(request)
+
+    # Запись сессии и rate-limit на IP — best-effort: вход уже успешен,
+    # ошибки журнала не должны блокировать выдачу токенов.
+    try:
+        payload = verify_access_token(entry.access_token)
+        user_id = get_user_id_from_payload(payload)
+    except PyJWTError:
+        user_id = None
+
+    if user_id is not None:
+        try:
+            await assert_login_allowed_for_ip(db, client_ip)
+            await record_user_session(
+                db,
+                client_ip,
+                request.headers.get("user-agent", ""),
+                user_id=user_id,
+                session_kind="login",
+            )
+        except HTTPException:
+            # rate-limit/401: не валим выдачу токенов — это уже подтверждённый OIDC-вход
+            pass
+        except Exception:  # pragma: no cover
+            pass
+
+    return AuthTokensResponse(
+        message="Login successful",
+        token=entry.access_token,
+        refresh_token=entry.refresh_token,
+    )
+
+
+@router.post("/admin-login")
+@limiter.limit(settings.rate_limit_login)
+async def admin_login(
+    request: Request,
+    body: AdminLoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Вход администратора по email/паролю — единственный «классический» логин."""
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+    if user is None or not verify_password(body.password, user.hash_pass):
+        raise HTTPException(status_code=400, detail="Invalid email or password")
     if not user.is_active:
         raise HTTPException(status_code=401, detail="Пользователь деактивирован")
-    if user.role == UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Для администратора используйте /auth/login")
-    if user.role != UserRole.WORKER:
-        raise HTTPException(status_code=403, detail="Telegram OAuth вход сейчас доступен только воркеру")
-
-    if telegram and user.telegram != telegram:
-        user.telegram = telegram
-        await db.commit()
-        await db.refresh(user)
-
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Этот вход доступен только администратору")
     client_ip = get_client_ip(request)
     await assert_login_allowed_for_ip(db, client_ip)
     await record_user_session(
@@ -173,194 +275,6 @@ async def telegram_worker_login(
         token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
     )
-
-
-@router.post("/telegram/worker-register", response_model=AuthTokensResponse)
-@limiter.limit(settings.rate_limit_register)
-async def telegram_worker_register(
-    request: Request,
-    body: TelegramWorkerRegisterRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    verified = _verify_telegram_request(body)
-    telegram_id = int(verified["telegram_id"])
-    username = str(verified["username"])
-    telegram = str(verified["telegram"]) if verified.get("telegram") else None
-    existing_user = await _find_worker_for_telegram(db, telegram_id, username, telegram)
-    if existing_user is not None:
-        if not existing_user.is_active:
-            raise HTTPException(status_code=401, detail="Пользователь деактивирован")
-        if existing_user.role != UserRole.WORKER:
-            raise HTTPException(
-                status_code=403,
-                detail="Telegram OAuth регистрация доступна только для нового воркера",
-            )
-        if telegram and existing_user.telegram != telegram:
-            existing_user.telegram = telegram
-            await db.commit()
-            await db.refresh(existing_user)
-
-        client_ip = get_client_ip(request)
-        await assert_login_allowed_for_ip(db, client_ip)
-        await record_user_session(
-            db,
-            client_ip,
-            request.headers.get("user-agent", ""),
-            user_id=existing_user.id,
-            session_kind="login",
-        )
-        return AuthTokensResponse(
-            message="Аккаунт уже существует, вход выполнен",
-            token=create_access_token(existing_user.id),
-            refresh_token=create_refresh_token(existing_user.id),
-        )
-
-    client_ip = get_client_ip(request)
-    await assert_registration_allowed_for_ip(db, client_ip)
-    if body.linked_to is not None:
-        ref_user = await db.get(User, body.linked_to)
-        if ref_user is None or ref_user.role != UserRole.BLOGER:
-            raise HTTPException(
-                status_code=400,
-                detail="Некорректный linked_to: нужен существующий пользователь с ролью блогера",
-            )
-        await assert_referral_registration_allowed_for_ip(db, client_ip, body.linked_to)
-
-    user = await create_user(
-        RegisterRequest(
-            name=body.name.strip(),
-            email=_telegram_worker_email(telegram_id),
-            telegram=telegram,
-            password=secrets.token_urlsafe(24),
-            role=UserRole.WORKER,
-            linked_to=body.linked_to,
-        ),
-        db,
-    )
-    await record_user_session(
-        db,
-        client_ip,
-        request.headers.get("user-agent", ""),
-        user_id=user.id,
-        session_kind="register",
-    )
-    return AuthTokensResponse(
-        message="User created successfully",
-        token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
-    )
-
-
-@router.post("/register")
-@limiter.limit(settings.rate_limit_register)
-async def register(
-    request: Request,
-    body: RegisterRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    client_ip = get_client_ip(request)
-    await assert_registration_allowed_for_ip(db, client_ip)
-    if body.role != UserRole.WORKER:
-        raise HTTPException(
-            status_code=403,
-            detail="Регистрация блогера доступна только через администратора",
-        )
-    email_exists = await db.execute(select(User).where(User.email == body.email))
-    if email_exists.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Email already exists")
-    if body.linked_to is not None:
-        ref_user = await db.get(User, body.linked_to)
-        if ref_user is None or ref_user.role != UserRole.BLOGER:
-            raise HTTPException(
-                status_code=400,
-                detail="Некорректный linked_to: нужен существующий пользователь с ролью блогера",
-            )
-        await assert_referral_registration_allowed_for_ip(db, client_ip, body.linked_to)
-    user = await create_user(body, db)
-    await record_user_session(
-        db,
-        client_ip,
-        request.headers.get("user-agent", ""),
-        user_id=user.id,
-        session_kind="register",
-    )
-    token = create_access_token(user.id)
-    refresh_token = create_refresh_token(user.id)
-    return {
-        "message": "User created successfully",
-        "token": token,
-        "refresh_token": refresh_token,
-    }
-
-
-@router.post("/login")
-@limiter.limit(settings.rate_limit_login)
-async def login(
-    request: Request,
-    body: LoginRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    """Вход только для администратора."""
-    result = await db.execute(select(User).where(User.email == body.email))
-    user = result.scalar_one_or_none()
-    if user is None or not verify_password(body.password, user.hash_pass):
-        raise HTTPException(status_code=400, detail="Invalid email or password")
-    if not user.is_active:
-        raise HTTPException(status_code=401, detail="Пользователь деактивирован")
-    if user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Вход через этот endpoint доступен только администратору")
-    client_ip = get_client_ip(request)
-    await assert_login_allowed_for_ip(db, client_ip)
-    await record_user_session(
-        db,
-        client_ip,
-        request.headers.get("user-agent", ""),
-        user_id=user.id,
-        session_kind="login",
-    )
-    token = create_access_token(user.id)
-    refresh_token = create_refresh_token(user.id)
-    return {
-        "message": "Login successful",
-        "token": token,
-        "refresh_token": refresh_token,
-    }
-
-
-@router.post("/user-login")
-@limiter.limit(settings.rate_limit_login)
-async def user_login(
-    request: Request,
-    body: LoginRequest,
-    db: AsyncSession = Depends(get_db),
-):
-    """Вход для Worker/Bloger (не-админов)."""
-    result = await db.execute(select(User).where(User.email == body.email))
-    user = result.scalar_one_or_none()
-    if user is None or not verify_password(body.password, user.hash_pass):
-        raise HTTPException(status_code=400, detail="Invalid email or password")
-    if not user.is_active:
-        raise HTTPException(status_code=401, detail="Пользователь деактивирован")
-    if user.role == UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Для администратора используйте /auth/login")
-    if user.role != UserRole.WORKER:
-        raise HTTPException(status_code=403, detail="Для блогера используйте вход по нику")
-    client_ip = get_client_ip(request)
-    await assert_login_allowed_for_ip(db, client_ip)
-    await record_user_session(
-        db,
-        client_ip,
-        request.headers.get("user-agent", ""),
-        user_id=user.id,
-        session_kind="login",
-    )
-    token = create_access_token(user.id)
-    refresh_token = create_refresh_token(user.id)
-    return {
-        "message": "Login successful",
-        "token": token,
-        "refresh_token": refresh_token,
-    }
 
 
 @router.post("/blogger-login")
