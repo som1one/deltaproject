@@ -53,7 +53,9 @@ jobs:
         run: npx tsc --noEmit --ignoreDeprecations 6.0 -p .
 
   # -----------------------------------------------------------------------
-  # 2. Деплой на VPS по SSH-ключу. Логин/host/порт — через GitHub Secrets.
+  # 2. Деплой на VPS по SSH-паролю (root). Все значения — через GitHub Secrets.
+  #    ВНИМАНИЕ: парольный root-деплой — временное решение. При первой
+  #    возможности переключиться на ключ (key вместо password).
   # -----------------------------------------------------------------------
   deploy:
     needs: ci
@@ -66,7 +68,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          password: ${{ secrets.DEPLOY_PASSWORD }}
           script_stop: true
           script: |
             set -euo pipefail

@@ -34,8 +34,14 @@ $NPM_BIN run build
 cd ..
 
 echo "[deploy] restart services"
-sudo -n systemctl restart "$BACKEND_UNIT"
-sudo -n systemctl restart "$FRONTEND_UNIT"
+# Под root sudo не нужен; под обычным юзером — sudo -n (NOPASSWD).
+if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+  SUDO=""
+else
+  SUDO="sudo -n"
+fi
+$SUDO systemctl restart "$BACKEND_UNIT"
+$SUDO systemctl restart "$FRONTEND_UNIT"
 
 echo "[deploy] health check"
 for i in 1 2 3 4 5; do
