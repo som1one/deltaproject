@@ -79,6 +79,10 @@ const luhnValid = (digits: string): boolean => {
   return sum % 10 === 0;
 };
 
+/** Допустимая длина номера карты (после удаления разделителей): 13–19 цифр. */
+const MIN_CARD_DIGITS = 13;
+const MAX_CARD_DIGITS = 19;
+
 const maskedDisplay = (digits: string, brand: CardBrand): string => {
   if (!digits) return "•••• •••• •••• ••••";
   const expectedLength = brand === "amex" ? 15 : 16;
