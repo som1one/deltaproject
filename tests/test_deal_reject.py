@@ -61,6 +61,9 @@ async def test_rejected_hides_finance_preview() -> None:
     with patch(
         "services.deal_service.get_or_create_scheme_for_blogger",
         AsyncMock(return_value=_scheme(deal.bloger_id)),
+    ), patch(
+        "services.deal_service.get_latest_rejection_reason",
+        AsyncMock(return_value=None),
     ):
         result = await deal_to_read(deal, viewer, db)
     assert result.status == DealStatus.REJECTED
