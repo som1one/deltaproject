@@ -320,60 +320,6 @@
   }
 }
 
-/* ---------- Bottom navigation (mobile) ---------- */
-
-.bottomNav {
-  display: none;
-}
-
-@media (max-width: 720px) {
-  .bottomNav {
-    position: fixed;
-    /* Sit directly under the sticky brand header */
-    top: calc(2.9rem + 1px);
-    left: 0;
-    right: 0;
-    z-index: 29;
-    display: flex;
-    align-items: stretch;
-    justify-content: space-around;
-    gap: 0.25rem;
-    padding: 0.5rem clamp(0.4rem, 3vw, 0.8rem);
-    background: rgba(0, 0, 0, 0.82);
-    backdrop-filter: blur(22px) saturate(140%);
-    -webkit-backdrop-filter: blur(22px) saturate(140%);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .bottomNav a {
-    flex: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.55rem 0.4rem;
-    border-radius: var(--radius-pill);
-    font-family: var(--font-narrow);
-    font-size: 0.62rem;
-    font-weight: 500;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    text-align: center;
-    transition: color var(--transition-base), background var(--transition-base);
-  }
-
-  .bottomNav a:active,
-  .bottomNav a:focus-visible {
-    color: var(--text-strong);
-    background: rgba(255, 255, 255, 0.05);
-  }
-
-  .bottomNavCta {
-    color: var(--text-strong) !important;
-    border: 1px solid var(--border-strong);
-  }
-}
-
 /* ---------- Hero (video bg) ---------- */
 
 .hero {
