@@ -108,6 +108,25 @@ async def admin_patch_user(
     user = await admin_get_user(user_id, db)
     target_role = body.role if body.role is not None else user.role
 
+    # Разграничение прав (Req 5.5, 5.8): операции над административными аккаунтами
+    # (смена роли, активность) и назначение административной роли доступны только
+    # актору с ролью Admin. Тех-админ такие операции выполнять не может.
+    role_change = body.role is not None and body.role != user.role
+    becoming_admin_role = (
+        body.role is not None and body.role in _ADMIN_ROLES and body.role != user.role
+    )
+    if current_admin.role != UserRole.ADMIN:
+        if user.role in _ADMIN_ROLES and (role_change or body.is_active is not None):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Управление административными учётными записями доступно только владельцу-Admin",
+            )
+        if becoming_admin_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Назначение административной роли доступно только владельцу-Admin",
+            )
+
     if body.email is not None:
         email_value = str(body.email).strip().lower()
         conflict = await db.execute(
