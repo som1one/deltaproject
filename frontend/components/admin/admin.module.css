@@ -185,6 +185,144 @@
   align-items: center;
 }
 
+/* ---------- Finance summary ---------- */
+
+.financeHero {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1.4rem;
+  align-items: stretch;
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(135deg, var(--surface-elev), var(--surface-raised));
+  border-radius: var(--radius-lg);
+  padding: 1.8rem 2rem;
+}
+
+.financeHeroMain {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.financeHeroLabel {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.financeHeroValue {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.4rem, 4.6vw, 3.6rem);
+  letter-spacing: -0.045em;
+  line-height: 1;
+  color: var(--text-strong);
+}
+
+.financeHeroHint {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  letter-spacing: -0.005em;
+}
+
+.financeHeroAside {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 0.75rem;
+  border-left: 1px solid var(--border);
+  padding-left: 1.4rem;
+}
+
+.financeHeroStat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.financeMiniLabel {
+  font-family: var(--font-narrow);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.financeMiniValue {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.3rem, 2vw, 1.7rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text-strong);
+}
+
+.metricGroups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+.metricGroup {
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+
+.metricGroupTitle {
+  margin: 0 0 0.9rem;
+  font-family: var(--font-narrow);
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.metricRow {
+  display: grid;
+  gap: 0.7rem 1.4rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--border-faint);
+}
+
+.metric:first-child,
+.metric:nth-child(2) {
+  border-top: none;
+}
+
+.metricLabel {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  letter-spacing: -0.005em;
+}
+
+.metricValue {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.15rem;
+  letter-spacing: -0.025em;
+  color: var(--text-strong);
+}
+
 /* ---------- Two-column inner layout ---------- */
 
 .sideLayout {
