@@ -1,4 +1,4 @@
-export type UserRole = "Worker" | "Bloger" | "Admin";
+export type UserRole = "Worker" | "Bloger" | "Admin" | "Tech_Admin";
 
 export type DealStatus = "NEW" | "REVIEW" | "CONFIRMED" | "PAID" | "COMPLETED" | "REJECTED";
 

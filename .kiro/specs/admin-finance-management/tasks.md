@@ -240,7 +240,7 @@
 - [~] 11. Checkpoint — ядро бэкенда
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Требование 8 — финансовый дашборд (схемы и сервис)
+- [x] 12. Требование 8 — финансовый дашборд (схемы и сервис)
   - [x] 12.1 Схемы дашборда и enum периода
     - Создать `schemas/finance.py` (или расширить): `ReportingPeriod` (`today/week/month/all`), вложенные `TopParticipant`, `TimeSeriesPoint`, `ReferralShareByBlogger`, `ActiveReferralLinks` и расширенная `PlatformFinanceDashboard` со всеми полями `*_kopeks` (целые копейки)
     - Словари статусов всегда содержат все 6 ключей; `earnings_by_role_kopeks` всегда содержит `Worker/Bloger/Platform`; `net_free_funds`/`available_for_payout` могут быть отрицательными
@@ -276,7 +276,7 @@
     - `total_referral_share_to_uplines_kopeks` (`deal:%:paid:upline`, `completed`); `referral_share_by_blogger` (группировка по `user_id`); `active_referral_links` (блогеры с `upline_blogger_id`, воркеры с `linked_to`)
     - _Requirements: 8.30, 8.31, 8.32_
 
-  - [-] 12.9 Эндпоинт дашборда
+  - [x] 12.9 Эндпоинт дашборда
     - В `routers/admin.py` добавить `GET /admin/finance/dashboard?period=` под `get_current_admin_or_tech`; невалидный `period` → `422`; без `period` → `all`; отсутствие системного счёта → ошибка конфигурации без частичных данных
     - _Requirements: 8.1, 8.2, 8.3, 8.22, 8.23_
 
@@ -357,7 +357,7 @@
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 15. Фронтенд — типы и API-клиент
-  - [~] 15.1 Типы `lib/types.ts`
+  - [-] 15.1 Типы `lib/types.ts`
     - Добавить `DealRead.rejection_reason: string | null`, роль `Tech_Admin`, `PlatformFinanceDashboard` + `TopParticipant`/`TimeSeriesPoint`/`ReferralShareByBlogger`/`ActiveReferralLinks`/`ReportingPeriod`, типы аудита (`AdminAuditEntry`, `AdminAuditListResponse`), партнёрскую карту
     - _Requirements: 1.4, 5.4, 8.4_
 
