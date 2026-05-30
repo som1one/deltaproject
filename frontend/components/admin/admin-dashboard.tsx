@@ -1557,6 +1557,21 @@ export const AdminDashboard = () => {
 
     if (section === "finance") {
       const dash = financeDashboardQuery.data;
+      const participantLabel = (key: string): string => {
+        switch (key.toLowerCase()) {
+          case "worker":
+            return "Воркер";
+          case "bloger":
+          case "blogger":
+            return "Блогер";
+          case "upline":
+            return "Аплайн";
+          case "platform":
+            return "Платформа";
+          default:
+            return key;
+        }
+      };
       const periodOptions: { value: ReportingPeriod; label: string }[] = [
         { value: "today", label: "Сегодня" },
         { value: "week", label: "Неделя" },
