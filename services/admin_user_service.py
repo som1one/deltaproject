@@ -358,7 +358,15 @@ async def admin_delete_user(
             status_code=status.HTTP_409_CONFLICT,
             detail="Нельзя удалить текущего администратора",
         )
-    if user.role == UserRole.ADMIN:
+    # Разграничение прав (Req 5.5, 5.8): удалять административные аккаунты
+    # (Admin/Tech_Admin) может только владелец-Admin.
+    if user.role in _ADMIN_ROLES and current_admin.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Удаление административных учётных записей доступно только владельцу-Admin",
+        )
+    # Защита последнего владельца (Req 5.7): удаление не должно оставить 0 активных Admin.
+    if user.role == UserRole.ADMIN and await _count_active_admins(db, exclude_id=user.id) == 0:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Нельзя удалить единственного администратора",
