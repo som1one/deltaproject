@@ -49,6 +49,22 @@ class AdminDealAgreedPricePatch(BaseModel):
     reason: Annotated[str, Field(min_length=1, max_length=4000)]
 
 
+class AdminEscrowActionRequest(BaseModel):
+    """Запрос на эскроу-действие (Подтверждение_Получения / Распределение / Возврат).
+
+    Причина обязательна (1–1000 символов) и не может состоять из одних
+    пробельных символов.
+    """
+
+    reason: Annotated[str, Field(min_length=1, max_length=1000)]
+
+    @model_validator(mode="after")
+    def _reason_not_blank(self) -> "AdminEscrowActionRequest":
+        if not self.reason.strip():
+            raise ValueError("Причина не может состоять из пробелов")
+        return self
+
+
 class DealRead(BaseModel):
     model_config = {"from_attributes": True}
 
