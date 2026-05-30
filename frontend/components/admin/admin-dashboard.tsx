@@ -373,6 +373,8 @@ export const AdminDashboard = () => {
     },
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
+
+  const createBloggerMutation = useMutation({
     mutationFn: () =>
       api.createAdminBlogger({
         nickname: bloggerForm.nickname,
