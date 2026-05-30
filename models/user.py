@@ -48,6 +48,15 @@ class User(Base):
         nullable=True,
         index=True,
     )
+    # Семантика «блогер → наставник-блогер (аплайн)»: единственный источник истины
+    # для определения реферальной доли. В отличие от linked_to («работник → пригласивший
+    # блогер»), используется Сервисом_Начислений для назначения аплайна.
+    upline_blogger_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     payout_card_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     payout_card_last4: Mapped[str | None] = mapped_column(String(4), nullable=True)
     blogger_cabinet_pin_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
