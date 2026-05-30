@@ -33,7 +33,8 @@ class AdminUserRead(BaseModel):
 
 class AdminUserPatch(BaseModel):
     role: UserRole | None = None
-    percent: Annotated[float | None, Field(ge=0)] = None
+    percent: Annotated[float | None, Field(ge=0, le=100)] = None
+    upline_blogger_id: uuid.UUID | None = None
     is_active: bool | None = None
     email: EmailStr | None = None
     telegram: Annotated[str | None, Field(None, max_length=255)] = None
@@ -69,6 +70,32 @@ class AdminBalanceAdjustmentRequest(BaseModel):
 class AdminBalanceAdjustmentResponse(BaseModel):
     user: AdminUserRead
     ledger_entry: LedgerEntryRead
+
+
+class AdminPartnerCardSet(BaseModel):
+    """Карта партнёра, задаваемая Тех-админом; PAN в БД не сохраняется.
+
+    Точная валидация (13–19 цифр + алгоритм Луна) выполняется на сервере.
+    """
+
+    card_number: Annotated[str, Field(min_length=12, max_length=32)]
+
+
+class AdminAuditEntryRead(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    actor_id: uuid.UUID
+    target_user_id: uuid.UUID
+    field: str
+    old_value: str | None = None
+    new_value: str | None = None
+    created_at: datetime.datetime
+
+
+class AdminAuditListResponse(BaseModel):
+    items: list[AdminAuditEntryRead]
+    total: int
 
 
 class AdminBloggerCreateRequest(BaseModel):
