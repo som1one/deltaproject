@@ -68,14 +68,22 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
 export const FaqPage = () => (
   <main className={styles.page}>
     <header className={styles.topBar}>
-      <Link href="/" className={styles.brand}>
-        <span className={styles.brandMark}>looney moon</span>
-        <span className={styles.brandSub}>агентство · faq</span>
-      </Link>
-      <nav className={styles.topBarLinks}>
+      <div className={styles.topBarRow}>
+        <Link href="/" className={styles.brand}>
+          <span className={styles.brandMark}>looney moon</span>
+          <span className={styles.brandSub}>агентство · faq</span>
+        </Link>
+        <nav className={styles.topBarLinks}>
+          <Link href="/">Главная</Link>
+          <Link href="/contacts">Контакты</Link>
+          <Link href="/register">Войти</Link>
+        </nav>
+      </div>
+
+      <nav className={styles.mobileNav} aria-label="Мобильная навигация">
         <Link href="/">Главная</Link>
         <Link href="/contacts">Контакты</Link>
-        <Link href="/register">Войти</Link>
+        <Link href="/register" className={styles.mobileNavCta}>Войти</Link>
       </nav>
     </header>
 
