@@ -18,6 +18,7 @@ from models.worker_message_script import WorkerMessageScript
 
 __all__ = [
     "AdminAuditLog",
+    "AdminPaymentDetails",
     "Base",
     "BloggerFinanceScheme",
     "BloggerStat",
