@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.settings import settings
 from enums.ledger import LedgerEntryStatus
 from enums.user import UserRole
 from models.ledger_entry import LedgerEntry
@@ -17,14 +18,44 @@ from schemas.admin import (
     AdminWorkerCabinetStatsRead,
     AdminUserPatch,
 )
-from services.ledger_service import sum_pending_confirmation_kopeks
+from services.admin_audit_service import record_admin_audit
+from services.ledger_service import _reserved_payout_kopeks, sum_pending_confirmation_kopeks
 from services.me_service import get_or_create_blogger_stat, get_or_create_worker_stat
 from utils.blogger_credentials import (
     build_blogger_internal_email,
     generate_blogger_password,
     normalize_blogger_nickname,
 )
+from utils.card_hash import compute_card_hash_and_last4, luhn_ok, normalize_pan
 from utils.security import hash_password
+
+
+_ADMIN_ROLES = (UserRole.ADMIN, UserRole.TECH_ADMIN)
+_MAX_TECH_ADMINS = 10
+
+
+async def _count_active_admins(db: AsyncSession, *, exclude_id: uuid.UUID | None = None) -> int:
+    """Число активных учётных записей-владельцев с ролью Admin.
+
+    При указании ``exclude_id`` соответствующий пользователь исключается из подсчёта —
+    это позволяет проверить, останется ли хотя бы один активный Admin после
+    деактивации/удаления/понижения роли конкретного пользователя (Req 5.7).
+    """
+    stmt = select(func.count(User.id)).where(
+        User.role == UserRole.ADMIN,
+        User.is_active.is_(True),
+    )
+    if exclude_id is not None:
+        stmt = stmt.where(User.id != exclude_id)
+    return int((await db.execute(stmt)).scalar_one())
+
+
+async def _count_tech_admins(db: AsyncSession, *, exclude_id: uuid.UUID | None = None) -> int:
+    """Число учётных записей с ролью Tech_Admin (для лимита 0..10, Req 5.1)."""
+    stmt = select(func.count(User.id)).where(User.role == UserRole.TECH_ADMIN)
+    if exclude_id is not None:
+        stmt = stmt.where(User.id != exclude_id)
+    return int((await db.execute(stmt)).scalar_one())
 
 
 async def admin_list_users(
