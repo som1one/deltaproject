@@ -157,12 +157,64 @@ async def admin_patch_user(
         user.nickname = nickname_value
         user.email = build_blogger_internal_email(nickname_value)
     if body.percent is not None:
-        user.percent = float(body.percent)
+        new_percent = round(float(body.percent), 2)
+        if user.percent != new_percent:
+            old_percent = user.percent
+            user.percent = new_percent
+            await record_admin_audit(
+                db,
+                actor_id=current_admin.id,
+                target_user_id=user.id,
+                field="percent",
+                old_value=str(old_percent),
+                new_value=str(new_percent),
+            )
+    if body.upline_blogger_id is not None:
+        # Назначение наставника-блогера (аплайна). Валидация (Req 7.1): целевой
+        # пользователь и указанный наставник — оба Bloger, наставник != сам пользователь.
+        if body.upline_blogger_id == user.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Пользователь не может быть собственным наставником",
+            )
+        if target_role != UserRole.BLOGER:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Наставник-аплайн назначается только пользователю с ролью блогер",
+            )
+        upline = await db.get(User, body.upline_blogger_id)
+        if upline is None or upline.role != UserRole.BLOGER:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Наставник должен существовать и иметь роль блогер",
+            )
+        if user.upline_blogger_id != body.upline_blogger_id:
+            old_upline = user.upline_blogger_id
+            user.upline_blogger_id = body.upline_blogger_id
+            await record_admin_audit(
+                db,
+                actor_id=current_admin.id,
+                target_user_id=user.id,
+                field="upline_blogger_id",
+                old_value=str(old_upline) if old_upline is not None else None,
+                new_value=str(body.upline_blogger_id),
+            )
     if body.is_active is not None:
         if user.id == current_admin.id and body.is_active is False:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Нельзя деактивировать текущего администратора",
+            )
+        # Защита последнего владельца (Req 5.7): деактивация Admin не должна оставить 0 активных Admin.
+        if (
+            body.is_active is False
+            and user.role == UserRole.ADMIN
+            and user.is_active
+            and await _count_active_admins(db, exclude_id=user.id) == 0
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Нельзя деактивировать единственного активного администратора",
             )
         user.is_active = bool(body.is_active)
     if body.role is not None and body.role != user.role:
@@ -175,11 +227,21 @@ async def admin_patch_user(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Администратор уже существует",
                 )
+        if body.role == UserRole.TECH_ADMIN:
+            # Лимит 0..10 тех-админов (Req 5.1).
+            if await _count_tech_admins(db, exclude_id=user.id) >= _MAX_TECH_ADMINS:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Достигнут лимит учётных записей Tech_Admin (максимум 10)",
+                )
         if user.role == UserRole.ADMIN and body.role != UserRole.ADMIN:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Нельзя понизить роль единственного администратора",
-            )
+            # Защита последнего владельца (Req 5.7): понижение роли единственного
+            # активного Admin запрещено.
+            if user.is_active and await _count_active_admins(db, exclude_id=user.id) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Нельзя понизить роль единственного администратора",
+                )
         user.role = body.role
 
     if body.blogger_cabinet_pin is not None:
