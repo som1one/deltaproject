@@ -357,11 +357,11 @@
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 15. Фронтенд — типы и API-клиент
-  - [-] 15.1 Типы `lib/types.ts`
+  - [x] 15.1 Типы `lib/types.ts`
     - Добавить `DealRead.rejection_reason: string | null`, роль `Tech_Admin`, `PlatformFinanceDashboard` + `TopParticipant`/`TimeSeriesPoint`/`ReferralShareByBlogger`/`ActiveReferralLinks`/`ReportingPeriod`, типы аудита (`AdminAuditEntry`, `AdminAuditListResponse`), партнёрскую карту
     - _Requirements: 1.4, 5.4, 8.4_
 
-  - [~] 15.2 API-методы `lib/api.ts`
+  - [-] 15.2 API-методы `lib/api.ts`
     - Добавить `adjustUserBalance(id, { amount_kopeks, reason })`, `setPartnerPayoutCard(id, { card_number })`, `getUserAudit(id)`, `getPlatformFinanceDashboard(period?)` (передаёт query `period`)
     - _Requirements: 3.1, 5.3, 5.4, 8.1_
 

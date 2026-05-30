@@ -1,6 +1,8 @@
 import { appConfig } from "@/lib/config";
 import { tokenStorage } from "@/lib/storage";
 import type {
+  AdminAuditListResponse,
+  AdminBalanceAdjustmentResponse,
   AdminBloggerCreateResponse,
   AdminOverviewResponse,
   AdminUserListResponse,
