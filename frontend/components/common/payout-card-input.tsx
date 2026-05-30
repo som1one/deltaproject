@@ -233,12 +233,12 @@ export const PayoutCardInput = ({
         </Field>
 
         {raw && !isValidLength ? (
-          <Message tone="default">Введено цифр: {raw.length} / {expectedLen}.</Message>
+          <Message tone="default">Введено цифр: {raw.length}. Допустимо 13–19.</Message>
         ) : null}
 
         <Button
           onClick={handleSubmit}
-          disabled={pending || !isValidLength}
+          disabled={pending || !isValidLength || !isLuhnValid}
         >
           {pending ? "Сохраняем…" : savedLast4 ? "Обновить карту" : "Сохранить карту"}
         </Button>
