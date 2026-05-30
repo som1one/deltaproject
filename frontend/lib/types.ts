@@ -1,6 +1,14 @@
 export type UserRole = "Worker" | "Bloger" | "Admin" | "Tech_Admin";
 
-export type DealStatus = "NEW" | "REVIEW" | "CONFIRMED" | "PAID" | "COMPLETED" | "REJECTED";
+export type DealStatus =
+  | "NEW"
+  | "REVIEW"
+  | "CONFIRMED"
+  | "ESCROW_HELD"
+  | "PAID"
+  | "COMPLETED"
+  | "REJECTED"
+  | "REFUNDED";
 
 export type LedgerEntryStatus =
   | "payout_request"
@@ -77,6 +85,7 @@ export type DealRead = {
   preview_blogger_kopeks: number | null;
   preview_platform_kopeks: number | null;
   rejection_reason: string | null;
+  payment_requisites: PaymentRequisites | null;
 };
 
 export type MeDealsResponse = {
@@ -307,4 +316,21 @@ export type AdminBalanceAdjustmentResponse = {
 
 export type AdminPartnerCardSet = {
   card_number: string;
+};
+
+export type PaymentRequisites = {
+  collection_card_full: string | null;
+  payment_link: string | null;
+  available: boolean;
+};
+
+export type AdminPaymentDetails = {
+  payment_link: string | null;
+  collection_card_last4: string | null;
+  is_active: boolean;
+};
+
+export type AdminPaymentDetailsSet = {
+  collection_card?: string | null;
+  payment_link?: string | null;
 };

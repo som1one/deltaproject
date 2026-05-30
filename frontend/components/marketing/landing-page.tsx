@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  AnimatePresence,
   motion,
   useReducedMotion,
   useScroll,
@@ -12,6 +11,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnimatedSection, StaggerGroup, StaggerItem } from "@/components/common/animated-section";
+import { MarketingNav } from "@/components/marketing/marketing-nav";
 import { useSessionTarget } from "@/lib/use-session-target";
 import styles from "@/components/marketing/landing.module.css";
 
@@ -130,194 +130,20 @@ const IntroOverlay = ({ onFinish }: { onFinish: () => void }) => {
   );
 };
 
-/* ---- Inline icons (no external icon dependency) ---- */
-type IconProps = { className?: string };
-
-const IconInfo = ({ className }: IconProps) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-    <path d="M12 11v5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    <circle cx="12" cy="7.8" r="1.05" fill="currentColor" />
-  </svg>
-);
-
-const IconHelp = ({ className }: IconProps) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-    <path
-      d="M9.4 9.3a2.6 2.6 0 0 1 5 1c0 1.7-2.4 2-2.4 3.5"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    />
-    <circle cx="12" cy="17" r="1.05" fill="currentColor" />
-  </svg>
-);
-
-const IconMail = ({ className }: IconProps) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-    <rect x="3.5" y="5.5" width="17" height="13" rx="2.4" stroke="currentColor" strokeWidth="1.6" />
-    <path
-      d="m4.4 7.4 6.3 4.7a2.2 2.2 0 0 0 2.6 0l6.3-4.7"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-const IconArrow = ({ className }: IconProps) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden>
-    <path d="M5 12h13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    <path
-      d="m12.5 6 6 6-6 6"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 const TopBar = ({ session }: { session: ReturnType<typeof useSessionTarget> }) => {
   const isLoggedIn = session.ready && session.isAuthenticated && Boolean(session.href);
   const accountHref = isLoggedIn ? (session.href as string) : "/register";
   const accountLabel = isLoggedIn ? (session.label as string) : "Войти";
-  const reduceMotion = useReducedMotion() ?? false;
-
-  const [menuOpen, setMenuOpen] = useState(false);
-  const closeMenu = useCallback(() => setMenuOpen(false), []);
-
-  const navItems = useMemo(
-    () => [
-      { href: "#manifest", label: "О платформе", Icon: IconInfo },
-      { href: "/faq", label: "FAQ", Icon: IconHelp },
-      { href: "/contacts", label: "Контакты", Icon: IconMail },
-    ],
-    [],
-  );
-
-  // Close on Escape + lock body scroll while the panel is open.
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [menuOpen]);
 
   return (
-    <header className={styles.topBar}>
-      <div className={styles.topBarRow}>
-        <Link href="/" className={styles.topBarBrand} onClick={closeMenu}>
-          <span className={styles.topBarMark}>looney moon</span>
-          <span className={styles.topBarSub}>агентство</span>
-        </Link>
-
-        {/* Desktop inline links */}
-        <nav className={styles.topBarLinks} aria-label="Основная навигация">
-          {navItems.map(({ href, label, Icon }) => (
-            <Link key={href} href={href} className={styles.topBarLink}>
-              <Icon className={styles.topBarLinkIcon} />
-              <span>{label}</span>
-            </Link>
-          ))}
-          <Link href={accountHref} className={styles.topBarCta}>
-            <span>{accountLabel}</span>
-            <IconArrow className={styles.topBarCtaIcon} />
-          </Link>
-        </nav>
-
-        {/* Burger trigger (mobile) */}
-        <button
-          type="button"
-          className={styles.burger}
-          aria-label={menuOpen ? "Закрыть меню" : "Открыть меню"}
-          aria-expanded={menuOpen}
-          aria-controls="mobile-menu"
-          data-open={menuOpen}
-          onClick={() => setMenuOpen((v) => !v)}
-        >
-          <span className={styles.burgerBox}>
-            <span className={styles.burgerLine} />
-            <span className={styles.burgerLine} />
-            <span className={styles.burgerLine} />
-          </span>
-        </button>
-      </div>
-
-      {/* Mobile dropdown menu */}
-      <AnimatePresence>
-        {menuOpen ? (
-          <>
-            <motion.button
-              type="button"
-              className={styles.menuScrim}
-              aria-label="Закрыть меню"
-              onClick={closeMenu}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-            />
-            <motion.nav
-              id="mobile-menu"
-              className={styles.menuPanel}
-              aria-label="Мобильная навигация"
-              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -12, height: 0 }}
-              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, height: "auto" }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -12, height: 0 }}
-              transition={{ duration: 0.32, ease: [0.16, 0.84, 0.3, 1] }}
-            >
-              <motion.ul
-                className={styles.menuList}
-                initial="hidden"
-                animate="show"
-                variants={{
-                  hidden: {},
-                  show: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } },
-                }}
-              >
-                {navItems.map(({ href, label, Icon }) => (
-                  <motion.li
-                    key={href}
-                    variants={{
-                      hidden: { opacity: 0, x: reduceMotion ? 0 : -14 },
-                      show: { opacity: 1, x: 0 },
-                    }}
-                  >
-                    <Link href={href} className={styles.menuLink} onClick={closeMenu}>
-                      <span className={styles.menuLinkIcon}>
-                        <Icon />
-                      </span>
-                      <span className={styles.menuLinkLabel}>{label}</span>
-                      <IconArrow className={styles.menuLinkChevron} />
-                    </Link>
-                  </motion.li>
-                ))}
-                <motion.li
-                  variants={{
-                    hidden: { opacity: 0, x: reduceMotion ? 0 : -14 },
-                    show: { opacity: 1, x: 0 },
-                  }}
-                >
-                  <Link href={accountHref} className={styles.menuCta} onClick={closeMenu}>
-                    <span>{accountLabel}</span>
-                    <IconArrow className={styles.menuCtaIcon} />
-                  </Link>
-                </motion.li>
-              </motion.ul>
-            </motion.nav>
-          </>
-        ) : null}
-      </AnimatePresence>
-    </header>
+    <MarketingNav
+      items={[
+        { href: "#manifest", label: "О платформе" },
+        { href: "/faq", label: "FAQ" },
+        { href: "/contacts", label: "Контакты" },
+      ]}
+      cta={{ href: accountHref, label: accountLabel }}
+    />
   );
 };
 

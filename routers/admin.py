@@ -30,7 +30,12 @@ from schemas.deal import (
     AdminDealAgreedPricePatch,
     AdminDealRecalcFinanceRequest,
     AdminDealStatusPatch,
+    AdminEscrowActionRequest,
     DealRead,
+)
+from schemas.payment_details import (
+    AdminPaymentDetailsRead,
+    AdminPaymentDetailsSet,
 )
 from schemas.finance import (
     FinancePreviewResponse,
@@ -43,6 +48,10 @@ from schemas.finance import (
 from schemas.ledger import AdminLedgerStatusPatch, LedgerEntryRead, LedgerListResponse
 from services.admin_audit_service import list_admin_audit
 from services.admin_overview_service import admin_get_overview
+from services.admin_payment_details_service import (
+    get_admin_payment_details_masked,
+    set_admin_payment_details,
+)
 from services.admin_user_service import (
     admin_adjust_user_balance,
     admin_create_blogger,
@@ -55,10 +64,13 @@ from services.admin_user_service import (
     admin_set_partner_card,
 )
 from services.deal_service import (
+    admin_confirm_receipt,
+    admin_distribute_escrow,
     admin_get_deal,
     admin_list_deals,
     admin_patch_deal_status,
     admin_recalc_deal_finance,
+    admin_refund_escrow,
     admin_set_agreed_price,
     deal_to_read,
 )
@@ -298,6 +310,40 @@ async def get_admin_finance_dashboard(
     return await get_platform_finance_dashboard(db, period)
 
 
+@router.get("/payment-details", response_model=AdminPaymentDetailsRead)
+async def get_admin_payment_details(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> AdminPaymentDetailsRead:
+    """Текущие реквизиты приёма платежей в маскированном виде (Req 1.3).
+
+    Доступ: Admin или Tech_Admin (иначе 403, Req 1.5). Возвращает Платёжную_Ссылку
+    и последние 4 цифры Карты_Приёма без раскрытия полного PAN.
+    """
+    return await get_admin_payment_details_masked(db)
+
+
+@router.put("/payment-details", response_model=AdminPaymentDetailsRead)
+async def put_admin_payment_details(
+    body: AdminPaymentDetailsSet,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> AdminPaymentDetailsRead:
+    """Сохранить/заменить реквизиты приёма платежей (Req 1.1, 1.2, 1.4, 2.x).
+
+    Доступ: Admin или Tech_Admin (иначе 403, Req 1.5). Семантика «не передано vs
+    очистить» сохраняется передачей в сервис только тех реквизитов, что реально
+    присутствуют в теле запроса (``model_fields_set``); отсутствующие поля
+    остаются прежними (сентинел ``_UNSET`` на стороне сервиса).
+    """
+    kwargs: dict[str, str | None] = {}
+    if "collection_card" in body.model_fields_set:
+        kwargs["collection_card"] = body.collection_card
+    if "payment_link" in body.model_fields_set:
+        kwargs["payment_link"] = body.payment_link
+    return await set_admin_payment_details(admin, db=db, **kwargs)
+
+
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_admin_user(
     user_id: uuid.UUID,
@@ -381,6 +427,51 @@ async def post_admin_recalc_deal_finance(
     admin: Annotated[User, Depends(get_current_admin_or_tech)],
 ) -> DealRead:
     deal = await admin_recalc_deal_finance(deal_id, admin, body.reason, db)
+    return await deal_to_read(deal, admin, db)
+
+
+@router.post("/deals/{deal_id}/confirm-receipt", response_model=DealRead)
+async def post_admin_deal_confirm_receipt(
+    deal_id: uuid.UUID,
+    body: AdminEscrowActionRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> DealRead:
+    """Подтверждение_Получения средств Плательщика (CONFIRMED → ESCROW_HELD).
+
+    Доступ: Admin или Tech_Admin (иначе 403, Req 4.5/8.4/8.5).
+    """
+    deal = await admin_confirm_receipt(deal_id, admin, body.reason, db)
+    return await deal_to_read(deal, admin, db)
+
+
+@router.post("/deals/{deal_id}/distribute", response_model=DealRead)
+async def post_admin_deal_distribute(
+    deal_id: uuid.UUID,
+    body: AdminEscrowActionRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> DealRead:
+    """Распределение удерживаемых средств участникам (ESCROW_HELD → PAID).
+
+    Доступ: Admin или Tech_Admin (иначе 403, Req 8.4/8.5).
+    """
+    deal = await admin_distribute_escrow(deal_id, admin, body.reason, db)
+    return await deal_to_read(deal, admin, db)
+
+
+@router.post("/deals/{deal_id}/refund", response_model=DealRead)
+async def post_admin_deal_refund(
+    deal_id: uuid.UUID,
+    body: AdminEscrowActionRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> DealRead:
+    """Возврат собранных, но не распределённых средств (ESCROW_HELD → REFUNDED).
+
+    Доступ: Admin или Tech_Admin (иначе 403, Req 7.5/8.4/8.5).
+    """
+    deal = await admin_refund_escrow(deal_id, admin, body.reason, db)
     return await deal_to_read(deal, admin, db)
 
 

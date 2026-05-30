@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { AnimatedSection, StaggerGroup, StaggerItem } from "@/components/common/animated-section";
+import { MarketingNav } from "@/components/marketing/marketing-nav";
 import styles from "@/components/marketing/info-page.module.css";
 
 const faqs: { q: string; a: string }[] = [
@@ -67,25 +68,14 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
 
 export const FaqPage = () => (
   <main className={styles.page}>
-    <header className={styles.topBar}>
-      <div className={styles.topBarRow}>
-        <Link href="/" className={styles.brand}>
-          <span className={styles.brandMark}>looney moon</span>
-          <span className={styles.brandSub}>агентство · faq</span>
-        </Link>
-        <nav className={styles.topBarLinks}>
-          <Link href="/">Главная</Link>
-          <Link href="/contacts">Контакты</Link>
-          <Link href="/register">Войти</Link>
-        </nav>
-      </div>
-
-      <nav className={styles.mobileNav} aria-label="Мобильная навигация">
-        <Link href="/">Главная</Link>
-        <Link href="/contacts">Контакты</Link>
-        <Link href="/register" className={styles.mobileNavCta}>Войти</Link>
-      </nav>
-    </header>
+    <MarketingNav
+      brandSub="агентство · faq"
+      items={[
+        { href: "/", label: "Главная" },
+        { href: "/contacts", label: "Контакты" },
+      ]}
+      cta={{ href: "/register", label: "Войти" }}
+    />
 
     <AnimatedSection>
       <section className={styles.hero}>

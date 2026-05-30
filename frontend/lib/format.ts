@@ -63,12 +63,16 @@ export const formatDealStatus = (status: string) => {
       return "Проверка";
     case "CONFIRMED":
       return "Подтверждена";
+    case "ESCROW_HELD":
+      return "Эскроу";
     case "PAID":
       return "Оплачена";
     case "COMPLETED":
       return "Выполнена";
     case "REJECTED":
       return "Отклонена";
+    case "REFUNDED":
+      return "Возврат";
     default:
       return status;
   }
@@ -82,11 +86,15 @@ export const dealStatusTone = (
     case "REVIEW":
     case "CONFIRMED":
       return "active";
+    case "ESCROW_HELD":
+      return "active";
     case "PAID":
       return "success";
     case "COMPLETED":
       return "muted";
     case "REJECTED":
+      return "danger";
+    case "REFUNDED":
       return "danger";
     default:
       return "default";

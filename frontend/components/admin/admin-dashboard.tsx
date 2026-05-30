@@ -45,6 +45,7 @@ import {
   TwoColumn,
 } from "@/components/common/ui";
 import styles from "@/components/admin/admin.module.css";
+import { PayoutCardInput } from "@/components/common/payout-card-input";
 
 type AdminSection = "overview" | "users" | "deals" | "ledger" | "schemes" | "finance" | "scripts";
 
@@ -53,6 +54,9 @@ type AdminModalState =
   | { kind: "deal-status"; deal: DealRead; status: string; reason: string; title: string; submitLabel: string }
   | { kind: "deal-price"; deal: DealRead; agreedRub: string; reason: string }
   | { kind: "deal-recalc"; deal: DealRead; reason: string }
+  | { kind: "deal-confirm-receipt"; deal: DealRead; reason: string }
+  | { kind: "deal-distribute"; deal: DealRead; reason: string }
+  | { kind: "deal-refund"; deal: DealRead; reason: string }
   | { kind: "ledger-status"; entry: LedgerEntryRead; status: string; note: string }
   | { kind: "payout-complete"; entry: LedgerEntryRead }
   | { kind: "delete-script"; script: WorkerMessageScriptRead }
@@ -146,6 +150,10 @@ export const AdminDashboard = () => {
   const [financePeriod, setFinancePeriod] = useState<ReportingPeriod>("all");
   const [balanceAdjustForm, setBalanceAdjustForm] = useState({ amountRub: "", reason: "" });
   const [partnerCardForm, setPartnerCardForm] = useState("");
+  // Реквизиты приёма: ссылку отражаем в текстовом поле (всегда отправляется),
+  // карту вводим через PayoutCardInput. Признак "карту меняли" — collectionCardDraft.
+  const [paymentLinkForm, setPaymentLinkForm] = useState("");
+  const [collectionCardDraft, setCollectionCardDraft] = useState<string | null>(null);
 
   const meQuery = useQuery({
     queryKey: ["me"],
@@ -213,6 +221,12 @@ export const AdminDashboard = () => {
   const financeDashboardQuery = useQuery({
     queryKey: ["admin", "financeDashboard", financePeriod],
     queryFn: () => api.getPlatformFinanceDashboard(financePeriod),
+    enabled: Boolean(isAuthenticated) && section === "finance",
+  });
+
+  const paymentDetailsQuery = useQuery({
+    queryKey: ["admin", "paymentDetails"],
+    queryFn: api.getAdminPaymentDetails,
     enabled: Boolean(isAuthenticated) && section === "finance",
   });
 
@@ -302,6 +316,15 @@ export const AdminDashboard = () => {
       });
     }
   }, [schemeDetailQuery.data]);
+
+  useEffect(() => {
+    // Текстовое поле ссылки отражает текущее значение реквизитов.
+    // Черновик карты сбрасываем — последние 4 цифры показываем отдельно.
+    if (paymentDetailsQuery.data) {
+      setPaymentLinkForm(paymentDetailsQuery.data.payment_link || "");
+      setCollectionCardDraft(null);
+    }
+  }, [paymentDetailsQuery.data]);
 
   const invalidateAdmin = async (...keys: readonly (readonly unknown[])[]) => {
     await Promise.all(keys.map((key) => queryClient.invalidateQueries({ queryKey: [...key] })));
@@ -442,6 +465,73 @@ export const AdminDashboard = () => {
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
 
+  const paymentDetailsMutation = useMutation({
+    mutationFn: () => {
+      // Ссылку отправляем всегда (текстовое поле отражает текущее значение,
+      // пустая строка очищает её). Карту включаем в payload только если админ
+      // ввёл новый номер (collectionCardDraft), иначе опускаем поле, чтобы
+      // сохранить прежнюю карту (пустая строка её бы очистила).
+      const payload: { payment_link: string; collection_card?: string } = {
+        payment_link: paymentLinkForm.trim(),
+      };
+      if (collectionCardDraft !== null) {
+        payload.collection_card = collectionCardDraft;
+      }
+      return api.setAdminPaymentDetails(payload);
+    },
+    onSuccess: async () => {
+      setMessage({ tone: "success", text: "Реквизиты приёма сохранены." });
+      setCollectionCardDraft(null);
+      await invalidateAdmin(["admin", "paymentDetails"]);
+    },
+    onError: (error) => setMessage({ tone: "error", text: error.message }),
+  });
+
+  const dealConfirmReceiptMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.confirmDealReceipt(id, { reason }),
+    onSuccess: async () => {
+      setMessage({ tone: "success", text: "Получение средств подтверждено." });
+      setModal(null);
+      await invalidateAdmin(
+        ["admin", "deals"],
+        ["admin", "deal", selectedDealId],
+        ["admin", "overview"],
+        ["admin", "ledger"],
+      );
+    },
+    onError: (error) => setMessage({ tone: "error", text: error.message }),
+  });
+
+  const dealDistributeMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.distributeDeal(id, { reason }),
+    onSuccess: async () => {
+      setMessage({ tone: "success", text: "Средства распределены участникам." });
+      setModal(null);
+      await invalidateAdmin(
+        ["admin", "deals"],
+        ["admin", "deal", selectedDealId],
+        ["admin", "overview"],
+        ["admin", "ledger"],
+      );
+    },
+    onError: (error) => setMessage({ tone: "error", text: error.message }),
+  });
+
+  const dealRefundMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.refundDeal(id, { reason }),
+    onSuccess: async () => {
+      setMessage({ tone: "success", text: "Средства возвращены." });
+      setModal(null);
+      await invalidateAdmin(
+        ["admin", "deals"],
+        ["admin", "deal", selectedDealId],
+        ["admin", "overview"],
+        ["admin", "ledger"],
+      );
+    },
+    onError: (error) => setMessage({ tone: "error", text: error.message }),
+  });
+
   const ledgerStatusMutation = useMutation({
     mutationFn: ({ id, status, note }: { id: string; status: string; note: string }) =>
       api.patchAdminLedgerEntry(id, { status, note }),
@@ -532,7 +622,9 @@ export const AdminDashboard = () => {
           case "REVIEW":
             return [{ status: "CONFIRMED", label: "Подтвердить", title: "Подтверждение сделки" }];
           case "CONFIRMED":
-            return [{ status: "PAID", label: "Отметить оплаченной", title: "Оплата сделки" }];
+            // Прямой переход CONFIRMED → PAID запрещён: оплата идёт через эскроу
+            // (Подтвердить получение → Распределить). См. кнопки эскроу ниже.
+            return [];
           case "PAID":
             return [{ status: "COMPLETED", label: "Завершить", title: "Завершение сделки" }];
           default:
@@ -661,6 +753,99 @@ export const AdminDashboard = () => {
             <Field label="Причина пересчёта">
               <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
             </Field>
+          </Modal>
+        );
+      case "deal-confirm-receipt":
+        return (
+          <Modal
+            title="Подтвердить получение"
+            onClose={() => setModal(null)}
+            actions={
+              <>
+                <Button type="button" kind="ghost" onClick={() => setModal(null)}>
+                  Отмена
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => dealConfirmReceiptMutation.mutate({ id: modal.deal.id, reason: modal.reason })}
+                  disabled={dealConfirmReceiptMutation.isPending || modal.reason.trim().length === 0}
+                >
+                  Подтвердить
+                </Button>
+              </>
+            }
+          >
+            <Stack>
+              <PillRow>
+                <Pill>{modal.deal.item_name}</Pill>
+                <Pill tone="accent">Статус → {formatDealStatus("ESCROW_HELD")}</Pill>
+              </PillRow>
+              <Field label="Причина" help="Сообщение попадёт в журнал админ-действий.">
+                <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
+              </Field>
+            </Stack>
+          </Modal>
+        );
+      case "deal-distribute":
+        return (
+          <Modal
+            title="Распределить средства"
+            onClose={() => setModal(null)}
+            actions={
+              <>
+                <Button type="button" kind="ghost" onClick={() => setModal(null)}>
+                  Отмена
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => dealDistributeMutation.mutate({ id: modal.deal.id, reason: modal.reason })}
+                  disabled={dealDistributeMutation.isPending || modal.reason.trim().length === 0}
+                >
+                  Распределить
+                </Button>
+              </>
+            }
+          >
+            <Stack>
+              <PillRow>
+                <Pill>{modal.deal.item_name}</Pill>
+                <Pill tone="accent">Статус → {formatDealStatus("PAID")}</Pill>
+              </PillRow>
+              <Field label="Причина" help="Сообщение попадёт в журнал админ-действий.">
+                <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
+              </Field>
+            </Stack>
+          </Modal>
+        );
+      case "deal-refund":
+        return (
+          <Modal
+            title="Возврат средств"
+            onClose={() => setModal(null)}
+            actions={
+              <>
+                <Button type="button" kind="ghost" onClick={() => setModal(null)}>
+                  Отмена
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => dealRefundMutation.mutate({ id: modal.deal.id, reason: modal.reason })}
+                  disabled={dealRefundMutation.isPending || modal.reason.trim().length === 0}
+                >
+                  Оформить возврат
+                </Button>
+              </>
+            }
+          >
+            <Stack>
+              <PillRow>
+                <Pill>{modal.deal.item_name}</Pill>
+                <Pill tone="accent">Статус → {formatDealStatus("REFUNDED")}</Pill>
+              </PillRow>
+              <Field label="Причина" help="Сообщение попадёт в журнал админ-действий.">
+                <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
+              </Field>
+            </Stack>
           </Modal>
         );
       case "ledger-status":
@@ -1305,6 +1490,52 @@ export const AdminDashboard = () => {
                     </Button>
                   ) : null}
 
+                  {dealDetailQuery.data.status === "CONFIRMED" ? (
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        setModal({
+                          kind: "deal-confirm-receipt",
+                          deal: dealDetailQuery.data,
+                          reason: "",
+                        })
+                      }
+                    >
+                      Подтвердить получение
+                    </Button>
+                  ) : null}
+
+                  {dealDetailQuery.data.status === "ESCROW_HELD" ? (
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        setModal({
+                          kind: "deal-distribute",
+                          deal: dealDetailQuery.data,
+                          reason: "",
+                        })
+                      }
+                    >
+                      Распределить
+                    </Button>
+                  ) : null}
+
+                  {dealDetailQuery.data.status === "ESCROW_HELD" ? (
+                    <Button
+                      type="button"
+                      kind="ghost"
+                      onClick={() =>
+                        setModal({
+                          kind: "deal-refund",
+                          deal: dealDetailQuery.data,
+                          reason: "",
+                        })
+                      }
+                    >
+                      Возврат
+                    </Button>
+                  ) : null}
+
                   {(dealDetailQuery.data.status === "PAID" || dealDetailQuery.data.status === "COMPLETED") ? (
                     <Button
                       type="button"
@@ -1357,6 +1588,60 @@ export const AdminDashboard = () => {
                         <Pill>Платформа: {formatMoney(dealDetailQuery.data.preview_platform_kopeks)}</Pill>
                       ) : null}
                     </PillRow>
+                  ) : null}
+
+                  {dealDetailQuery.data.status === "CONFIRMED" && dealDetailQuery.data.payment_requisites ? (
+                    dealDetailQuery.data.payment_requisites.available ? (
+                      <div className={styles.requisitesBox}>
+                        <p className={styles.requisitesTitle}>Реквизиты приёма платежей</p>
+                        {dealDetailQuery.data.payment_requisites.collection_card_full ? (
+                          <div className={styles.requisitesRow}>
+                            <div className={styles.requisitesField}>
+                              <span className={styles.requisitesLabel}>Карта приёма</span>
+                              <code className={styles.requisitesValue}>
+                                {dealDetailQuery.data.payment_requisites.collection_card_full}
+                              </code>
+                            </div>
+                            <Button
+                              type="button"
+                              kind="ghost"
+                              onClick={() => {
+                                void navigator.clipboard.writeText(
+                                  dealDetailQuery.data.payment_requisites?.collection_card_full || "",
+                                );
+                                setMessage({ tone: "success", text: "Номер карты скопирован." });
+                              }}
+                            >
+                              Копировать
+                            </Button>
+                          </div>
+                        ) : null}
+                        {dealDetailQuery.data.payment_requisites.payment_link ? (
+                          <div className={styles.requisitesRow}>
+                            <div className={styles.requisitesField}>
+                              <span className={styles.requisitesLabel}>Платёжная ссылка</span>
+                              <code className={styles.requisitesValue}>
+                                {dealDetailQuery.data.payment_requisites.payment_link}
+                              </code>
+                            </div>
+                            <Button
+                              type="button"
+                              kind="ghost"
+                              onClick={() => {
+                                void navigator.clipboard.writeText(
+                                  dealDetailQuery.data.payment_requisites?.payment_link || "",
+                                );
+                                setMessage({ tone: "success", text: "Ссылка скопирована." });
+                              }}
+                            >
+                              Копировать
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <Message>Реквизиты приёма не настроены</Message>
+                    )
                   ) : null}
                 </Stack>
               </Stack>
@@ -1580,7 +1865,16 @@ export const AdminDashboard = () => {
         { value: "month", label: "Месяц" },
         { value: "all", label: "Всё время" },
       ];
-      const dealStatusOrder = ["NEW", "REVIEW", "CONFIRMED", "PAID", "COMPLETED", "REJECTED"] as const;
+      const dealStatusOrder = [
+        "NEW",
+        "REVIEW",
+        "CONFIRMED",
+        "ESCROW_HELD",
+        "PAID",
+        "COMPLETED",
+        "REJECTED",
+        "REFUNDED",
+      ] as const;
       const maxSeriesTurnover = dash
         ? Math.max(1, ...dash.time_series.map((point) => point.turnover_kopeks))
         : 1;
@@ -1605,6 +1899,86 @@ export const AdminDashboard = () => {
                 </Button>
               ))}
             </PillRow>
+          </SectionCard>
+
+          <SectionCard
+            title="Реквизиты приёма платежей"
+            lead="Карта приёма и/или платёжная ссылка, которые предъявляются плательщику по подтверждённой сделке."
+          >
+            <Stack>
+              <div className={styles.requisitesBox}>
+                <div className={styles.requisitesRow}>
+                  <div className={styles.requisitesField}>
+                    <span className={styles.requisitesLabel}>Карта приёма</span>
+                    <code className={styles.requisitesValue}>
+                      {paymentDetailsQuery.data?.collection_card_last4
+                        ? `•••• ${paymentDetailsQuery.data.collection_card_last4}`
+                        : "не настроена"}
+                    </code>
+                  </div>
+                  <div className={styles.requisitesField}>
+                    <span className={styles.requisitesLabel}>Платёжная ссылка</span>
+                    <code className={styles.requisitesValue}>
+                      {paymentDetailsQuery.data?.payment_link || "не настроена"}
+                    </code>
+                  </div>
+                </div>
+              </div>
+
+              {paymentDetailsQuery.isLoading ? <Message>Загружаем реквизиты…</Message> : null}
+              {paymentDetailsQuery.isError ? (
+                <Message tone="error">Не удалось загрузить реквизиты приёма.</Message>
+              ) : null}
+
+              <Field
+                label="Платёжная ссылка"
+                help="Абсолютный HTTPS-URL. Пустое поле очистит сохранённую ссылку."
+              >
+                <TextInput
+                  value={paymentLinkForm}
+                  inputMode="url"
+                  placeholder="https://"
+                  onChange={(event) => setPaymentLinkForm(event.target.value)}
+                />
+              </Field>
+
+              <Field
+                label="Карта приёма"
+                help={
+                  collectionCardDraft !== null
+                    ? "Новый номер будет сохранён при нажатии «Сохранить реквизиты»."
+                    : "Введите номер, чтобы заменить карту. Без ввода прежняя карта сохраняется."
+                }
+              >
+                {/* PayoutCardInput форматирует номер и проверяет Luhn (13–19 цифр).
+                    onSubmit отдаёт сырые цифры — кладём их в черновик, чтобы
+                    включить collection_card в payload только при реальном вводе. */}
+                <PayoutCardInput
+                  savedLast4={paymentDetailsQuery.data?.collection_card_last4 ?? null}
+                  pending={paymentDetailsMutation.isPending}
+                  onSubmit={(rawDigits) => {
+                    setCollectionCardDraft(rawDigits);
+                    setMessage({
+                      tone: "success",
+                      text: "Карта готова к сохранению — нажмите «Сохранить реквизиты».",
+                    });
+                  }}
+                />
+              </Field>
+
+              <div className={styles.actionRow}>
+                <Button
+                  type="button"
+                  onClick={() => paymentDetailsMutation.mutate()}
+                  disabled={paymentDetailsMutation.isPending}
+                >
+                  {paymentDetailsMutation.isPending ? "Сохраняем…" : "Сохранить реквизиты"}
+                </Button>
+                {collectionCardDraft !== null ? (
+                  <Pill tone="accent">Новая карта •••• {collectionCardDraft.slice(-4)}</Pill>
+                ) : null}
+              </div>
+            </Stack>
           </SectionCard>
 
           {financeDashboardQuery.isLoading ? <Message>Загружаем финансовую сводку…</Message> : null}

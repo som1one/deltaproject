@@ -36,17 +36,17 @@
     - _Requirements: 2.1_
 
 - [ ] 2. Миграции Alembic
-  - [ ] 2.1 Миграция значений enum `deal_status`
+  - [x] 2.1 Миграция значений enum `deal_status`
     - Новая ревизия с `down_revision = "o9p0q1r2s3t4"`; внутри `op.get_context().autocommit_block()`: `ALTER TYPE deal_status ADD VALUE IF NOT EXISTS 'ESCROW_HELD' BEFORE 'PAID'` и `... ADD VALUE IF NOT EXISTS 'REFUNDED'` (паттерн как `l6m7n8o9p0q1`/`m7n8o9p0q1r2`)
     - `downgrade`: документированный no-op (удаление значения enum в PG небезопасно)
     - _Requirements: 8.1_
 
-  - [ ] 2.2 Миграция значений enum `ledger_entry_status`
+  - [x] 2.2 Миграция значений enum `ledger_entry_status`
     - Чейнить от ревизии 2.1; в `autocommit_block`: `ALTER TYPE ledger_entry_status ADD VALUE IF NOT EXISTS 'escrow_held' | 'escrow_released' | 'escrow_refunded'`
     - `downgrade`: документированный no-op
     - _Requirements: 5.7, 7.7_
 
-  - [ ] 2.3 Миграция таблицы `admin_payment_details`
+  - [x] 2.3 Миграция таблицы `admin_payment_details`
     - Чейнить от ревизии 2.2; `op.create_table('admin_payment_details', ...)` со всеми колонками из модели + `ForeignKeyConstraint(updated_by → users.id, ondelete="SET NULL")` (образец `o9p0q1r2s3t4_admin_audit_logs.py`)
     - `downgrade`: `drop_table`
     - _Requirements: 1.1, 2.1_
@@ -78,7 +78,7 @@
     - _Requirements: 2.1_
 
 - [ ] 5. Сервис реквизитов приёма (Блок A)
-  - [ ] 5.1 Реализовать `services/admin_payment_details_service.py`
+  - [x] 5.1 Реализовать `services/admin_payment_details_service.py`
     - `set_admin_payment_details(actor, collection_card, payment_link, db)`: атомарно с `with_for_update` на singleton-строке; нормализация входа; Req 1.4 (оба `None` → `422`); валидация карты через `normalize_pan`/`luhn_ok` + длина 13–19 (иначе `400`); валидация ссылки (HTTPS-абсолют, ≤ 2048, иначе `422`); шифрование PAN + `last4`; замена/очистка/сохранение прежних по `model_fields_set`; аудит каждого изменённого реквизита через `record_admin_audit` (карта — только `last4`); полный `rollback` при ошибке
     - `get_admin_payment_details_masked(db)`: `payment_link` + `collection_card_last4` + `is_active` (без расшифровки)
     - `get_active_payment_requisites_full(db)`: расшифровка PAN → `PaymentRequisites`; `available = (card or link) is not None`
@@ -104,7 +104,7 @@
     - _Requirements: 1.4, 2.1_
 
 - [ ] 6. Предъявление реквизитов по сделке (`deal_to_read`)
-  - [ ] 6.1 Расширить `deal_to_read` полем `payment_requisites`
+  - [x] 6.1 Расширить `deal_to_read` полем `payment_requisites`
     - В `services/deal_service.py`: при `deal.status == CONFIRMED` и наличии Активного_Платёжного_Реквизита добавлять `payment_requisites` (полный PAN и/или ссылка) для работника, блогера и админа; при отсутствии активных — `available=false` без ошибки; для прочих статусов — `None`
     - Использовать `get_active_payment_requisites_full`
     - _Requirements: 3.1, 3.2, 3.3, 2.4_
@@ -122,12 +122,12 @@
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 8. Эскроу — машина состояний и общая смена статуса
-  - [ ] 8.1 Обновить `_status_order` и добавить хелперы удержания
+  - [x] 8.1 Обновить `_status_order` и добавить хелперы удержания
     - В `services/deal_service.py`: `_status_order` = `NEW(0) < REVIEW(1) < CONFIRMED(2) < ESCROW_HELD(3) < PAID(4) < COMPLETED(5)`, `REJECTED`/`REFUNDED` = `-1` (терминал)
     - Добавить `_escrow_hold_key(deal_id) -> "deal:{id}:escrow:hold"` и `_get_escrow_hold(deal_id, db) -> LedgerEntry | None`
     - _Requirements: 8.1, 6.1_
 
-  - [ ] 8.2 Перестроить `admin_patch_deal_status`
+  - [x] 8.2 Перестроить `admin_patch_deal_status`
     - Удалить блок начисления по пересечению границы `PAID` (начисление теперь только в `admin_distribute_escrow`)
     - Отклонять (`409`) переходы в `ESCROW_HELD`/`PAID`/`REFUNDED` с указанием использовать дедикейтед-действие (Req 6.4: прямой `CONFIRMED → PAID` запрещён)
     - `REFUNDED` — терминальный: любой переход из него → `409` (Req 7.6); `REJECTED` только из `NEW`/`REVIEW`/`CONFIRMED`; `PAID → COMPLETED` сохранён
@@ -144,7 +144,7 @@
     - Любой запрос смены статуса из `REFUNDED` (включая эскроу-действия и общий patch) → отклонение, статус остаётся `REFUNDED`
 
 - [ ] 9. Эскроу — Подтверждение_Получения
-  - [ ] 9.1 Реализовать `admin_confirm_receipt(deal_id, admin_user, reason, db)`
+  - [x] 9.1 Реализовать `admin_confirm_receipt(deal_id, admin_user, reason, db)`
     - В `services/deal_service.py`: `SELECT ... FOR UPDATE`; идемпотентность (если `_get_escrow_hold` вернул строку → успех без новых записей, статус/балансы без изменений); иначе при `status != CONFIRMED` → `409`; иначе `status = ESCROW_HELD` + `LedgerEntry(user_id=platform, deal_id, amount_kopeks=Base_Amount, status=escrow_held, idempotency_key="deal:{id}:escrow:hold", note=reason)` без движения балансов; `DealAdminLog(action="receipt_confirm", old=CONFIRMED, new=ESCROW_HELD, admin_id, reason)`; `commit`
     - `Base_Amount = deal_distribution_amount_kopeks(deal)` (`agreed_price_kopeks` иначе `price`)
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.7_
@@ -160,7 +160,7 @@
     - Сделка вне `CONFIRMED` без существующего удержания → ошибка, статус неизменен
 
 - [ ] 10. Эскроу — Распределение
-  - [ ] 10.1 Реализовать `admin_distribute_escrow(deal_id, admin_user, reason, db)`
+  - [x] 10.1 Реализовать `admin_distribute_escrow(deal_id, admin_user, reason, db)`
     - В `services/deal_service.py`: `FOR UPDATE`; идемпотентность через `_paid_bundle_exists` (успех без изменений); иначе при `status != ESCROW_HELD` → `409` (запрет распределения без удержания, балансы неизменны); иначе проверка системного счёта платформы (Req 9.5, внутри `_accrue_paid_deal`); `_accrue_paid_deal(deal, db)` (без изменений логики, ключи `deal:{id}:paid:{role}`); `status = PAID`; `hold.status = escrow_released`; `DealAdminLog(action="distribute", old=ESCROW_HELD, new=PAID, admin_id, reason)`; `commit`
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 6.2, 6.3, 9.5_
 
@@ -194,7 +194,7 @@
     - _Requirements: 9.5_
 
 - [ ] 11. Эскроу — Возврат
-  - [ ] 11.1 Реализовать `admin_refund_escrow(deal_id, admin_user, reason, db)`
+  - [x] 11.1 Реализовать `admin_refund_escrow(deal_id, admin_user, reason, db)`
     - В `services/deal_service.py`: `FOR UPDATE`; идемпотентность (уже `REFUNDED` + удержание помечено возвращённым → успех без изменений); иначе при `status != ESCROW_HELD` → `409`; иначе `status = REFUNDED`; `hold.status = escrow_refunded` (исключено из учёта удерживаемых средств); балансы не меняются, начислений нет; `DealAdminLog(action="refund", old=ESCROW_HELD, new=REFUNDED, admin_id, reason)`; `commit`
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.7_
 
@@ -220,11 +220,11 @@
     - Для каждого из {Подтверждение_Получения, Распределение, Возврат} создаётся `DealAdminLog` с admin_id, прежним/новым статусом и причиной 1–1000 символов
 
 - [ ] 13. Роутеры (`routers/admin.py`)
-  - [ ] 13.1 Эндпоинты реквизитов приёма
+  - [x] 13.1 Эндпоинты реквизитов приёма
     - `GET /admin/payment-details` (→ `AdminPaymentDetailsRead`, маскированно) и `PUT /admin/payment-details` (`AdminPaymentDetailsSet` → set/replace/валидация/аудит) под `get_current_admin_or_tech`
     - _Requirements: 1.1, 1.3, 1.5_
 
-  - [ ] 13.2 Эндпоинты эскроу-действий
+  - [x] 13.2 Эндпоинты эскроу-действий
     - `POST /admin/deals/{id}/confirm-receipt`, `/distribute`, `/refund` (body `AdminEscrowActionRequest`) под `get_current_admin_or_tech`, вызывают соответствующие функции `deal_service`
     - _Requirements: 4.5, 7.5, 8.4, 8.5_
 
@@ -236,24 +236,24 @@
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 15. Фронтенд — типы и API-клиент
-  - [ ] 15.1 Типы `lib/types.ts`
+  - [x] 15.1 Типы `lib/types.ts`
     - `DealStatus += "ESCROW_HELD" | "REFUNDED"`; добавить `PaymentRequisites`, `AdminPaymentDetails`, `AdminPaymentDetailsSet`; в `DealRead` — `payment_requisites: PaymentRequisites | null`
     - _Requirements: 3.1, 8.1_
 
-  - [ ] 15.2 API-методы `lib/api.ts`
+  - [x] 15.2 API-методы `lib/api.ts`
     - `getAdminPaymentDetails()`, `setAdminPaymentDetails({ collection_card, payment_link })`, `confirmDealReceipt(id, { reason })`, `distributeDeal(id, { reason })`, `refundDeal(id, { reason })`
     - _Requirements: 1.1, 1.3, 4.1, 5.1, 7.1_
 
 - [ ] 16. Фронтенд — админка (`admin-dashboard.tsx`)
-  - [ ] 16.1 Карточка управления реквизитами приёма
+  - [x] 16.1 Карточка управления реквизитами приёма
     - В секции «Финансы платформы» добавить карточку в стиле `metricGroup` (согласованно с `financeHero`/`metricGroups`): поле Платёжной_Ссылки, поле Карты_Приёма (переиспользовать `payout-card-input.tsx`, Luhn 13–19), отображение `last4`/ссылки, кнопка сохранения через `setAdminPaymentDetails`
     - _Requirements: 1.1, 1.3, 2.2_
 
-  - [ ] 16.2 Эскроу-действия по сделке + статусы и фильтры
+  - [x] 16.2 Эскроу-действия по сделке + статусы и фильтры
     - Кнопки «Подтвердить получение» (`CONFIRMED`), «Распределить» (`ESCROW_HELD`), «Возврат» (`ESCROW_HELD`), каждая открывает `Modal` с обязательным полем причины (`TextArea`, 1..1000); добавить `StatusPill` и фильтры для `ESCROW_HELD`/`REFUNDED`
     - _Requirements: 4.1, 5.1, 7.1, 8.1_
 
-  - [ ] 16.3 Показ реквизитов приёма по сделке
+  - [x] 16.3 Показ реквизитов приёма по сделке
     - В деталях сделки в `CONFIRMED` показывать `payment_requisites` (полный PAN и/или ссылка) с `CopyButton`; при `available=false` — подсказка «Реквизиты приёма не настроены»
     - _Requirements: 3.1, 3.2_
 

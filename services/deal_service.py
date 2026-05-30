@@ -17,6 +17,8 @@ from models.user import User
 from models.worker_stat import WorkerStat
 
 from schemas.deal import DealCreate, DealRead
+from schemas.payment_details import PaymentRequisites
+from services.admin_payment_details_service import get_active_payment_requisites_full
 from services.finance_scheme_service import (
     distribute_price_kopeks,
     get_or_create_scheme_for_blogger,
@@ -84,6 +86,25 @@ async def deal_to_read(deal: Deal, viewer: User, db: AsyncSession) -> DealRead:
     if deal.status == DealStatus.REJECTED:
         rejection_reason = await get_latest_rejection_reason(deal.id, db)
 
+    # Реквизиты приёма платежей предъявляются ТОЛЬКО для сделки в статусе
+    # CONFIRMED и только её работнику, блогеру либо администратору
+    # (Admin/Tech_Admin) (Req 3.1, 2.4). Для прочих статусов поле отсутствует
+    # (Req 3.3). Доступ к самой сделке уже ограничен upstream, поэтому здесь
+    # достаточно проверки роли/участия зрителя.
+    payment_requisites = None
+    if deal.status == DealStatus.CONFIRMED:
+        is_admin = viewer.role in (UserRole.ADMIN, UserRole.TECH_ADMIN)
+        is_participant = viewer.id in (deal.worker_id, deal.bloger_id)
+        if is_admin or is_participant:
+            payment_requisites = await get_active_payment_requisites_full(db)
+            if payment_requisites is None:
+                # Активные реквизиты отсутствуют — признак недоступности без ошибки (Req 3.2).
+                payment_requisites = PaymentRequisites(
+                    available=False,
+                    collection_card_full=None,
+                    payment_link=None,
+                )
+
     return DealRead(
         id=deal.id,
         worker_id=deal.worker_id,
@@ -104,6 +125,7 @@ async def deal_to_read(deal: Deal, viewer: User, db: AsyncSession) -> DealRead:
         preview_blogger_kopeks=pb,
         preview_platform_kopeks=pp,
         rejection_reason=rejection_reason,
+        payment_requisites=payment_requisites,
     )
 
 
@@ -461,12 +483,29 @@ def _status_order(status_value: DealStatus) -> int:
         DealStatus.NEW: 0,
         DealStatus.REVIEW: 1,
         DealStatus.CONFIRMED: 2,
-        DealStatus.PAID: 3,
-        DealStatus.COMPLETED: 4,
-        # REJECTED — терминал, в линейный порядок не входит.
+        DealStatus.ESCROW_HELD: 3,
+        DealStatus.PAID: 4,
+        DealStatus.COMPLETED: 5,
+        # REJECTED и REFUNDED — терминалы, в линейный порядок не входят.
         DealStatus.REJECTED: -1,
+        DealStatus.REFUNDED: -1,
     }
     return order[status_value]
+
+
+def _escrow_hold_key(deal_id: uuid.UUID) -> str:
+    """Ключ идемпотентности записи Удержания_Эскроу по сделке."""
+    return f"deal:{deal_id}:escrow:hold"
+
+
+async def _get_escrow_hold(deal_id: uuid.UUID, db: AsyncSession) -> LedgerEntry | None:
+    """Вернуть запись Удержания_Эскроу сделки (или None, если её ещё нет)."""
+    result = await db.execute(
+        select(LedgerEntry).where(
+            LedgerEntry.idempotency_key == _escrow_hold_key(deal_id),
+        ),
+    )
+    return result.scalar_one_or_none()
 
 
 async def admin_patch_deal_status(
@@ -486,16 +525,37 @@ async def admin_patch_deal_status(
     if old_status == new_status:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Статус сделки уже установлен")
 
-    if old_status == DealStatus.REJECTED:
+    # Терминальные статусы: из REJECTED и REFUNDED любой переход запрещён
+    # (Req 7.6). REJECTED — отклонена до сбора средств; REFUNDED — собранные
+    # средства уже возвращены до распределения.
+    if old_status in (DealStatus.REJECTED, DealStatus.REFUNDED):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Отклонённая сделка не может быть возвращена в работу",
+            detail="Завершённая сделка (REJECTED/REFUNDED) не может быть возвращена в работу",
         )
 
-    if new_status == DealStatus.REJECTED and old_status not in (DealStatus.NEW, DealStatus.REVIEW):
+    # Финансовые переходы выполняются ТОЛЬКО через дедикейтед-действия с явной
+    # семантикой и причиной: Подтверждение_Получения (confirm-receipt),
+    # Распределение (distribute), Возврат (refund). Общий эндпоинт смены статуса
+    # их не принимает — это исключает, в частности, прямой переход CONFIRMED → PAID
+    # без удержания средств (Req 6.4).
+    if new_status in (DealStatus.ESCROW_HELD, DealStatus.PAID, DealStatus.REFUNDED):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Отклонять можно только новые или принятые блогером сделки",
+            detail=(
+                "Этот переход выполняется отдельным действием: приём средств "
+                "(confirm-receipt), распределение (distribute) или возврат (refund)"
+            ),
+        )
+
+    if new_status == DealStatus.REJECTED and old_status not in (
+        DealStatus.NEW,
+        DealStatus.REVIEW,
+        DealStatus.CONFIRMED,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Отклонять можно только новые, принятые блогером или подтверждённые сделки",
         )
 
     deal.status = new_status
@@ -503,14 +563,9 @@ async def admin_patch_deal_status(
     if new_status == DealStatus.CONFIRMED and deal.client_contacted_at is None:
         deal.client_contacted_at = datetime.now(UTC)
 
-    # При переводе в PAID гарантируем начисления (идемпотентно внутри _accrue_paid_deal).
-    if (
-        new_status not in (DealStatus.REJECTED,)
-        and _status_order(new_status) >= _status_order(DealStatus.PAID)
-        and _status_order(old_status) < _status_order(DealStatus.PAID)
-    ):
-        await _accrue_paid_deal(deal, db)
-
+    # Начисления участникам выполняются ИСКЛЮЧИТЕЛЬНО в admin_distribute_escrow
+    # (переход ESCROW_HELD → PAID), поэтому общий эндпоинт смены статуса их не
+    # производит.
     if new_status == DealStatus.COMPLETED and old_status != DealStatus.COMPLETED:
         await _apply_completed_stats(deal, db)
 
@@ -521,6 +576,179 @@ async def admin_patch_deal_status(
             action="status_patch",
             old_status=old_status,
             new_status=new_status,
+            reason=reason.strip(),
+        ),
+    )
+    await db.commit()
+    await db.refresh(deal)
+    return deal
+
+
+async def admin_confirm_receipt(
+    deal_id: uuid.UUID,
+    admin_user: User,
+    reason: str,
+    db: AsyncSession,
+) -> Deal:
+    """Подтверждение_Получения средств Плательщика по сделке (CONFIRMED → ESCROW_HELD).
+
+    Фиксирует Удержание_Эскроу на сумму Базовой_Суммы как учётную отметку без
+    движения балансов участников и платформы (Req 4.1, 4.2). Идемпотентно по
+    сделке: повторное подтверждение не создаёт нового удержания (Req 4.7, 9.4).
+    """
+    deal = (
+        await db.execute(select(Deal).where(Deal.id == deal_id).with_for_update())
+    ).scalar_one_or_none()
+    if deal is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Сделка не найдена")
+
+    # Идемпотентность (Req 4.7, 9.4): если удержание уже зафиксировано — успех
+    # без новых записей, статус и балансы без изменений.
+    if await _get_escrow_hold(deal.id, db) is not None:
+        return deal
+
+    if deal.status != DealStatus.CONFIRMED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Подтвердить получение средств можно только для сделки в статусе CONFIRMED",
+        )
+
+    deal.status = DealStatus.ESCROW_HELD
+
+    # Удержание_Эскроу — учётная запись на системном счёте платформы; балансы НЕ
+    # меняются (Req 4.2). Сумма фиксируется снимком Базовой_Суммы на момент
+    # подтверждения.
+    db.add(
+        LedgerEntry(
+            user_id=settings.platform_revenue_user_id,
+            deal_id=deal.id,
+            amount_kopeks=deal_distribution_amount_kopeks(deal),
+            status=LedgerEntryStatus.ESCROW_HELD,
+            idempotency_key=_escrow_hold_key(deal.id),
+            note=reason.strip(),
+        ),
+    )
+    db.add(
+        DealAdminLog(
+            deal_id=deal.id,
+            admin_id=admin_user.id,
+            action="receipt_confirm",
+            old_status=DealStatus.CONFIRMED,
+            new_status=DealStatus.ESCROW_HELD,
+            reason=reason.strip(),
+        ),
+    )
+    await db.commit()
+    await db.refresh(deal)
+    return deal
+
+
+async def admin_distribute_escrow(
+    deal_id: uuid.UUID,
+    admin_user: User,
+    reason: str,
+    db: AsyncSession,
+) -> Deal:
+    """Распределение удерживаемых средств участникам (ESCROW_HELD → PAID).
+
+    Начисляет доли участникам через _accrue_paid_deal (логика без изменений,
+    сохраняются ключи deal:{id}:paid:{role}; при отсутствии системного счёта —
+    500, Req 9.5) и помечает Удержание_Эскроу распределённым (Req 5.7).
+    Идемпотентно по сделке: при уже выполненном распределении — успех без
+    изменений (Req 5.6, 9.4).
+    """
+    deal = (
+        await db.execute(select(Deal).where(Deal.id == deal_id).with_for_update())
+    ).scalar_one_or_none()
+    if deal is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Сделка не найдена")
+
+    # Идемпотентность (Req 5.6, 9.4): если начисления по сделке уже выполнены —
+    # успех без изменений балансов и записей журнала.
+    if await _paid_bundle_exists(deal.id, db):
+        return deal
+
+    # Запрет распределения без подтверждённого получения средств (Req 6.2, 6.3):
+    # распределение возможно ТОЛЬКО из ESCROW_HELD; иначе статус и балансы без
+    # изменений.
+    if deal.status != DealStatus.ESCROW_HELD:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Распределить можно только сделку с подтверждённым получением средств (ESCROW_HELD)",
+        )
+
+    # Начисление долей (Req 5.1–5.5); при отсутствии системного счёта площадки
+    # _accrue_paid_deal поднимает 500, балансы остаются без изменений (Req 9.5).
+    await _accrue_paid_deal(deal, db)
+    deal.status = DealStatus.PAID
+
+    # Отметить Удержание_Эскроу распределённым — исключается из учёта удерживаемых
+    # нераспределённых средств (Req 5.7).
+    hold = await _get_escrow_hold(deal.id, db)
+    if hold is not None:
+        hold.status = LedgerEntryStatus.ESCROW_RELEASED
+
+    db.add(
+        DealAdminLog(
+            deal_id=deal.id,
+            admin_id=admin_user.id,
+            action="distribute",
+            old_status=DealStatus.ESCROW_HELD,
+            new_status=DealStatus.PAID,
+            reason=reason.strip(),
+        ),
+    )
+    await db.commit()
+    await db.refresh(deal)
+    return deal
+
+
+async def admin_refund_escrow(
+    deal_id: uuid.UUID,
+    admin_user: User,
+    reason: str,
+    db: AsyncSession,
+) -> Deal:
+    """Возврат собранных, но не распределённых средств (ESCROW_HELD → REFUNDED).
+
+    Помечает Удержание_Эскроу возвращённым (Req 7.7) без каких-либо начислений и
+    движения балансов (Req 7.2). Идемпотентно по сделке: если сделка уже REFUNDED
+    и удержание помечено возвращённым — успех без изменений (Req 9.4).
+    """
+    deal = (
+        await db.execute(select(Deal).where(Deal.id == deal_id).with_for_update())
+    ).scalar_one_or_none()
+    if deal is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Сделка не найдена")
+
+    # Идемпотентность (Req 9.4): сделка уже возвращена и удержание помечено
+    # возвращённым — успех без изменений.
+    hold = await _get_escrow_hold(deal.id, db)
+    if deal.status == DealStatus.REFUNDED and hold is not None and (
+        hold.status == LedgerEntryStatus.ESCROW_REFUNDED
+    ):
+        return deal
+
+    if deal.status != DealStatus.ESCROW_HELD:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Возврат возможен только для сделки с удержанными средствами (ESCROW_HELD)",
+        )
+
+    deal.status = DealStatus.REFUNDED
+
+    # Отметить Удержание_Эскроу возвращённым — исключается из учёта удерживаемых
+    # средств (Req 7.7). Балансы НЕ меняются, начислений нет (Req 7.2).
+    if hold is not None:
+        hold.status = LedgerEntryStatus.ESCROW_REFUNDED
+
+    db.add(
+        DealAdminLog(
+            deal_id=deal.id,
+            admin_id=admin_user.id,
+            action="refund",
+            old_status=DealStatus.ESCROW_HELD,
+            new_status=DealStatus.REFUNDED,
             reason=reason.strip(),
         ),
     )

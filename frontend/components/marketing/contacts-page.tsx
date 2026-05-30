@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { AnimatedSection } from "@/components/common/animated-section";
 import { useToast } from "@/components/common/toast";
 import { CopyButton } from "@/components/common/copy-button";
+import { MarketingNav } from "@/components/marketing/marketing-nav";
 import styles from "@/components/marketing/info-page.module.css";
 
 const CONTACTS = {
@@ -44,25 +45,14 @@ export const ContactsPage = () => {
 
   return (
     <main className={styles.page}>
-      <header className={styles.topBar}>
-        <div className={styles.topBarRow}>
-          <Link href="/" className={styles.brand}>
-            <span className={styles.brandMark}>looney moon</span>
-            <span className={styles.brandSub}>агентство · контакты</span>
-          </Link>
-          <nav className={styles.topBarLinks}>
-            <Link href="/">Главная</Link>
-            <Link href="/faq">FAQ</Link>
-            <Link href="/register">Войти</Link>
-          </nav>
-        </div>
-
-        <nav className={styles.mobileNav} aria-label="Мобильная навигация">
-          <Link href="/">Главная</Link>
-          <Link href="/faq">FAQ</Link>
-          <Link href="/register" className={styles.mobileNavCta}>Войти</Link>
-        </nav>
-      </header>
+      <MarketingNav
+        brandSub="агентство · контакты"
+        items={[
+          { href: "/", label: "Главная" },
+          { href: "/faq", label: "FAQ" },
+        ]}
+        cta={{ href: "/register", label: "Войти" }}
+      />
 
       <AnimatedSection>
         <section className={styles.hero}>

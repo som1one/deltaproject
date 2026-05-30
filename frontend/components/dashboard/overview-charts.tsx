@@ -25,12 +25,14 @@ const PIPELINE: readonly DealStatus[] = [
 // (black background, white text) but adds enough hue to read the funnel
 // at a glance. Tuned to feel premium, not playful.
 const STATUS_COLOR: Record<DealStatus, string> = {
-  NEW: "#7da7ff",        // холодно-синий — только что прилетело
-  REVIEW: "#e7c66a",     // тёплый янтарь — на проверке
-  CONFIRMED: "#a78bff",  // лиловый — подтверждена админом
-  PAID: "#7fd4a8",       // зелёный — оплачена
-  COMPLETED: "#9aa6b8",  // приглушённый стальной — закрыта
-  REJECTED: "#e07b7b",   // красный — отклонена
+  NEW: "#7da7ff",          // холодно-синий — только что прилетело
+  REVIEW: "#e7c66a",       // тёплый янтарь — на проверке
+  CONFIRMED: "#a78bff",    // лиловый — подтверждена админом
+  ESCROW_HELD: "#6fb3c9",  // бирюзовый — деньги в эскроу
+  PAID: "#7fd4a8",         // зелёный — оплачена
+  COMPLETED: "#9aa6b8",    // приглушённый стальной — закрыта
+  REJECTED: "#e07b7b",     // красный — отклонена
+  REFUNDED: "#c98a6f",     // терракот — возврат
 };
 
 // Track tone (рельса воронки) — единый, чтобы не пестрило.

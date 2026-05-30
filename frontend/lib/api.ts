@@ -5,6 +5,8 @@ import type {
   AdminBalanceAdjustmentResponse,
   AdminBloggerCreateResponse,
   AdminOverviewResponse,
+  AdminPaymentDetails,
+  AdminPaymentDetailsSet,
   AdminUserListResponse,
   AdminUserRead,
   AdminUserStatsResponse,
@@ -332,6 +334,32 @@ export const api = {
     }),
   recalcAdminDealFinance: (id: string, body: { reason: string }) =>
     request<DealRead>(`/admin/deals/${id}/recalc-finance`, {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  getAdminPaymentDetails: () =>
+    request<AdminPaymentDetails>("/admin/payment-details", { auth: true }),
+  setAdminPaymentDetails: (body: AdminPaymentDetailsSet) =>
+    request<AdminPaymentDetails>("/admin/payment-details", {
+      method: "PUT",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  confirmDealReceipt: (id: string, body: { reason: string }) =>
+    request<DealRead>(`/admin/deals/${id}/confirm-receipt`, {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  distributeDeal: (id: string, body: { reason: string }) =>
+    request<DealRead>(`/admin/deals/${id}/distribute`, {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  refundDeal: (id: string, body: { reason: string }) =>
+    request<DealRead>(`/admin/deals/${id}/refund`, {
       method: "POST",
       auth: true,
       body: JSON.stringify(body),
