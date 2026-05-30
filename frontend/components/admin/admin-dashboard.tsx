@@ -332,7 +332,39 @@ export const AdminDashboard = () => {
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
 
-  const createBloggerMutation = useMutation({
+  const balanceAdjustMutation = useMutation({
+    mutationFn: () =>
+      api.adjustUserBalance(selectedUserId, {
+        amount_kopeks: Math.round(Number(balanceAdjustForm.amountRub) * 100),
+        reason: balanceAdjustForm.reason.trim(),
+      }),
+    onSuccess: async () => {
+      setMessage({ tone: "success", text: "Баланс скорректирован." });
+      setBalanceAdjustForm({ amountRub: "", reason: "" });
+      await invalidateAdmin(
+        ["admin", "user", selectedUserId],
+        ["admin", "userLedger", selectedUserId],
+        ["admin", "userStats", selectedUserId],
+        ["admin", "users"],
+        ["admin", "overview"],
+      );
+    },
+    onError: (error) => setMessage({ tone: "error", text: error.message }),
+  });
+
+  const partnerCardMutation = useMutation({
+    mutationFn: () => api.setPartnerPayoutCard(selectedUserId, { card_number: partnerCardForm.trim() }),
+    onSuccess: async () => {
+      setMessage({ tone: "success", text: "Карта партнёра обновлена." });
+      setPartnerCardForm("");
+      await invalidateAdmin(
+        ["admin", "user", selectedUserId],
+        ["admin", "userAudit", selectedUserId],
+        ["admin", "users"],
+      );
+    },
+    onError: (error) => setMessage({ tone: "error", text: error.message }),
+  });
     mutationFn: () =>
       api.createAdminBlogger({
         nickname: bloggerForm.nickname,
