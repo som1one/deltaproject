@@ -8,37 +8,37 @@
 
 ## Tasks
 
-- [ ] 1. Слой данных: перечисления и ORM-модели
-  - [-] 1.1 Добавить роль `TECH_ADMIN = "Tech_Admin"` в `UserRole`
+- [x] 1. Слой данных: перечисления и ORM-модели
+  - [x] 1.1 Добавить роль `TECH_ADMIN = "Tech_Admin"` в `UserRole`
     - В `enums/user.py` добавить значение `TECH_ADMIN = "Tech_Admin"` рядом с `WORKER/BLOGER/ADMIN`
     - Убедиться, что ORM-метаданные отражают новое значение для последующей миграции нативного enum
     - _Requirements: 5.1, 5.8_
 
-  - [-] 1.2 Добавить колонку `upline_blogger_id` в модель `User`
+  - [x] 1.2 Добавить колонку `upline_blogger_id` в модель `User`
     - В `models/user.py` добавить `upline_blogger_id: Mapped[uuid.UUID | None]` (`ForeignKey("users.id", ondelete="SET NULL")`, `nullable=True`, `index=True`)
     - Семантика «блогер → наставник-блогер (аплайн)»; `linked_to` сохраняет смысл «работник → пригласивший блогер»
     - _Requirements: 7.1, 7.3, 7.5, 8.32_
 
-  - [-] 1.3 Создать модель `AdminAuditLog` и зарегистрировать её
+  - [x] 1.3 Создать модель `AdminAuditLog` и зарегистрировать её
     - Создать `models/admin_audit_log.py` с таблицей `admin_audit_logs`: `id` (PK, uuid4), `actor_id` (FK users.id ON DELETE RESTRICT), `target_user_id` (FK users.id ON DELETE CASCADE), `field` (String(64)), `old_value`/`new_value` (Text, nullable, только маскированные представления), `created_at` (server_default now())
     - Индексы по `target_user_id`, `actor_id`, `created_at`
     - Зарегистрировать модель в `models/__init__.py`
     - _Requirements: 5.6, 3.7_
 
 - [ ] 2. Миграции Alembic
-  - [~] 2.1 Миграция значения enum `Tech_Admin`
+  - [-] 2.1 Миграция значения enum `Tech_Admin`
     - Новая ревизия `down_revision = "l6m7n8o9p0q1"`
     - `ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'Tech_Admin'` внутри `op.get_context().autocommit_block()` (паттерн как в `l6m7n8o9p0q1`)
     - `downgrade`: пересоздание enum без значения либо no-op с комментарием (удаление значения enum в PG невозможно напрямую)
     - _Requirements: 5.1, 5.8_
 
-  - [~] 2.2 Миграция колонки `users.upline_blogger_id` + безопасный бэкофилл
+  - [-] 2.2 Миграция колонки `users.upline_blogger_id` + безопасный бэкофилл
     - Чейнить от ревизии 2.1; `add_column('users', upline_blogger_id ...)` + FK (`ON DELETE SET NULL`) + индекс
     - Бэкофилл: `UPDATE users u SET upline_blogger_id = u.linked_to WHERE u.role = 'Bloger' AND u.linked_to IS NOT NULL AND u.linked_to <> u.id AND EXISTS (SELECT 1 FROM users m WHERE m.id = u.linked_to AND m.role = 'Bloger')` — только валидные аплайны, без наставника по умолчанию
     - `downgrade`: `drop_column`
     - _Requirements: 7.1, 7.4, 7.6_
 
-  - [~] 2.3 Миграция таблицы `admin_audit_logs`
+  - [-] 2.3 Миграция таблицы `admin_audit_logs`
     - Чейнить от ревизии 2.2; `create_table('admin_audit_logs', ...)` со всеми колонками и индексами из модели
     - `downgrade`: `drop_table`
     - _Requirements: 5.6, 3.7_
@@ -49,22 +49,22 @@
     - _Requirements: 5.1, 7.6_
 
 - [ ] 3. Общие хелперы, конфигурация и авторизация
-  - [-] 3.1 Вынести общий хелпер `compute_card_hash_and_last4`
+  - [x] 3.1 Вынести общий хелпер `compute_card_hash_and_last4`
     - В `utils/card_hash.py` (или существующем модуле хеширования) выделить `compute_card_hash_and_last4(pan) -> (hash, last4)`, переиспользуемый `set_me_payout_card` и админ-установкой карты партнёра
     - Детерминированный хеш с использованием `PAYOUT_CARD_PEPPER`; не сохранять и не возвращать полный PAN
     - _Requirements: 4.1, 4.4, 5.3_
 
-  - [-] 3.2 Конфигурация `PAYOUT_CARD_PEPPER`
+  - [x] 3.2 Конфигурация `PAYOUT_CARD_PEPPER`
     - Подтвердить наличие `payout_card_pepper` в `core/settings.py` (дефолт `""`) и добавить переменную `PAYOUT_CARD_PEPPER` в `.env.example` с комментарием об обязательности для функции выплат
     - Поведение «отключено без секрета» сохраняется и явно отличимо от успеха (отдельный код `503`)
     - _Requirements: 4.6_
 
-  - [-] 3.3 Зависимость авторизации `get_current_admin_or_tech`
+  - [x] 3.3 Зависимость авторизации `get_current_admin_or_tech`
     - В `dependencies/auth.py` добавить `get_current_admin_or_tech`: пропускает роли `ADMIN` и `TECH_ADMIN`, иначе `403`
     - Сохранить `get_current_admin` (только `ADMIN`) для операций над административными аккаунтами
     - _Requirements: 5.5, 5.8, 3.8, 8.1, 8.2_
 
-  - [~] 3.4 Сервис аудита `admin_audit_service`
+  - [-] 3.4 Сервис аудита `admin_audit_service`
     - Создать `services/admin_audit_service.py` с функцией записи `AdminAuditLog` (actor_id, target_user_id, field, old_value, new_value, created_at)
     - Для карты в `old_value`/`new_value` писать только маскированное представление (last4), без PAN
     - _Requirements: 5.6, 3.7_
@@ -91,7 +91,7 @@
     - _Requirements: 1.7_
 
 - [ ] 5. Требование 2 — причина отклонения выплаты (бэкенд)
-  - [~] 5.1 Выровнять валидацию `AdminLedgerStatusPatch.note`
+  - [-] 5.1 Выровнять валидацию `AdminLedgerStatusPatch.note`
     - В `schemas/ledger.py` подтвердить/установить `note` с `min_length=1, max_length=4000`; при превышении Pydantic возвращает `422`, статус записи не меняется
     - _Requirements: 2.1, 2.7_
 
@@ -101,7 +101,7 @@
     - Тег и `@settings(max_examples=100)`; `note` длиной 1–4000, проверка `status == rejected` и сохранённого `note`
 
 - [ ] 6. Требование 3 — ручная корректировка баланса
-  - [~] 6.1 Схемы корректировки баланса
+  - [-] 6.1 Схемы корректировки баланса
     - В `schemas/admin.py` добавить `AdminBalanceAdjustmentRequest` (`amount_kopeks` `ge=-99_999_999_999 le=99_999_999_999`, `reason` `min_length=1 max_length=500`, `model_validator`: запрет нуля и пробельной причины) и `AdminBalanceAdjustmentResponse` (`user`, `ledger_entry`)
     - _Requirements: 3.3, 3.4, 3.6_
 

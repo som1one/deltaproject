@@ -1,10 +1,10 @@
 import uuid
 from typing import Annotated, Union
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from enums.user import UserRole
-from schemas.ledger import LedgerListResponse
+from schemas.ledger import LedgerEntryRead, LedgerListResponse
 from schemas.me import BloggerMeStatsRead, WorkerMeStatsRead
 
 
