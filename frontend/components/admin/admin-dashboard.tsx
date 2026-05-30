@@ -223,7 +223,9 @@ export const AdminDashboard = () => {
   }, [isAuthenticated, isHydrated, router]);
 
   useEffect(() => {
-    if (meQuery.data && meQuery.data.role !== "Admin") {
+    // Tech-админ имеет те же права, что и владелец-Admin, кроме управления
+    // административными аккаунтами (см. owner-gating ниже).
+    if (meQuery.data && meQuery.data.role !== "Admin" && meQuery.data.role !== "Tech_Admin") {
       router.replace("/cabinet");
     }
   }, [meQuery.data, router]);
