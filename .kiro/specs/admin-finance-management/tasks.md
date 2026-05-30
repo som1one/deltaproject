@@ -100,7 +100,7 @@
     - **Validates: Requirements 2.1, 2.2**
     - Тег и `@settings(max_examples=100)`; `note` длиной 1–4000, проверка `status == rejected` и сохранённого `note`
 
-- [ ] 6. Требование 3 — ручная корректировка баланса
+- [x] 6. Требование 3 — ручная корректировка баланса
   - [x] 6.1 Схемы корректировки баланса
     - В `schemas/admin.py` добавить `AdminBalanceAdjustmentRequest` (`amount_kopeks` `ge=-99_999_999_999 le=99_999_999_999`, `reason` `min_length=1 max_length=500`, `model_validator`: запрет нуля и пробельной причины) и `AdminBalanceAdjustmentResponse` (`user`, `ledger_entry`)
     - _Requirements: 3.3, 3.4, 3.6_
@@ -111,7 +111,7 @@
     - Записать аудит через `admin_audit_service` (`field='balance_adjustment'`, `actor_id`); при любой ошибке журнала/аудита — полный `rollback`
     - _Requirements: 3.1, 3.2, 3.5, 3.7, 3.9_
 
-  - [-] 6.3 Эндпоинт корректировки баланса
+  - [x] 6.3 Эндпоинт корректировки баланса
     - В `routers/admin.py` добавить `POST /admin/users/{user_id}/balance-adjustment` под `get_current_admin_or_tech`, возвращающий `AdminBalanceAdjustmentResponse`
     - _Requirements: 3.1, 3.8_
 
@@ -150,7 +150,7 @@
     - Отсутствие `PAYOUT_CARD_PEPPER` → `503`, данные карты не пишутся (Req 4.6); сохранение карты при `yukassa_payout_active=true` без `payout_token` (Req 4.5)
     - _Requirements: 4.5, 4.6_
 
-- [ ] 8. Требование 5 — роль Тех-админ, управление партнёрами, аудит
+- [x] 8. Требование 5 — роль Тех-админ, управление партнёрами, аудит
   - [x] 8.1 Схемы Тех-админа и партнёров
     - В `schemas/admin.py`: `AdminUserRead += is_owner_admin: bool` (вычисляемое `role == ADMIN`); `AdminUserPatch.percent` `Field(ge=0, le=100)` + `upline_blogger_id: uuid.UUID | None`; новые `AdminPartnerCardSet`, `AdminAuditEntryRead`, `AdminAuditListResponse`
     - _Requirements: 5.2, 5.4, 5.9, 7.1_
@@ -162,11 +162,11 @@
     - Аудит изменений `percent` и карты через `admin_audit_service`
     - _Requirements: 5.2, 5.3, 5.5, 5.6, 5.7, 5.8, 5.9, 5.10, 7.1_
 
-  - [-] 8.3 Эндпоинты карты партнёра и аудита
+  - [x] 8.3 Эндпоинты карты партнёра и аудита
     - В `routers/admin.py`: `POST /admin/users/{id}/payout-card` (`AdminPartnerCardSet`, уровень Тех-админ) и `GET /admin/users/{id}/audit` (`AdminAuditListResponse`) под `get_current_admin_or_tech`
     - _Requirements: 5.3, 5.4, 5.10_
 
-  - [-] 8.4 Переключение admin-эндпоинтов на `get_current_admin_or_tech`
+  - [x] 8.4 Переключение admin-эндпоинтов на `get_current_admin_or_tech`
     - В `routers/admin.py` перевести обзор, пользователей-партнёров, проценты, карты, сделки, журнал на `get_current_admin_or_tech`; операции «создать/сменить роль/деактивировать/удалить аккаунт `Admin`/`Tech_Admin`» оставить под `get_current_admin`
     - _Requirements: 5.5, 5.8_
 
@@ -251,32 +251,32 @@
     - Базовые: `platform_balance_kopeks`, `accrued_platform_share_kopeks`, `platform_withdrawn_kopeks`, `net_profit_kopeks`, `earnings_by_role_kopeks`, `total_completed_payouts_kopeks` (деривация из `ledger_entries` по шаблонам `idempotency_key`)
     - _Requirements: 8.3, 8.5, 8.6, 8.7, 8.8_
 
-  - [-] 12.3 Группы A и B — оборот, сделки, обязательства
+  - [x] 12.3 Группы A и B — оборот, сделки, обязательства
     - Оборот итог/по статусам (`COALESCE(agreed_price_kopeks, price)`), количество сделок по статусам, `paid_deals_count`, средний чек и средняя комиссия (целое деление, 0 при отсутствии оплаченных)
     - Обязательства платформы (Σ баланса `Worker`+`Bloger`) и чистые свободные средства
     - _Requirements: 8.9, 8.10, 8.11, 8.12, 8.13, 8.14, 8.15, 8.16_
 
-  - [-] 12.4 Группа C — разбивка доли платформы
+  - [x] 12.4 Группа C — разбивка доли платформы
     - `accrued_platform_share_kopeks` (с учётом периода), `platform_withdrawn_kopeks`, `platform_pending_funds_kopeks` (`freeze`/`pending_confirmation`/`payout_request`), `available_for_payout_kopeks`
     - _Requirements: 8.17, 8.18, 8.19, 8.20_
 
-  - [-] 12.5 Группа D — периоды и динамика
+  - [x] 12.5 Группа D — периоды и динамика
     - Применение `_period_threshold` к обороту, накопленной доле и количеству сделок; по умолчанию `all`; `time_series` — слияние дневных рядов оборота и доли платформы, упорядочено по `date ASC`, дни без данных получают `0`
     - _Requirements: 8.21, 8.22, 8.24_
 
-  - [-] 12.6 Группа E — топ-участники
+  - [x] 12.6 Группа E — топ-участники
     - `top_bloggers`/`top_workers`: ≤10, по убыванию `earnings_kopeks`, с `user_id`, `earnings_kopeks`, `paid_deals_count`; пустой список при отсутствии начислений
     - _Requirements: 8.25, 8.26, 8.27_
 
-  - [-] 12.7 Группа F — ожидаемые начисления
+  - [x] 12.7 Группа F — ожидаемые начисления
     - `expected_accruals_total_kopeks` (Σ базовых сумм `CONFIRMED`, ещё не `PAID`); `expected_future_shares_kopeks` через `distribute_price_kopeks` с той же логикой валидации аплайна, что и в начислении
     - _Requirements: 8.28, 8.29_
 
-  - [-] 12.8 Группа G — реферальная аналитика
+  - [x] 12.8 Группа G — реферальная аналитика
     - `total_referral_share_to_uplines_kopeks` (`deal:%:paid:upline`, `completed`); `referral_share_by_blogger` (группировка по `user_id`); `active_referral_links` (блогеры с `upline_blogger_id`, воркеры с `linked_to`)
     - _Requirements: 8.30, 8.31, 8.32_
 
-  - [~] 12.9 Эндпоинт дашборда
+  - [-] 12.9 Эндпоинт дашборда
     - В `routers/admin.py` добавить `GET /admin/finance/dashboard?period=` под `get_current_admin_or_tech`; невалидный `period` → `422`; без `period` → `all`; отсутствие системного счёта → ошибка конфигурации без частичных данных
     - _Requirements: 8.1, 8.2, 8.3, 8.22, 8.23_
 
