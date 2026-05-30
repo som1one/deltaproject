@@ -193,7 +193,7 @@ export const PayoutCardInput = ({
               value={formatted}
               onChange={(event) => handleChange(event.target.value)}
               aria-invalid={Boolean(error)}
-              maxLength={brand === "amex" ? 17 : 19}
+              maxLength={brand === "amex" ? 17 : 23}
             />
             <button
               type="button"
