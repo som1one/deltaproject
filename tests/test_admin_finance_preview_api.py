@@ -60,7 +60,7 @@ async def test_finance_preview_200_and_sum_matches() -> None:
     app = create_app()
     admin = MagicMock()
     admin.role = UserRole.ADMIN
-    app.dependency_overrides[get_current_admin] = lambda: admin
+    app.dependency_overrides[get_current_admin_or_tech] = lambda: admin
 
     async def fake_db():
         s = AsyncMock()
