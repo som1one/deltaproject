@@ -1741,7 +1741,14 @@ const LedgerDetailsModal = ({
               ) : null}
             </dl>
 
-            {entry.note ? (
+            {entry.status === "rejected" ? (
+              <div className={styles.dealModalLedgerNote}>
+                <p className={styles.dealModalEyebrow}>Причина отклонения</p>
+                <p style={entry.note ? undefined : { color: "var(--text-soft)" }}>
+                  {entry.note || "Причина не указана"}
+                </p>
+              </div>
+            ) : entry.note ? (
               <div className={styles.dealModalLedgerNote}>
                 <p className={styles.dealModalEyebrow}>Р—Р°РјРµС‚РєР°</p>
                 <p>{entry.note}</p>
