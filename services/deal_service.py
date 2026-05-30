@@ -80,6 +80,10 @@ async def deal_to_read(deal: Deal, viewer: User, db: AsyncSession) -> DealRead:
         elif viewer.role == UserRole.BLOGER:
             pb = bk
 
+    rejection_reason = None
+    if deal.status == DealStatus.REJECTED:
+        rejection_reason = await get_latest_rejection_reason(deal.id, db)
+
     return DealRead(
         id=deal.id,
         worker_id=deal.worker_id,
