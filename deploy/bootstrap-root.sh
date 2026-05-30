@@ -181,3 +181,4 @@ echo "  systemctl status nginx"
 echo
 echo "Создай админа:"
 echo "  cd $APP_DIR && .venv/bin/python -m utils.create_admin --name Admin --email admin@looney.local --password '<pwd>'"
+cd $APP_DIR && .venv/bin/python -m utils.create_admin --name Admin --email admin@looney.local --password 'deltaadmin'"

@@ -1,0 +1,27 @@
+{
+  "enabled": true,
+  "name": "Авто-пуш в main",
+  "description": "При сохранении любого файла кода коммитит изменения и пушит в main, что триггерит авто-деплой на сайт.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.py",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.css",
+      "**/*.md",
+      "**/*.sh",
+      "**/*.yml",
+      "**/*.yaml",
+      "**/*.toml"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/auto_push.ps1",
+    "timeout": 120
+  }
+}
