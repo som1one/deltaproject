@@ -9,3 +9,6 @@ class LedgerEntryStatus(str, enum.Enum):
     PENDING_CONFIRMATION = "pending_confirmation"
     COMPLETED = "completed"
     REJECTED = "rejected"
+    ESCROW_HELD = "escrow_held"  # активное удержание собранных платформой средств
+    ESCROW_RELEASED = "escrow_released"  # удержание распределено участникам
+    ESCROW_REFUNDED = "escrow_refunded"  # удержание возвращено до распределения
