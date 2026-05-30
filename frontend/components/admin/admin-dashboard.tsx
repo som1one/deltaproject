@@ -1034,6 +1034,137 @@ export const AdminDashboard = () => {
               )}
             </SectionCard>
 
+            <SectionCard
+              title="Партнёр"
+              lead="Текущие параметры партнёра: процент, карта, баланс и статус."
+            >
+              {userDetailQuery.data ? (
+                <PillRow>
+                  <Pill>Роль: {formatRole(userDetailQuery.data.role)}</Pill>
+                  <Pill>Процент: {userDetailQuery.data.percent}%</Pill>
+                  <Pill>Баланс: {formatMoney(userDetailQuery.data.balance)}</Pill>
+                  <Pill>
+                    Карта:{" "}
+                    {userDetailQuery.data.payout_card_last4
+                      ? `•••• ${userDetailQuery.data.payout_card_last4}`
+                      : "не привязана"}
+                  </Pill>
+                  <Pill tone={userDetailQuery.data.is_active ? "accent" : "default"}>
+                    {userDetailQuery.data.is_active ? "Активен" : "Отключён"}
+                  </Pill>
+                </PillRow>
+              ) : (
+                <Message>Выберите пользователя в таблице.</Message>
+              )}
+            </SectionCard>
+
+            <SectionCard
+              title="Корректировка баланса"
+              lead="Сумма в рублях (можно отрицательную). Создаётся запись в журнале с указанной причиной."
+            >
+              {userDetailQuery.data ? (
+                <Stack>
+                  <TwoColumn>
+                    <Field label="Сумма, ₽" help="Положительная — начисление, отрицательная — списание.">
+                      <TextInput
+                        value={balanceAdjustForm.amountRub}
+                        inputMode="decimal"
+                        onChange={(event) =>
+                          setBalanceAdjustForm((current) => ({ ...current, amountRub: event.target.value }))
+                        }
+                      />
+                    </Field>
+                  </TwoColumn>
+                  <Field label="Причина">
+                    <TextArea
+                      value={balanceAdjustForm.reason}
+                      onChange={(event) =>
+                        setBalanceAdjustForm((current) => ({ ...current, reason: event.target.value }))
+                      }
+                    />
+                  </Field>
+                  <div className={styles.actionRow}>
+                    <Button
+                      type="button"
+                      onClick={() => balanceAdjustMutation.mutate()}
+                      disabled={
+                        balanceAdjustMutation.isPending ||
+                        balanceAdjustForm.reason.trim().length === 0 ||
+                        balanceAdjustForm.amountRub.trim().length === 0 ||
+                        !Number.isFinite(Number(balanceAdjustForm.amountRub)) ||
+                        Math.round(Number(balanceAdjustForm.amountRub) * 100) === 0
+                      }
+                    >
+                      {balanceAdjustMutation.isPending ? "Применяем…" : "Скорректировать баланс"}
+                    </Button>
+                  </div>
+                </Stack>
+              ) : (
+                <Message>Выберите пользователя в таблице.</Message>
+              )}
+            </SectionCard>
+
+            <SectionCard
+              title="Карта партнёра"
+              lead="Номер карты (13–19 цифр). Сохраняются только последние 4 цифры."
+            >
+              {userDetailQuery.data ? (
+                <Stack>
+                  <Field label="Номер карты">
+                    <TextInput
+                      value={partnerCardForm}
+                      inputMode="numeric"
+                      onChange={(event) => setPartnerCardForm(event.target.value)}
+                    />
+                  </Field>
+                  <div className={styles.actionRow}>
+                    <Button
+                      type="button"
+                      onClick={() => partnerCardMutation.mutate()}
+                      disabled={partnerCardMutation.isPending || partnerCardForm.trim().length === 0}
+                    >
+                      {partnerCardMutation.isPending ? "Сохраняем…" : "Сохранить карту"}
+                    </Button>
+                  </div>
+                </Stack>
+              ) : (
+                <Message>Выберите пользователя в таблице.</Message>
+              )}
+            </SectionCard>
+
+            <SectionCard title="История изменений" lead="Аудит изменений процента и карты партнёра.">
+              {userAuditQuery.data ? (
+                userAuditQuery.data.items.length === 0 ? (
+                  <Message>Изменений пока не зафиксировано.</Message>
+                ) : (
+                  <TableWrap>
+                    <DataTable>
+                      <thead>
+                        <tr>
+                          <th>Дата</th>
+                          <th>Поле</th>
+                          <th>Было</th>
+                          <th>Стало</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {userAuditQuery.data.items.map((entry) => (
+                          <tr key={entry.id}>
+                            <td>{formatDateTime(entry.created_at)}</td>
+                            <td>{entry.field}</td>
+                            <td>{entry.old_value ?? "—"}</td>
+                            <td>{entry.new_value ?? "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </DataTable>
+                  </TableWrap>
+                )
+              ) : (
+                <Message>Выберите пользователя в таблице.</Message>
+              )}
+            </SectionCard>
+
             <SectionCard title="Создать блогера" lead="Создаёт нового блогера. Пароль выдаётся автоматически — сохраните его сразу.">
               <Stack>
                 <Field label="Никнейм">
