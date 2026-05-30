@@ -1,7 +1,8 @@
+import datetime
 import uuid
 from typing import Annotated, Union
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, computed_field, model_validator
 
 from enums.user import UserRole
 from schemas.ledger import LedgerEntryRead, LedgerListResponse
@@ -22,6 +23,12 @@ class AdminUserRead(BaseModel):
     balance: int
     is_active: bool
     payout_card_last4: str | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def is_owner_admin(self) -> bool:
+        """Владелец-Admin (role == ADMIN); Tech_Admin сюда не входит — для UI-логики."""
+        return self.role == UserRole.ADMIN
 
 
 class AdminUserPatch(BaseModel):

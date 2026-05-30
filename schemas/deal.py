@@ -77,3 +77,7 @@ class DealRead(BaseModel):
     preview_worker_kopeks: int | None = None
     preview_blogger_kopeks: int | None = None
     preview_platform_kopeks: int | None = None
+    rejection_reason: str | None = Field(
+        default=None,
+        description="Последняя причина отклонения сделки; null — причина не сохранена",
+    )
