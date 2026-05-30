@@ -109,8 +109,6 @@ export const PayoutCardInput = ({
 
   const brand = useMemo(() => detectBrand(raw), [raw]);
   const formatted = useMemo(() => formatCardNumber(raw, brand), [raw, brand]);
-  // Длина для подсказки форматирования по бренду; валидация — по диапазону 13–19.
-  const expectedLen = brand === "amex" ? 15 : 16;
   // Валидная длина — любой номер в диапазоне 13–19 цифр (Req 4.1, 4.3).
   const isValidLength = raw.length >= MIN_CARD_DIGITS && raw.length <= MAX_CARD_DIGITS;
   const isLuhnValid = isValidLength && luhnValid(raw);
