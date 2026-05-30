@@ -1663,7 +1663,7 @@ export const AdminDashboard = () => {
                       <tbody>
                         {Object.entries(dash.earnings_by_role_kopeks).map(([role, amount]) => (
                           <tr key={role}>
-                            <td>{formatRole(role)}</td>
+                            <td>{participantLabel(role)}</td>
                             <td>{formatMoney(amount)}</td>
                           </tr>
                         ))}
