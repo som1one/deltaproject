@@ -35,3 +35,20 @@ def last4(pan_normalized: str) -> str:
     if len(pan_normalized) < 4:
         return pan_normalized
     return pan_normalized[-4:]
+
+
+def compute_card_hash_and_last4(pan: str, pepper: str) -> tuple[str, str]:
+    """Детерминированный отпечаток карты и последние 4 цифры.
+
+    Общий хелпер для сохранения карты выплаты пользователем
+    (``set_me_payout_card``) и админ-установки карты партнёра. Номер карты
+    нормализуется (как ожидают ``card_fingerprint``/``last4``), после чего
+    возвращается только ``(hash, last4)`` — полный PAN не сохраняется и не
+    возвращается.
+
+    :param pan: номер карты (нормализованный или с разделителями).
+    :param pepper: секрет хеширования (``settings.payout_card_pepper``).
+    :returns: кортеж ``(card_hash, last4)``.
+    """
+    pan_normalized = normalize_pan(pan)
+    return card_fingerprint(pan_normalized, pepper), last4(pan_normalized)
