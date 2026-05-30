@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from dependencies.auth import get_current_admin
+from dependencies.auth import get_current_admin_or_tech
 from dependencies.database import get_db
 from enums.user import UserRole
 from main import create_app
