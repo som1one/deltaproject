@@ -373,3 +373,149 @@ async def admin_delete_user(
         )
     await db.delete(user)
     await db.commit()
+
+
+async def admin_adjust_user_balance(
+    user_id: uuid.UUID,
+    amount_kopeks: int,
+    reason: str,
+    actor: User,
+    db: AsyncSession,
+) -> tuple[User, LedgerEntry]:
+    """Атомарная ручная корректировка баланса пользователя (Req 3).
+
+    Выполняется в одной транзакции: строка пользователя блокируется
+    ``with_for_update``; при уменьшении баланса проверяется, что итог не опускается
+    ниже суммы зарезервированных средств (активные выплаты/заморозка). Создаётся
+    запись журнала в статусе ``completed`` и запись аудита с идентификатором актора.
+    При любой ошибке (включая сбой записи журнала/аудита) транзакция откатывается
+    целиком и исходный баланс сохраняется (Req 3.9) — исключения пробрасываются,
+    rollback гарантируется контекстом сессии.
+
+    Валидация суммы и причины (диапазон, ноль, длина/пробелы) обеспечивается схемой
+    ``AdminBalanceAdjustmentRequest`` на уровне эндпоинта.
+
+    Args:
+        user_id: Идентификатор пользователя, чей баланс корректируется.
+        amount_kopeks: Сумма корректировки в копейках (может быть отрицательной).
+        reason: Причина корректировки (непустая, ≤ 500 символов).
+        actor: Администратор, выполняющий операцию.
+        db: Асинхронная сессия БД.
+
+    Returns:
+        Кортеж ``(user, ledger_entry)`` после фиксации транзакции.
+
+    Raises:
+        HTTPException: 404 — пользователь не найден; 400 — недостаточно доступных
+            средств при уменьшении баланса (Req 3.5).
+    """
+    user = (
+        await db.execute(select(User).where(User.id == user_id).with_for_update())
+    ).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")
+
+    old_balance = user.balance
+    new_balance = user.balance + amount_kopeks
+
+    if amount_kopeks < 0:
+        reserved = await _reserved_payout_kopeks(user_id, db)
+        if new_balance < reserved:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Недостаточно доступных средств: итоговый баланс ниже суммы "
+                    "зарезервированных средств (активные выплаты и заморозка)"
+                ),
+            )
+
+    user.balance = new_balance
+
+    entry = LedgerEntry(
+        user_id=user_id,
+        deal_id=None,
+        amount_kopeks=amount_kopeks,
+        status=LedgerEntryStatus.COMPLETED,
+        note=reason.strip(),
+        idempotency_key=f"adj:{uuid.uuid4()}",
+    )
+    db.add(entry)
+
+    await record_admin_audit(
+        db,
+        actor_id=actor.id,
+        target_user_id=user_id,
+        field="balance_adjustment",
+        old_value=str(old_balance),
+        new_value=str(new_balance),
+    )
+
+    await db.commit()
+    await db.refresh(user)
+    await db.refresh(entry)
+    return user, entry
+
+
+async def admin_set_partner_card(
+    user_id: uuid.UUID,
+    card_number: str,
+    actor: User,
+    db: AsyncSession,
+) -> User:
+    """Установить карту выплаты партнёра администратором (Req 5.3, 5.6, 5.10).
+
+    Порядок проверок согласован с ``set_me_payout_card``: наличие секрета
+    хеширования (``503``) → длина 13–19 цифр (``400``) → алгоритм Луна (``400``) →
+    сохранение хеша и last4. Полный PAN в БД не сохраняется. Изменение фиксируется
+    в аудите (``field='payout_card'``) только в маскированном виде (last4).
+
+    Args:
+        user_id: Идентификатор партнёра, которому задаётся карта.
+        card_number: Номер карты (нормализуется; PAN не сохраняется).
+        actor: Администратор, выполняющий операцию.
+        db: Асинхронная сессия БД.
+
+    Returns:
+        Обновлённый пользователь.
+
+    Raises:
+        HTTPException: 404 — пользователь не найден; 503 — не задан секрет
+            хеширования; 400 — недопустимая длина или номер карты.
+    """
+    user = await admin_get_user(user_id, db)
+
+    pepper = settings.payout_card_pepper.strip()
+    if not pepper:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Сохранение реквизитов карты отключено: не задан PAYOUT_CARD_PEPPER",
+        )
+    pan = normalize_pan(card_number)
+    if len(pan) < 13 or len(pan) > 19:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Некорректная длина номера карты",
+        )
+    if not luhn_ok(pan):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Некорректный номер карты",
+        )
+
+    old_last4 = user.payout_card_last4
+    card_hash, new_last4 = compute_card_hash_and_last4(pan, pepper)
+    user.payout_card_hash = card_hash
+    user.payout_card_last4 = new_last4
+
+    await record_admin_audit(
+        db,
+        actor_id=actor.id,
+        target_user_id=user_id,
+        field="payout_card",
+        old_value=f"****{old_last4}" if old_last4 else None,
+        new_value=f"****{new_last4}",
+    )
+
+    await db.commit()
+    await db.refresh(user)
+    return user
