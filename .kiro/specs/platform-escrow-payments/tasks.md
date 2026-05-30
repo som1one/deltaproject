@@ -13,24 +13,24 @@
 ## Tasks
 
 - [ ] 1. Слой данных: перечисления, ORM-модель, настройки
-  - [ ] 1.1 Добавить статусы `ESCROW_HELD`/`REFUNDED` в `DealStatus`
+  - [x] 1.1 Добавить статусы `ESCROW_HELD`/`REFUNDED` в `DealStatus`
     - В `enums/deal.py` добавить значения `ESCROW_HELD = "ESCROW_HELD"` и `REFUNDED = "REFUNDED"` рядом с существующими статусами
     - Убедиться, что ORM-метаданные отражают новые значения для последующей миграции нативного PG-enum
     - _Requirements: 8.1_
 
-  - [ ] 1.2 Добавить значения жизненного цикла удержания в `LedgerEntryStatus`
+  - [x] 1.2 Добавить значения жизненного цикла удержания в `LedgerEntryStatus`
     - В `enums/ledger.py` добавить `ESCROW_HELD = "escrow_held"`, `ESCROW_RELEASED = "escrow_released"`, `ESCROW_REFUNDED = "escrow_refunded"`
     - Дизайн: Data Models → «Изменение enum `ledger_entry_status`»
     - _Requirements: 5.7, 7.7_
 
-  - [ ] 1.3 Создать модель `AdminPaymentDetails` и зарегистрировать её
+  - [x] 1.3 Создать модель `AdminPaymentDetails` и зарегистрировать её
     - Создать `models/admin_payment_details.py` (singleton-таблица `admin_payment_details`): `id` (PK, uuid4), `collection_card_pan_encrypted` (Text, nullable — ciphertext полного PAN), `collection_card_last4` (String(4), nullable), `payment_link` (String(2048), nullable), `updated_by` (FK `users.id` ON DELETE SET NULL), `created_at`/`updated_at` (server_default now(), `updated_at` onupdate now())
     - В БД нет колонки с открытым PAN; полный номер только в зашифрованном виде
     - Зарегистрировать модель в `models/__init__.py`
     - Дизайн: Data Models → «Новая таблица `admin_payment_details`»
     - _Requirements: 1.1, 2.1_
 
-  - [ ] 1.4 Добавить настройку `collection_card_enc_key`
+  - [x] 1.4 Добавить настройку `collection_card_enc_key`
     - В `core/settings.py` добавить `collection_card_enc_key: str = Field(default="", validation_alias="COLLECTION_CARD_ENC_KEY", ...)` (Fernet, base64 32 байта)
     - Добавить `COLLECTION_CARD_ENC_KEY` в `.env.example` с комментарием: пусто → приём/чтение полного PAN отдают `503` (паттерн как у `PAYOUT_CARD_PEPPER`)
     - _Requirements: 2.1_
@@ -57,18 +57,18 @@
     - _Requirements: 8.1_
 
 - [ ] 3. Схемы (Pydantic v2)
-  - [ ] 3.1 Схемы реквизитов приёма
+  - [x] 3.1 Схемы реквизитов приёма
     - В `schemas/finance.py` (или новый `schemas/payment_details.py`) добавить `AdminPaymentDetailsSet` (`collection_card: str | None`, `payment_link: str | None`; различие «не передано vs очистить» через `model_fields_set`), `AdminPaymentDetailsRead` (`payment_link`, `collection_card_last4`, `is_active`), `PaymentRequisites` (`collection_card_full`, `payment_link`, `available`)
     - Точная валидация (Luhn 13–19, HTTPS ≤ 2048) — в сервисе
     - _Requirements: 1.3, 2.1, 2.3_
 
-  - [ ] 3.2 Схема действия + поле реквизитов в `DealRead`
+  - [x] 3.2 Схема действия + поле реквизитов в `DealRead`
     - В `schemas/deal.py` добавить `AdminEscrowActionRequest` (`reason: Field(min_length=1, max_length=1000)` + `model_validator`, отклоняющий пробельную причину)
     - В `DealRead` добавить `payment_requisites: PaymentRequisites | None = None`
     - _Requirements: 4.6, 3.1_
 
 - [ ] 4. Шифрование PAN при хранении
-  - [ ] 4.1 Утилита `utils/card_crypto.py`
+  - [x] 4.1 Утилита `utils/card_crypto.py`
     - Создать `encrypt_pan(pan_normalized, key) -> str` и `decrypt_pan(ciphertext, key) -> str` на `cryptography.fernet.Fernet` (аутентифицированное шифрование, ключ из `settings.collection_card_enc_key`)
     - Пустой ключ → ошибка, транслируемая сервисом в `503`; полный PAN никогда не логируется
     - _Requirements: 2.1_
