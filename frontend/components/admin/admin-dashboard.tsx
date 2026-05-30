@@ -965,11 +965,27 @@ export const AdminDashboard = () => {
                     <Field label="Процент">
                       <TextInput value={userForm.percent} onChange={(event) => setUserForm((current) => ({ ...current, percent: event.target.value }))} />
                     </Field>
-                    <Field label="Роль">
-                      <SelectInput value={userForm.role} onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}>
+                    <Field
+                      label="Роль"
+                      help={
+                        !currentUserIsOwner &&
+                        (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
+                          ? "Смена роли административного аккаунта доступна только владельцу."
+                          : undefined
+                      }
+                    >
+                      <SelectInput
+                        value={userForm.role}
+                        disabled={
+                          !currentUserIsOwner &&
+                          (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
+                        }
+                        onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}
+                      >
                         <option value="Worker">Работник</option>
                         <option value="Bloger">Блогер</option>
                         <option value="Admin">Администратор</option>
+                        <option value="Tech_Admin">Тех-админ</option>
                       </SelectInput>
                     </Field>
                     <Field label="PIN кабинета блогера" help="Оставьте пустым, чтобы не менять. Пустая строка сбрасывает PIN.">
@@ -978,9 +994,21 @@ export const AdminDashboard = () => {
                         onChange={(event) => setUserForm((current) => ({ ...current, blogger_cabinet_pin: event.target.value }))}
                       />
                     </Field>
-                    <Field label="Статус">
+                    <Field
+                      label="Статус"
+                      help={
+                        !currentUserIsOwner &&
+                        (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
+                          ? "Деактивация административного аккаунта доступна только владельцу."
+                          : undefined
+                      }
+                    >
                       <SelectInput
                         value={userForm.is_active ? "active" : "inactive"}
+                        disabled={
+                          !currentUserIsOwner &&
+                          (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
+                        }
                         onChange={(event) => setUserForm((current) => ({ ...current, is_active: event.target.value === "active" }))}
                       >
                         <option value="active">Активен</option>
