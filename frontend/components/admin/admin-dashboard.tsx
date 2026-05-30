@@ -935,7 +935,7 @@ export const AdminDashboard = () => {
               title="Редактор пользователя"
               lead={userDetailQuery.data ? `${userDetailQuery.data.email}` : "Выберите пользователя слева."}
               actions={
-                userDetailQuery.data ? (
+                userDetailQuery.data && currentUserIsOwner ? (
                   <Button type="button" kind="ghost" onClick={() => setModal({ kind: "delete-user", user: userDetailQuery.data })}>
                     Удалить
                   </Button>
