@@ -540,6 +540,21 @@
   .sideLayout {
     grid-template-columns: 1fr;
   }
+
+  .financeHero {
+    grid-template-columns: 1fr;
+    gap: 1.1rem;
+    padding: 1.4rem 1.4rem;
+  }
+
+  .financeHeroAside {
+    grid-template-rows: none;
+    grid-template-columns: 1fr 1fr;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding-left: 0;
+    padding-top: 1.1rem;
+  }
 }
 
 @media (max-width: 640px) {
@@ -549,6 +564,18 @@
 
   .scriptRow {
     padding: 0.85rem 1rem;
+  }
+
+  .metricRow {
+    grid-template-columns: 1fr;
+  }
+
+  .metric:nth-child(2) {
+    border-top: 1px solid var(--border-faint);
+  }
+
+  .financeHeroAside {
+    grid-template-columns: 1fr;
   }
 }
 
