@@ -76,6 +76,7 @@ export type DealRead = {
   preview_worker_kopeks: number | null;
   preview_blogger_kopeks: number | null;
   preview_platform_kopeks: number | null;
+  rejection_reason: string | null;
 };
 
 export type MeDealsResponse = {
@@ -159,6 +160,7 @@ export type AdminUserRead = {
   balance: number;
   is_active: boolean;
   payout_card_last4: string | null;
+  is_owner_admin: boolean;
 };
 
 export type AdminUserListResponse = {
