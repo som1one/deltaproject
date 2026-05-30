@@ -248,6 +248,12 @@ Railway → ваш проект → `+ New` → `Database` → `PostgreSQL`. С�
 
 Старт-скрипт `scripts/railway_start.sh` сам прогонит `alembic upgrade head`, при наличии `ADMIN_BOOTSTRAP_*` создаст/обновит администратора и поднимет `uvicorn` на `$PORT`. Healthcheck — `/health`.
 
+> **`PAYOUT_CARD_PEPPER` обязателен в проде.** Это соль (pepper) для SHA-256 отпечатка карты выплаты; PAN в БД не хранится. Если переменная не задана (пустая), эндпоинт сохранения карты выплаты (`POST /me/payout-card`) отвечает `HTTP 503` (ошибка конфигурации, явно отличимая от успеха) и не пишет никаких данных карты. Задайте секрет в **Railway → Variables** (или в `.env` на VPS) до приёма карт.
+>
+> Сгенерировать: `python -c "import secrets; print(secrets.token_urlsafe(64))"`
+>
+> CI задаёт временное значение `ci-dummy-pepper` только для тестов; на проде используйте собственный случайный секрет. Скрипты `deploy/bootstrap.sh` и `deploy/bootstrap-root.sh` при создании нового `.env` генерируют `PAYOUT_CARD_PEPPER` автоматически.
+
 ### 3. Frontend
 
 `+ New` → `GitHub Repo` → тот же репо. В `Settings → Service` укажите `Root Directory = frontend`. Конфиг `frontend/railway.toml` подцепится автоматически.
