@@ -143,6 +143,9 @@ export const AdminDashboard = () => {
   });
   const [previewPriceRub, setPreviewPriceRub] = useState("15000");
   const [modal, setModal] = useState<AdminModalState>(null);
+  const [financePeriod, setFinancePeriod] = useState<ReportingPeriod>("all");
+  const [balanceAdjustForm, setBalanceAdjustForm] = useState({ amountRub: "", reason: "" });
+  const [partnerCardForm, setPartnerCardForm] = useState("");
 
   const meQuery = useQuery({
     queryKey: ["me"],
