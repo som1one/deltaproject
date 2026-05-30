@@ -279,6 +279,25 @@ async def get_admin_finance_preview(
     )
 
 
+@router.get("/finance/dashboard", response_model=PlatformFinanceDashboard)
+async def get_admin_finance_dashboard(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+    period: Annotated[
+        ReportingPeriod,
+        Query(description="Период агрегации: today/week/month/all (по умолчанию all)"),
+    ] = ReportingPeriod.ALL,
+) -> PlatformFinanceDashboard:
+    """Финансовый дашборд платформы; все денежные значения — копейки.
+
+    Доступ: Admin или Tech_Admin (иначе 403, Req 8.1/8.2). Невалидный `period` →
+    422 на уровне FastAPI (Req 8.23); отсутствие `period` ≡ `all` (Req 8.22).
+    Отсутствие системного счёта платформы → ошибка конфигурации без частичных
+    данных (Req 8.3).
+    """
+    return await get_platform_finance_dashboard(db, period)
+
+
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_admin_user(
     user_id: uuid.UUID,
