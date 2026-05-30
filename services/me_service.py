@@ -128,8 +128,11 @@ async def set_me_payout_card(user: User, body: PayoutCardSet, db: AsyncSession) 
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Некорректный номер карты",
         )
-    user.payout_card_hash = card_fingerprint(pan, pepper)
-    user.payout_card_last4 = last4(pan)
+    # Присваивание происходит только после успешного прохождения всех проверок
+    # (роль → секрет → длина → Луна). При любой ошибке валидации прежние
+    # payout_card_hash / payout_card_last4 остаются нетронутыми (Req 4.3).
+    # Сохранение не зависит от наличия токена выплаты ЮKassa (Req 4.5).
+    user.payout_card_hash, user.payout_card_last4 = compute_card_hash_and_last4(pan, pepper)
     await db.commit()
     await db.refresh(user)
     return user

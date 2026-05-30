@@ -162,10 +162,19 @@ async def _accrue_paid_deal(deal: Deal, db: AsyncSession) -> None:
     dist = deal_distribution_amount_kopeks(deal)
     wk, bk, uk, pk = distribute_price_kopeks(dist, scheme)
 
+    # Аплайн определяется ИСКЛЮЧИТЕЛЬНО по наставнику блогера сделки
+    # (upline_blogger_id), а не по linked_to (Req 7.3). Валидный аплайн —
+    # существующий пользователь с ролью Bloger, не совпадающий с самим
+    # блогером сделки (Req 7.1, 7.4). Иначе сделка обрабатывается как без
+    # аплайна: реф-доля прибавляется к доле блогера (Req 7.2).
     upline_user: User | None = None
-    if bloger_user.linked_to is not None:
-        cand = await db.get(User, bloger_user.linked_to)
-        if cand is not None and cand.role == UserRole.BLOGER:
+    if bloger_user.upline_blogger_id is not None:
+        cand = await db.get(User, bloger_user.upline_blogger_id)
+        if (
+            cand is not None
+            and cand.role == UserRole.BLOGER
+            and cand.id != deal.bloger_id
+        ):
             upline_user = cand
     if upline_user is None:
         bk += uk
@@ -219,10 +228,19 @@ async def _apply_completed_stats(deal: Deal, db: AsyncSession) -> None:
     dist = deal_distribution_amount_kopeks(deal)
     wk, bk, uk, _pk = distribute_price_kopeks(dist, scheme)
 
+    # Аплайн определяется ИСКЛЮЧИТЕЛЬНО по наставнику блогера сделки
+    # (upline_blogger_id), а не по linked_to (Req 7.3). Валидный аплайн —
+    # существующий пользователь с ролью Bloger, не совпадающий с самим
+    # блогером сделки (Req 7.1, 7.4). Иначе сделка обрабатывается как без
+    # аплайна: реф-доля прибавляется к доле блогера (Req 7.2).
     upline_user: User | None = None
-    if bloger_user.linked_to is not None:
-        cand = await db.get(User, bloger_user.linked_to)
-        if cand is not None and cand.role == UserRole.BLOGER:
+    if bloger_user.upline_blogger_id is not None:
+        cand = await db.get(User, bloger_user.upline_blogger_id)
+        if (
+            cand is not None
+            and cand.role == UserRole.BLOGER
+            and cand.id != deal.bloger_id
+        ):
             upline_user = cand
     if upline_user is None:
         bk += uk
