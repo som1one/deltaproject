@@ -204,6 +204,18 @@ export const AdminDashboard = () => {
     enabled: Boolean(selectedSchemeId && previewPriceKopeks > 0),
   });
 
+  const userAuditQuery = useQuery({
+    queryKey: ["admin", "userAudit", selectedUserId],
+    queryFn: () => api.getUserAudit(selectedUserId),
+    enabled: Boolean(selectedUserId),
+  });
+
+  const financeDashboardQuery = useQuery({
+    queryKey: ["admin", "financeDashboard", financePeriod],
+    queryFn: () => api.getPlatformFinanceDashboard(financePeriod),
+    enabled: Boolean(isAuthenticated) && section === "finance",
+  });
+
   useEffect(() => {
     if (isHydrated && !isAuthenticated) {
       router.replace("/admin/login");
