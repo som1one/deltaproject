@@ -46,6 +46,24 @@ class AdminUserPatch(BaseModel):
     ] = None
 
 
+class AdminBalanceAdjustmentRequest(BaseModel):
+    amount_kopeks: Annotated[int, Field(ge=-99_999_999_999, le=99_999_999_999)]
+    reason: Annotated[str, Field(min_length=1, max_length=500)]
+
+    @model_validator(mode="after")
+    def _validate(self) -> "AdminBalanceAdjustmentRequest":
+        if self.amount_kopeks == 0:
+            raise ValueError("Сумма корректировки не может быть нулевой")
+        if not self.reason.strip():
+            raise ValueError("Причина не может состоять из пробелов")
+        return self
+
+
+class AdminBalanceAdjustmentResponse(BaseModel):
+    user: AdminUserRead
+    ledger_entry: LedgerEntryRead
+
+
 class AdminBloggerCreateRequest(BaseModel):
     nickname: Annotated[
         str,
