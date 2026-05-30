@@ -199,12 +199,6 @@ export const ContactsPage = () => {
           <Link href="/register">Войти</Link>
         </div>
       </footer>
-
-      <nav className={styles.bottomNav} aria-label="Мобильная навигация">
-        <Link href="/">Главная</Link>
-        <Link href="/faq">FAQ</Link>
-        <Link href="/register" className={styles.bottomNavCta}>Войти</Link>
-      </nav>
     </main>
   );
 };
