@@ -1584,7 +1584,13 @@ const LedgerTable = ({
                 <td>
                   <StatusPill tone={ledgerTone(entry.status)}>{formatLedgerStatus(entry.status)}</StatusPill>
                 </td>
-                <td style={{ color: entry.note ? "var(--text)" : "var(--text-soft)" }}>{entry.note || "вЂ”"}</td>
+                {entry.status === "rejected" ? (
+                  <td style={{ color: entry.note ? "var(--text)" : "var(--text-soft)" }}>
+                    {entry.note || "Причина не указана"}
+                  </td>
+                ) : (
+                  <td style={{ color: entry.note ? "var(--text)" : "var(--text-soft)" }}>{entry.note || "вЂ”"}</td>
+                )}
               </tr>
             ))}
           </tbody>
