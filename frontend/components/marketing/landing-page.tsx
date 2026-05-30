@@ -123,24 +123,38 @@ const IntroOverlay = ({ onFinish }: { onFinish: () => void }) => {
   );
 };
 
-const TopBar = ({ session }: { session: ReturnType<typeof useSessionTarget> }) => (
-  <header className={styles.topBar}>
-    <Link href="/" className={styles.topBarBrand}>
-      <span className={styles.topBarMark}>looney moon</span>
-      <span className={styles.topBarSub}>агентство</span>
-    </Link>
-    <nav className={styles.topBarLinks}>
-      <Link href="#manifest">О платформе</Link>
-      <Link href="/faq">FAQ</Link>
-      <Link href="/contacts">Контакты</Link>
-      {session.ready && session.isAuthenticated && session.href ? (
-        <Link href={session.href}>{session.label}</Link>
-      ) : (
-        <Link href="/register">Войти</Link>
-      )}
-    </nav>
-  </header>
-);
+const TopBar = ({ session }: { session: ReturnType<typeof useSessionTarget> }) => {
+  const isLoggedIn = session.ready && session.isAuthenticated && Boolean(session.href);
+  const accountHref = isLoggedIn ? (session.href as string) : "/register";
+  const accountLabel = isLoggedIn ? (session.label as string) : "Войти";
+
+  return (
+    <header className={styles.topBar}>
+      <div className={styles.topBarRow}>
+        <Link href="/" className={styles.topBarBrand}>
+          <span className={styles.topBarMark}>looney moon</span>
+          <span className={styles.topBarSub}>агентство</span>
+        </Link>
+        <nav className={styles.topBarLinks}>
+          <Link href="#manifest">О платформе</Link>
+          <Link href="/faq">FAQ</Link>
+          <Link href="/contacts">Контакты</Link>
+          <Link href={accountHref}>{accountLabel}</Link>
+        </nav>
+      </div>
+
+      {/* Mobile nav row - lives inside the same sticky header */}
+      <nav className={styles.mobileNav} aria-label="Мобильная навигация">
+        <Link href="#manifest">О платформе</Link>
+        <Link href="/faq">FAQ</Link>
+        <Link href="/contacts">Контакты</Link>
+        <Link href={accountHref} className={styles.mobileNavCta}>
+          {accountLabel}
+        </Link>
+      </nav>
+    </header>
+  );
+};
 
 /* =========================================================
    Main landing
