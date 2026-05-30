@@ -34,6 +34,26 @@ def _blogger_masked(deal: Deal) -> bool:
     return deal.status in (DealStatus.NEW, DealStatus.REVIEW)
 
 
+async def get_latest_rejection_reason(deal_id: uuid.UUID, db: AsyncSession) -> str | None:
+    """Последняя причина отклонения сделки.
+
+    Возвращает поле `reason` из последней записи DealAdminLog с
+    action='status_patch' и new_status=REJECTED для указанной сделки.
+    None — если такой записи нет (Req 1.6).
+    """
+    result = await db.execute(
+        select(DealAdminLog.reason)
+        .where(
+            DealAdminLog.deal_id == deal_id,
+            DealAdminLog.action == "status_patch",
+            DealAdminLog.new_status == DealStatus.REJECTED,
+        )
+        .order_by(DealAdminLog.created_at.desc())
+        .limit(1),
+    )
+    return result.scalar_one_or_none()
+
+
 async def deal_to_read(deal: Deal, viewer: User, db: AsyncSession) -> DealRead:
     amount = deal_distribution_amount_kopeks(deal)
     masked = viewer.role == UserRole.BLOGER and _blogger_masked(deal)

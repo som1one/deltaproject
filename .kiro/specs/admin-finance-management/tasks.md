@@ -25,20 +25,20 @@
     - Зарегистрировать модель в `models/__init__.py`
     - _Requirements: 5.6, 3.7_
 
-- [ ] 2. Миграции Alembic
-  - [-] 2.1 Миграция значения enum `Tech_Admin`
+- [x] 2. Миграции Alembic
+  - [x] 2.1 Миграция значения enum `Tech_Admin`
     - Новая ревизия `down_revision = "l6m7n8o9p0q1"`
     - `ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'Tech_Admin'` внутри `op.get_context().autocommit_block()` (паттерн как в `l6m7n8o9p0q1`)
     - `downgrade`: пересоздание enum без значения либо no-op с комментарием (удаление значения enum в PG невозможно напрямую)
     - _Requirements: 5.1, 5.8_
 
-  - [-] 2.2 Миграция колонки `users.upline_blogger_id` + безопасный бэкофилл
+  - [x] 2.2 Миграция колонки `users.upline_blogger_id` + безопасный бэкофилл
     - Чейнить от ревизии 2.1; `add_column('users', upline_blogger_id ...)` + FK (`ON DELETE SET NULL`) + индекс
     - Бэкофилл: `UPDATE users u SET upline_blogger_id = u.linked_to WHERE u.role = 'Bloger' AND u.linked_to IS NOT NULL AND u.linked_to <> u.id AND EXISTS (SELECT 1 FROM users m WHERE m.id = u.linked_to AND m.role = 'Bloger')` — только валидные аплайны, без наставника по умолчанию
     - `downgrade`: `drop_column`
     - _Requirements: 7.1, 7.4, 7.6_
 
-  - [-] 2.3 Миграция таблицы `admin_audit_logs`
+  - [x] 2.3 Миграция таблицы `admin_audit_logs`
     - Чейнить от ревизии 2.2; `create_table('admin_audit_logs', ...)` со всеми колонками и индексами из модели
     - `downgrade`: `drop_table`
     - _Requirements: 5.6, 3.7_
@@ -48,7 +48,7 @@
     - Проверка корректности бэкофилла `upline_blogger_id`: наставник назначается только для валидных аплайнов (существующий `Bloger`, `≠ self`); прочие остаются `NULL`
     - _Requirements: 5.1, 7.6_
 
-- [ ] 3. Общие хелперы, конфигурация и авторизация
+- [x] 3. Общие хелперы, конфигурация и авторизация
   - [x] 3.1 Вынести общий хелпер `compute_card_hash_and_last4`
     - В `utils/card_hash.py` (или существующем модуле хеширования) выделить `compute_card_hash_and_last4(pan) -> (hash, last4)`, переиспользуемый `set_me_payout_card` и админ-установкой карты партнёра
     - Детерминированный хеш с использованием `PAYOUT_CARD_PEPPER`; не сохранять и не возвращать полный PAN
@@ -64,13 +64,13 @@
     - Сохранить `get_current_admin` (только `ADMIN`) для операций над административными аккаунтами
     - _Requirements: 5.5, 5.8, 3.8, 8.1, 8.2_
 
-  - [-] 3.4 Сервис аудита `admin_audit_service`
+  - [x] 3.4 Сервис аудита `admin_audit_service`
     - Создать `services/admin_audit_service.py` с функцией записи `AdminAuditLog` (actor_id, target_user_id, field, old_value, new_value, created_at)
     - Для карты в `old_value`/`new_value` писать только маскированное представление (last4), без PAN
     - _Requirements: 5.6, 3.7_
 
 - [ ] 4. Требование 1 — причина отклонения сделки (бэкенд)
-  - [~] 4.1 Хелпер причины + `deal_to_read` + схемы
+  - [-] 4.1 Хелпер причины + `deal_to_read` + схемы
     - В `services/deal_service.py` добавить `get_latest_rejection_reason(deal_id, db) -> str | None` (последняя `DealAdminLog` с `action='status_patch'`, `new_status=REJECTED`, `order_by created_at desc limit 1`)
     - В `deal_to_read`: при `deal.status == REJECTED` проставлять `rejection_reason`, иначе `None`
     - В `schemas/deal.py`: `DealRead += rejection_reason: str | None = None`; сузить `AdminDealStatusPatch.reason` до `max_length=1000`
@@ -90,8 +90,8 @@
     - Сбой записи `DealAdminLog` (мок) → перевод в `REJECTED` завершается, фиксируется признак ошибки записи причины, операция не прерывается
     - _Requirements: 1.7_
 
-- [ ] 5. Требование 2 — причина отклонения выплаты (бэкенд)
-  - [-] 5.1 Выровнять валидацию `AdminLedgerStatusPatch.note`
+- [x] 5. Требование 2 — причина отклонения выплаты (бэкенд)
+  - [x] 5.1 Выровнять валидацию `AdminLedgerStatusPatch.note`
     - В `schemas/ledger.py` подтвердить/установить `note` с `min_length=1, max_length=4000`; при превышении Pydantic возвращает `422`, статус записи не меняется
     - _Requirements: 2.1, 2.7_
 
@@ -101,7 +101,7 @@
     - Тег и `@settings(max_examples=100)`; `note` длиной 1–4000, проверка `status == rejected` и сохранённого `note`
 
 - [ ] 6. Требование 3 — ручная корректировка баланса
-  - [-] 6.1 Схемы корректировки баланса
+  - [x] 6.1 Схемы корректировки баланса
     - В `schemas/admin.py` добавить `AdminBalanceAdjustmentRequest` (`amount_kopeks` `ge=-99_999_999_999 le=99_999_999_999`, `reason` `min_length=1 max_length=500`, `model_validator`: запрет нуля и пробельной причины) и `AdminBalanceAdjustmentResponse` (`user`, `ledger_entry`)
     - _Requirements: 3.3, 3.4, 3.6_
 
@@ -151,7 +151,7 @@
     - _Requirements: 4.5, 4.6_
 
 - [ ] 8. Требование 5 — роль Тех-админ, управление партнёрами, аудит
-  - [~] 8.1 Схемы Тех-админа и партнёров
+  - [-] 8.1 Схемы Тех-админа и партнёров
     - В `schemas/admin.py`: `AdminUserRead += is_owner_admin: bool` (вычисляемое `role == ADMIN`); `AdminUserPatch.percent` `Field(ge=0, le=100)` + `upline_blogger_id: uuid.UUID | None`; новые `AdminPartnerCardSet`, `AdminAuditEntryRead`, `AdminAuditListResponse`
     - _Requirements: 5.2, 5.4, 5.9, 7.1_
 
@@ -241,7 +241,7 @@
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Требование 8 — финансовый дашборд (схемы и сервис)
-  - [~] 12.1 Схемы дашборда и enum периода
+  - [-] 12.1 Схемы дашборда и enum периода
     - Создать `schemas/finance.py` (или расширить): `ReportingPeriod` (`today/week/month/all`), вложенные `TopParticipant`, `TimeSeriesPoint`, `ReferralShareByBlogger`, `ActiveReferralLinks` и расширенная `PlatformFinanceDashboard` со всеми полями `*_kopeks` (целые копейки)
     - Словари статусов всегда содержат все 6 ключей; `earnings_by_role_kopeks` всегда содержит `Worker/Bloger/Platform`; `net_free_funds`/`available_for_payout` могут быть отрицательными
     - _Requirements: 8.1, 8.4_
