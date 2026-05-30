@@ -71,12 +71,18 @@ const Masked = ({ children = "Скрыто" }: { children?: ReactNode }) => (
   <span className={styles.maskedCell}>{children}</span>
 );
 
-/** Превращает относительную ссылку (`/ref/<nick>`) в абсолютный URL,
- *  чтобы её было удобно скопировать и отправить. */
+/** Превращает относительную ссылку (`/ref/<nick>`) в абсолютный URL.
+ *  База берётся из текущего origin в браузере (чтобы ссылка всегда
+ *  совпадала с хостом, откуда зашёл пользователь), с фолбэком на
+ *  NEXT_PUBLIC_APP_URL для SSR. */
 const absolutizeUrl = (raw: string | null | undefined): string => {
   if (!raw) return "";
   if (/^https?:\/\//i.test(raw)) return raw;
-  const base = (appConfig.appUrl || "").replace(/\/+$/, "");
+  const base =
+    (typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : appConfig.appUrl || ""
+    ).replace(/\/+$/, "");
   const path = raw.startsWith("/") ? raw : `/${raw}`;
   return `${base}${path}`;
 };

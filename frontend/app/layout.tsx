@@ -44,9 +44,31 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = {
-  title: "looney moon — закрытая платформа агентства",
+  title: {
+    default: "looney moon — агентство рекламы у блогеров",
+    template: "%s · looney moon",
+  },
   description:
-    "looney moon — платформа, где блогеры получают рекламные интеграции, а работники закрывают сделки. Закрытая дорогая среда без хаоса.",
+    "looney moon — платформа, где блогеры получают рекламные интеграции, а работники закрывают сделки. Прозрачные сделки, точные расчёты, выплаты в одном кабинете.",
+  applicationName: "looney moon",
+  keywords: ["реклама у блогеров", "интеграции", "маркетплейсы", "агентство", "looney moon"],
+  authors: [{ name: "looney moon" }],
+  icons: { icon: "/icon.svg" },
+  openGraph: {
+    type: "website",
+    siteName: "looney moon",
+    title: "looney moon — агентство рекламы у блогеров",
+    description:
+      "Блогеры получают интеграции, работники закрывают сделки, платформа считает выплаты. Всё в одном кабинете.",
+    locale: "ru_RU",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "looney moon — агентство рекламы у блогеров",
+    description:
+      "Блогеры получают интеграции, работники закрывают сделки, платформа считает выплаты.",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

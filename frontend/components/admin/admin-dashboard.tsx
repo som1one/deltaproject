@@ -279,17 +279,26 @@ export const AdminDashboard = () => {
   };
 
   const patchUserMutation = useMutation({
-    mutationFn: () =>
-      api.patchAdminUser(selectedUserId, {
+    mutationFn: () => {
+      const isBlogger = userForm.role === "Bloger";
+      // У блогера email синтетический (…@internal.bloger-network.local) и
+      // пересобирается из ника на бэке. EmailStr такой домен отвергает —
+      // поэтому email для блогера не отправляем вовсе.
+      const payload: Record<string, unknown> = {
         name: userForm.name,
-        email: userForm.email,
         telegram: userForm.telegram || null,
-        nickname: userForm.nickname || null,
         percent: Number(userForm.percent),
         role: userForm.role,
         is_active: userForm.is_active,
         blogger_cabinet_pin: userForm.blogger_cabinet_pin || undefined,
-      }),
+      };
+      if (isBlogger) {
+        payload.nickname = userForm.nickname || null;
+      } else if (userForm.email.trim()) {
+        payload.email = userForm.email.trim();
+      }
+      return api.patchAdminUser(selectedUserId, payload);
+    },
     onSuccess: async () => {
       setMessage({ tone: "success", text: "Пользователь обновлён." });
       await invalidateAdmin(
@@ -874,8 +883,13 @@ export const AdminDashboard = () => {
                     <Field label="Имя">
                       <TextInput value={userForm.name} onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))} />
                     </Field>
-                    <Field label="Email">
-                      <TextInput value={userForm.email} onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))} />
+                    <Field label="Email" help={userForm.role === "Bloger" ? "У блогера задаётся ником, менять нельзя." : undefined}>
+                      <TextInput
+                        value={userForm.email}
+                        onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))}
+                        readOnly={userForm.role === "Bloger"}
+                        disabled={userForm.role === "Bloger"}
+                      />
                     </Field>
                     <Field label="Telegram">
                       <TextInput value={userForm.telegram} onChange={(event) => setUserForm((current) => ({ ...current, telegram: event.target.value }))} />
