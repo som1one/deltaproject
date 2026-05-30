@@ -322,11 +322,6 @@
     color: var(--text-strong) !important;
     border: 1px solid var(--border-strong);
   }
-
-  /* Lift the footer so it doesn't sit underneath the fixed nav */
-  .footer {
-    padding-bottom: calc(3rem + 64px + env(safe-area-inset-bottom));
-  }
 }
 
 /* ---------- Hero (video bg) ---------- */
