@@ -46,7 +46,7 @@ import {
 } from "@/components/common/ui";
 import styles from "@/components/admin/admin.module.css";
 
-type AdminSection = "overview" | "users" | "deals" | "ledger" | "schemes" | "scripts";
+type AdminSection = "overview" | "users" | "deals" | "ledger" | "schemes" | "finance" | "scripts";
 
 type AdminModalState =
   | { kind: "delete-user"; user: AdminUserRead }
