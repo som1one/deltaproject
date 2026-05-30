@@ -44,4 +44,4 @@ class PayoutWidgetConfigResponse(BaseModel):
 
 class AdminLedgerStatusPatch(BaseModel):
     status: LedgerEntryStatus
-    note: Annotated[str | None, Field(None, max_length=4000)] = None
+    note: Annotated[str | None, Field(None, min_length=1, max_length=4000)] = None
