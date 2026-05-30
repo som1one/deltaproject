@@ -1292,7 +1292,13 @@ export const AdminDashboard = () => {
                     </Button>
                   ) : null}
                 </div>
-                {ledgerDetailQuery.data.note ? <Message>Заметка: {ledgerDetailQuery.data.note}</Message> : null}
+                {ledgerDetailQuery.data.status === "rejected" ? (
+                  <Field label="Причина отклонения">
+                    <TextArea value={ledgerDetailQuery.data.note || "Причина не указана"} disabled readOnly />
+                  </Field>
+                ) : ledgerDetailQuery.data.note ? (
+                  <Message>Заметка: {ledgerDetailQuery.data.note}</Message>
+                ) : null}
               </Stack>
             ) : (
               <Message>Выберите запись в таблице.</Message>
