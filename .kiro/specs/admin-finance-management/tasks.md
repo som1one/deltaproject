@@ -406,19 +406,19 @@
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 20. Проверка деплоя и публикация
-  - [-] 20.1 Прогнать полный набор тестов бэкенда и typecheck фронтенда
+  - [x] 20.1 Прогнать полный набор тестов бэкенда и typecheck фронтенда
     - Запустить `pytest` (бэкенд) и `npx tsc --noEmit` (фронтенд) локально, чтобы CI (`.github/workflows/deploy.yml`) прошёл; устранить найденные ошибки
     - _Requirements: 6.3_
 
-  - [-] 20.2 Проверить Alembic upgrade/downgrade на тестовой БД
+  - [x] 20.2 Проверить Alembic upgrade/downgrade на тестовой БД
     - Прогнать `alembic upgrade head` и `downgrade` на scratch-БД (деплой выполняет `alembic upgrade head` автоматически через `deploy/remote-deploy.sh`); подтвердить корректность бэкофилла `upline_blogger_id`
     - _Requirements: 5.1, 7.6_
 
-  - [-] 20.3 Обеспечить `PAYOUT_CARD_PEPPER` в production-окружении
+  - [x] 20.3 Обеспечить `PAYOUT_CARD_PEPPER` в production-окружении
     - Задокументировать и проверить наличие `PAYOUT_CARD_PEPPER` в production-переменных (Railway Variables); CI задаёт `ci-dummy-pepper`, прод может не иметь значения — это корневая причина Req 4
     - _Requirements: 4.6_
 
-  - [~] 20.4 Финальный шаг — коммит и push в main (триггер авто-деплоя)
+  - [-] 20.4 Финальный шаг — коммит и push в main (триггер авто-деплоя)
     - **ТРИГГЕР ДЕПЛОЯ:** закоммитить изменения и запушить в `main`, чтобы запустить авто-деплой (CI [pytest + tsc] → `deploy/remote-deploy.sh`: git reset, pip install, alembic upgrade head, npm build, restart)
     - **Примечание:** фактический коммит и push выполняет/подтверждает пользователь; это явный финальный шаг, зависящий от завершения всех задач реализации и тестирования
     - _Requirements: 4.6, 6.3_
