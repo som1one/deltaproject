@@ -1531,7 +1531,16 @@ const LedgerTable = ({
           </div>
           <div className={styles.ledgerMobileFoot}>
             <span className={styles.ledgerMobileDate}>{formatDateTime(entry.created_at)}</span>
-            {entry.note ? <span className={styles.ledgerMobileNote}>{entry.note}</span> : null}
+            {entry.status === "rejected" ? (
+              <span
+                className={styles.ledgerMobileNote}
+                style={entry.note ? undefined : { color: "var(--text-soft)" }}
+              >
+                {entry.note || "Причина не указана"}
+              </span>
+            ) : entry.note ? (
+              <span className={styles.ledgerMobileNote}>{entry.note}</span>
+            ) : null}
           </div>
         </li>
       ))}
