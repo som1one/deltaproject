@@ -123,8 +123,8 @@ export const PayoutCardInput = ({
       : maskedDisplay("", brand);
 
   const handleChange = (value: string) => {
-    // Жёсткий лимит: 16 цифр (для AmEx — 15). Лишние символы не принимаем.
-    const maxLen = brand === "amex" ? 15 : 16;
+    // Лимит ввода: 19 цифр (для AmEx — 15). Лишние символы не принимаем.
+    const maxLen = brand === "amex" ? 15 : MAX_CARD_DIGITS;
     const digits = value.replace(/\D/g, "").slice(0, maxLen);
     setRaw(digits);
     setError(null);
@@ -138,7 +138,7 @@ export const PayoutCardInput = ({
 
   const handleSubmit = () => {
     if (!isValidLength) {
-      setError("Номер должен содержать 16 цифр (15 — для AmEx).");
+      setError("Номер карты должен содержать от 13 до 19 цифр.");
       return;
     }
     if (!isLuhnValid) {
