@@ -274,6 +274,12 @@ export const AdminDashboard = () => {
   }, [userDetailQuery.data]);
 
   useEffect(() => {
+    // Сбрасываем формы корректировки баланса и карты партнёра при смене пользователя.
+    setBalanceAdjustForm({ amountRub: "", reason: "" });
+    setPartnerCardForm("");
+  }, [selectedUserId]);
+
+  useEffect(() => {
     const activeScript = scriptsQuery.data?.find((item) => item.id === selectedScriptId);
     if (activeScript) {
       setScriptForm({
