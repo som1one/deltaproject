@@ -212,3 +212,99 @@ export type FinancePreviewResponse = {
   weight_upline: number;
   weight_platform: number;
 };
+
+export type ReportingPeriod = "today" | "week" | "month" | "all";
+
+export type TopParticipant = {
+  user_id: string;
+  earnings_kopeks: number;
+  paid_deals_count: number;
+};
+
+export type TimeSeriesPoint = {
+  date: string;
+  turnover_kopeks: number;
+  accrued_platform_share_kopeks: number;
+};
+
+export type ReferralShareByBlogger = {
+  upline_blogger_id: string;
+  amount_kopeks: number;
+};
+
+export type ActiveReferralLinks = {
+  bloggers_with_upline: number;
+  workers_with_link: number;
+};
+
+export type PlatformFinanceDashboard = {
+  period: ReportingPeriod;
+
+  // Базовые показатели
+  platform_balance_kopeks: number;
+  net_profit_kopeks: number;
+  earnings_by_role_kopeks: Record<string, number>;
+  total_completed_payouts_kopeks: number;
+
+  // A. Оборот и сделки
+  turnover_total_kopeks: number;
+  turnover_by_status_kopeks: Record<string, number>;
+  deal_counts_by_status: Record<string, number>;
+  average_order_value_kopeks: number;
+  average_platform_commission_kopeks: number;
+
+  // B. Обязательства
+  platform_liabilities_kopeks: number;
+  net_free_funds_kopeks: number;
+
+  // C. Разбивка доли платформы
+  accrued_platform_share_kopeks: number;
+  platform_withdrawn_kopeks: number;
+  platform_pending_funds_kopeks: number;
+  available_for_payout_kopeks: number;
+
+  // D. Динамика
+  time_series: TimeSeriesPoint[];
+
+  // E. Топ-участники
+  top_bloggers: TopParticipant[];
+  top_workers: TopParticipant[];
+
+  // F. Ожидаемые начисления
+  expected_accruals_total_kopeks: number;
+  expected_future_shares_kopeks: Record<string, number>;
+
+  // G. Реферальная аналитика
+  total_referral_share_to_uplines_kopeks: number;
+  referral_share_by_blogger: ReferralShareByBlogger[];
+  active_referral_links: ActiveReferralLinks;
+};
+
+export type AdminAuditEntry = {
+  id: string;
+  actor_id: string;
+  target_user_id: string;
+  field: string;
+  old_value: string | null;
+  new_value: string | null;
+  created_at: string;
+};
+
+export type AdminAuditListResponse = {
+  items: AdminAuditEntry[];
+  total: number;
+};
+
+export type AdminBalanceAdjustmentRequest = {
+  amount_kopeks: number;
+  reason: string;
+};
+
+export type AdminBalanceAdjustmentResponse = {
+  user: AdminUserRead;
+  ledger_entry: LedgerEntryRead;
+};
+
+export type AdminPartnerCardSet = {
+  card_number: string;
+};
