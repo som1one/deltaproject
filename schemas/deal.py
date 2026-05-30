@@ -2,9 +2,10 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from enums.deal import DealStatus
+from schemas.payment_details import PaymentRequisites
 
 
 class DealCreate(BaseModel):
