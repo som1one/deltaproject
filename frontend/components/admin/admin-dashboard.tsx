@@ -813,6 +813,10 @@ export const AdminDashboard = () => {
 
   const activeScript = scriptsQuery.data?.find((item) => item.id === selectedScriptId) || null;
 
+  // Текущий администратор является владельцем (Admin), если его роль — Admin.
+  // Управление административными аккаунтами (смена роли, деактивация) доступно только владельцу.
+  const currentUserIsOwner = meQuery.data?.role === "Admin";
+
   const sectionContent = () => {
     if (section === "overview") {
       return (
