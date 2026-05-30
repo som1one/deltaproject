@@ -508,6 +508,14 @@ const DealDetailsModal = ({
                   </dd>
                 </div>
               </dl>
+              {deal.status === "REJECTED" ? (
+                <div className={styles.dealModalLedgerNote}>
+                  <p className={styles.dealModalEyebrow}>Причина отклонения</p>
+                  <p style={deal.rejection_reason ? undefined : { color: "var(--text-soft)" }}>
+                    {deal.rejection_reason || "Причина не указана"}
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
