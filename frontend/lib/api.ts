@@ -297,6 +297,25 @@ export const api = {
     request<AdminUserStatsResponse>(`/admin/users/${id}/stats`, { auth: true }),
   getAdminUserLedger: (id: string) =>
     request<LedgerListResponse>(`/admin/users/${id}/ledger`, { auth: true }),
+  adjustUserBalance: (id: string, body: { amount_kopeks: number; reason: string }) =>
+    request<AdminBalanceAdjustmentResponse>(`/admin/users/${id}/balance-adjustment`, {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  setPartnerPayoutCard: (id: string, body: { card_number: string }) =>
+    request<AdminUserRead>(`/admin/users/${id}/payout-card`, {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  getUserAudit: (id: string, query = "") =>
+    request<AdminAuditListResponse>(`/admin/users/${id}/audit${query}`, { auth: true }),
+  getPlatformFinanceDashboard: (period?: ReportingPeriod) =>
+    request<PlatformFinanceDashboard>(
+      `/admin/finance/dashboard${period ? `?period=${period}` : ""}`,
+      { auth: true },
+    ),
   getAdminDeals: (query = "") => request<DealRead[]>(`/admin/deals${query}`, { auth: true }),
   getAdminDeal: (id: string) => request<DealRead>(`/admin/deals/${id}`, { auth: true }),
   patchAdminDealStatus: (id: string, body: { status: string; reason: string }) =>
