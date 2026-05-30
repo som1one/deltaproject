@@ -262,7 +262,7 @@
     - _Requirements: 1.3, 3.1, 4.1, 8.1_
 
 - [ ] 17. Фронтенд — кабинет (`cabinet-dashboard.tsx`)
-  - [ ] 17.1 Показ реквизитов приёма по своей сделке в `CONFIRMED`
+  - [x] 17.1 Показ реквизитов приёма по своей сделке в `CONFIRMED`
     - Показывать `payment_requisites` (полный PAN и/или ссылку) с `CopyButton` только для своих сделок в `CONFIRMED`; добавить лейблы статусов `ESCROW_HELD`/`REFUNDED`
     - _Requirements: 3.1, 3.3_
 

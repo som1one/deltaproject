@@ -169,12 +169,16 @@ const dealStatusSummary = (status: DealStatus): string => {
       return "РЎРґРµР»РєР° РЅР° РїСЂРѕРІРµСЂРєРµ Сѓ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°. РљРѕРЅС‚Р°РєС‚С‹ Рё С„РёРЅР°РЅСЃС‹ РїРѕРєР° СЃРєСЂС‹С‚С‹.";
     case "CONFIRMED":
       return "РЎРґРµР»РєР° РїРѕРґС‚РІРµСЂР¶РґРµРЅР°. РЎРѕРіР»Р°СЃРѕРІР°РЅР° С†РµРЅР°, РјРѕР¶РЅРѕ СЂР°Р±РѕС‚Р°С‚СЊ СЃ РїСЂРѕРґР°РІС†РѕРј.";
+    case "ESCROW_HELD":
+      return "Площадка подтвердила получение средств. Доли будут распределены администратором.";
     case "PAID":
       return "РћРїР»Р°С‚Р° РїСЂРѕРІРµРґРµРЅР°. РЎСѓРјРјР° Р·Р°С‡РёСЃР»РµРЅР° РІ Р±Р°Р»Р°РЅСЃ РїРѕ СЃС…РµРјРµ.";
     case "COMPLETED":
       return "РЎРґРµР»РєР° Р·Р°РєСЂС‹С‚Р°. Р’СЃРµ РЅР°С‡РёСЃР»РµРЅРёСЏ СѓР¶Рµ РѕС‚СЂР°Р¶РµРЅС‹ РІ С„РёРЅР°РЅСЃР°С….";
     case "REJECTED":
       return "РЎРґРµР»РєР° РѕС‚РєР»РѕРЅРµРЅР° Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј РёР»Рё Р±Р»РѕРіРµСЂРѕРј. РќР°С‡РёСЃР»РµРЅРёР№ РЅРµС‚.";
+    case "REFUNDED":
+      return "Средства возвращены плательщику до распределения. Начислений нет.";
     default:
       return "РЎС‚Р°С‚СѓСЃ РЅРµРёР·РІРµСЃС‚РµРЅ.";
   }
@@ -515,6 +519,60 @@ const DealDetailsModal = ({
                     {deal.rejection_reason || "Причина не указана"}
                   </p>
                 </div>
+              ) : null}
+              {deal.status === "CONFIRMED" && deal.payment_requisites ? (
+                deal.payment_requisites.available ? (
+                  <div className={styles.dealModalLedgerNote}>
+                    <p className={styles.dealModalEyebrow}>Реквизиты приёма платежей</p>
+                    {deal.payment_requisites.collection_card_full ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.6rem",
+                          flexWrap: "wrap",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span style={{ fontFamily: "var(--font-mono)", wordBreak: "break-all" }}>
+                          Карта: {deal.payment_requisites.collection_card_full}
+                        </span>
+                        <CopyButton
+                          kind="ghost"
+                          value={deal.payment_requisites.collection_card_full}
+                          label="Копировать"
+                          toastText="Номер карты скопирован"
+                        />
+                      </div>
+                    ) : null}
+                    {deal.payment_requisites.payment_link ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.6rem",
+                          flexWrap: "wrap",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span style={{ fontFamily: "var(--font-mono)", wordBreak: "break-all" }}>
+                          Ссылка: {deal.payment_requisites.payment_link}
+                        </span>
+                        <CopyButton
+                          kind="ghost"
+                          value={deal.payment_requisites.payment_link}
+                          label="Копировать"
+                          toastText="Ссылка скопирована"
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className={styles.dealModalLedgerNote}>
+                    <p className={styles.dealModalEyebrow}>Реквизиты приёма платежей</p>
+                    <p style={{ color: "var(--text-soft)" }}>Реквизиты приёма не настроены</p>
+                  </div>
+                )
               ) : null}
             </div>
           ) : null}
@@ -1198,9 +1256,11 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                     <option value="NEW">РќРѕРІС‹Рµ</option>
                     <option value="REVIEW">РќР° РїСЂРѕРІРµСЂРєРµ</option>
                     <option value="CONFIRMED">РџРѕРґС‚РІРµСЂР¶РґРµРЅС‹</option>
+                    <option value="ESCROW_HELD">Эскроу</option>
                     <option value="PAID">РћРїР»Р°С‡РµРЅС‹</option>
                     <option value="COMPLETED">Р’С‹РїРѕР»РЅРµРЅС‹</option>
                     <option value="REJECTED">РћС‚РєР»РѕРЅРµРЅС‹</option>
+                    <option value="REFUNDED">Возврат</option>
                   </SelectInput>
                 </div>
               </div>
@@ -1937,9 +1997,11 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                     <option value="NEW">РќРѕРІС‹Рµ ({newDealsCount})</option>
                     <option value="REVIEW">РќР° РїСЂРѕРІРµСЂРєРµ</option>
                     <option value="CONFIRMED">РџРѕРґС‚РІРµСЂР¶РґРµРЅС‹</option>
+                    <option value="ESCROW_HELD">Эскроу</option>
                     <option value="PAID">РћРїР»Р°С‡РµРЅС‹</option>
                     <option value="COMPLETED">Р’С‹РїРѕР»РЅРµРЅС‹</option>
                     <option value="REJECTED">РћС‚РєР»РѕРЅРµРЅС‹</option>
+                    <option value="REFUNDED">Возврат</option>
                   </SelectInput>
                 </div>
               </div>
