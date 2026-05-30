@@ -53,3 +53,87 @@ class FinanceSchemeAdminPut(BaseModel):
 class FinanceSchemeAdminListResponse(BaseModel):
     items: list[FinanceSchemeAdminRead]
     total: int
+
+
+class ReportingPeriod(str, enum.Enum):
+    """Период агрегации показателей финансового дашборда."""
+
+    TODAY = "today"
+    WEEK = "week"
+    MONTH = "month"
+    ALL = "all"
+
+
+class TopParticipant(BaseModel):
+    """Элемент списка топ-участников (блогеры/воркеры)."""
+
+    user_id: uuid.UUID
+    earnings_kopeks: int
+    paid_deals_count: int
+
+
+class TimeSeriesPoint(BaseModel):
+    """Точка дневной динамики оборота и доли платформы."""
+
+    date: date  # день (UTC)
+    turnover_kopeks: int  # оборот за день
+    accrued_platform_share_kopeks: int  # накопленная доля платформы за день
+
+
+class ReferralShareByBlogger(BaseModel):
+    """Реферальная доля, начисленная конкретному аплайн-блогеру."""
+
+    upline_blogger_id: uuid.UUID
+    amount_kopeks: int
+
+
+class ActiveReferralLinks(BaseModel):
+    """Счётчики активных реферальных связей."""
+
+    bloggers_with_upline: int  # блогеры с непустым upline_blogger_id
+    workers_with_link: int  # воркеры с непустым linked_to
+
+
+class PlatformFinanceDashboard(BaseModel):
+    """Сводка финансовых показателей платформы. Все суммы — целые копейки."""
+
+    period: ReportingPeriod  # применённый период (эхо запроса)
+
+    # Базовые показатели
+    platform_balance_kopeks: int
+    net_profit_kopeks: int
+    earnings_by_role_kopeks: dict[str, int]  # {"Worker","Bloger","Platform"}
+    total_completed_payouts_kopeks: int
+
+    # A. Оборот и сделки
+    turnover_total_kopeks: int
+    turnover_by_status_kopeks: dict[str, int]  # ключи: NEW/REVIEW/CONFIRMED/PAID/COMPLETED/REJECTED
+    deal_counts_by_status: dict[str, int]  # те же ключи
+    average_order_value_kopeks: int  # 0, если нет оплаченных
+    average_platform_commission_kopeks: int  # 0, если нет оплаченных
+
+    # B. Обязательства
+    platform_liabilities_kopeks: int
+    net_free_funds_kopeks: int  # может быть отрицательным
+
+    # C. Разбивка доли платформы
+    accrued_platform_share_kopeks: int
+    platform_withdrawn_kopeks: int
+    platform_pending_funds_kopeks: int
+    available_for_payout_kopeks: int  # может быть отрицательным
+
+    # D. Динамика
+    time_series: list[TimeSeriesPoint]  # упорядочен по date ASC
+
+    # E. Топ-участники
+    top_bloggers: list[TopParticipant]  # ≤ 10, по убыванию earnings
+    top_workers: list[TopParticipant]  # ≤ 10, по убыванию earnings
+
+    # F. Ожидаемые начисления
+    expected_accruals_total_kopeks: int
+    expected_future_shares_kopeks: dict[str, int]  # {"worker","bloger","upline","platform"}
+
+    # G. Реферальная аналитика
+    total_referral_share_to_uplines_kopeks: int
+    referral_share_by_blogger: list[ReferralShareByBlogger]
+    active_referral_links: ActiveReferralLinks

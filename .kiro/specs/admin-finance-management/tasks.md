@@ -69,8 +69,8 @@
     - Для карты в `old_value`/`new_value` писать только маскированное представление (last4), без PAN
     - _Requirements: 5.6, 3.7_
 
-- [ ] 4. Требование 1 — причина отклонения сделки (бэкенд)
-  - [-] 4.1 Хелпер причины + `deal_to_read` + схемы
+- [x] 4. Требование 1 — причина отклонения сделки (бэкенд)
+  - [x] 4.1 Хелпер причины + `deal_to_read` + схемы
     - В `services/deal_service.py` добавить `get_latest_rejection_reason(deal_id, db) -> str | None` (последняя `DealAdminLog` с `action='status_patch'`, `new_status=REJECTED`, `order_by created_at desc limit 1`)
     - В `deal_to_read`: при `deal.status == REJECTED` проставлять `rejection_reason`, иначе `None`
     - В `schemas/deal.py`: `DealRead += rejection_reason: str | None = None`; сузить `AdminDealStatusPatch.reason` до `max_length=1000`
@@ -105,7 +105,7 @@
     - В `schemas/admin.py` добавить `AdminBalanceAdjustmentRequest` (`amount_kopeks` `ge=-99_999_999_999 le=99_999_999_999`, `reason` `min_length=1 max_length=500`, `model_validator`: запрет нуля и пробельной причины) и `AdminBalanceAdjustmentResponse` (`user`, `ledger_entry`)
     - _Requirements: 3.3, 3.4, 3.6_
 
-  - [~] 6.2 Сервис `admin_adjust_user_balance`
+  - [-] 6.2 Сервис `admin_adjust_user_balance`
     - В `services/admin_user_service.py` реализовать атомарную операцию с `with_for_update`: валидация суммы/причины, проверка резерва (`payout_request`, `freeze`, `pending_confirmation`) при уменьшении, изменение баланса
     - Создать `LedgerEntry(deal_id=None, amount_kopeks=amount, status=COMPLETED, note=reason.strip(), idempotency_key=f"adj:{uuid4()}")`
     - Записать аудит через `admin_audit_service` (`field='balance_adjustment'`, `actor_id`); при любой ошибке журнала/аудита — полный `rollback`
@@ -132,12 +132,12 @@
     - _Requirements: 3.8, 3.9_
 
 - [ ] 7. Требование 4 — сохранение карты выплаты (исправление)
-  - [~] 7.1 Починка `set_me_payout_card`
+  - [-] 7.1 Починка `set_me_payout_card`
     - В `services/me_service.py` подтвердить порядок проверок: роль (`403`) → секрет `PAYOUT_CARD_PEPPER` (`503`) → длина 13–19 (`400`) → Луна (`400`) → сохранение хеша и last4 через `compute_card_hash_and_last4`
     - Сохранение независимо от наличия токена выплаты ЮKassa; при любой ошибке валидации прежние `payout_card_hash`/`payout_card_last4` не трогаются
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
 
-  - [~] 7.2 Фронтенд: валидация длины карты 13–19
+  - [-] 7.2 Фронтенд: валидация длины карты 13–19
     - В `frontend/components/.../payout-card-input.tsx` заменить жёсткое `raw.length === expectedLen` на диапазон 13–19 цифр с сохранением Luhn-проверки; кнопка активна при длине в диапазоне и валидном Luhn
     - _Requirements: 4.1, 4.3_
 
@@ -151,11 +151,11 @@
     - _Requirements: 4.5, 4.6_
 
 - [ ] 8. Требование 5 — роль Тех-админ, управление партнёрами, аудит
-  - [-] 8.1 Схемы Тех-админа и партнёров
+  - [x] 8.1 Схемы Тех-админа и партнёров
     - В `schemas/admin.py`: `AdminUserRead += is_owner_admin: bool` (вычисляемое `role == ADMIN`); `AdminUserPatch.percent` `Field(ge=0, le=100)` + `upline_blogger_id: uuid.UUID | None`; новые `AdminPartnerCardSet`, `AdminAuditEntryRead`, `AdminAuditListResponse`
     - _Requirements: 5.2, 5.4, 5.9, 7.1_
 
-  - [~] 8.2 Логика `admin_patch_user` и управления партнёрами
+  - [-] 8.2 Логика `admin_patch_user` и управления партнёрами
     - В `services/admin_user_service.py`: процент `0.00..100.00` (2 знака); карта партнёра 13–19 цифр через `compute_card_hash_and_last4`; присвоение `upline_blogger_id` с валидацией (целевой и указанный — оба `Bloger`, `≠ self`)
     - Защита последнего владельца: запрет деактивации/удаления/понижения роли, оставляющих 0 активных `Admin` (`409`)
     - Разграничение прав: операции над аккаунтами `Admin`/`Tech_Admin` только для актора `Admin`; лимит 0..10 `Tech_Admin`
@@ -192,7 +192,7 @@
     - _Requirements: 5.5, 5.8_
 
 - [ ] 9. Требование 6 — корректная доля платформы (гарантии)
-  - [~] 9.1 Подтверждение инвариантов начисления и устранение искажающих источников
+  - [-] 9.1 Подтверждение инвариантов начисления и устранение искажающих источников
     - Подтвердить в `services/finance_scheme_service.py` инварианты `distribute_price_kopeks` (`pk = price − wk − bk − uk`, неотрицательность, сумма = базовой)
     - В `services/deal_service.py` подтвердить идемпотентность `_accrue_paid_deal` (`_paid_bundle_exists` + уникальные `idempotency_key`) и проверку системного счёта платформы до любого изменения балансов с явной ошибкой
     - В `scripts/seed_*.py` сделать seed-скрипты идемпотентными/помеченными как демо-данные
@@ -216,7 +216,7 @@
     - _Requirements: 6.3, 6.6_
 
 - [ ] 10. Требование 7 — корректное назначение реферальной доли
-  - [~] 10.1 Чтение аплайна только из `upline_blogger_id`
+  - [-] 10.1 Чтение аплайна только из `upline_blogger_id`
     - В `services/deal_service.py` изменить `_accrue_paid_deal` и `_apply_completed_stats`: читать только `bloger_user.upline_blogger_id`; валидный аплайн — существующий `Bloger`, `≠ deal.bloger_id`; иначе `bk += uk; uk = 0; upline=None`
     - При `uk == 0` запись начисления аплайну не создаётся; `set_worker_linked_to` оставить без изменений (только `worker.linked_to`); наставник по умолчанию не назначается
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7_
@@ -241,12 +241,12 @@
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 12. Требование 8 — финансовый дашборд (схемы и сервис)
-  - [-] 12.1 Схемы дашборда и enum периода
+  - [x] 12.1 Схемы дашборда и enum периода
     - Создать `schemas/finance.py` (или расширить): `ReportingPeriod` (`today/week/month/all`), вложенные `TopParticipant`, `TimeSeriesPoint`, `ReferralShareByBlogger`, `ActiveReferralLinks` и расширенная `PlatformFinanceDashboard` со всеми полями `*_kopeks` (целые копейки)
     - Словари статусов всегда содержат все 6 ключей; `earnings_by_role_kopeks` всегда содержит `Worker/Bloger/Platform`; `net_free_funds`/`available_for_payout` могут быть отрицательными
     - _Requirements: 8.1, 8.4_
 
-  - [~] 12.2 Сервис `finance_stats_service` — предусловия и базовые показатели
+  - [-] 12.2 Сервис `finance_stats_service` — предусловия и базовые показатели
     - Создать `services/finance_stats_service.py::get_platform_finance_dashboard(db, period=ALL)`; `_period_threshold(period, now)`; проверка системного счёта платформы до любых агрегатов (иначе ошибка конфигурации без частичных данных)
     - Базовые: `platform_balance_kopeks`, `accrued_platform_share_kopeks`, `platform_withdrawn_kopeks`, `net_profit_kopeks`, `earnings_by_role_kopeks`, `total_completed_payouts_kopeks` (деривация из `ledger_entries` по шаблонам `idempotency_key`)
     - _Requirements: 8.3, 8.5, 8.6, 8.7, 8.8_

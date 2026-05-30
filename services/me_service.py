@@ -19,7 +19,7 @@ from utils.blogger_cabinet_unlock import (
     BLOGGER_CABINET_HEADER_NAME,
     verify_blogger_cabinet_unlock_token,
 )
-from utils.card_hash import card_fingerprint, last4, luhn_ok, normalize_pan
+from utils.card_hash import compute_card_hash_and_last4, luhn_ok, normalize_pan
 from utils.security import hash_password, verify_password
 
 
