@@ -1163,6 +1163,15 @@ export const AdminDashboard = () => {
                   <Field label="Магазин">
                     <TextInput value={dealDetailQuery.data.shop_link} disabled readOnly />
                   </Field>
+                  {dealDetailQuery.data.status === "REJECTED" ? (
+                    <Field label="Причина отклонения">
+                      <TextArea
+                        value={dealDetailQuery.data.rejection_reason || "Причина не указана"}
+                        disabled
+                        readOnly
+                      />
+                    </Field>
+                  ) : null}
                   <TwoColumn>
                     <Field label="Telegram продавца">
                       <TextInput value={dealDetailQuery.data.seller_tg} disabled readOnly />
