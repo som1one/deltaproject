@@ -414,22 +414,6 @@ export const LandingPage = () => {
           </div>
         </div>
       </footer>
-
-      {/* ---------- Mobile bottom nav ---------- */}
-      <nav className={styles.bottomNav} aria-label="Мобильная навигация">
-        <Link href="#manifest">О платформе</Link>
-        <Link href="/faq">FAQ</Link>
-        <Link href="/contacts">Контакты</Link>
-        {isLoggedIn ? (
-          <Link href={session.href as string} className={styles.bottomNavCta}>
-            {session.label}
-          </Link>
-        ) : (
-          <Link href="/register" className={styles.bottomNavCta}>
-            Войти
-          </Link>
-        )}
-      </nav>
     </main>
   );
 };
