@@ -117,11 +117,5 @@ export const FaqPage = () => (
         <Link href="/register">Войти</Link>
       </div>
     </footer>
-
-    <nav className={styles.bottomNav} aria-label="Мобильная навигация">
-      <Link href="/">Главная</Link>
-      <Link href="/contacts">Контакты</Link>
-      <Link href="/register" className={styles.bottomNavCta}>Войти</Link>
-    </nav>
   </main>
 );
