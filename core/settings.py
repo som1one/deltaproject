@@ -197,6 +197,15 @@ class Settings(BaseSettings):
         description="Секрет для SHA-256 отпечатка карты (не хранить PAN в БД)",
     )
 
+    collection_card_enc_key: str = Field(
+        default="",
+        validation_alias="COLLECTION_CARD_ENC_KEY",
+        description=(
+            "Ключ (Fernet, base64 32 байта) для шифрования PAN Карты_Приёма при "
+            "хранении; пусто — приём/чтение полного PAN отключены (503)"
+        ),
+    )
+
     yukassa_payout_enabled: bool = Field(
         default=False,
         validation_alias="YUKASSA_PAYOUT_ENABLED",
