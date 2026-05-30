@@ -27,6 +27,7 @@ export type SessionTarget = {
 
 const HOME_BY_ROLE: Record<UserRole, { href: string; label: string }> = {
   Admin: { href: "/admin", label: "Открыть админку" },
+  Tech_Admin: { href: "/admin", label: "Открыть админку" },
   Worker: { href: "/cabinet", label: "Открыть кабинет" },
   Bloger: { href: "/cabinet", label: "Открыть кабинет" },
 };
