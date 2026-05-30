@@ -82,3 +82,14 @@ async def get_current_admin(
             detail="Доступно только администраторам",
         )
     return user
+
+
+async def get_current_admin_or_tech(
+    user: Annotated[User, Depends(get_current_user)],
+) -> User:
+    if user.role not in (UserRole.ADMIN, UserRole.TECH_ADMIN):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Доступно администраторам",
+        )
+    return user
