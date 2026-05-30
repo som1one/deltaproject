@@ -1851,7 +1851,7 @@ export const AdminDashboard = () => {
                         <tbody>
                           {Object.entries(dash.expected_future_shares_kopeks).map(([key, amount]) => (
                             <tr key={key}>
-                              <td>{formatRole(key)}</td>
+                              <td>{participantLabel(key)}</td>
                               <td>{formatMoney(amount)}</td>
                             </tr>
                           ))}
