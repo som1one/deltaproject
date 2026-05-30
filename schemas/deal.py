@@ -98,3 +98,10 @@ class DealRead(BaseModel):
         default=None,
         description="Последняя причина отклонения сделки; null — причина не сохранена",
     )
+    payment_requisites: PaymentRequisites | None = Field(
+        default=None,
+        description=(
+            "Реквизиты приёма платежей; заполняется только для сделки в статусе "
+            "CONFIRMED при запросе участником сделки или администратором"
+        ),
+    )
