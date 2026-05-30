@@ -103,6 +103,7 @@ async def deal_to_read(deal: Deal, viewer: User, db: AsyncSession) -> DealRead:
         preview_worker_kopeks=pw,
         preview_blogger_kopeks=pb,
         preview_platform_kopeks=pp,
+        rejection_reason=rejection_reason,
     )
 
 

@@ -34,7 +34,7 @@ class DealFieldsPatch(BaseModel):
 
 class AdminDealStatusPatch(BaseModel):
     status: DealStatus
-    reason: Annotated[str, Field(min_length=1, max_length=4000)]
+    reason: Annotated[str, Field(min_length=1, max_length=1000)]
 
 
 class AdminDealRecalcFinanceRequest(BaseModel):
