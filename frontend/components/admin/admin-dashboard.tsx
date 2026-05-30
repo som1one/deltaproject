@@ -1614,20 +1614,68 @@ export const AdminDashboard = () => {
 
           {dash ? (
             <>
-              <StatsGrid>
-                <StatCard label="Баланс платформы" value={formatMoney(dash.platform_balance_kopeks)} />
-                <StatCard label="Чистая прибыль" value={formatMoney(dash.net_profit_kopeks)} />
-                <StatCard label="Обязательства" value={formatMoney(dash.platform_liabilities_kopeks)} />
-                <StatCard label="Чистые свободные средства" value={formatMoney(dash.net_free_funds_kopeks)} />
-                <StatCard label="Накопленная доля" value={formatMoney(dash.accrued_platform_share_kopeks)} />
-                <StatCard label="Выведено платформой" value={formatMoney(dash.platform_withdrawn_kopeks)} />
-                <StatCard label="Средства в ожидании" value={formatMoney(dash.platform_pending_funds_kopeks)} />
-                <StatCard label="Доступно к выводу" value={formatMoney(dash.available_for_payout_kopeks)} />
-                <StatCard label="Выплачено всем" value={formatMoney(dash.total_completed_payouts_kopeks)} />
-                <StatCard label="Оборот" value={formatMoney(dash.turnover_total_kopeks)} />
-                <StatCard label="Средний чек" value={formatMoney(dash.average_order_value_kopeks)} />
-                <StatCard label="Средняя комиссия" value={formatMoney(dash.average_platform_commission_kopeks)} />
-              </StatsGrid>
+              <div className={styles.financeHero}>
+                <div className={styles.financeHeroMain}>
+                  <p className={styles.financeHeroLabel}>Чистая прибыль</p>
+                  <p className={styles.financeHeroValue}>{formatMoney(dash.net_profit_kopeks)}</p>
+                  <p className={styles.financeHeroHint}>
+                    Накоплено {formatMoney(dash.accrued_platform_share_kopeks)} · выведено{" "}
+                    {formatMoney(dash.platform_withdrawn_kopeks)}
+                  </p>
+                </div>
+                <div className={styles.financeHeroAside}>
+                  <div className={styles.financeHeroStat}>
+                    <span className={styles.financeMiniLabel}>Баланс платформы</span>
+                    <span className={styles.financeMiniValue}>{formatMoney(dash.platform_balance_kopeks)}</span>
+                  </div>
+                  <div className={styles.financeHeroStat}>
+                    <span className={styles.financeMiniLabel}>Свободные средства</span>
+                    <span className={styles.financeMiniValue}>{formatMoney(dash.net_free_funds_kopeks)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.metricGroups}>
+                <section className={styles.metricGroup}>
+                  <h3 className={styles.metricGroupTitle}>Резерв и обязательства</h3>
+                  <div className={styles.metricRow}>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Обязательства</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.platform_liabilities_kopeks)}</span>
+                    </div>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>В ожидании</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.platform_pending_funds_kopeks)}</span>
+                    </div>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Доступно к выводу</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.available_for_payout_kopeks)}</span>
+                    </div>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Выплачено всем</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.total_completed_payouts_kopeks)}</span>
+                    </div>
+                  </div>
+                </section>
+
+                <section className={styles.metricGroup}>
+                  <h3 className={styles.metricGroupTitle}>Оборот</h3>
+                  <div className={styles.metricRow}>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Оборот</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.turnover_total_kopeks)}</span>
+                    </div>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Средний чек</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.average_order_value_kopeks)}</span>
+                    </div>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Средняя комиссия</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.average_platform_commission_kopeks)}</span>
+                    </div>
+                  </div>
+                </section>
+              </div>
 
               <div className={styles.sideLayout}>
                 <SectionCard title="Оборот и сделки по статусам" lead="Базовая сумма и количество сделок в разрезе статусов.">
