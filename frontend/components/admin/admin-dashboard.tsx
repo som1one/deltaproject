@@ -1925,7 +1925,7 @@ export const AdminDashboard = () => {
     return null;
   };
 
-  const sections: AdminSection[] = ["overview", "users", "deals", "ledger", "schemes", "scripts"];
+  const sections: AdminSection[] = ["overview", "users", "deals", "ledger", "schemes", "finance", "scripts"];
 
   return (
     <PageSurface>
