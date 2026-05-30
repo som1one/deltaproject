@@ -1694,10 +1694,13 @@ export const AdminDashboard = () => {
                           <tr key={point.date}>
                             <td>{point.date}</td>
                             <td>
-                              <div className={styles.miniBarRow}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                                 <span
-                                  className={styles.miniBar}
                                   style={{
+                                    display: "inline-block",
+                                    height: "0.5rem",
+                                    borderRadius: "2px",
+                                    minWidth: "2px",
                                     width: `${Math.round((point.turnover_kopeks / maxSeriesTurnover) * 100)}%`,
                                     background: "#7fd4a8",
                                   }}
@@ -1707,10 +1710,13 @@ export const AdminDashboard = () => {
                               </div>
                             </td>
                             <td>
-                              <div className={styles.miniBarRow}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                                 <span
-                                  className={styles.miniBar}
                                   style={{
+                                    display: "inline-block",
+                                    height: "0.5rem",
+                                    borderRadius: "2px",
+                                    minWidth: "2px",
                                     width: `${Math.round((point.accrued_platform_share_kopeks / maxSeriesShare) * 100)}%`,
                                     background: "#a78bff",
                                   }}
