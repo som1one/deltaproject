@@ -67,14 +67,14 @@ const StatusCell = ({ deal }: { deal: DealRead }) => (
   <StatusPill tone={dealStatusTone(deal.status)}>{formatDealStatus(deal.status)}</StatusPill>
 );
 
-const Masked = ({ children = "РЎРєСЂС‹С‚Рѕ" }: { children?: ReactNode }) => (
+const Masked = ({ children = "Скрыто" }: { children?: ReactNode }) => (
   <span className={styles.maskedCell}>{children}</span>
 );
 
-/** РџСЂРµРІСЂР°С‰Р°РµС‚ РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅСѓСЋ СЃСЃС‹Р»РєСѓ (`/ref/<nick>`) РІ Р°Р±СЃРѕР»СЋС‚РЅС‹Р№ URL.
- *  Р‘Р°Р·Р° Р±РµСЂС‘С‚СЃСЏ РёР· С‚РµРєСѓС‰РµРіРѕ origin РІ Р±СЂР°СѓР·РµСЂРµ (С‡С‚РѕР±С‹ СЃСЃС‹Р»РєР° РІСЃРµРіРґР°
- *  СЃРѕРІРїР°РґР°Р»Р° СЃ С…РѕСЃС‚РѕРј, РѕС‚РєСѓРґР° Р·Р°С€С‘Р» РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ), СЃ С„РѕР»Р±СЌРєРѕРј РЅР°
- *  NEXT_PUBLIC_APP_URL РґР»СЏ SSR. */
+/** Превращает относительную ссылку (`/ref/<nick>`) в абсолютный URL.
+ *  База берётся из текущего origin в браузере (чтобы ссылка всегда
+ *  совпадала с хостом, откуда зашёл пользователь), с фолбэком на
+ *  NEXT_PUBLIC_APP_URL для SSR. */
 const absolutizeUrl = (raw: string | null | undefined): string => {
   if (!raw) return "";
   if (/^https?:\/\//i.test(raw)) return raw;
@@ -87,7 +87,7 @@ const absolutizeUrl = (raw: string | null | undefined): string => {
   return `${base}${path}`;
 };
 
-/** РњРѕР±РёР»СЊРЅР°СЏ РєР°СЂС‚РѕС‡РєР° СЃРґРµР»РєРё. РќР° в‰Ґ720px СЃРїСЂСЏС‚Р°РЅР° С‡РµСЂРµР· CSS. */
+/** Мобильная карточка сделки. На ≥720px спрятана через CSS. */
 const DealMobileCard = ({
   deal,
   onOpen,
@@ -95,7 +95,7 @@ const DealMobileCard = ({
 }: {
   deal: DealRead;
   onOpen: () => void;
-  /** Р”РѕРї. РєРЅРѕРїРєР° СЃРїСЂР°РІР° РІРЅРёР·Сѓ (РЅР°РїСЂРёРјРµСЂ, В«РџСЂРёРЅСЏС‚СЊВ» Сѓ Р±Р»РѕРіРµСЂР°). */
+  /** Доп. кнопка справа внизу (например, «Принять» у блогера). */
   trailing?: ReactNode;
 }) => (
   <article
@@ -109,7 +109,7 @@ const DealMobileCard = ({
         onOpen();
       }
     }}
-    aria-label={`РћС‚РєСЂС‹С‚СЊ СЃРґРµР»РєСѓ ${deal.item_name}`}
+    aria-label={`Открыть сделку ${deal.item_name}`}
   >
     <div className={styles.dealMobileTop}>
       <span className={styles.dealMobileTitle}>{deal.item_name}</span>
@@ -117,7 +117,7 @@ const DealMobileCard = ({
     </div>
     <div className={styles.dealMobileFoot}>
       <span className={styles.dealMobilePrice}>
-        {deal.sensitive_masked ? "вЂ”" : formatMoney(deal.effective_price_kopeks || deal.price)}
+        {deal.sensitive_masked ? "—" : formatMoney(deal.effective_price_kopeks || deal.price)}
       </span>
       <span className={styles.dealMobileDate}>{formatShortDate(deal.created_at)}</span>
       {trailing ? <div className={styles.dealMobileAction}>{trailing}</div> : null}
@@ -153,9 +153,9 @@ const SkeletonTable = ({ rows = 4 }: { rows?: number }) => (
 );
 
 /* =========================================================
-   Deal details modal вЂ” full custom UX, not reusing the generic
-   Modal helper. Tabs: В«РЎРІРѕРґРєР°В» / В«Р¤РёРЅР°РЅСЃС‹В» / В«РљРѕРЅС‚Р°РєС‚С‹В» /
-   В«Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊВ». Fixed header (status, money, ID, support,
+   Deal details modal — full custom UX, not reusing the generic
+   Modal helper. Tabs: «Сводка» / «Финансы» / «Контакты» /
+   «Редактировать». Fixed header (status, money, ID, support,
    close), independent body scroll, sticky action footer.
    ========================================================= */
 
@@ -164,23 +164,23 @@ const DEAL_SUPPORT_HANDLE = "looneymoonhelper";
 const dealStatusSummary = (status: DealStatus): string => {
   switch (status) {
     case "NEW":
-      return "Р—Р°СЏРІРєР° РѕС‚РїСЂР°РІР»РµРЅР° Р±Р»РѕРіРµСЂСѓ. Р–РґС‘Рј, РєРѕРіРґР° РѕРЅ РїСЂРёРјРµС‚ РµС‘ РІ СЂР°Р±РѕС‚Сѓ.";
+      return "Заявка отправлена блогеру. Ждём, когда он примет её в работу.";
     case "REVIEW":
-      return "РЎРґРµР»РєР° РЅР° РїСЂРѕРІРµСЂРєРµ Сѓ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°. РљРѕРЅС‚Р°РєС‚С‹ Рё С„РёРЅР°РЅСЃС‹ РїРѕРєР° СЃРєСЂС‹С‚С‹.";
+      return "Сделка на проверке у администратора. Контакты и финансы пока скрыты.";
     case "CONFIRMED":
-      return "РЎРґРµР»РєР° РїРѕРґС‚РІРµСЂР¶РґРµРЅР°. РЎРѕРіР»Р°СЃРѕРІР°РЅР° С†РµРЅР°, РјРѕР¶РЅРѕ СЂР°Р±РѕС‚Р°С‚СЊ СЃ РїСЂРѕРґР°РІС†РѕРј.";
+      return "Сделка подтверждена. Согласована цена, можно работать с продавцом.";
     case "ESCROW_HELD":
       return "Площадка подтвердила получение средств. Доли будут распределены администратором.";
     case "PAID":
-      return "РћРїР»Р°С‚Р° РїСЂРѕРІРµРґРµРЅР°. РЎСѓРјРјР° Р·Р°С‡РёСЃР»РµРЅР° РІ Р±Р°Р»Р°РЅСЃ РїРѕ СЃС…РµРјРµ.";
+      return "Оплата проведена. Сумма зачислена в баланс по схеме.";
     case "COMPLETED":
-      return "РЎРґРµР»РєР° Р·Р°РєСЂС‹С‚Р°. Р’СЃРµ РЅР°С‡РёСЃР»РµРЅРёСЏ СѓР¶Рµ РѕС‚СЂР°Р¶РµРЅС‹ РІ С„РёРЅР°РЅСЃР°С….";
+      return "Сделка закрыта. Все начисления уже отражены в финансах.";
     case "REJECTED":
-      return "РЎРґРµР»РєР° РѕС‚РєР»РѕРЅРµРЅР° Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј РёР»Рё Р±Р»РѕРіРµСЂРѕРј. РќР°С‡РёСЃР»РµРЅРёР№ РЅРµС‚.";
+      return "Сделка отклонена администратором или блогером. Начислений нет.";
     case "REFUNDED":
       return "Средства возвращены плательщику до распределения. Начислений нет.";
     default:
-      return "РЎС‚Р°С‚СѓСЃ РЅРµРёР·РІРµСЃС‚РµРЅ.";
+      return "Статус неизвестен.";
   }
 };
 
@@ -206,53 +206,53 @@ const validateDealEdit = (form: DealEditFormState): DealEditErrors => {
   const errors: DealEditErrors = {};
 
   const itemName = form.item_name.trim();
-  if (!itemName) errors.item_name = "РЈРєР°Р¶РёС‚Рµ РЅР°Р·РІР°РЅРёРµ С‚РѕРІР°СЂР°.";
-  else if (itemName.length > 512) errors.item_name = "РќР°Р·РІР°РЅРёРµ СЃР»РёС€РєРѕРј РґР»РёРЅРЅРѕРµ (РјР°РєСЃ. 512).";
+  if (!itemName) errors.item_name = "Укажите название товара.";
+  else if (itemName.length > 512) errors.item_name = "Название слишком длинное (макс. 512).";
 
   const link = form.shop_link.trim();
   if (!link) {
-    errors.shop_link = "Р”РѕР±Р°РІСЊС‚Рµ СЃСЃС‹Р»РєСѓ РЅР° РјР°РіР°Р·РёРЅ.";
+    errors.shop_link = "Добавьте ссылку на магазин.";
   } else if (link.length > 2048) {
-    errors.shop_link = "РЎСЃС‹Р»РєР° СЃР»РёС€РєРѕРј РґР»РёРЅРЅР°СЏ (РјР°РєСЃ. 2048).";
+    errors.shop_link = "Ссылка слишком длинная (макс. 2048).";
   } else {
     try {
       const url = new URL(link);
       if (url.protocol !== "http:" && url.protocol !== "https:") {
-        errors.shop_link = "РЎСЃС‹Р»РєР° РґРѕР»Р¶РЅР° РЅР°С‡РёРЅР°С‚СЊСЃСЏ СЃ http:// РёР»Рё https://";
+        errors.shop_link = "Ссылка должна начинаться с http:// или https://";
       }
     } catch {
-      errors.shop_link = "Р­С‚Рѕ РЅРµ РїРѕС…РѕР¶Рµ РЅР° РєРѕСЂСЂРµРєС‚РЅСѓСЋ СЃСЃС‹Р»РєСѓ.";
+      errors.shop_link = "Это не похоже на корректную ссылку.";
     }
   }
 
   const tg = form.seller_tg.trim();
   if (!tg) {
-    errors.seller_tg = "РЈРєР°Р¶РёС‚Рµ Telegram РїСЂРѕРґР°РІС†Р°.";
+    errors.seller_tg = "Укажите Telegram продавца.";
   } else if (tg.length > 255) {
-    errors.seller_tg = "РЎР»РёС€РєРѕРј РґР»РёРЅРЅС‹Р№ РЅРёРє (РјР°РєСЃ. 255).";
+    errors.seller_tg = "Слишком длинный ник (макс. 255).";
   } else if (!/^@?[A-Za-z0-9_]{3,}$/.test(tg)) {
-    errors.seller_tg = "РўРѕР»СЊРєРѕ Р»Р°С‚РёРЅРёС†Р°, С†РёС„СЂС‹ Рё _ (РѕС‚ 3 СЃРёРјРІРѕР»РѕРІ).";
+    errors.seller_tg = "Только латиница, цифры и _ (от 3 символов).";
   }
 
   const phone = form.seller_number.trim();
   if (!phone) {
-    errors.seller_number = "РЈРєР°Р¶РёС‚Рµ С‚РµР»РµС„РѕРЅ РїСЂРѕРґР°РІС†Р°.";
+    errors.seller_number = "Укажите телефон продавца.";
   } else if (phone.length > 64) {
-    errors.seller_number = "РЎР»РёС€РєРѕРј РґР»РёРЅРЅС‹Р№ РЅРѕРјРµСЂ (РјР°РєСЃ. 64).";
+    errors.seller_number = "Слишком длинный номер (макс. 64).";
   } else {
     const digits = phone.replace(/\D/g, "");
-    if (digits.length < 7) errors.seller_number = "Р’ РЅРѕРјРµСЂРµ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РјРёРЅРёРјСѓРј 7 С†РёС„СЂ.";
+    if (digits.length < 7) errors.seller_number = "В номере должно быть минимум 7 цифр.";
     else if (!/^[+\d][\d\s()\-]*$/.test(phone))
-      errors.seller_number = "Р”РѕРїСѓСЃС‚РёРјС‹ С†РёС„СЂС‹, +, РїСЂРѕР±РµР»С‹, СЃРєРѕР±РєРё Рё РґРµС„РёСЃС‹.";
+      errors.seller_number = "Допустимы цифры, +, пробелы, скобки и дефисы.";
   }
 
   const priceRaw = form.price_rub.trim().replace(",", ".");
   if (!priceRaw) {
-    errors.price_rub = "РЈРєР°Р¶РёС‚Рµ С†РµРЅСѓ РІ СЂСѓР±Р»СЏС….";
+    errors.price_rub = "Укажите цену в рублях.";
   } else {
     const priceNum = Number(priceRaw);
     if (!Number.isFinite(priceNum) || priceNum <= 0)
-      errors.price_rub = "Р¦РµРЅР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РїРѕР»РѕР¶РёС‚РµР»СЊРЅС‹Рј С‡РёСЃР»РѕРј.";
+      errors.price_rub = "Цена должна быть положительным числом.";
   }
 
   return errors;
@@ -312,7 +312,7 @@ const DealDetailsModal = ({
   const [touched, setTouched] = useState<Partial<Record<keyof DealEditFormState, boolean>>>({});
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // РЎР±СЂРѕСЃ С„РѕСЂРјС‹ Рё Р°РєС‚РёРІРЅРѕР№ РІРєР»Р°РґРєРё РїСЂРё СЃРјРµРЅРµ СЃРґРµР»РєРё.
+  // Сброс формы и активной вкладки при смене сделки.
   useEffect(() => {
     setForm(dealToEditForm(deal));
     setTouched({});
@@ -320,7 +320,7 @@ const DealDetailsModal = ({
     setActiveTab("summary");
   }, [deal.id, deal.item_name, deal.shop_link, deal.seller_tg, deal.seller_number, deal.price]);
 
-  // Esc вЂ” Р·Р°РєСЂС‹С‚СЊ РјРѕРґР°Р»РєСѓ. Р‘Р»РѕРєРёСЂСѓРµРј СЃРєСЂРѕР»Р» СЃС‚СЂР°РЅРёС†С‹ Р·Р° РјРѕРґР°Р»РєРѕР№.
+  // Esc — закрыть модалку. Блокируем скролл страницы за модалкой.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -343,7 +343,7 @@ const DealDetailsModal = ({
       deal.preview_platform_kopeks !== null);
 
   const supportHref = `https://t.me/${DEAL_SUPPORT_HANDLE}?text=${encodeURIComponent(
-    `Р—РґСЂР°РІСЃС‚РІСѓР№С‚Рµ! РќСѓР¶РЅР° РїРѕРјРѕС‰СЊ РїРѕ СЃРґРµР»РєРµ ${deal.id} (${deal.item_name}).`,
+    `Здравствуйте! Нужна помощь по сделке ${deal.id} (${deal.item_name}).`,
   )}`;
 
   const sellerTgHref = (() => {
@@ -375,7 +375,7 @@ const DealDetailsModal = ({
   const saveMutation = useMutation({
     mutationFn: () => api.patchDealFields(deal.id, buildDealPatchPayload(form, deal)),
     onSuccess: () => {
-      pushToast("РР·РјРµРЅРµРЅРёСЏ СЃРѕС…СЂР°РЅРµРЅС‹.", "success");
+      pushToast("РР·РјРµРЅРµРЅРёСЏ сохранены.", "success");
       queryClient.invalidateQueries({ queryKey: ["me", "deals"] });
       queryClient.invalidateQueries({ queryKey: ["me", "stats"] });
       onSaved?.();
@@ -407,11 +407,11 @@ const DealDetailsModal = ({
   };
 
   const tabs: { id: DealTabId; label: string }[] = [
-    { id: "summary", label: "РЎРІРѕРґРєР°" },
-    { id: "finance", label: "Р¤РёРЅР°РЅСЃС‹" },
-    { id: "contacts", label: "РљРѕРЅС‚Р°РєС‚С‹" },
+    { id: "summary", label: "Сводка" },
+    { id: "finance", label: "Финансы" },
+    { id: "contacts", label: "Контакты" },
   ];
-  if (editable) tabs.push({ id: "edit", label: "Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ" });
+  if (editable) tabs.push({ id: "edit", label: "Редактировать" });
 
   const headerStatusTone = dealStatusTone(deal.status);
 
@@ -422,7 +422,7 @@ const DealDetailsModal = ({
         <header className={styles.dealModalHeader}>
           <div className={styles.dealModalHeaderTop}>
             <div className={styles.dealModalIdent}>
-              <p className={styles.dealModalEyebrow}>РЎРґРµР»РєР°</p>
+              <p className={styles.dealModalEyebrow}>Сделка</p>
               <h2 className={styles.dealModalTitle}>{deal.item_name}</h2>
             </div>
             <div className={styles.dealModalHeaderActions}>
@@ -431,8 +431,8 @@ const DealDetailsModal = ({
                 href={supportHref}
                 target="_blank"
                 rel="noreferrer"
-                title={`РџРѕРґРґРµСЂР¶РєР° @${DEAL_SUPPORT_HANDLE}`}
-                aria-label="РЎРІСЏР·Р°С‚СЊСЃСЏ СЃ РїРѕРґРґРµСЂР¶РєРѕР№"
+                title={`Поддержка @${DEAL_SUPPORT_HANDLE}`}
+                aria-label="Связаться с поддержкой"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M12 21a9 9 0 1 0-9-9v3a3 3 0 0 0 3 3h1v-6H6a9 9 0 0 1 12 0h-1v6h1a3 3 0 0 0 3-3" />
@@ -443,8 +443,8 @@ const DealDetailsModal = ({
                 type="button"
                 className={styles.dealIconButton}
                 onClick={onClose}
-                title="Р—Р°РєСЂС‹С‚СЊ (Esc)"
-                aria-label="Р—Р°РєСЂС‹С‚СЊ"
+                title="Закрыть (Esc)"
+                aria-label="Закрыть"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M6 6l12 12M6 18L18 6" />
@@ -456,7 +456,7 @@ const DealDetailsModal = ({
           <div className={styles.dealModalSummaryRow}>
             <StatusPill tone={headerStatusTone}>{formatDealStatus(deal.status)}</StatusPill>
             <span className={styles.dealModalPrice}>
-              {deal.sensitive_masked ? "Р¦РµРЅР° СЃРєСЂС‹С‚Р°" : formatMoney(finalPrice)}
+              {deal.sensitive_masked ? "Цена скрыта" : formatMoney(finalPrice)}
             </span>
             <span className={styles.dealModalCreated}>
               {formatDateTime(deal.created_at)}
@@ -464,12 +464,12 @@ const DealDetailsModal = ({
             <CopyButton
               value={deal.id}
               kind="ghost"
-              label={`ID: ${deal.id.slice(0, 8)}вЂ¦`}
-              toastText="ID СЃРґРµР»РєРё СЃРєРѕРїРёСЂРѕРІР°РЅ"
+              label={`ID: ${deal.id.slice(0, 8)}…`}
+              toastText="ID сделки скопирован"
             />
           </div>
 
-          <nav className={styles.dealModalTabs} role="tablist" aria-label="Р Р°Р·РґРµР»С‹ СЃРґРµР»РєРё">
+          <nav className={styles.dealModalTabs} role="tablist" aria-label="Разделы сделки">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -492,23 +492,23 @@ const DealDetailsModal = ({
               <p className={styles.dealModalLead}>{dealStatusSummary(deal.status)}</p>
               <dl className={styles.dealMetaGrid}>
                 <div>
-                  <dt>РЎРѕР·РґР°РЅРѕ</dt>
+                  <dt>Создано</dt>
                   <dd>{formatDateTime(deal.created_at)}</dd>
                 </div>
                 <div>
-                  <dt>РљРѕРЅС‚Р°РєС‚ РїСЂРѕРґР°РІС†Р° Р·Р°С„РёРєСЃРёСЂРѕРІР°РЅ</dt>
-                  <dd>{deal.client_contacted_at ? formatDateTime(deal.client_contacted_at) : "Р•С‰С‘ РЅРµ Р·Р°С„РёРєСЃРёСЂРѕРІР°РЅРѕ"}</dd>
+                  <dt>Контакт продавца зафиксирован</dt>
+                  <dd>{deal.client_contacted_at ? formatDateTime(deal.client_contacted_at) : "Ещё не зафиксировано"}</dd>
                 </div>
                 <div>
-                  <dt>РЎСѓРјРјР° Р·Р°СЏРІРєРё</dt>
-                  <dd>{deal.sensitive_masked ? "вЂ”" : formatMoney(deal.price)}</dd>
+                  <dt>Сумма заявки</dt>
+                  <dd>{deal.sensitive_masked ? "—" : formatMoney(deal.price)}</dd>
                 </div>
                 <div>
-                  <dt>РЎРѕРіР»Р°СЃРѕРІР°РЅРЅР°СЏ С†РµРЅР°</dt>
+                  <dt>Согласованная цена</dt>
                   <dd>
                     {deal.agreed_price_kopeks !== null && !deal.sensitive_masked
                       ? formatMoney(deal.agreed_price_kopeks)
-                      : "вЂ”"}
+                      : "—"}
                   </dd>
                 </div>
               </dl>
@@ -583,32 +583,32 @@ const DealDetailsModal = ({
                 <ul className={styles.dealFinanceList}>
                   {deal.preview_worker_kopeks !== null ? (
                     <li>
-                      <span className={styles.dealFinanceLabel}>Р’РѕСЂРєРµСЂ</span>
+                      <span className={styles.dealFinanceLabel}>Воркер</span>
                       <span className={styles.dealFinanceValue}>{formatMoney(deal.preview_worker_kopeks)}</span>
                     </li>
                   ) : null}
                   {deal.preview_blogger_kopeks !== null ? (
                     <li>
-                      <span className={styles.dealFinanceLabel}>Р‘Р»РѕРіРµСЂ</span>
+                      <span className={styles.dealFinanceLabel}>Блогер</span>
                       <span className={styles.dealFinanceValue}>{formatMoney(deal.preview_blogger_kopeks)}</span>
                     </li>
                   ) : null}
                   {deal.preview_platform_kopeks !== null ? (
                     <li>
-                      <span className={styles.dealFinanceLabel}>РџР»Р°С‚С„РѕСЂРјР°</span>
+                      <span className={styles.dealFinanceLabel}>Платформа</span>
                       <span className={styles.dealFinanceValue}>{formatMoney(deal.preview_platform_kopeks)}</span>
                     </li>
                   ) : null}
                   <li className={styles.dealFinanceTotal}>
-                    <span className={styles.dealFinanceLabel}>РС‚РѕРіРѕ РїРѕ СЃРґРµР»РєРµ</span>
+                    <span className={styles.dealFinanceLabel}>РС‚РѕРіРѕ по сделке</span>
                     <span className={styles.dealFinanceValue}>{formatMoney(finalPrice)}</span>
                   </li>
                 </ul>
               ) : (
                 <p className={styles.dealModalEmpty}>
                   {deal.sensitive_masked
-                    ? "Р Р°СЃРєР»Р°РґРєР° РїРѕ СЃС‚РѕСЂРѕРЅР°Рј РїРѕСЏРІРёС‚СЃСЏ РїРѕСЃР»Рµ РїСЂРѕРІРµСЂРєРё СЃРґРµР»РєРё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј."
-                    : "Р¤РёРЅР°РЅСЃРѕРІС‹Р№ СЂР°СЃС‡С‘С‚ РїРѕ СЌС‚РѕР№ СЃРґРµР»РєРµ РµС‰С‘ РЅРµ СЃС„РѕСЂРјРёСЂРѕРІР°РЅ."}
+                    ? "Раскладка по сторонам появится после проверки сделки администратором."
+                    : "Финансовый расчёт по этой сделке ещё не сформирован."}
                 </p>
               )}
             </div>
@@ -618,7 +618,7 @@ const DealDetailsModal = ({
             <div className={styles.dealModalSection}>
               <div className={styles.dealContactRow}>
                 <div className={styles.dealContactInfo}>
-                  <p className={styles.dealContactLabel}>РњР°РіР°Р·РёРЅ</p>
+                  <p className={styles.dealContactLabel}>Магазин</p>
                   <p className={styles.dealContactValue} title={deal.shop_link}>{deal.shop_link}</p>
                 </div>
                 <div className={styles.dealContactActions}>
@@ -628,22 +628,22 @@ const DealDetailsModal = ({
                     target="_blank"
                     rel="noreferrer"
                   >
-                    РћС‚РєСЂС‹С‚СЊ
+                    Открыть
                   </a>
                   <CopyButton
                     value={deal.shop_link}
                     kind="ghost"
-                    label="РЎРєРѕРїРёСЂРѕРІР°С‚СЊ"
-                    toastText="РЎСЃС‹Р»РєР° СЃРєРѕРїРёСЂРѕРІР°РЅР°"
+                    label="Скопировать"
+                    toastText="Ссылка скопирована"
                   />
                 </div>
               </div>
 
               <div className={styles.dealContactRow}>
                 <div className={styles.dealContactInfo}>
-                  <p className={styles.dealContactLabel}>Telegram РїСЂРѕРґР°РІС†Р°</p>
+                  <p className={styles.dealContactLabel}>Telegram продавца</p>
                   <p className={styles.dealContactValue}>
-                    {deal.sensitive_masked ? "РЎРєСЂС‹С‚Рѕ РґРѕ РїСЂРѕРІРµСЂРєРё" : deal.seller_tg}
+                    {deal.sensitive_masked ? "Скрыто до проверки" : deal.seller_tg}
                   </p>
                 </div>
                 <div className={styles.dealContactActions}>
@@ -654,15 +654,15 @@ const DealDetailsModal = ({
                       target="_blank"
                       rel="noreferrer"
                     >
-                      РќР°РїРёСЃР°С‚СЊ
+                      Написать
                     </a>
                   ) : null}
                   {!deal.sensitive_masked && deal.seller_tg ? (
                     <CopyButton
                       value={deal.seller_tg}
                       kind="ghost"
-                      label="РЎРєРѕРїРёСЂРѕРІР°С‚СЊ"
-                      toastText="Telegram СЃРєРѕРїРёСЂРѕРІР°РЅ"
+                      label="Скопировать"
+                      toastText="Telegram скопирован"
                     />
                   ) : null}
                 </div>
@@ -670,23 +670,23 @@ const DealDetailsModal = ({
 
               <div className={styles.dealContactRow}>
                 <div className={styles.dealContactInfo}>
-                  <p className={styles.dealContactLabel}>РўРµР»РµС„РѕРЅ РїСЂРѕРґР°РІС†Р°</p>
+                  <p className={styles.dealContactLabel}>Телефон продавца</p>
                   <p className={styles.dealContactValue}>
-                    {deal.sensitive_masked ? "РЎРєСЂС‹С‚Рѕ РґРѕ РїСЂРѕРІРµСЂРєРё" : deal.seller_number}
+                    {deal.sensitive_masked ? "Скрыто до проверки" : deal.seller_number}
                   </p>
                 </div>
                 <div className={styles.dealContactActions}>
                   {sellerPhoneHref ? (
                     <a className={styles.dealLinkButton} href={sellerPhoneHref}>
-                      РџРѕР·РІРѕРЅРёС‚СЊ
+                      Позвонить
                     </a>
                   ) : null}
                   {!deal.sensitive_masked && deal.seller_number ? (
                     <CopyButton
                       value={deal.seller_number}
                       kind="ghost"
-                      label="РЎРєРѕРїРёСЂРѕРІР°С‚СЊ"
-                      toastText="РўРµР»РµС„РѕРЅ СЃРєРѕРїРёСЂРѕРІР°РЅ"
+                      label="Скопировать"
+                      toastText="Телефон скопирован"
                     />
                   ) : null}
                 </div>
@@ -696,7 +696,7 @@ const DealDetailsModal = ({
 
           {activeTab === "edit" && editable ? (
             <div className={styles.dealModalSection}>
-              <Field label="РќР°Р·РІР°РЅРёРµ С‚РѕРІР°СЂР°" help={fieldError("item_name")}>
+              <Field label="Название товара" help={fieldError("item_name")}>
                 <TextInput
                   value={form.item_name}
                   onChange={(event) => updateField("item_name", event.target.value)}
@@ -707,7 +707,7 @@ const DealDetailsModal = ({
                 />
               </Field>
 
-              <Field label="РЎСЃС‹Р»РєР° РЅР° РјР°РіР°Р·РёРЅ" help={fieldError("shop_link")}>
+              <Field label="Ссылка на магазин" help={fieldError("shop_link")}>
                 <TextInput
                   value={form.shop_link}
                   onChange={(event) => updateField("shop_link", event.target.value)}
@@ -719,7 +719,7 @@ const DealDetailsModal = ({
               </Field>
 
               <TwoColumn>
-                <Field label="Telegram РїСЂРѕРґР°РІС†Р°" help={fieldError("seller_tg")}>
+                <Field label="Telegram продавца" help={fieldError("seller_tg")}>
                   <TextInput
                     value={form.seller_tg}
                     onChange={(event) => updateField("seller_tg", event.target.value)}
@@ -728,7 +728,7 @@ const DealDetailsModal = ({
                     aria-invalid={Boolean(fieldError("seller_tg"))}
                   />
                 </Field>
-                <Field label="РўРµР»РµС„РѕРЅ РїСЂРѕРґР°РІС†Р°" help={fieldError("seller_number")}>
+                <Field label="Телефон продавца" help={fieldError("seller_number")}>
                   <TextInput
                     value={form.seller_number}
                     onChange={(event) => updateField("seller_number", event.target.value)}
@@ -740,7 +740,7 @@ const DealDetailsModal = ({
                 </Field>
               </TwoColumn>
 
-              <Field label="Р¦РµРЅР°, в‚Ѕ" help={fieldError("price_rub")}>
+              <Field label="Цена, ₽" help={fieldError("price_rub")}>
                 <TextInput
                   value={form.price_rub}
                   onChange={(event) => updateField("price_rub", event.target.value)}
@@ -760,7 +760,7 @@ const DealDetailsModal = ({
         <footer className={styles.dealModalFooter}>
           {acceptAction ? (
             <Button onClick={acceptAction.onAction} disabled={Boolean(acceptAction.pending)}>
-              {acceptAction.pending ? "РћС‚РїСЂР°РІР»СЏРµРјвЂ¦" : acceptAction.label}
+              {acceptAction.pending ? "Отправляем…" : acceptAction.label}
             </Button>
           ) : null}
           {activeTab === "edit" && editable ? (
@@ -769,14 +769,14 @@ const DealDetailsModal = ({
                 onClick={handleSave}
                 disabled={!dirty || Object.keys(liveErrors).length > 0 || saveMutation.isPending}
               >
-                {saveMutation.isPending ? "РЎРѕС…СЂР°РЅСЏРµРјвЂ¦" : "РЎРѕС…СЂР°РЅРёС‚СЊ"}
+                {saveMutation.isPending ? "Сохраняем…" : "Сохранить"}
               </Button>
               <Button kind="ghost" onClick={handleReset} disabled={!dirty || saveMutation.isPending}>
-                РЎР±СЂРѕСЃРёС‚СЊ
+                Сбросить
               </Button>
             </>
           ) : null}
-          <Button kind="secondary" onClick={onClose}>Р—Р°РєСЂС‹С‚СЊ</Button>
+          <Button kind="secondary" onClick={onClose}>Закрыть</Button>
         </footer>
       </div>
     </div>
@@ -809,7 +809,7 @@ const ICONS = {
 } as const;
 
 /* =========================================================
-   Identity header вЂ” top of every cabinet
+   Identity header — top of every cabinet
    ========================================================= */
 
 const IdentityHeader = ({
@@ -826,7 +826,7 @@ const IdentityHeader = ({
       <div className={styles.identityMain}>
         <span className={styles.identityRole}>
           {role}
-          {showSub ? <> В· {subtitle}</> : null}
+          {showSub ? <> · {subtitle}</> : null}
         </span>
         <h1 className={styles.identityName}>{me.name}</h1>
         <div className={styles.identityMetaRow}>
@@ -845,9 +845,9 @@ const IdentityHeader = ({
           <span className={styles.identityMeta}>
             <Icon d={ICONS.card} />
             {me.payout_card_last4 ? (
-              <code>вЂўвЂўвЂўвЂў {me.payout_card_last4}</code>
+              <code>•••• {me.payout_card_last4}</code>
             ) : (
-              <span style={{ color: "var(--text-soft)" }}>РєР°СЂС‚Р° РЅРµ Р·Р°РґР°РЅР°</span>
+              <span style={{ color: "var(--text-soft)" }}>карта не задана</span>
             )}
           </span>
         </div>
@@ -879,7 +879,7 @@ const Sidebar = ({
   helpText?: string;
 }) => (
   <aside className={styles.sidebar}>
-    <p className={styles.sidebarLabel}>Р Р°Р·РґРµР»С‹</p>
+    <p className={styles.sidebarLabel}>Разделы</p>
     {tabs.map((tab) => (
       <button
         key={tab.id}
@@ -901,7 +901,7 @@ const Sidebar = ({
 );
 
 /* =========================================================
-   Profile вЂ” shared between Worker and Blogger
+   Profile — shared between Worker and Blogger
    ========================================================= */
 
 const ProfileSection = ({
@@ -923,45 +923,45 @@ const ProfileSection = ({
 
   return (
     <SectionCard
-      title="РџСЂРѕС„РёР»СЊ Рё СЂРµРєРІРёР·РёС‚С‹"
-      lead="РРјСЏ СЂРµРґР°РєС‚РёСЂСѓРµС‚Рµ РІС‹, РЅРёРєРЅРµР№Рј Рё Telegram СѓРїСЂР°РІР»СЏСЋС‚СЃСЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј. РљР°СЂС‚Р° РґР»СЏ РІС‹РїР»Р°С‚ С…СЂР°РЅРёС‚СЃСЏ РІ РІРёРґРµ С…РµС€Р° вЂ” РјС‹ РІРёРґРёРј С‚РѕР»СЊРєРѕ РїРѕСЃР»РµРґРЅРёРµ 4 С†РёС„СЂС‹."
+      title="Профиль и реквизиты"
+      lead="РРјСЏ редактируете вы, никнейм и Telegram управляются администратором. Карта для выплат хранится в виде хеша — мы видим только последние 4 цифры."
     >
       <div className={styles.profileGrid}>
         <div className={styles.profileBlock}>
-          <p className={styles.profileBlockTitle}>РљРѕРЅС‚Р°РєС‚С‹</p>
+          <p className={styles.profileBlockTitle}>Контакты</p>
           <TwoColumn>
             <Field label="РРјСЏ">
               <TextInput
                 value={profileForm.name}
                 onChange={(event) => setProfileForm({ ...profileForm, name: event.target.value })}
-                placeholder="РљР°Рє РІР°СЃ РЅР°Р·С‹РІР°С‚СЊ"
+                placeholder="Как вас называть"
               />
             </Field>
             {me.nickname ? (
-              <Field label="РќРёРєРЅРµР№Рј">
+              <Field label="Никнейм">
                 <TextInput value={me.nickname} readOnly disabled />
               </Field>
             ) : (
               <Field label="Telegram">
-                <TextInput value={me.telegram || "вЂ”"} readOnly disabled />
+                <TextInput value={me.telegram || "—"} readOnly disabled />
               </Field>
             )}
           </TwoColumn>
           {me.nickname ? (
             <Field label="Telegram">
-              <TextInput value={me.telegram || "вЂ”"} readOnly disabled />
+              <TextInput value={me.telegram || "—"} readOnly disabled />
             </Field>
           ) : null}
 
           <div className={styles.actionRow}>
             <Button onClick={() => onSave(profileForm)} disabled={mutationPending}>
-              {mutationPending ? "РЎРѕС…СЂР°РЅСЏРµРјвЂ¦" : "РЎРѕС…СЂР°РЅРёС‚СЊ РїСЂРѕС„РёР»СЊ"}
+              {mutationPending ? "Сохраняем…" : "Сохранить профиль"}
             </Button>
           </div>
         </div>
 
         <div className={styles.profileBlock}>
-          <p className={styles.profileBlockTitle}>РљР°СЂС‚Р° РґР»СЏ РІС‹РїР»Р°С‚</p>
+          <p className={styles.profileBlockTitle}>Карта для выплат</p>
           <PayoutCardInput
             savedLast4={me.payout_card_last4 ?? null}
             pending={mutationPending}
@@ -1026,7 +1026,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
       return api.patchMe(payload);
     },
     onSuccess: () => {
-      setToast({ tone: "success", text: "РџСЂРѕС„РёР»СЊ РѕР±РЅРѕРІР»С‘РЅ." });
+      setToast({ tone: "success", text: "Профиль обновлён." });
       queryClient.invalidateQueries({ queryKey: ["me"] });
     },
     onError: (error: Error) => setToast({ tone: "error", text: error.message }),
@@ -1035,7 +1035,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
   const payoutCardMutation = useMutation({
     mutationFn: (cardNumber: string) => api.setPayoutCard(cardNumber),
     onSuccess: () => {
-      setToast({ tone: "success", text: "РљР°СЂС‚Р° РґР»СЏ РІС‹РїР»Р°С‚ РѕР±РЅРѕРІР»РµРЅР°." });
+      setToast({ tone: "success", text: "Карта для выплат обновлена." });
       queryClient.invalidateQueries({ queryKey: ["me"] });
     },
     onError: (error: Error) => setToast({ tone: "error", text: error.message }),
@@ -1048,7 +1048,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
         payout_token: null,
       }),
     onSuccess: () => {
-      setToast({ tone: "success", text: "Р—Р°РїСЂРѕСЃ РЅР° РІС‹РїР»Р°С‚Сѓ РѕС‚РїСЂР°РІР»РµРЅ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂСѓ." });
+      setToast({ tone: "success", text: "Запрос на выплату отправлен администратору." });
       setPayoutForm({ amount_rub: "" });
       setPayoutError(null);
       queryClient.invalidateQueries({ queryKey: ["me", "ledger"] });
@@ -1068,7 +1068,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
         bloger_id: dealForm.bloger_id,
       }),
     onSuccess: () => {
-      setToast({ tone: "success", text: "РЎРґРµР»РєР° СЃРѕР·РґР°РЅР° Рё РѕС‚РїСЂР°РІР»РµРЅР° Р±Р»РѕРіРµСЂСѓ." });
+      setToast({ tone: "success", text: "Сделка создана и отправлена блогеру." });
       setDealForm({
         shop_link: "",
         item_name: "",
@@ -1095,12 +1095,12 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
     [ledger, ledgerStatusFilter],
   );
   const tabs: TabDef[] = [
-    { id: "overview", label: "РћР±Р·РѕСЂ", iconPath: ICONS.overview },
-    { id: "deals", label: "РЎРґРµР»РєРё", iconPath: ICONS.deals, badge: deals.length || null },
-    { id: "create", label: "РќРѕРІР°СЏ СЃРґРµР»РєР°", iconPath: ICONS.referral },
-    { id: "scripts", label: "РЎРєСЂРёРїС‚С‹", iconPath: ICONS.scripts, badge: scriptsQuery.data?.length || null },
-    { id: "finance", label: "Р¤РёРЅР°РЅСЃС‹", iconPath: ICONS.finance },
-    { id: "profile", label: "РџСЂРѕС„РёР»СЊ", iconPath: ICONS.profile },
+    { id: "overview", label: "Обзор", iconPath: ICONS.overview },
+    { id: "deals", label: "Сделки", iconPath: ICONS.deals, badge: deals.length || null },
+    { id: "create", label: "Новая сделка", iconPath: ICONS.referral },
+    { id: "scripts", label: "Скрипты", iconPath: ICONS.scripts, badge: scriptsQuery.data?.length || null },
+    { id: "finance", label: "Финансы", iconPath: ICONS.finance },
+    { id: "profile", label: "Профиль", iconPath: ICONS.profile },
   ];
 
   const linkedBlogger = bloggersQuery.data?.find((b) => b.id === me.linked_to);
@@ -1111,27 +1111,27 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
 
       <div className={styles.balanceTiles}>
         <div className={`${styles.balanceTile} ${styles.accent}`}>
-          <p className={styles.balanceTileLabel}>Р”РѕСЃС‚СѓРїРЅРѕ Рє РІС‹РІРѕРґСѓ</p>
+          <p className={styles.balanceTileLabel}>Доступно к выводу</p>
           <p className={styles.balanceTileValue}>{formatMoney(me.balance)}</p>
-          <p className={styles.balanceTileNote}>Р—Р°РїСЂРѕСЃРёС‚Рµ РІС‹РїР»Р°С‚Сѓ РІ СЂР°Р·РґРµР»Рµ В«Р¤РёРЅР°РЅСЃС‹В».</p>
+          <p className={styles.balanceTileNote}>Запросите выплату в разделе «Финансы».</p>
         </div>
         <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>Р’ РѕР±СЂР°Р±РѕС‚РєРµ</p>
+          <p className={styles.balanceTileLabel}>В обработке</p>
           <p className={styles.balanceTileValue}>{formatMoney(me.balance_pending_confirmation_kopeks)}</p>
-          <p className={styles.balanceTileNote}>РЎСЂРµРґСЃС‚РІР°, РѕР¶РёРґР°СЋС‰РёРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ.</p>
+          <p className={styles.balanceTileNote}>Средства, ожидающие подтверждения.</p>
         </div>
         <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>Р’Р°С€Р° СЃС‚Р°РІРєР°</p>
+          <p className={styles.balanceTileLabel}>Ваша ставка</p>
           <p className={styles.balanceTileValue}>{me.percent}%</p>
-          <p className={styles.balanceTileNote}>Р”РѕР»СЏ РѕС‚ РєР°Р¶РґРѕР№ СЃРґРµР»РєРё.</p>
+          <p className={styles.balanceTileNote}>Доля от каждой сделки.</p>
         </div>
         <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>РџСЂРёРІСЏР·РєР°</p>
+          <p className={styles.balanceTileLabel}>Привязка</p>
           <p className={styles.balanceTileValue} style={{ fontSize: "1.05rem", lineHeight: 1.3 }}>
-            {linkedBlogger ? linkedBlogger.name : me.linked_to ? "РђРєС‚РёРІРЅР°" : "РЎРІРѕР±РѕРґРЅС‹Р№"}
+            {linkedBlogger ? linkedBlogger.name : me.linked_to ? "Активна" : "Свободный"}
           </p>
           <p className={styles.balanceTileNote}>
-            {me.linked_to ? "РЎРґРµР»РєРё РёРґСѓС‚ РІР°С€РµРјСѓ Р±Р»РѕРіРµСЂСѓ." : "РџРµСЂРµР№РґРёС‚Рµ РїРѕ СЂРµС„-СЃСЃС‹Р»РєРµ Р±Р»РѕРіРµСЂР°."}
+            {me.linked_to ? "Сделки идут вашему блогеру." : "Перейдите по реф-ссылке блогера."}
           </p>
         </div>
       </div>
@@ -1143,7 +1143,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
           tabs={tabs}
           active={tab}
           onSelect={(id) => setTab(id as WorkerTab)}
-          helpText="РЎРѕР·РґР°РІР°Р№С‚Рµ СЃРґРµР»РєРё, РєРѕРїРёСЂСѓР№С‚Рµ СЃРєСЂРёРїС‚С‹, РѕС‚СЃР»РµР¶РёРІР°Р№С‚Рµ РІС‹РїР»Р°С‚С‹."
+          helpText="Создавайте сделки, копируйте скрипты, отслеживайте выплаты."
         />
 
         <div className={styles.workspace}>
@@ -1159,35 +1159,35 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
 
           {tab === "create" ? (
             <SectionCard
-              title="РќРѕРІР°СЏ СЃРґРµР»РєР°"
-              lead="Р—Р°РїРѕР»РЅРёС‚Рµ РґР°РЅРЅС‹Рµ РїСЂРѕРґР°РІС†Р°, РІС‹Р±РµСЂРёС‚Рµ Р±Р»РѕРіРµСЂР° вЂ” Р·Р°СЏРІРєР° СѓР№РґС‘С‚ РµРјСѓ РЅР° РїСЂРёРЅСЏС‚РёРµ."
+              title="Новая сделка"
+              lead="Заполните данные продавца, выберите блогера — заявка уйдёт ему на принятие."
             >
               <Stack>
                 <TwoColumn>
-                  <Field label="РЎСЃС‹Р»РєР° РЅР° РјР°РіР°Р·РёРЅ">
+                  <Field label="Ссылка на магазин">
                     <TextInput
                       value={dealForm.shop_link}
                       onChange={(event) => setDealForm({ ...dealForm, shop_link: event.target.value })}
                       placeholder="https://www.wildberries.ru/seller/..."
                     />
                   </Field>
-                  <Field label="РќР°Р·РІР°РЅРёРµ С‚РѕРІР°СЂР°">
+                  <Field label="Название товара">
                     <TextInput
                       value={dealForm.item_name}
                       onChange={(event) => setDealForm({ ...dealForm, item_name: event.target.value })}
-                      placeholder="РљСЂРѕСЃСЃРѕРІРєРё РјРѕРґРµР»СЊ X"
+                      placeholder="Кроссовки модель X"
                     />
                   </Field>
                 </TwoColumn>
                 <TwoColumn>
-                  <Field label="Telegram РїСЂРѕРґР°РІС†Р°">
+                  <Field label="Telegram продавца">
                     <TextInput
                       value={dealForm.seller_tg}
                       onChange={(event) => setDealForm({ ...dealForm, seller_tg: event.target.value })}
                       placeholder="@seller"
                     />
                   </Field>
-                  <Field label="РўРµР»РµС„РѕРЅ РїСЂРѕРґР°РІС†Р°">
+                  <Field label="Телефон продавца">
                     <TextInput
                       value={dealForm.seller_number}
                       onChange={(event) => setDealForm({ ...dealForm, seller_number: event.target.value })}
@@ -1196,7 +1196,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                   </Field>
                 </TwoColumn>
                 <TwoColumn>
-                  <Field label="Р¦РµРЅР° РёРЅС‚РµРіСЂР°С†РёРё, в‚Ѕ">
+                  <Field label="Цена интеграции, ₽">
                     <TextInput
                       inputMode="decimal"
                       value={dealForm.price}
@@ -1204,16 +1204,16 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                       placeholder="15000"
                     />
                   </Field>
-                  <Field label="Р‘Р»РѕРіРµСЂ" help={me.linked_to ? "РџСЂРёРІСЏР·Р°РЅРЅС‹Р№ Р±Р»РѕРіРµСЂ РІС‹Р±СЂР°РЅ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ" : "Р’С‹Р±РµСЂРёС‚Рµ Р±Р»РѕРіРµСЂР° РёР· СЃРїРёСЃРєР°"}>
+                  <Field label="Блогер" help={me.linked_to ? "Привязанный блогер выбран по умолчанию" : "Выберите блогера из списка"}>
                     <SelectInput
                       value={dealForm.bloger_id}
                       onChange={(event) => setDealForm({ ...dealForm, bloger_id: event.target.value })}
                     >
-                      <option value="">Р’С‹Р±РµСЂРёС‚Рµ Р±Р»РѕРіРµСЂР°</option>
+                      <option value="">Выберите блогера</option>
                       {(bloggersQuery.data || []).map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.name}
-                          {b.telegram ? ` В· ${b.telegram}` : ""}
+                          {b.telegram ? ` · ${b.telegram}` : ""}
                         </option>
                       ))}
                     </SelectInput>
@@ -1232,9 +1232,9 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                       !dealForm.price
                     }
                   >
-                    {dealMutation.isPending ? "РћС‚РїСЂР°РІР»СЏРµРјвЂ¦" : "РЎРѕР·РґР°С‚СЊ СЃРґРµР»РєСѓ"}
+                    {dealMutation.isPending ? "Отправляем…" : "Создать сделку"}
                   </Button>
-                  <Button kind="ghost" onClick={() => setTab("overview")}>РћС‚РјРµРЅР°</Button>
+                  <Button kind="ghost" onClick={() => setTab("overview")}>Отмена</Button>
                 </div>
               </Stack>
             </SectionCard>
@@ -1242,9 +1242,9 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
 
           {tab === "deals" ? (
             <SectionCard
-              title="РњРѕРё СЃРґРµР»РєРё"
-              lead="РџРѕР»РЅР°СЏ РёСЃС‚РѕСЂРёСЏ Р·Р°СЏРІРѕРє. РЎС‚Р°С‚СѓСЃС‹ РѕР±РЅРѕРІР»СЏСЋС‚СЃСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё."
-              actions={<Button onClick={() => setTab("create")}>+ РќРѕРІР°СЏ СЃРґРµР»РєР°</Button>}
+              title="Мои сделки"
+              lead="Полная история заявок. Статусы обновляются автоматически."
+              actions={<Button onClick={() => setTab("create")}>+ Новая сделка</Button>}
             >
               <div className={styles.toolbarRow}>
                 <div className={styles.toolbarFilters}>
@@ -1252,14 +1252,14 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value as DealStatus | "ALL")}
                   >
-                    <option value="ALL">Р’СЃРµ СЃС‚Р°С‚СѓСЃС‹ ({deals.length})</option>
-                    <option value="NEW">РќРѕРІС‹Рµ</option>
-                    <option value="REVIEW">РќР° РїСЂРѕРІРµСЂРєРµ</option>
-                    <option value="CONFIRMED">РџРѕРґС‚РІРµСЂР¶РґРµРЅС‹</option>
+                    <option value="ALL">Все статусы ({deals.length})</option>
+                    <option value="NEW">Новые</option>
+                    <option value="REVIEW">На проверке</option>
+                    <option value="CONFIRMED">Подтверждены</option>
                     <option value="ESCROW_HELD">Эскроу</option>
-                    <option value="PAID">РћРїР»Р°С‡РµРЅС‹</option>
-                    <option value="COMPLETED">Р’С‹РїРѕР»РЅРµРЅС‹</option>
-                    <option value="REJECTED">РћС‚РєР»РѕРЅРµРЅС‹</option>
+                    <option value="PAID">Оплачены</option>
+                    <option value="COMPLETED">Выполнены</option>
+                    <option value="REJECTED">Отклонены</option>
                     <option value="REFUNDED">Возврат</option>
                   </SelectInput>
                 </div>
@@ -1269,9 +1269,9 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
               ) : filteredDeals.length === 0 ? (
                 <EmptyState
                   icon={<Icon d={ICONS.deals} />}
-                  title={statusFilter === "ALL" ? "РЎРґРµР»РѕРє РїРѕРєР° РЅРµС‚" : "РќРµС‚ СЃРґРµР»РѕРє РІ СЌС‚РѕРј СЃС‚Р°С‚СѓСЃРµ"}
-                  text={statusFilter === "ALL" ? "РЎРѕР·РґР°Р№С‚Рµ РїРµСЂРІСѓСЋ Р·Р°СЏРІРєСѓ вЂ” РєРЅРѕРїРєР° СЃРїСЂР°РІР° СЃРІРµСЂС…Сѓ." : "РџРѕРїСЂРѕР±СѓР№С‚Рµ СЃРјРµРЅРёС‚СЊ С„РёР»СЊС‚СЂ."}
-                  action={statusFilter === "ALL" ? <Button onClick={() => setTab("create")}>РЎРѕР·РґР°С‚СЊ СЃРґРµР»РєСѓ</Button> : null}
+                  title={statusFilter === "ALL" ? "Сделок пока нет" : "Нет сделок в этом статусе"}
+                  text={statusFilter === "ALL" ? "Создайте первую заявку — кнопка справа сверху." : "Попробуйте сменить фильтр."}
+                  action={statusFilter === "ALL" ? <Button onClick={() => setTab("create")}>Создать сделку</Button> : null}
                 />
               ) : (
                 <>
@@ -1289,11 +1289,11 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                       <DataTable>
                         <thead>
                           <tr>
-                            <th>РўРѕРІР°СЂ</th>
-                            <th>РЎС‚Р°С‚СѓСЃ</th>
-                            <th>Р¦РµРЅР°</th>
-                            <th>РљРѕРЅС‚Р°РєС‚</th>
-                            <th>РЎРѕР·РґР°РЅРѕ</th>
+                            <th>Товар</th>
+                            <th>Статус</th>
+                            <th>Цена</th>
+                            <th>Контакт</th>
+                            <th>Создано</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1303,7 +1303,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                               className={styles.dealRowClickable}
                               tabIndex={0}
                               role="button"
-                              aria-label={`РћС‚РєСЂС‹С‚СЊ СЃРґРµР»РєСѓ ${deal.item_name}`}
+                              aria-label={`Открыть сделку ${deal.item_name}`}
                               onClick={() => setActiveDealId(deal.id)}
                               onKeyDown={(event) => {
                                 if (event.key === "Enter" || event.key === " ") {
@@ -1350,16 +1350,16 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
 
           {tab === "scripts" ? (
             <SectionCard
-              title="РЎРєСЂРёРїС‚С‹ СЃРѕРѕР±С‰РµРЅРёР№"
-              lead="Р“РѕС‚РѕРІС‹Рµ С€Р°Р±Р»РѕРЅС‹ РґР»СЏ РїРµСЂРµРїРёСЃРєРё. РќР°Р¶РјРёС‚Рµ В«РЎРєРѕРїРёСЂРѕРІР°С‚СЊВ» вЂ” С‚РµРєСЃС‚ СѓР№РґС‘С‚ РІ Р±СѓС„РµСЂ."
+              title="Скрипты сообщений"
+              lead="Готовые шаблоны для переписки. Нажмите «Скопировать» — текст уйдёт в буфер."
             >
               {scriptsQuery.isLoading ? (
                 <SkeletonTable rows={3} />
               ) : !scriptsQuery.data || scriptsQuery.data.length === 0 ? (
                 <EmptyState
                   icon={<Icon d={ICONS.scripts} />}
-                  title="РЎРєСЂРёРїС‚РѕРІ РїРѕРєР° РЅРµС‚"
-                  text="РЎРєСЂРёРїС‚С‹ РїРѕСЏРІСЏС‚СЃСЏ Р·РґРµСЃСЊ, РєРѕРіРґР° Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РёС… РґРѕР±Р°РІРёС‚."
+                  title="Скриптов пока нет"
+                  text="Скрипты появятся здесь, когда администратор их добавит."
                 />
               ) : (
                 <div className={styles.scriptGrid}>
@@ -1371,8 +1371,8 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                         <CopyButton
                           value={script.body}
                           kind="secondary"
-                          label="РЎРєРѕРїРёСЂРѕРІР°С‚СЊ"
-                          toastText={`РЎРєСЂРёРїС‚ В«${script.title}В» СЃРєРѕРїРёСЂРѕРІР°РЅ`}
+                          label="Скопировать"
+                          toastText={`Скрипт «${script.title}» скопирован`}
                         />
                       </div>
                     </article>
@@ -1385,23 +1385,23 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
           {tab === "finance" ? (
             <Stack>
               <SectionCard
-                title="Р—Р°РїСЂРѕСЃ РЅР° РІС‹РїР»Р°С‚Сѓ"
-                lead="РЎСѓРјРјР° СѓР№РґС‘С‚ РЅР° РїСЂРёРІСЏР·Р°РЅРЅСѓСЋ РєР°СЂС‚Сѓ РїРѕСЃР»Рµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј."
+                title="Запрос на выплату"
+                lead="Сумма уйдёт на привязанную карту после подтверждения администратором."
               >
                 <div className={styles.payoutRow}>
                   <div className={styles.payoutField}>
-                    <p className={styles.payoutLabel}>Р”РѕСЃС‚СѓРїРЅРѕ Рє РІС‹РІРѕРґСѓ</p>
+                    <p className={styles.payoutLabel}>Доступно к выводу</p>
                     <p className={styles.payoutAvailable}>{formatMoney(me.balance)}</p>
                     {!me.payout_card_last4 ? (
                       <p className={styles.payoutHint}>
-                        РџСЂРёРІСЏР¶РёС‚Рµ РєР°СЂС‚Сѓ РІ СЂР°Р·РґРµР»Рµ В«РџСЂРѕС„РёР»СЊВ», РёРЅР°С‡Рµ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РЅРµ СЃРјРѕР¶РµС‚ РїСЂРѕРІРµСЃС‚Рё РїРµСЂРµРІРѕРґ.
+                        Привяжите карту в разделе «Профиль», иначе администратор не сможет провести перевод.
                       </p>
                     ) : (
-                      <p className={styles.payoutHint}>РљР°СЂС‚Р°: вЂўвЂўвЂўвЂў {me.payout_card_last4}</p>
+                      <p className={styles.payoutHint}>Карта: •••• {me.payout_card_last4}</p>
                     )}
                   </div>
                   <Field
-                    label="РЎСѓРјРјР°, в‚Ѕ"
+                    label="Сумма, ₽"
                     help={payoutError ?? undefined}
                   >
                     <TextInput
@@ -1423,7 +1423,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                       }
                       disabled={me.balance <= 0 || payoutRequestMutation.isPending}
                     >
-                      Р’СЃС‘
+                      Всё
                     </Button>
                     <Button
                       onClick={() => {
@@ -1431,15 +1431,15 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                           Number(payoutForm.amount_rub.replace(",", ".")) * 100,
                         );
                         if (!Number.isFinite(amountKopeks) || amountKopeks <= 0) {
-                          setPayoutError("Р’РІРµРґРёС‚Рµ РїРѕР»РѕР¶РёС‚РµР»СЊРЅСѓСЋ СЃСѓРјРјСѓ.");
+                          setPayoutError("Введите положительную сумму.");
                           return;
                         }
                         if (amountKopeks > me.balance) {
-                          setPayoutError("РЎСѓРјРјР° Р±РѕР»СЊС€Рµ РґРѕСЃС‚СѓРїРЅРѕРіРѕ Р±Р°Р»Р°РЅСЃР°.");
+                          setPayoutError("Сумма больше доступного баланса.");
                           return;
                         }
                         if (!me.payout_card_last4) {
-                          setPayoutError("РЎРЅР°С‡Р°Р»Р° РїСЂРёРІСЏР¶РёС‚Рµ РєР°СЂС‚Сѓ РІ СЂР°Р·РґРµР»Рµ В«РџСЂРѕС„РёР»СЊВ».");
+                          setPayoutError("Сначала привяжите карту в разделе «Профиль».");
                           return;
                         }
                         payoutRequestMutation.mutate();
@@ -1450,20 +1450,20 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                         me.balance <= 0
                       }
                     >
-                      {payoutRequestMutation.isPending ? "РћС‚РїСЂР°РІР»СЏРµРјвЂ¦" : "Р—Р°РїСЂРѕСЃРёС‚СЊ РІС‹РїР»Р°С‚Сѓ"}
+                      {payoutRequestMutation.isPending ? "Отправляем…" : "Запросить выплату"}
                     </Button>
                   </div>
                 </div>
                 {payoutWidgetQuery.data?.enabled ? (
                   <Message tone="default">
-                    Р”РѕСЃС‚СѓРїРЅР° Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ РІС‹РїР»Р°С‚Р° С‡РµСЂРµР· РІРёРґР¶РµС‚ Р®Kassa. РЎРєРѕСЂРѕ РїРѕСЏРІРёС‚СЃСЏ РїСЂСЏРјРѕ Р·РґРµСЃСЊ.
+                    Доступна автоматическая выплата через виджет ЮKassa. Скоро появится прямо здесь.
                   </Message>
                 ) : null}
               </SectionCard>
 
               <SectionCard
-                title="Р¤РёРЅР°РЅСЃС‹"
-                lead="РСЃС‚РѕСЂРёСЏ РЅР°С‡РёСЃР»РµРЅРёР№, Р·Р°РјРѕСЂРѕР·РѕРє Рё РІС‹РїР»Р°С‚."
+                title="Финансы"
+                lead="РСЃС‚РѕСЂРёСЏ начислений, заморозок и выплат."
               >
                 <div className={styles.toolbarRow}>
                   <div className={styles.toolbarFilters}>
@@ -1471,12 +1471,12 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                       value={ledgerStatusFilter}
                       onChange={(event) => setLedgerStatusFilter(event.target.value as LedgerEntryStatus | "ALL")}
                     >
-                      <option value="ALL">Р’СЃРµ РѕРїРµСЂР°С†РёРё ({ledger.length})</option>
-                      <option value="payout_request">Р—Р°РїСЂРѕСЃС‹ РІС‹РїР»Р°С‚</option>
-                      <option value="freeze">Р—Р°РјРѕСЂРѕР·РєРё</option>
-                      <option value="pending_confirmation">РћР¶РёРґР°СЋС‚ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ</option>
-                      <option value="completed">Р—Р°РІРµСЂС€С‘РЅРЅС‹Рµ</option>
-                      <option value="rejected">РћС‚РєР»РѕРЅС‘РЅРЅС‹Рµ</option>
+                      <option value="ALL">Все операции ({ledger.length})</option>
+                      <option value="payout_request">Запросы выплат</option>
+                      <option value="freeze">Заморозки</option>
+                      <option value="pending_confirmation">Ожидают подтверждения</option>
+                      <option value="completed">Завершённые</option>
+                      <option value="rejected">Отклонённые</option>
                     </SelectInput>
                   </div>
                 </div>
@@ -1485,8 +1485,8 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                 ) : filteredLedger.length === 0 ? (
                   <EmptyState
                     icon={<Icon d={ICONS.finance} />}
-                    title="РСЃС‚РѕСЂРёСЏ РїСѓСЃС‚Р°"
-                    text="Р—РґРµСЃСЊ РїРѕСЏРІСЏС‚СЃСЏ РІР°С€Рё РЅР°С‡РёСЃР»РµРЅРёСЏ Рё РІС‹РїР»Р°С‚С‹."
+                    title="РСЃС‚РѕСЂРёСЏ пуста"
+                    text="Здесь появятся ваши начисления и выплаты."
                   />
                 ) : (
                   <LedgerTable items={filteredLedger} onSelect={(entry) => setActiveLedgerId(entry.id)} />
@@ -1537,7 +1537,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
 };
 
 /* =========================================================
-   Ledger table вЂ” used by both worker and blogger
+   Ledger table — used by both worker and blogger
    ========================================================= */
 
 const ledgerTone = (status: LedgerEntryStatus): "active" | "success" | "muted" | "danger" | "default" => {
@@ -1584,7 +1584,7 @@ const LedgerTable = ({
               className={styles.ledgerMobileAmount}
               data-negative={entry.amount_kopeks < 0 ? "true" : undefined}
             >
-              {entry.amount_kopeks < 0 ? "в€’" : "+"}
+              {entry.amount_kopeks < 0 ? "−" : "+"}
               {formatMoney(Math.abs(entry.amount_kopeks))}
             </span>
             <StatusPill tone={ledgerTone(entry.status)}>{formatLedgerStatus(entry.status)}</StatusPill>
@@ -1610,10 +1610,10 @@ const LedgerTable = ({
         <DataTable>
           <thead>
             <tr>
-              <th>Р”Р°С‚Р°</th>
-              <th>РЎСѓРјРјР°</th>
-              <th>РЎС‚Р°С‚СѓСЃ</th>
-              <th>Р—Р°РјРµС‚РєР°</th>
+              <th>Дата</th>
+              <th>Сумма</th>
+              <th>Статус</th>
+              <th>Заметка</th>
             </tr>
           </thead>
           <tbody>
@@ -1623,7 +1623,7 @@ const LedgerTable = ({
                 className={onSelect ? styles.dealRowClickable : undefined}
                 tabIndex={onSelect ? 0 : undefined}
                 role={onSelect ? "button" : undefined}
-                aria-label={onSelect ? "РћС‚РєСЂС‹С‚СЊ РѕРїРµСЂР°С†РёСЋ" : undefined}
+                aria-label={onSelect ? "Открыть операцию" : undefined}
                 onClick={onSelect ? () => onSelect(entry) : undefined}
                 onKeyDown={
                   onSelect
@@ -1638,7 +1638,7 @@ const LedgerTable = ({
               >
                 <td>{formatDateTime(entry.created_at)}</td>
                 <td style={{ fontFamily: "var(--font-mono)", color: entry.amount_kopeks < 0 ? "var(--status-danger)" : "var(--text-strong)" }}>
-                  {entry.amount_kopeks < 0 ? "в€’" : "+"}
+                  {entry.amount_kopeks < 0 ? "−" : "+"}
                   {formatMoney(Math.abs(entry.amount_kopeks))}
                 </td>
                 <td>
@@ -1649,7 +1649,7 @@ const LedgerTable = ({
                     {entry.note || "Причина не указана"}
                   </td>
                 ) : (
-                  <td style={{ color: entry.note ? "var(--text)" : "var(--text-soft)" }}>{entry.note || "вЂ”"}</td>
+                  <td style={{ color: entry.note ? "var(--text)" : "var(--text-soft)" }}>{entry.note || "—"}</td>
                 )}
               </tr>
             ))}
@@ -1661,7 +1661,7 @@ const LedgerTable = ({
 );
 
 /* =========================================================
-   Ledger details modal вЂ” opens on row/card click in finance.
+   Ledger details modal — opens on row/card click in finance.
    ========================================================= */
 
 const LEDGER_SUPPORT_HANDLE = "looneymoonhelper";
@@ -1669,17 +1669,17 @@ const LEDGER_SUPPORT_HANDLE = "looneymoonhelper";
 const ledgerStatusSummary = (status: LedgerEntryStatus): string => {
   switch (status) {
     case "completed":
-      return "РћРїРµСЂР°С†РёСЏ Р·Р°РІРµСЂС€РµРЅР°. Р”РµРЅСЊРіРё СѓР¶Рµ СѓС‡С‚РµРЅС‹ РІ Р±Р°Р»Р°РЅСЃРµ.";
+      return "Операция завершена. Деньги уже учтены в балансе.";
     case "payout_request":
-      return "Р—Р°РїСЂРѕСЃ РЅР° РІС‹РїР»Р°С‚Сѓ РїСЂРёРЅСЏС‚, Р¶РґС‘С‚ РѕР±СЂР°Р±РѕС‚РєРё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј.";
+      return "Запрос на выплату принят, ждёт обработки администратором.";
     case "freeze":
-      return "РЎСѓРјРјР° Р·Р°РјРѕСЂРѕР¶РµРЅР° РїРѕ СЃРґРµР»РєРµ. РЎРЅРёРјРµС‚СЃСЏ РїСЂРё РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРё РёР»Рё РѕС‚РєР»РѕРЅРµРЅРёРё.";
+      return "Сумма заморожена по сделке. Снимется при подтверждении или отклонении.";
     case "pending_confirmation":
-      return "Р’С‹РїР»Р°С‚Р° РѕС‚РїСЂР°РІР»РµРЅР° Рё Р¶РґС‘С‚ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ Р±Р°РЅРєР°/РїСЂРѕРІР°Р№РґРµСЂР°.";
+      return "Выплата отправлена и ждёт подтверждения банка/провайдера.";
     case "rejected":
-      return "РћРїРµСЂР°С†РёСЏ РѕС‚РєР»РѕРЅРµРЅР°. Р”РµРЅСЊРіРё РѕСЃС‚Р°Р»РёСЃСЊ РЅР° Р±Р°Р»Р°РЅСЃРµ.";
+      return "Операция отклонена. Деньги остались на балансе.";
     default:
-      return "РЎС‚Р°С‚СѓСЃ РЅРµРёР·РІРµСЃС‚РµРЅ.";
+      return "Статус неизвестен.";
   }
 };
 
@@ -1690,7 +1690,7 @@ const LedgerDetailsModal = ({
   entry: LedgerEntryRead;
   onClose: () => void;
 }) => {
-  // Esc вЂ” Р·Р°РєСЂС‹С‚СЊ, body scroll вЂ” Р·Р°Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ.
+  // Esc — закрыть, body scroll — заблокировать.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -1706,7 +1706,7 @@ const LedgerDetailsModal = ({
 
   const isNegative = entry.amount_kopeks < 0;
   const supportHref = `https://t.me/${LEDGER_SUPPORT_HANDLE}?text=${encodeURIComponent(
-    `Р—РґСЂР°РІСЃС‚РІСѓР№С‚Рµ! Р’РѕРїСЂРѕСЃ РїРѕ РѕРїРµСЂР°С†РёРё ${entry.id} (${formatLedgerStatus(entry.status)}).`,
+    `Здравствуйте! Вопрос по операции ${entry.id} (${formatLedgerStatus(entry.status)}).`,
   )}`;
 
   return (
@@ -1715,13 +1715,13 @@ const LedgerDetailsModal = ({
         <header className={styles.dealModalHeader}>
           <div className={styles.dealModalHeaderTop}>
             <div className={styles.dealModalIdent}>
-              <p className={styles.dealModalEyebrow}>Р¤РёРЅР°РЅСЃРѕРІР°СЏ РѕРїРµСЂР°С†РёСЏ</p>
+              <p className={styles.dealModalEyebrow}>Финансовая операция</p>
               <h2 className={styles.dealModalTitle}>
                 <span
                   className={styles.ledgerMobileAmount}
                   data-negative={isNegative ? "true" : undefined}
                 >
-                  {isNegative ? "в€’" : "+"}
+                  {isNegative ? "−" : "+"}
                   {formatMoney(Math.abs(entry.amount_kopeks))}
                 </span>
               </h2>
@@ -1732,8 +1732,8 @@ const LedgerDetailsModal = ({
                 href={supportHref}
                 target="_blank"
                 rel="noreferrer"
-                title={`РџРѕРґРґРµСЂР¶РєР° @${LEDGER_SUPPORT_HANDLE}`}
-                aria-label="РЎРІСЏР·Р°С‚СЊСЃСЏ СЃ РїРѕРґРґРµСЂР¶РєРѕР№"
+                title={`Поддержка @${LEDGER_SUPPORT_HANDLE}`}
+                aria-label="Связаться с поддержкой"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M12 21a9 9 0 1 0-9-9v3a3 3 0 0 0 3 3h1v-6H6a9 9 0 0 1 12 0h-1v6h1a3 3 0 0 0 3-3" />
@@ -1744,8 +1744,8 @@ const LedgerDetailsModal = ({
                 type="button"
                 className={styles.dealIconButton}
                 onClick={onClose}
-                title="Р—Р°РєСЂС‹С‚СЊ (Esc)"
-                aria-label="Р—Р°РєСЂС‹С‚СЊ"
+                title="Закрыть (Esc)"
+                aria-label="Закрыть"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <path d="M6 6l12 12M6 18L18 6" />
@@ -1760,8 +1760,8 @@ const LedgerDetailsModal = ({
             <CopyButton
               value={entry.id}
               kind="ghost"
-              label={`ID: ${entry.id.slice(0, 8)}вЂ¦`}
-              toastText="ID РѕРїРµСЂР°С†РёРё СЃРєРѕРїРёСЂРѕРІР°РЅ"
+              label={`ID: ${entry.id.slice(0, 8)}…`}
+              toastText="ID операции скопирован"
             />
           </div>
         </header>
@@ -1772,31 +1772,31 @@ const LedgerDetailsModal = ({
 
             <dl className={styles.dealMetaGrid}>
               <div>
-                <dt>РўРёРї</dt>
-                <dd>{isNegative ? "РЎРїРёСЃР°РЅРёРµ / РІС‹РїР»Р°С‚Р°" : "РќР°С‡РёСЃР»РµРЅРёРµ"}</dd>
+                <dt>Тип</dt>
+                <dd>{isNegative ? "Списание / выплата" : "Начисление"}</dd>
               </div>
               <div>
-                <dt>РЎРѕР·РґР°РЅРѕ</dt>
+                <dt>Создано</dt>
                 <dd>{formatDateTime(entry.created_at)}</dd>
               </div>
               <div>
-                <dt>РћР±РЅРѕРІР»РµРЅРѕ</dt>
+                <dt>Обновлено</dt>
                 <dd>{formatDateTime(entry.updated_at)}</dd>
               </div>
               <div>
-                <dt>РЎРІСЏР·Р°РЅРЅР°СЏ СЃРґРµР»РєР°</dt>
-                <dd>{entry.deal_id ? `${entry.deal_id.slice(0, 8)}вЂ¦` : "вЂ”"}</dd>
+                <dt>Связанная сделка</dt>
+                <dd>{entry.deal_id ? `${entry.deal_id.slice(0, 8)}…` : "—"}</dd>
               </div>
               {entry.yookassa_payout_id ? (
                 <div>
-                  <dt>Р®Kassa payout</dt>
+                  <dt>ЮKassa payout</dt>
                   <dd>{entry.yookassa_payout_id}</dd>
                 </div>
               ) : null}
               {entry.idempotency_key ? (
                 <div>
                   <dt>Idempotency</dt>
-                  <dd title={entry.idempotency_key}>{entry.idempotency_key.slice(0, 24)}вЂ¦</dd>
+                  <dd title={entry.idempotency_key}>{entry.idempotency_key.slice(0, 24)}…</dd>
                 </div>
               ) : null}
             </dl>
@@ -1810,7 +1810,7 @@ const LedgerDetailsModal = ({
               </div>
             ) : entry.note ? (
               <div className={styles.dealModalLedgerNote}>
-                <p className={styles.dealModalEyebrow}>Р—Р°РјРµС‚РєР°</p>
+                <p className={styles.dealModalEyebrow}>Заметка</p>
                 <p>{entry.note}</p>
               </div>
             ) : null}
@@ -1822,11 +1822,11 @@ const LedgerDetailsModal = ({
             <CopyButton
               value={entry.deal_id}
               kind="secondary"
-              label="ID СЃРґРµР»РєРё"
-              toastText="ID СЃРґРµР»РєРё СЃРєРѕРїРёСЂРѕРІР°РЅ"
+              label="ID сделки"
+              toastText="ID сделки скопирован"
             />
           ) : null}
-          <Button kind="secondary" onClick={onClose}>Р—Р°РєСЂС‹С‚СЊ</Button>
+          <Button kind="secondary" onClick={onClose}>Закрыть</Button>
         </footer>
       </div>
     </div>
@@ -1869,7 +1869,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
       return api.patchMe(payload);
     },
     onSuccess: () => {
-      setToast({ tone: "success", text: "РџСЂРѕС„РёР»СЊ РѕР±РЅРѕРІР»С‘РЅ." });
+      setToast({ tone: "success", text: "Профиль обновлён." });
       queryClient.invalidateQueries({ queryKey: ["me"] });
     },
     onError: (error: Error) => setToast({ tone: "error", text: error.message }),
@@ -1878,7 +1878,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
   const payoutCardMutation = useMutation({
     mutationFn: (cardNumber: string) => api.setPayoutCard(cardNumber),
     onSuccess: () => {
-      setToast({ tone: "success", text: "РљР°СЂС‚Р° РґР»СЏ РІС‹РїР»Р°С‚ РѕР±РЅРѕРІР»РµРЅР°." });
+      setToast({ tone: "success", text: "Карта для выплат обновлена." });
       queryClient.invalidateQueries({ queryKey: ["me"] });
     },
     onError: (error: Error) => setToast({ tone: "error", text: error.message }),
@@ -1887,7 +1887,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
   const acceptDealMutation = useMutation({
     mutationFn: (dealId: string) => api.acceptDeal(dealId),
     onSuccess: () => {
-      setToast({ tone: "success", text: "Р—Р°СЏРІРєР° РїСЂРёРЅСЏС‚Р° Рё РѕС‚РїСЂР°РІР»РµРЅР° Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂСѓ." });
+      setToast({ tone: "success", text: "Заявка принята и отправлена администратору." });
       queryClient.invalidateQueries({ queryKey: ["me", "deals"] });
       queryClient.invalidateQueries({ queryKey: ["me", "stats"] });
       setActiveDealId(null);
@@ -1902,7 +1902,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
         payout_token: null,
       }),
     onSuccess: () => {
-      setToast({ tone: "success", text: "Р—Р°РїСЂРѕСЃ РЅР° РІС‹РїР»Р°С‚Сѓ РѕС‚РїСЂР°РІР»РµРЅ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂСѓ." });
+      setToast({ tone: "success", text: "Запрос на выплату отправлен администратору." });
       setPayoutForm({ amount_rub: "" });
       queryClient.invalidateQueries({ queryKey: ["me", "ledger"] });
       queryClient.invalidateQueries({ queryKey: ["me"] });
@@ -1925,11 +1925,11 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
   const newDealsCount = deals.filter((d) => d.status === "NEW").length;
 
   const tabs: TabDef[] = [
-    { id: "overview", label: "РћР±Р·РѕСЂ", iconPath: ICONS.overview },
-    { id: "deals", label: "Р—Р°СЏРІРєРё", iconPath: ICONS.inbox, badge: newDealsCount || null },
-    { id: "referral", label: "Р РµС„РµСЂР°Р»", iconPath: ICONS.referral },
-    { id: "finance", label: "Р¤РёРЅР°РЅСЃС‹", iconPath: ICONS.finance },
-    { id: "profile", label: "РџСЂРѕС„РёР»СЊ", iconPath: ICONS.profile },
+    { id: "overview", label: "Обзор", iconPath: ICONS.overview },
+    { id: "deals", label: "Заявки", iconPath: ICONS.inbox, badge: newDealsCount || null },
+    { id: "referral", label: "Реферал", iconPath: ICONS.referral },
+    { id: "finance", label: "Финансы", iconPath: ICONS.finance },
+    { id: "profile", label: "Профиль", iconPath: ICONS.profile },
   ];
 
   return (
@@ -1938,25 +1938,25 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
 
       <div className={styles.balanceTiles}>
         <div className={`${styles.balanceTile} ${styles.accent}`}>
-          <p className={styles.balanceTileLabel}>Р”РѕСЃС‚СѓРїРЅРѕ Рє РІС‹РІРѕРґСѓ</p>
+          <p className={styles.balanceTileLabel}>Доступно к выводу</p>
           <p className={styles.balanceTileValue}>{formatMoney(me.balance)}</p>
-          <p className={styles.balanceTileNote}>Р—Р°РїСЂРѕСЃРёС‚Рµ РІС‹РїР»Р°С‚Сѓ РІ СЂР°Р·РґРµР»Рµ В«Р¤РёРЅР°РЅСЃС‹В».</p>
+          <p className={styles.balanceTileNote}>Запросите выплату в разделе «Финансы».</p>
         </div>
         <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>Р’ РѕР±СЂР°Р±РѕС‚РєРµ</p>
+          <p className={styles.balanceTileLabel}>В обработке</p>
           <p className={styles.balanceTileValue}>{formatMoney(me.balance_pending_confirmation_kopeks)}</p>
-          <p className={styles.balanceTileNote}>РџРѕРґС‚РІРµСЂР¶РґР°РµС‚СЃСЏ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј.</p>
+          <p className={styles.balanceTileNote}>Подтверждается администратором.</p>
         </div>
         <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>Р’Р°С€Р° СЃС‚Р°РІРєР°</p>
+          <p className={styles.balanceTileLabel}>Ваша ставка</p>
           <p className={styles.balanceTileValue}>{me.percent}%</p>
-          <p className={styles.balanceTileNote}>Р”РѕР»СЏ РѕС‚ РєР°Р¶РґРѕР№ СЃРґРµР»РєРё.</p>
+          <p className={styles.balanceTileNote}>Доля от каждой сделки.</p>
         </div>
         <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>РќРѕРІС‹Рµ Р·Р°СЏРІРєРё</p>
+          <p className={styles.balanceTileLabel}>Новые заявки</p>
           <p className={styles.balanceTileValue}>{formatNumber(newDealsCount)}</p>
           <p className={styles.balanceTileNote}>
-            {newDealsCount > 0 ? "РўСЂРµР±СѓСЋС‚ РІР°С€РµРіРѕ РїСЂРёРЅСЏС‚РёСЏ." : "Р’СЃРµ Р·Р°СЏРІРєРё СЂР°Р·РѕР±СЂР°РЅС‹."}
+            {newDealsCount > 0 ? "Требуют вашего принятия." : "Все заявки разобраны."}
           </p>
         </div>
       </div>
@@ -1968,7 +1968,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
           tabs={tabs}
           active={tab}
           onSelect={(id) => setTab(id as BloggerTab)}
-          helpText="РџСЂРёРЅРёРјР°Р№С‚Рµ Р·Р°СЏРІРєРё РІРѕСЂРєРµСЂРѕРІ, РґРµР»РёС‚РµСЃСЊ СЃСЃС‹Р»РєРѕР№, Р·Р°РїСЂР°С€РёРІР°Р№С‚Рµ РІС‹РїР»Р°С‚С‹."
+          helpText="Принимайте заявки воркеров, делитесь ссылкой, запрашивайте выплаты."
         />
 
         <div className={styles.workspace}>
@@ -1984,8 +1984,8 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
 
           {tab === "deals" ? (
             <SectionCard
-              title="Р—Р°СЏРІРєРё РІРѕСЂРєРµСЂРѕРІ"
-              lead="РќРѕРІС‹Рµ Р·Р°СЏРІРєРё РЅСѓР¶РЅРѕ РїСЂРёРЅСЏС‚СЊ. РџРѕСЃР»Рµ РїСЂРѕРІРµСЂРєРё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј РѕС‚РєСЂРѕСЋС‚СЃСЏ РєРѕРЅС‚Р°РєС‚С‹ Рё СЃСѓРјРјР°."
+              title="Заявки воркеров"
+              lead="Новые заявки нужно принять. После проверки администратором откроются контакты и сумма."
             >
               <div className={styles.toolbarRow}>
                 <div className={styles.toolbarFilters}>
@@ -1993,14 +1993,14 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value as DealStatus | "ALL")}
                   >
-                    <option value="ALL">Р’СЃРµ СЃС‚Р°С‚СѓСЃС‹ ({deals.length})</option>
-                    <option value="NEW">РќРѕРІС‹Рµ ({newDealsCount})</option>
-                    <option value="REVIEW">РќР° РїСЂРѕРІРµСЂРєРµ</option>
-                    <option value="CONFIRMED">РџРѕРґС‚РІРµСЂР¶РґРµРЅС‹</option>
+                    <option value="ALL">Все статусы ({deals.length})</option>
+                    <option value="NEW">Новые ({newDealsCount})</option>
+                    <option value="REVIEW">На проверке</option>
+                    <option value="CONFIRMED">Подтверждены</option>
                     <option value="ESCROW_HELD">Эскроу</option>
-                    <option value="PAID">РћРїР»Р°С‡РµРЅС‹</option>
-                    <option value="COMPLETED">Р’С‹РїРѕР»РЅРµРЅС‹</option>
-                    <option value="REJECTED">РћС‚РєР»РѕРЅРµРЅС‹</option>
+                    <option value="PAID">Оплачены</option>
+                    <option value="COMPLETED">Выполнены</option>
+                    <option value="REJECTED">Отклонены</option>
                     <option value="REFUNDED">Возврат</option>
                   </SelectInput>
                 </div>
@@ -2010,9 +2010,9 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
               ) : filteredDeals.length === 0 ? (
                 <EmptyState
                   icon={<Icon d={ICONS.inbox} />}
-                  title={statusFilter === "ALL" ? "Р—Р°СЏРІРѕРє РїРѕРєР° РЅРµС‚" : "РќРµС‚ Р·Р°СЏРІРѕРє РІ СЌС‚РѕРј СЃС‚Р°С‚СѓСЃРµ"}
-                  text={statusFilter === "ALL" ? "РџРѕРґРµР»РёС‚РµСЃСЊ СЂРµС„РµСЂР°Р»СЊРЅРѕР№ СЃСЃС‹Р»РєРѕР№ СЃ РІРѕСЂРєРµСЂР°РјРё." : "РџРѕРїСЂРѕР±СѓР№С‚Рµ СЃРјРµРЅРёС‚СЊ С„РёР»СЊС‚СЂ."}
-                  action={statusFilter === "ALL" ? <Button onClick={() => setTab("referral")}>Рљ СЂРµС„РµСЂР°Р»СЊРЅРѕР№ СЃСЃС‹Р»РєРµ</Button> : null}
+                  title={statusFilter === "ALL" ? "Заявок пока нет" : "Нет заявок в этом статусе"}
+                  text={statusFilter === "ALL" ? "Поделитесь реферальной ссылкой с воркерами." : "Попробуйте сменить фильтр."}
+                  action={statusFilter === "ALL" ? <Button onClick={() => setTab("referral")}>К реферальной ссылке</Button> : null}
                 />
               ) : (
                 <>
@@ -2029,7 +2029,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                               onClick={() => acceptDealMutation.mutate(deal.id)}
                               disabled={acceptDealMutation.isPending}
                             >
-                              РџСЂРёРЅСЏС‚СЊ
+                              Принять
                             </Button>
                           ) : null
                         }
@@ -2041,12 +2041,12 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                       <DataTable>
                         <thead>
                           <tr>
-                            <th>РўРѕРІР°СЂ</th>
-                            <th>РЎС‚Р°С‚СѓСЃ</th>
-                            <th>Р¦РµРЅР°</th>
-                            <th>РљРѕРЅС‚Р°РєС‚</th>
-                            <th>РЎРѕР·РґР°РЅРѕ</th>
-                            <th>Р”РµР№СЃС‚РІРёРµ</th>
+                            <th>Товар</th>
+                            <th>Статус</th>
+                            <th>Цена</th>
+                            <th>Контакт</th>
+                            <th>Создано</th>
+                            <th>Действие</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2056,7 +2056,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                               className={styles.dealRowClickable}
                               tabIndex={0}
                               role="button"
-                              aria-label={`РћС‚РєСЂС‹С‚СЊ СЃРґРµР»РєСѓ ${deal.item_name}`}
+                              aria-label={`Открыть сделку ${deal.item_name}`}
                               onClick={() => setActiveDealId(deal.id)}
                               onKeyDown={(event) => {
                                 if (event.key === "Enter" || event.key === " ") {
@@ -2096,11 +2096,11 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                                     onClick={() => acceptDealMutation.mutate(deal.id)}
                                     disabled={acceptDealMutation.isPending}
                                   >
-                                    РџСЂРёРЅСЏС‚СЊ
+                                    Принять
                                   </Button>
                                 ) : (
                                   <span style={{ color: "var(--text-soft)", fontSize: "0.86rem" }}>
-                                    {deal.status === "REJECTED" ? "РћС‚РєР»РѕРЅРµРЅР°" : "Р’ СЂР°Р±РѕС‚Рµ"}
+                                    {deal.status === "REJECTED" ? "Отклонена" : "В работе"}
                                   </span>
                                 )}
                               </td>
@@ -2118,37 +2118,37 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
           {tab === "referral" ? (
             <Stack>
               <SectionCard
-                title="Р РµС„РµСЂР°Р»СЊРЅР°СЏ СЃСЃС‹Р»РєР°"
-                lead="Р”РµР»РёС‚РµСЃСЊ СЃСЃС‹Р»РєРѕР№ вЂ” РІСЃРµ РІРѕСЂРєРµСЂС‹, РїРµСЂРµС€РµРґС€РёРµ РїРѕ РЅРµР№, Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїСЂРёРІСЏР·С‹РІР°СЋС‚СЃСЏ Рє РІР°Рј."
+                title="Реферальная ссылка"
+                lead="Делитесь ссылкой — все воркеры, перешедшие по ней, автоматически привязываются к вам."
               >
                 <div className={styles.referralCard}>
                   <img src="/images/referral-art.svg" alt="" aria-hidden="true" className={styles.referralCardArt} />
-                  <p className={styles.referralLabel}>Р’Р°С€Р° СЃСЃС‹Р»РєР°</p>
+                  <p className={styles.referralLabel}>Ваша ссылка</p>
                   <p className={styles.referralValue}>
-                    {absolutizeUrl(me.referral_invite_url) || "РЎРіРµРЅРµСЂРёСЂСѓРµС‚СЃСЏ РїРѕСЃР»Рµ РїРµСЂРІРѕР№ РЅР°СЃС‚СЂРѕР№РєРё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂРѕРј"}
+                    {absolutizeUrl(me.referral_invite_url) || "Сгенерируется после первой настройки администратором"}
                   </p>
                   <div className={styles.referralActions}>
                     <CopyButton
                       value={absolutizeUrl(me.referral_invite_url)}
                       kind="primary"
-                      label="РЎРєРѕРїРёСЂРѕРІР°С‚СЊ СЃСЃС‹Р»РєСѓ"
-                      toastText="РЎСЃС‹Р»РєР° СЃРєРѕРїРёСЂРѕРІР°РЅР° РІ Р±СѓС„РµСЂ"
+                      label="Скопировать ссылку"
+                      toastText="Ссылка скопирована в буфер"
                     />
                     {me.referral_invite_url ? (
                       <Button kind="secondary" href={absolutizeUrl(me.referral_invite_url)}>
-                        <Icon d={ICONS.link} /> РћС‚РєСЂС‹С‚СЊ
+                        <Icon d={ICONS.link} /> Открыть
                       </Button>
                     ) : null}
                   </div>
                 </div>
               </SectionCard>
 
-              <SectionCard title="РљР°Рє СЌС‚Рѕ СЂР°Р±РѕС‚Р°РµС‚" lead="РљРѕСЂРѕС‚РєРёР№ С†РёРєР» РѕС‚ РїРµСЂРµС…РѕРґР° РІРѕСЂРєРµСЂР° РґРѕ РІС‹РїР»Р°С‚С‹.">
+              <SectionCard title="Как это работает" lead="Короткий цикл от перехода воркера до выплаты.">
                 <Stack>
-                  <ProcessStep n="1" title="Р’РѕСЂРєРµСЂ РїРµСЂРµС…РѕРґРёС‚ РїРѕ СЃСЃС‹Р»РєРµ" text="Р РµРіРёСЃС‚СЂР°С†РёСЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё СЃРІСЏР·С‹РІР°РµС‚СЃСЏ СЃ РІР°С€РёРј РїСЂРѕС„РёР»РµРј." />
-                  <ProcessStep n="2" title="Р’РѕСЂРєРµСЂ СЃРѕР·РґР°С‘С‚ СЃРґРµР»РєСѓ" text="Р—Р°СЏРІРєР° СЃ РґР°РЅРЅС‹РјРё РїСЂРѕРґР°РІС†Р° СѓС…РѕРґРёС‚ РІР°Рј РІ СЂР°Р·РґРµР» В«Р—Р°СЏРІРєРёВ»." />
-                  <ProcessStep n="3" title="Р’С‹ РїСЂРёРЅРёРјР°РµС‚Рµ Р·Р°СЏРІРєСѓ" text="Р—Р°СЏРІРєР° СѓС…РѕРґРёС‚ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂСѓ РЅР° РїСЂРѕРІРµСЂРєСѓ. РљРѕРЅС‚Р°РєС‚С‹ Рё СЃСѓРјРјР° СЃС‚Р°РЅРѕРІСЏС‚СЃСЏ РІРёРґРёРјС‹РјРё РїРѕСЃР»Рµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ." />
-                  <ProcessStep n="4" title="РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ в†’ РЅР°С‡РёСЃР»РµРЅРёРµ" text="РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РїРѕРґС‚РІРµСЂР¶РґР°РµС‚ РѕРїР»Р°С‚Сѓ, СЃСЂРµРґСЃС‚РІР° РїРѕРїР°РґР°СЋС‚ РЅР° Р±Р°Р»Р°РЅСЃ." />
+                  <ProcessStep n="1" title="Воркер переходит по ссылке" text="Регистрация автоматически связывается с вашим профилем." />
+                  <ProcessStep n="2" title="Воркер создаёт сделку" text="Заявка с данными продавца уходит вам в раздел «Заявки»." />
+                  <ProcessStep n="3" title="Вы принимаете заявку" text="Заявка уходит администратору на проверку. Контакты и сумма становятся видимыми после подтверждения." />
+                  <ProcessStep n="4" title="Подтверждение → начисление" text="Администратор подтверждает оплату, средства попадают на баланс." />
                 </Stack>
               </SectionCard>
             </Stack>
@@ -2157,12 +2157,12 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
           {tab === "finance" ? (
             <Stack>
               <SectionCard
-                title="Р—Р°РїСЂРѕСЃ РІС‹РїР»Р°С‚С‹"
-                lead="РЈРєР°Р¶РёС‚Рµ СЃСѓРјРјСѓ РІ СЂСѓР±Р»СЏС… вЂ” Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РїРѕРґС‚РІРµСЂРґРёС‚ РІС‹РїР»Р°С‚Сѓ РІСЂСѓС‡РЅСѓСЋ."
+                title="Запрос выплаты"
+                lead="Укажите сумму в рублях — администратор подтвердит выплату вручную."
               >
                 <Stack>
                   <TwoColumn>
-                    <Field label="РЎСѓРјРјР° РІС‹РїР»Р°С‚С‹, в‚Ѕ" help={`Р”РѕСЃС‚СѓРїРЅРѕ: ${formatMoney(me.balance)}`}>
+                    <Field label="Сумма выплаты, ₽" help={`Доступно: ${formatMoney(me.balance)}`}>
                       <TextInput
                         inputMode="decimal"
                         value={payoutForm.amount_rub}
@@ -2175,36 +2175,36 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                         onClick={() => payoutRequestMutation.mutate()}
                         disabled={payoutRequestMutation.isPending || !payoutForm.amount_rub}
                       >
-                        {payoutRequestMutation.isPending ? "РћС‚РїСЂР°РІР»СЏРµРјвЂ¦" : "Р—Р°РїСЂРѕСЃРёС‚СЊ РІС‹РїР»Р°С‚Сѓ"}
+                        {payoutRequestMutation.isPending ? "Отправляем…" : "Запросить выплату"}
                       </Button>
                     </div>
                   </TwoColumn>
                   {!me.payout_card_last4 ? (
                     <Message tone="default">
-                      РљР°СЂС‚Р° РґР»СЏ РІС‹РїР»Р°С‚ РЅРµ РїСЂРёРІСЏР·Р°РЅР°. Р”РѕР±Р°РІСЊС‚Рµ РµС‘ РІ СЂР°Р·РґРµР»Рµ В«РџСЂРѕС„РёР»СЊВ», РёРЅР°С‡Рµ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ РЅРµ СЃРјРѕР¶РµС‚ РїСЂРѕРІРµСЃС‚Рё РїРµСЂРµРІРѕРґ.
+                      Карта для выплат не привязана. Добавьте её в разделе «Профиль», иначе администратор не сможет провести перевод.
                     </Message>
                   ) : null}
                   {payoutWidgetQuery.data?.enabled ? (
                     <Message tone="default">
-                      Р”РѕСЃС‚СѓРїРЅР° Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєР°СЏ РІС‹РїР»Р°С‚Р° С‡РµСЂРµР· РІРёРґР¶РµС‚ Р®Kassa. РЎРєРѕСЂРѕ РїРѕСЏРІРёС‚СЃСЏ РїСЂСЏРјРѕ Р·РґРµСЃСЊ.
+                      Доступна автоматическая выплата через виджет ЮKassa. Скоро появится прямо здесь.
                     </Message>
                   ) : null}
                 </Stack>
               </SectionCard>
 
-              <SectionCard title="РСЃС‚РѕСЂРёСЏ РѕРїРµСЂР°С†РёР№" lead="РќР°С‡РёСЃР»РµРЅРёСЏ, Р·Р°РјРѕСЂРѕР·РєРё, Р·Р°РїСЂРѕСЃС‹ Рё Р·Р°РІРµСЂС€С‘РЅРЅС‹Рµ РІС‹РїР»Р°С‚С‹.">
+              <SectionCard title="РСЃС‚РѕСЂРёСЏ операций" lead="Начисления, заморозки, запросы и завершённые выплаты.">
                 <div className={styles.toolbarRow}>
                   <div className={styles.toolbarFilters}>
                     <SelectInput
                       value={ledgerStatusFilter}
                       onChange={(event) => setLedgerStatusFilter(event.target.value as LedgerEntryStatus | "ALL")}
                     >
-                      <option value="ALL">Р’СЃРµ РѕРїРµСЂР°С†РёРё ({ledger.length})</option>
-                      <option value="payout_request">Р—Р°РїСЂРѕСЃС‹ РІС‹РїР»Р°С‚</option>
-                      <option value="freeze">Р—Р°РјРѕСЂРѕР·РєРё</option>
-                      <option value="pending_confirmation">РћР¶РёРґР°СЋС‚ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ</option>
-                      <option value="completed">Р—Р°РІРµСЂС€С‘РЅРЅС‹Рµ</option>
-                      <option value="rejected">РћС‚РєР»РѕРЅС‘РЅРЅС‹Рµ</option>
+                      <option value="ALL">Все операции ({ledger.length})</option>
+                      <option value="payout_request">Запросы выплат</option>
+                      <option value="freeze">Заморозки</option>
+                      <option value="pending_confirmation">Ожидают подтверждения</option>
+                      <option value="completed">Завершённые</option>
+                      <option value="rejected">Отклонённые</option>
                     </SelectInput>
                   </div>
                 </div>
@@ -2213,8 +2213,8 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                 ) : filteredLedger.length === 0 ? (
                   <EmptyState
                     icon={<Icon d={ICONS.finance} />}
-                    title="РСЃС‚РѕСЂРёСЏ РїСѓСЃС‚Р°"
-                    text="Р—РґРµСЃСЊ РїРѕСЏРІСЏС‚СЃСЏ РІР°С€Рё РЅР°С‡РёСЃР»РµРЅРёСЏ Рё РІС‹РїР»Р°С‚С‹."
+                    title="РСЃС‚РѕСЂРёСЏ пуста"
+                    text="Здесь появятся ваши начисления и выплаты."
                   />
                 ) : (
                   <LedgerTable items={filteredLedger} onSelect={(entry) => setActiveLedgerId(entry.id)} />
@@ -2236,12 +2236,12 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
 
       {showCopyModal ? (
         <Modal
-          title="РЎСЃС‹Р»РєР° СЃРєРѕРїРёСЂРѕРІР°РЅР°"
+          title="Ссылка скопирована"
           onClose={() => setShowCopyModal(false)}
-          actions={<Button kind="secondary" onClick={() => setShowCopyModal(false)}>Р—Р°РєСЂС‹С‚СЊ</Button>}
+          actions={<Button kind="secondary" onClick={() => setShowCopyModal(false)}>Закрыть</Button>}
         >
           <Message tone="success">
-            Р РµС„РµСЂР°Р»СЊРЅР°СЏ СЃСЃС‹Р»РєР° СѓР¶Рµ РІ Р±СѓС„РµСЂРµ РѕР±РјРµРЅР°. РњРѕР¶РЅРѕ СЃСЂР°Р·Сѓ РѕС‚РїСЂР°РІР»СЏС‚СЊ РµС‘ СЂР°Р±РѕС‚РЅРёРєР°Рј.
+            Реферальная ссылка уже в буфере обмена. Можно сразу отправлять её работникам.
           </Message>
         </Modal>
       ) : null}
@@ -2257,7 +2257,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                 acceptAction={
                   activeDeal.status === "NEW"
                     ? {
-                        label: "РџСЂРёРЅСЏС‚СЊ Р·Р°СЏРІРєСѓ",
+                        label: "Принять заявку",
                         onAction: () => acceptDealMutation.mutate(activeDeal.id),
                         pending: acceptDealMutation.isPending,
                       }
@@ -2331,14 +2331,14 @@ const BloggerUnlockCard = ({
         <div className={styles.unlockIcon}>
           <Icon d={ICONS.lock} />
         </div>
-        <h2>Р’РІРµРґРёС‚Рµ PIN РєР°Р±РёРЅРµС‚Р°</h2>
-        <p>PIN Р·Р°РґР°С‘С‚ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂ. Р‘РµР· РЅРµРіРѕ С‡СѓРІСЃС‚РІРёС‚РµР»СЊРЅС‹Рµ РґР°РЅРЅС‹Рµ РєР°Р±РёРЅРµС‚Р° Р±Р»РѕРіРµСЂР° РѕСЃС‚Р°СЋС‚СЃСЏ СЃРєСЂС‹С‚С‹РјРё.</p>
+        <h2>Введите PIN кабинета</h2>
+        <p>PIN задаёт администратор. Без него чувствительные данные кабинета блогера остаются скрытыми.</p>
         <Field label="PIN">
           <TextInput
             type="password"
             value={pin}
             onChange={(event) => setPin(event.target.value)}
-            placeholder="вЂўвЂўвЂўвЂў"
+            placeholder="••••"
             autoFocus
             autoComplete="off"
             onKeyDown={(event) => {
@@ -2347,7 +2347,7 @@ const BloggerUnlockCard = ({
           />
         </Field>
         <Button onClick={() => onUnlock(pin)} disabled={isPending || !pin.trim()}>
-          {isPending ? "РџСЂРѕРІРµСЂСЏРµРјвЂ¦" : "РћС‚РєСЂС‹С‚СЊ РєР°Р±РёРЅРµС‚"}
+          {isPending ? "Проверяем…" : "Открыть кабинет"}
         </Button>
         {errorText ? <Message tone="error">{errorText}</Message> : null}
       </div>
@@ -2399,7 +2399,7 @@ export default function CabinetDashboard() {
     content = (
       <div className={styles.fullscreenState}>
         <div className={styles.fullscreenStateInner}>
-          <Message>Р—Р°РіСЂСѓР¶Р°РµРј РєР°Р±РёРЅРµС‚вЂ¦</Message>
+          <Message>Загружаем кабинет…</Message>
         </div>
       </div>
     );
@@ -2415,7 +2415,7 @@ export default function CabinetDashboard() {
     content = (
       <div className={styles.fullscreenState}>
         <div className={styles.fullscreenStateInner}>
-          <Message>РџРѕРґРєР»СЋС‡Р°РµРј СЃРµСЃСЃРёСЋвЂ¦</Message>
+          <Message>Подключаем сессию…</Message>
         </div>
       </div>
     );
@@ -2432,16 +2432,16 @@ export default function CabinetDashboard() {
   } else if (meQuery.data.role === "Bloger") {
     content = <BloggerCabinet me={meQuery.data} />;
   } else {
-    content = <Message tone="error">РќРµРёР·РІРµСЃС‚РЅР°СЏ СЂРѕР»СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.</Message>;
+    content = <Message tone="error">Неизвестная роль пользователя.</Message>;
   }
 
   return (
     <PageSurface>
-      <TopNav brandSub={meQuery.data?.role === "Bloger" ? "РєР°Р±РёРЅРµС‚ Р±Р»РѕРіРµСЂР°" : "РєР°Р±РёРЅРµС‚ РІРѕСЂРєРµСЂР°"}>
-        <NavLink href="/">РќР° РіР»Р°РІРЅСѓСЋ</NavLink>
+      <TopNav brandSub={meQuery.data?.role === "Bloger" ? "кабинет блогера" : "кабинет воркера"}>
+        <NavLink href="/">На главную</NavLink>
         {meQuery.data ? (
           <Button type="button" kind="ghost" onClick={() => void logout()}>
-            <Icon d={ICONS.logout} /> Р’С‹Р№С‚Рё
+            <Icon d={ICONS.logout} /> Выйти
           </Button>
         ) : null}
       </TopNav>

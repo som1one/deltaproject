@@ -130,7 +130,7 @@ export const PayoutCardInput = ({
 
   const handleHolder = (value: string) => {
     // Латиница, пробелы, апостроф и дефис — как на тиснении карты.
-    const filtered = value.toUpperCase().replace(/[^A-ZА-ЯЁ \-']/g, "");
+    const filtered = value.toUpperCase().replace(/[^A-ZА-ߨ \-']/g, "");
     setHolder(filtered.slice(0, 40));
   };
 

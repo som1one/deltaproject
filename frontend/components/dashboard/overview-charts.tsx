@@ -315,7 +315,16 @@ export const OverviewCharts = ({ deals }: { deals: readonly DealRead[] }) => {
   const slices = useMemo(() => buildSlices(deals), [deals]);
 
   if (deals.length === 0) {
-    return null;
+    return (
+      <div className={styles.overviewEmpty}>
+        <p className={styles.overviewEmptyEyebrow}>Обзор</p>
+        <h3 className={styles.overviewEmptyTitle}>Здесь появится ваша статистика</h3>
+        <p className={styles.overviewEmptyText}>
+          Пока нет ни одной сделки. Создайте первую заявку — и в этом разделе появятся воронка
+          движения сделок и распределение по статусам.
+        </p>
+      </div>
+    );
   }
 
   return (

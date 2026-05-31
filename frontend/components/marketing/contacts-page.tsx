@@ -78,7 +78,7 @@ export const ContactsPage = () => {
               Самый быстрый способ. Отвечаем в рабочее время в течение нескольких часов.
             </p>
             <div className={styles.contactCardActions}>
-              <a href={CONTACTS.telegramUrl} target="_blank" rel="noreferrer" className={styles.formSubmit}>
+              <a href={CONTACTS.telegramUrl} target="_blank" rel="noreferrer" className={styles.contactAction}>
                 Открыть Telegram
               </a>
               <CopyButton value={CONTACTS.telegram} kind="secondary" toastText="Telegram скопирован" />
@@ -93,7 +93,7 @@ export const ContactsPage = () => {
               Партнёрства, интеграции, юридические вопросы. Ответ в течение одного рабочего дня.
             </p>
             <div className={styles.contactCardActions}>
-              <a href={`mailto:${CONTACTS.email}`} className={styles.formSubmit}>
+              <a href={`mailto:${CONTACTS.email}`} className={styles.contactAction}>
                 Написать письмо
               </a>
               <CopyButton value={CONTACTS.email} kind="secondary" toastText="Email скопирован" />
