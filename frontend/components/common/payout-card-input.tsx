@@ -118,7 +118,7 @@ export const PayoutCardInput = ({
   const brand = (raw ? detectedBrand : (savedBrand as CardBrand | undefined) || detectedBrand) || "unknown";
   const formatted = useMemo(() => formatCardNumber(raw, brand), [raw, brand]);
   // Валидная длина — любой номер в диапазоне 13–19 цифр (Req 4.1, 4.3).
-  const isValidLength = raw.length === 16;
+  const isValidLength = raw.length >= MIN_CARD_DIGITS && raw.length <= MAX_CARD_DIGITS;
   const isLuhnValid = true;
 
   const last4 = raw.slice(-4) || savedLast4 || "";
@@ -129,7 +129,9 @@ export const PayoutCardInput = ({
       : maskedDisplay("", brand);
 
   const handleChange = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 16);
+    // Лимит ввода: 19 цифр (для AmEx — 15). Лишние символы не принимаем.
+    const maxLen = brand === "amex" ? 15 : MAX_CARD_DIGITS;
+    const digits = value.replace(/\D/g, "").slice(0, maxLen);
     setRaw(digits);
     setError(null);
   };
@@ -142,7 +144,7 @@ export const PayoutCardInput = ({
 
   const handleSubmit = () => {
     if (!isValidLength) {
-      setError("Номер карты должен содержать ровно 16 цифр.");
+      setError("Номер карты должен содержать от 13 до 19 цифр.");
       return;
     }
     if (!isLuhnValid) {
@@ -197,7 +199,7 @@ export const PayoutCardInput = ({
               value={formatted}
               onChange={(event) => handleChange(event.target.value)}
               aria-invalid={Boolean(error)}
-              maxLength={19}
+              maxLength={brand === "amex" ? 17 : 23}
             />
             <button
               type="button"
@@ -237,7 +239,7 @@ export const PayoutCardInput = ({
         </Field>
 
         {raw && !isValidLength ? (
-          <Message tone="default">Введено цифр: {raw.length}. Необходимо 16.</Message>
+          <Message tone="default">Введено цифр: {raw.length}. Допустимо 13–19.</Message>
         ) : null}
 
         <Button
