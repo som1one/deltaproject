@@ -386,7 +386,7 @@ export const AdminDashboard = () => {
   });
 
   const partnerCardMutation = useMutation({
-    mutationFn: () => api.setPartnerPayoutCard(selectedUserId, { card_number: partnerCardForm.trim() }),
+    mutationFn: () => api.setPartnerPayoutCard(selectedUserId, { card_number: partnerCardForm.trim(), card_brand: null, card_holder: null }),
     onSuccess: async () => {
       setMessage({ tone: "success", text: "Карта партнёра обновлена." });
       setPartnerCardForm("");
@@ -468,7 +468,7 @@ export const AdminDashboard = () => {
   });
 
   const paymentDetailsMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       // Ссылку отправляем всегда (текстовое поле отражает текущее значение,
       // пустая строка очищает её). Карту включаем в payload только если админ
       // ввёл новый номер (collectionCardDraft), иначе опускаем поле, чтобы
@@ -1961,8 +1961,6 @@ export const AdminDashboard = () => {
                     включить collection_card в payload только при реальном вводе. */}
                 <PayoutCardInput
                   savedLast4={paymentDetailsQuery.data?.collection_card_last4 ?? null}
-                  savedBrand={paymentDetailsQuery.data?.collection_card_brand ?? null}
-                  savedHolder={paymentDetailsQuery.data?.collection_card_holder ?? null}
                   pending={paymentDetailsMutation.isPending}
                   onSubmit={(rawDigits, holder, brand) => {
                     setCollectionCardDraft(rawDigits);
