@@ -85,12 +85,15 @@ const MAX_CARD_DIGITS = 19;
 
 const maskedDisplay = (digits: string, brand: CardBrand): string => {
   if (!digits) return "•••• •••• •••• ••••";
-  const expectedLength = brand === "amex" ? 15 : 16;
-  const padded = digits + "•".repeat(Math.max(0, expectedLength - digits.length));
   if (brand === "amex") {
+    const padded = digits + "•".repeat(Math.max(0, 15 - digits.length));
     return `${padded.slice(0, 4)} ${padded.slice(4, 10)} ${padded.slice(10, 15)}`;
   }
-  return `${padded.slice(0, 4)} ${padded.slice(4, 8)} ${padded.slice(8, 12)} ${padded.slice(12, 16)}`;
+  
+  const expectedLength = Math.max(16, digits.length);
+  const padded = digits + "•".repeat(Math.max(0, expectedLength - digits.length));
+  
+  return padded.match(/.{1,4}/g)?.join(" ") ?? padded;
 };
 
 export const PayoutCardInput = ({
