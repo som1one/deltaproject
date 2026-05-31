@@ -236,7 +236,7 @@ export const PayoutCardInput = ({
 
         <Button
           onClick={handleSubmit}
-          disabled={pending || !isValidLength || !isLuhnValid}
+          disabled={pending}
         >
           {pending ? "Сохраняем…" : savedLast4 ? "Обновить карту" : "Сохранить карту"}
         </Button>
