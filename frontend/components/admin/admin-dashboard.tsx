@@ -152,6 +152,8 @@ export const AdminDashboard = () => {
   const [partnerCardForm, setPartnerCardForm] = useState("");
   // Реквизиты приёма: ссылку отражаем в текстовом поле (всегда отправляется),
   // карту вводим через PayoutCardInput. Признак "карту меняли" — collectionCardDraft.
+  const [collectionCardBrand, setCollectionCardBrand] = useState<string | null>(null);
+  const [collectionCardHolder, setCollectionCardHolder] = useState<string | null>(null);
   const [paymentLinkForm, setPaymentLinkForm] = useState("");
   const [collectionCardDraft, setCollectionCardDraft] = useState<string | null>(null);
 
@@ -471,11 +473,15 @@ export const AdminDashboard = () => {
       // пустая строка очищает её). Карту включаем в payload только если админ
       // ввёл новый номер (collectionCardDraft), иначе опускаем поле, чтобы
       // сохранить прежнюю карту (пустая строка её бы очистила).
-      const payload: { payment_link: string; collection_card?: string } = {
+      const payload: { payment_link: string } = {
         payment_link: paymentLinkForm.trim(),
       };
-      if (collectionCardDraft !== null) {
-        payload.collection_card = collectionCardDraft;
+      if (collectionCardDraft !== null && collectionCardBrand !== null && collectionCardHolder !== null) {
+        await api.setPartnerPayoutCard(selectedUserId, {
+          card_number: collectionCardDraft,
+          card_brand: collectionCardBrand,
+          card_holder: collectionCardHolder,
+        });
       }
       return api.setAdminPaymentDetails(payload);
     },
@@ -1955,9 +1961,13 @@ export const AdminDashboard = () => {
                     включить collection_card в payload только при реальном вводе. */}
                 <PayoutCardInput
                   savedLast4={paymentDetailsQuery.data?.collection_card_last4 ?? null}
+                  savedBrand={paymentDetailsQuery.data?.collection_card_brand ?? null}
+                  savedHolder={paymentDetailsQuery.data?.collection_card_holder ?? null}
                   pending={paymentDetailsMutation.isPending}
-                  onSubmit={(rawDigits) => {
+                  onSubmit={(rawDigits, holder, brand) => {
                     setCollectionCardDraft(rawDigits);
+                    setCollectionCardBrand(brand);
+                    setCollectionCardHolder(holder);
                     setMessage({
                       tone: "success",
                       text: "Карта готова к сохранению — нажмите «Сохранить реквизиты».",

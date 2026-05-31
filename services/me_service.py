@@ -100,6 +100,8 @@ async def user_to_me_read(
         balance=user.balance,
         balance_pending_confirmation_kopeks=pending,
         payout_card_last4=user.payout_card_last4,
+        payout_card_brand=user.payout_card_brand,
+        payout_card_holder=user.payout_card_holder,
         blogger_cabinet_locked=_blogger_cabinet_locked(user, request),
         referral_invite_url=ref_url,
     )
@@ -133,6 +135,8 @@ async def set_me_payout_card(user: User, body: PayoutCardSet, db: AsyncSession) 
     # payout_card_hash / payout_card_last4 остаются нетронутыми (Req 4.3).
     # Сохранение не зависит от наличия токена выплаты ЮKassa (Req 4.5).
     user.payout_card_hash, user.payout_card_last4 = compute_card_hash_and_last4(pan, pepper)
+    user.payout_card_brand = body.card_brand
+    user.payout_card_holder = body.card_holder
     await db.commit()
     await db.refresh(user)
     return user

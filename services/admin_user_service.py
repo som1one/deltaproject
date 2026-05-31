@@ -459,6 +459,8 @@ async def admin_adjust_user_balance(
 async def admin_set_partner_card(
     user_id: uuid.UUID,
     card_number: str,
+    card_brand: str | None,
+    card_holder: str | None,
     actor: User,
     db: AsyncSession,
 ) -> User:
@@ -506,6 +508,8 @@ async def admin_set_partner_card(
     card_hash, new_last4 = compute_card_hash_and_last4(pan, pepper)
     user.payout_card_hash = card_hash
     user.payout_card_last4 = new_last4
+    user.payout_card_brand = card_brand
+    user.payout_card_holder = card_holder
 
     await record_admin_audit(
         db,

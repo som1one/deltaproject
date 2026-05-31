@@ -98,19 +98,24 @@ const maskedDisplay = (digits: string, brand: CardBrand): string => {
 
 export const PayoutCardInput = ({
   savedLast4,
+  savedBrand,
+  savedHolder,
   pending,
   onSubmit,
 }: {
   savedLast4: string | null;
+  savedBrand?: string | null;
+  savedHolder?: string | null;
   pending: boolean;
-  onSubmit: (rawDigits: string) => void;
+  onSubmit: (rawDigits: string, holder: string, brand: string) => void;
 }) => {
   const [raw, setRaw] = useState(""); // только цифры
-  const [holder, setHolder] = useState("");
+  const [holder, setHolder] = useState(savedHolder || "");
   const [revealed, setRevealed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const brand = useMemo(() => detectBrand(raw), [raw]);
+  const detectedBrand = useMemo(() => detectBrand(raw), [raw]);
+  const brand = (raw ? detectedBrand : (savedBrand as CardBrand | undefined) || detectedBrand) || "unknown";
   const formatted = useMemo(() => formatCardNumber(raw, brand), [raw, brand]);
   // Валидная длина — любой номер в диапазоне 13–19 цифр (Req 4.1, 4.3).
   const isValidLength = raw.length >= MIN_CARD_DIGITS && raw.length <= MAX_CARD_DIGITS;
@@ -146,7 +151,7 @@ export const PayoutCardInput = ({
       setError("Номер карты введён с ошибкой — проверьте цифры.");
       return;
     }
-    onSubmit(raw);
+    onSubmit(raw, holder, brand);
     setRaw("");
     setHolder("");
     setRevealed(false);
@@ -223,7 +228,7 @@ export const PayoutCardInput = ({
 
         <Field
           label="Держатель карты"
-          help="Как на лицевой стороне. Используется только для предпросмотра — на сервер не уходит."
+          help="Как на лицевой стороне. Теперь сохраняется на сервере для удобства."
         >
           <TextInput
             placeholder="IVAN IVANOV"

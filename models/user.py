@@ -59,6 +59,8 @@ class User(Base):
     )
     payout_card_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     payout_card_last4: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    payout_card_brand: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    payout_card_holder: Mapped[str | None] = mapped_column(String(255), nullable=True)
     blogger_cabinet_pin_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     blogger_cabinet_pin_set_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),

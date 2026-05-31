@@ -44,6 +44,8 @@ export type UserMeRead = {
   balance: number;
   balance_pending_confirmation_kopeks: number;
   payout_card_last4: string | null;
+  payout_card_brand: string | null;
+  payout_card_holder: string | null;
   blogger_cabinet_locked: boolean;
   referral_invite_url: string | null;
 };
@@ -169,6 +171,8 @@ export type AdminUserRead = {
   balance: number;
   is_active: boolean;
   payout_card_last4: string | null;
+  payout_card_brand: string | null;
+  payout_card_holder: string | null;
   is_owner_admin: boolean;
 };
 

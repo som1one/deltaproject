@@ -186,12 +186,12 @@ export const api = {
       credentials: "include",
       body: JSON.stringify(body),
     }),
-  setPayoutCard: (cardNumber: string) =>
+  setPayoutCard: (cardNumber: string, cardHolder: string, cardBrand: string) =>
     request<UserMeRead>("/me/payout-card", {
       method: "POST",
       auth: true,
       credentials: "include",
-      body: JSON.stringify({ card_number: cardNumber }),
+      body: JSON.stringify({ card_number: cardNumber, card_holder: cardHolder, card_brand: cardBrand }),
     }),
   unlockCabinet: (pin: string) =>
     request<{ ok: boolean; unlock_token: string }>("/me/cabinet-unlock", {
@@ -305,7 +305,7 @@ export const api = {
       auth: true,
       body: JSON.stringify(body),
     }),
-  setPartnerPayoutCard: (id: string, body: { card_number: string }) =>
+  setPartnerPayoutCard: (id: string, body: { card_number: string; card_brand: string | null; card_holder: string | null }) =>
     request<AdminUserRead>(`/admin/users/${id}/payout-card`, {
       method: "POST",
       auth: true,

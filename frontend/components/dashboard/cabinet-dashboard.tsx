@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -375,7 +375,7 @@ const DealDetailsModal = ({
   const saveMutation = useMutation({
     mutationFn: () => api.patchDealFields(deal.id, buildDealPatchPayload(form, deal)),
     onSuccess: () => {
-      pushToast("РР·РјРµРЅРµРЅРёСЏ сохранены.", "success");
+      pushToast("Рзменения сохранены.", "success");
       queryClient.invalidateQueries({ queryKey: ["me", "deals"] });
       queryClient.invalidateQueries({ queryKey: ["me", "stats"] });
       onSaved?.();
@@ -600,7 +600,7 @@ const DealDetailsModal = ({
                     </li>
                   ) : null}
                   <li className={styles.dealFinanceTotal}>
-                    <span className={styles.dealFinanceLabel}>РС‚РѕРіРѕ по сделке</span>
+                    <span className={styles.dealFinanceLabel}>Ртого по сделке</span>
                     <span className={styles.dealFinanceValue}>{formatMoney(finalPrice)}</span>
                   </li>
                 </ul>
@@ -913,7 +913,7 @@ const ProfileSection = ({
   me: UserMeRead;
   mutationPending: boolean;
   onSave: (form: { name: string; telegram: string; email: string; password: string; currentPassword: string }) => void;
-  onSetPayoutCard: (cardNumber: string) => void;
+  onSetPayoutCard: (cardNumber: string, holder: string, brand: string) => void;
 }) => {
   const [profileForm, setProfileForm] = useState(buildProfileForm(me));
 
@@ -924,13 +924,13 @@ const ProfileSection = ({
   return (
     <SectionCard
       title="Профиль и реквизиты"
-      lead="РРјСЏ редактируете вы, никнейм и Telegram управляются администратором. Карта для выплат хранится в виде хеша — мы видим только последние 4 цифры."
+      lead="Рмя редактируете вы, никнейм и Telegram управляются администратором. Карта для выплат хранится в виде хеша — мы видим только последние 4 цифры."
     >
       <div className={styles.profileGrid}>
         <div className={styles.profileBlock}>
           <p className={styles.profileBlockTitle}>Контакты</p>
           <TwoColumn>
-            <Field label="РРјСЏ">
+            <Field label="Рмя">
               <TextInput
                 value={profileForm.name}
                 onChange={(event) => setProfileForm({ ...profileForm, name: event.target.value })}
@@ -964,8 +964,10 @@ const ProfileSection = ({
           <p className={styles.profileBlockTitle}>Карта для выплат</p>
           <PayoutCardInput
             savedLast4={me.payout_card_last4 ?? null}
+            savedBrand={me.payout_card_brand}
+            savedHolder={me.payout_card_holder}
             pending={mutationPending}
-            onSubmit={(rawDigits) => onSetPayoutCard(rawDigits)}
+            onSubmit={(rawDigits, holder, brand) => onSetPayoutCard(rawDigits, holder, brand)}
           />
         </div>
       </div>
@@ -1033,7 +1035,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
   });
 
   const payoutCardMutation = useMutation({
-    mutationFn: (cardNumber: string) => api.setPayoutCard(cardNumber),
+    mutationFn: ({ cardNumber, holder, brand }: { cardNumber: string, holder: string, brand: string }) => api.setPayoutCard(cardNumber, holder, brand),
     onSuccess: () => {
       setToast({ tone: "success", text: "Карта для выплат обновлена." });
       queryClient.invalidateQueries({ queryKey: ["me"] });
@@ -1463,7 +1465,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
 
               <SectionCard
                 title="Финансы"
-                lead="РСЃС‚РѕСЂРёСЏ начислений, заморозок и выплат."
+                lead="Рстория начислений, заморозок и выплат."
               >
                 <div className={styles.toolbarRow}>
                   <div className={styles.toolbarFilters}>
@@ -1485,7 +1487,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                 ) : filteredLedger.length === 0 ? (
                   <EmptyState
                     icon={<Icon d={ICONS.finance} />}
-                    title="РСЃС‚РѕСЂРёСЏ пуста"
+                    title="Рстория пуста"
                     text="Здесь появятся ваши начисления и выплаты."
                   />
                 ) : (
@@ -1500,7 +1502,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
               me={me}
               mutationPending={profileMutation.isPending || payoutCardMutation.isPending}
               onSave={(form) => profileMutation.mutate(form)}
-              onSetPayoutCard={(card) => payoutCardMutation.mutate(card)}
+              onSetPayoutCard={(cardNumber, holder, brand) => payoutCardMutation.mutate({ cardNumber, holder, brand })}
             />
           ) : null}
         </div>
@@ -1876,7 +1878,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
   });
 
   const payoutCardMutation = useMutation({
-    mutationFn: (cardNumber: string) => api.setPayoutCard(cardNumber),
+    mutationFn: ({ cardNumber, holder, brand }: { cardNumber: string, holder: string, brand: string }) => api.setPayoutCard(cardNumber, holder, brand),
     onSuccess: () => {
       setToast({ tone: "success", text: "Карта для выплат обновлена." });
       queryClient.invalidateQueries({ queryKey: ["me"] });
@@ -2192,7 +2194,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                 </Stack>
               </SectionCard>
 
-              <SectionCard title="РСЃС‚РѕСЂРёСЏ операций" lead="Начисления, заморозки, запросы и завершённые выплаты.">
+              <SectionCard title="Рстория операций" lead="Начисления, заморозки, запросы и завершённые выплаты.">
                 <div className={styles.toolbarRow}>
                   <div className={styles.toolbarFilters}>
                     <SelectInput
@@ -2213,7 +2215,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                 ) : filteredLedger.length === 0 ? (
                   <EmptyState
                     icon={<Icon d={ICONS.finance} />}
-                    title="РСЃС‚РѕСЂРёСЏ пуста"
+                    title="Рстория пуста"
                     text="Здесь появятся ваши начисления и выплаты."
                   />
                 ) : (
@@ -2228,7 +2230,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
               me={me}
               mutationPending={profileMutation.isPending || payoutCardMutation.isPending}
               onSave={(form) => profileMutation.mutate(form)}
-              onSetPayoutCard={(card) => payoutCardMutation.mutate(card)}
+              onSetPayoutCard={(cardNumber, holder, brand) => payoutCardMutation.mutate({ cardNumber, holder, brand })}
             />
           ) : null}
         </div>
