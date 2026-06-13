@@ -260,3 +260,68 @@ export function BloggerCardSkeleton() {
     </div>
   );
 }
+
+// ============================================================
+// Order types and components
+// ============================================================
+
+export type OrderItem = {
+  id: string;
+  blogger_id: string;
+  client_id: string;
+  blogger_name?: string;
+  client_name?: string;
+  message?: string;
+  amount_kopeks?: number;
+  status: string;
+  created_at: string;
+  updated_at?: string;
+};
+
+export function statusClass(status: string): string {
+  switch (status) {
+    case "ESCROW_HELD":
+    case "open":
+      return styles.statusActive ?? "";
+    case "BLOGGER_CONFIRMED":
+    case "COMPLETED":
+    case "resolved":
+      return styles.statusSuccess ?? "";
+    case "CANCELLED":
+    case "REFUNDED":
+      return styles.statusDanger ?? "";
+    default:
+      return styles.statusMuted ?? "";
+  }
+}
+
+export function OrderCard({
+  order,
+  action,
+}: {
+  order: OrderItem;
+  action?: React.ReactNode;
+}) {
+  const formatMoney = (val?: number) => {
+    if (val == null) return "—";
+    return new Intl.NumberFormat("ru-RU", {
+      style: "currency",
+      currency: "RUB",
+      maximumFractionDigits: 0,
+    }).format(val / 100);
+  };
+
+  return (
+    <div className={styles.rowItem}>
+      <div>
+        <strong>{order.blogger_name || `Блогер #${order.blogger_id.slice(0, 8)}`}</strong>
+        {order.message && <p className={styles.muted}>{order.message}</p>}
+        <p className={styles.muted}>
+          {order.amount_kopeks != null && <span>{formatMoney(order.amount_kopeks)} · </span>}
+          <span className={statusClass(order.status)}>{order.status}</span>
+        </p>
+      </div>
+      {action && <div>{action}</div>}
+    </div>
+  );
+}

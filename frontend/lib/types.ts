@@ -328,6 +328,19 @@ export type PaymentRequisites = {
   available: boolean;
 };
 
+export type BloggerProfile = {
+  id: string;
+  user_id: string;
+  name: string;
+  telegram_username?: string;
+  profile_image_url?: string;
+  category?: string;
+  description?: string;
+  audience_size?: number;
+  price_per_post?: number;
+  gender?: string;
+};
+
 export type AdminPaymentDetails = {
   payment_link: string | null;
   collection_card_last4: string | null;

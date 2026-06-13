@@ -11,6 +11,7 @@ type AuthContextValue = {
   accessToken: string;
   refreshToken: string;
   isAuthenticated: boolean;
+  isBlogger: boolean;
   setSession: (accessToken: string, refreshToken: string) => void;
   clearSession: () => void;
   logout: () => Promise<void>;
@@ -60,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       accessToken,
       refreshToken,
       isAuthenticated: Boolean(accessToken),
+      isBlogger: false,
       setSession,
       clearSession,
       logout,
