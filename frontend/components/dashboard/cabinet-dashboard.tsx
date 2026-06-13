@@ -913,7 +913,7 @@ const ProfileSection = ({
   me: UserMeRead;
   mutationPending: boolean;
   onSave: (form: { name: string; telegram: string; email: string; password: string; currentPassword: string }) => void;
-  onSetPayoutCard: (cardNumber: string, holder: string, brand: string) => void;
+  onSetPayoutCard: (cardNumber: string, holder: string, brand: string, bank: string) => void;
 }) => {
   const [profileForm, setProfileForm] = useState(buildProfileForm(me));
 
@@ -966,8 +966,9 @@ const ProfileSection = ({
             savedLast4={me.payout_card_last4 ?? null}
             savedBrand={me.payout_card_brand}
             savedHolder={me.payout_card_holder}
+            savedBank={me.payout_card_bank}
             pending={mutationPending}
-            onSubmit={(rawDigits, holder, brand) => onSetPayoutCard(rawDigits, holder, brand)}
+            onSubmit={(rawDigits, holder, brand, bank) => onSetPayoutCard(rawDigits, holder, brand, bank)}
           />
         </div>
       </div>
@@ -1035,7 +1036,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
   });
 
   const payoutCardMutation = useMutation({
-    mutationFn: ({ cardNumber, holder, brand }: { cardNumber: string, holder: string, brand: string }) => api.setPayoutCard(cardNumber, holder, brand),
+    mutationFn: ({ cardNumber, holder, brand, bank }: { cardNumber: string, holder: string, brand: string, bank: string }) => api.setPayoutCard(cardNumber, holder, brand, bank),
     onSuccess: () => {
       setToast({ tone: "success", text: "Карта для выплат обновлена." });
       queryClient.invalidateQueries({ queryKey: ["me"] });
@@ -1502,7 +1503,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
               me={me}
               mutationPending={profileMutation.isPending || payoutCardMutation.isPending}
               onSave={(form) => profileMutation.mutate(form)}
-              onSetPayoutCard={(cardNumber, holder, brand) => payoutCardMutation.mutate({ cardNumber, holder, brand })}
+              onSetPayoutCard={(cardNumber, holder, brand, bank) => payoutCardMutation.mutate({ cardNumber, holder, brand, bank })}
             />
           ) : null}
         </div>
@@ -1878,7 +1879,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
   });
 
   const payoutCardMutation = useMutation({
-    mutationFn: ({ cardNumber, holder, brand }: { cardNumber: string, holder: string, brand: string }) => api.setPayoutCard(cardNumber, holder, brand),
+    mutationFn: ({ cardNumber, holder, brand, bank }: { cardNumber: string, holder: string, brand: string, bank: string }) => api.setPayoutCard(cardNumber, holder, brand, bank),
     onSuccess: () => {
       setToast({ tone: "success", text: "Карта для выплат обновлена." });
       queryClient.invalidateQueries({ queryKey: ["me"] });
@@ -2230,7 +2231,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
               me={me}
               mutationPending={profileMutation.isPending || payoutCardMutation.isPending}
               onSave={(form) => profileMutation.mutate(form)}
-              onSetPayoutCard={(cardNumber, holder, brand) => payoutCardMutation.mutate({ cardNumber, holder, brand })}
+              onSetPayoutCard={(cardNumber, holder, brand, bank) => payoutCardMutation.mutate({ cardNumber, holder, brand, bank })}
             />
           ) : null}
         </div>

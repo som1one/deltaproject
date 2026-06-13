@@ -463,6 +463,7 @@ async def admin_set_partner_card(
     card_holder: str | None,
     actor: User,
     db: AsyncSession,
+    card_bank: str | None = None,
 ) -> User:
     """Установить карту выплаты партнёра администратором (Req 5.3, 5.6, 5.10).
 
@@ -510,6 +511,7 @@ async def admin_set_partner_card(
     user.payout_card_last4 = new_last4
     user.payout_card_brand = card_brand
     user.payout_card_holder = card_holder
+    user.payout_card_bank = card_bank
 
     await record_admin_audit(
         db,

@@ -186,12 +186,12 @@ export const api = {
       credentials: "include",
       body: JSON.stringify(body),
     }),
-  setPayoutCard: (cardNumber: string, cardHolder: string, cardBrand: string) =>
+  setPayoutCard: (cardNumber: string, cardHolder: string, cardBrand: string, cardBank: string) =>
     request<UserMeRead>("/me/payout-card", {
       method: "POST",
       auth: true,
       credentials: "include",
-      body: JSON.stringify({ card_number: cardNumber, card_holder: cardHolder, card_brand: cardBrand }),
+      body: JSON.stringify({ card_number: cardNumber, card_holder: cardHolder, card_brand: cardBrand, card_bank: cardBank }),
     }),
   unlockCabinet: (pin: string) =>
     request<{ ok: boolean; unlock_token: string }>("/me/cabinet-unlock", {

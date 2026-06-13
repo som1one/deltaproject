@@ -26,6 +26,7 @@ class UserMeRead(BaseModel):
     payout_card_last4: str | None = None
     payout_card_brand: str | None = None
     payout_card_holder: str | None = None
+    payout_card_bank: str | None = None
     blogger_cabinet_locked: bool = False
     referral_invite_url: str | None = None
 
@@ -45,6 +46,7 @@ class PayoutCardSet(BaseModel):
     card_number: Annotated[str, Field(min_length=12, max_length=32)]
     card_brand: str | None = None
     card_holder: str | None = None
+    card_bank: str | None = None
 
 class UserMePatch(BaseModel):
     name: Annotated[str | None, Field(None, min_length=1, max_length=255)] = None

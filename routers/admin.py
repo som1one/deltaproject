@@ -184,7 +184,7 @@ async def post_admin_user_payout_card(
     admin: Annotated[User, Depends(get_current_admin_or_tech)],
 ) -> AdminUserRead:
     user = await admin_set_partner_card(
-        user_id, body.card_number, body.card_brand, body.card_holder, actor=admin, db=db
+        user_id, body.card_number, body.card_brand, body.card_holder, actor=admin, db=db, card_bank=body.card_bank
     )
     return AdminUserRead.model_validate(user)
 

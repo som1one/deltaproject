@@ -25,6 +25,7 @@ class AdminUserRead(BaseModel):
     payout_card_last4: str | None = None
     payout_card_brand: str | None = None
     payout_card_holder: str | None = None
+    payout_card_bank: str | None = None
     @computed_field  # type: ignore[prop-decorator]
     @property
     def is_owner_admin(self) -> bool:
@@ -82,6 +83,7 @@ class AdminPartnerCardSet(BaseModel):
     card_number: Annotated[str, Field(min_length=12, max_length=32)]
     card_brand: str | None = None
     card_holder: str | None = None
+    card_bank: str | None = None
 
 class AdminAuditEntryRead(BaseModel):
     model_config = {"from_attributes": True}

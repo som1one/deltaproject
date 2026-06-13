@@ -46,6 +46,7 @@ export type UserMeRead = {
   payout_card_last4: string | null;
   payout_card_brand: string | null;
   payout_card_holder: string | null;
+  payout_card_bank: string | null;
   blogger_cabinet_locked: boolean;
   referral_invite_url: string | null;
 };
@@ -173,6 +174,7 @@ export type AdminUserRead = {
   payout_card_last4: string | null;
   payout_card_brand: string | null;
   payout_card_holder: string | null;
+  payout_card_bank: string | null;
   is_owner_admin: boolean;
 };
 

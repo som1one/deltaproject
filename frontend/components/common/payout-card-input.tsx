@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { Button, Field, Message, TextInput } from "@/components/common/ui";
+import { Button, Field, Message, SelectInput, TextInput } from "@/components/common/ui";
 
 import styles from "./payout-card-input.module.css";
 
@@ -48,6 +48,45 @@ const BRAND_LABEL: Record<CardBrand, string> = {
   amex: "American Express",
   unknown: "Карта",
 };
+
+/* ---------- Bank list ---------- */
+const BANK_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "— Выберите банк —" },
+  // Россия
+  { value: "sberbank", label: "Сбербанк" },
+  { value: "tinkoff", label: "Т-Банк (Тинькофф)" },
+  { value: "alfa", label: "Альфа-Банк" },
+  { value: "vtb", label: "ВТБ" },
+  { value: "gazprombank", label: "Газпромбанк" },
+  { value: "raiffeisen", label: "Райффайзенбанк" },
+  { value: "otkritie", label: "Открытие" },
+  { value: "rosbank", label: "Росбанк" },
+  { value: "sovcombank", label: "Совкомбанк" },
+  { value: "pochta", label: "Почта Банк" },
+  { value: "mts_bank", label: "МТС Банк" },
+  { value: "rosselhoz", label: "Россельхозбанк" },
+  { value: "unicredit", label: "ЮниКредит Банк" },
+  { value: "promsvyaz", label: "Промсвязьбанк" },
+  { value: "uralsib", label: "Уралсиб" },
+  { value: "ak_bars", label: "Ак Барс Банк" },
+  { value: "dom_rf", label: "Банк ДОМ.РФ" },
+  { value: "ren_credit", label: "Ренессанс Кредит" },
+  { value: "homecredit", label: "Хоум Банк" },
+  { value: "ozon_bank", label: "Озон Банк" },
+  { value: "yandex_bank", label: "Яндекс Банк" },
+  // Беларусь
+  { value: "belarusbank", label: "Беларусбанк (Беларусь)" },
+  { value: "belagroprom", label: "Белагропромбанк (Беларусь)" },
+  { value: "prior", label: "Приорбанк (Беларусь)" },
+  { value: "bps_sberbank", label: "БПС-Сбербанк (Беларусь)" },
+  { value: "alfa_by", label: "Альфа-Банк (Беларусь)" },
+  { value: "mtbank", label: "МТБанк (Беларусь)" },
+  { value: "belinvest", label: "Белинвестбанк (Беларусь)" },
+  { value: "dabrabyt", label: "Банк Дабрабыт (Беларусь)" },
+  { value: "belveb", label: "БелВЭБ (Беларусь)" },
+  // Другое
+  { value: "other", label: "Другой банк" },
+];
 
 /** Группирует цифры по 4 (для Amex — 4-6-5). */
 const formatCardNumber = (digits: string, brand: CardBrand): string => {
@@ -100,17 +139,20 @@ export const PayoutCardInput = ({
   savedLast4,
   savedBrand,
   savedHolder,
+  savedBank,
   pending,
   onSubmit,
 }: {
   savedLast4: string | null;
   savedBrand?: string | null;
   savedHolder?: string | null;
+  savedBank?: string | null;
   pending: boolean;
-  onSubmit: (rawDigits: string, holder: string, brand: string) => void;
+  onSubmit: (rawDigits: string, holder: string, brand: string, bank: string) => void;
 }) => {
   const [raw, setRaw] = useState(""); // только цифры
   const [holder, setHolder] = useState(savedHolder || "");
+  const [bank, setBank] = useState(savedBank || "");
   const [revealed, setRevealed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -151,9 +193,10 @@ export const PayoutCardInput = ({
       setError("Номер карты введён с ошибкой — проверьте цифры.");
       return;
     }
-    onSubmit(raw, holder, brand);
+    onSubmit(raw, holder, brand, bank);
     setRaw("");
     setHolder("");
+    setBank("");
     setRevealed(false);
   };
 
@@ -236,6 +279,17 @@ export const PayoutCardInput = ({
             value={holder}
             onChange={(event) => handleHolder(event.target.value)}
           />
+        </Field>
+
+        <Field
+          label="Банк получателя"
+          help="Выберите банк, выпустивший карту."
+        >
+          <SelectInput value={bank} onChange={(event) => setBank(event.target.value)}>
+            {BANK_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </SelectInput>
         </Field>
 
         {raw && !isValidLength ? (
