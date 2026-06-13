@@ -124,6 +124,7 @@ const IntroOverlay = ({ onFinish }: { onFinish: () => void }) => {
 };
 
 import { AgencyNav } from "@/components/marketing/agency-nav";
+import { SiteFooter } from "@/components/common/site-footer";
 
 /* =========================================================
    Main landing
@@ -368,27 +369,7 @@ export const AgencyLandingPage = () => {
         </StaggerGroup>
       </section>
 
-      {/* ---------- Footer ---------- */}
-      <footer className={styles.footer}>
-        <div className={styles.footerGlow} aria-hidden />
-        <div className={styles.footerInner}>
-          <div className={styles.footerTop}>
-            <span className={styles.footerLogo}>
-              Looney Moon
-            </span>
-            <div className={styles.footerLinks}>
-              <Link href="/contacts">Политика конфиденциальности</Link>
-              <Link href="/contacts">Условия использования</Link>
-            </div>
-          </div>
-
-          <div className={styles.footerBottom}>
-            <span className={styles.footerCopy}>
-              © {new Date().getFullYear()} looney moon. Все права защищены.
-            </span>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 };

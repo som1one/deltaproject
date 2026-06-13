@@ -1,410 +1,166 @@
 "use client";
 
 import Link from "next/link";
-import {
-  motion,
-  useReducedMotion,
-  useScroll,
-  useSpring,
-  useTransform,
-} from "framer-motion";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-import { AnimatedSection, StaggerGroup, StaggerItem } from "@/components/common/animated-section";
-import { MarketingNav } from "@/components/marketing/marketing-nav";
-import { useSessionTarget } from "@/lib/use-session-target";
-import styles from "@/components/marketing/landing.module.css";
+import { categoryLabel } from "@/components/marketplace/stitch-marketplace";
+import { SiteFooter } from "@/components/common/site-footer";
+import { appConfig } from "@/lib/config";
+import styles from "@/components/marketing/marketplace-landing.module.css";
 
-const QUOTE = "«Великое рождается из тишины, а не из шума».";
-const AUTHOR = "Томас Карлейль";
+type FeaturedBlogger = {
+  id: string;
+  name: string;
+  category?: string;
+  profile_image_url?: string | null;
+};
 
-const manifestoLines: { strong: string; soft: string }[] = [
-  { strong: "Прозрачные сделки", soft: "от первой переписки до выплаты." },
-  { strong: "Точные расчёты", soft: "без таблиц и калькуляторов." },
-  { strong: "Защищённая сеть", soft: "блогеров, работников и рефералов." },
-  { strong: "Одна платформа", soft: "вместо десятка чатов и документов." },
-];
-
-const processSteps: { num: string; title: string; text: string }[] = [
+const fallbackFeaturedBloggers: FeaturedBlogger[] = [
   {
-    num: "01",
-    title: "Работник находит продавца",
-    text: "Пишет по готовым скриптам, согласовывает рекламу и заводит сделку в системе.",
+    id: "featured-lina",
+    name: "Лина Мороз",
+    category: "lifestyle",
+    profile_image_url: "/images/placeholder-portrait.jpg",
   },
   {
-    num: "02",
-    title: "Блогер принимает интеграцию",
-    text: "Видит заявку, согласовывает контакты и сумму, выпускает рекламу.",
+    id: "featured-maya",
+    name: "Майя Север",
+    category: "beauty",
+    profile_image_url: "/images/placeholder-portrait.jpg",
   },
   {
-    num: "03",
-    title: "Администратор подтверждает",
-    text: "Каждая сделка проходит проверку. После статуса «Оплачена» включается распределение.",
+    id: "featured-ivan",
+    name: "Иван Крафт",
+    category: "tech",
+    profile_image_url: "/images/placeholder-portrait.jpg",
   },
   {
-    num: "04",
-    title: "Система считает выплаты",
-    text: "Доли работника, блогера, реферала и платформы попадают на балансы автоматически.",
+    id: "featured-nika",
+    name: "Ника Ветер",
+    category: "travel",
+    profile_image_url: "/images/placeholder-portrait.jpg",
   },
 ];
 
-/* =========================================================
-   Intro overlay - typewriter reveal
-   Each character pops in (opacity only) to feel like typing.
-   After full reveal, the whole panel dissolves quickly.
-   ========================================================= */
+const roles = [
+  {
+    title: "Рекламодателям",
+    text: "Каталог проверенных блогеров с фильтрами по нишам, аудитории и цене. Быстрый бриф и прозрачная статистика.",
+    href: "/marketplace",
+    cta: "Открыть каталог",
+  },
+  {
+    title: "Блогерам",
+    text: "Заявки на интеграции, управление расписанием и гарантированные выплаты в едином личном кабинете.",
+    href: "/blogger/login",
+    cta: "Кабинет автора",
+  },
+];
 
-const IntroOverlay = ({ onFinish }: { onFinish: () => void }) => {
-  // Split into words first so wrapping happens only on whitespace.
-  // Inside each word characters stagger one-by-one for a typewriter feel.
-  const tokens = useMemo(() => {
-    const parts = QUOTE.split(/(\s+)/);
-    let charIndex = 0;
-    return parts.map((part) => {
-      const isSpace = /^\s+$/.test(part);
-      const chars = Array.from(part).map((char) => ({ char, idx: charIndex++ }));
-      return { isSpace, chars };
-    });
-  }, []);
-  const totalChars = useMemo(
-    () => tokens.reduce((acc, token) => acc + token.chars.length, 0),
-    [tokens],
-  );
-
-  // Approximate timing: stagger * count + small tail after the last character.
-  const quoteRevealMs = 150 + totalChars * 28 + 220;
-  const authorDwellMs = 600;
-  const exitMs = 520;
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(onFinish, quoteRevealMs + authorDwellMs + exitMs);
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [authorDwellMs, exitMs, onFinish, quoteRevealMs]);
-
-  return (
-    <div
-      className={styles.intro}
-      style={{
-        animationDelay: `${quoteRevealMs + authorDwellMs}ms`,
-        animationDuration: `${exitMs}ms`,
-      }}
-    >
-      <button type="button" className={styles.introSkip} onClick={onFinish}>
-        Пропустить
-      </button>
-
-      <div className={styles.introInner}>
-        <p className={styles.introQuote}>
-          {tokens.map((token, tokenIdx) =>
-            token.isSpace ? (
-              <span key={`space-${tokenIdx}`} className={styles.introSpace}>
-                {token.chars.map(({ char }) => char).join("")}
-              </span>
-            ) : (
-              <span key={`word-${tokenIdx}`} className={styles.introWord}>
-                {token.chars.map(({ char, idx }) => (
-                  <span
-                    key={`${char}-${idx}`}
-                    className={styles.introChar}
-                    style={{ animationDelay: `${150 + idx * 28}ms` }}
-                  >
-                    {char}
-                  </span>
-                ))}
-              </span>
-            ),
-          )}
-        </p>
-
-        <div className={styles.introAuthorSlot}>
-          <div className={styles.introAuthorWrap} style={{ animationDelay: `${quoteRevealMs}ms` }}>
-            <span className={styles.introAuthorOrn} aria-hidden />
-            <p className={styles.introAuthor}>{AUTHOR}</p>
-            <span className={styles.introAuthorOrn} aria-hidden />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const TopBar = ({ session }: { session: ReturnType<typeof useSessionTarget> }) => {
-  const isLoggedIn = session.ready && session.isAuthenticated && Boolean(session.href);
-  const accountHref = isLoggedIn ? (session.href as string) : "/register";
-  const accountLabel = isLoggedIn ? (session.label as string) : "Войти";
-
-  return (
-    <MarketingNav
-      items={[
-        { href: "#manifest", label: "О платформе" },
-        { href: "/faq", label: "FAQ" },
-        { href: "/contacts", label: "Контакты" },
-      ]}
-      cta={{ href: accountHref, label: accountLabel }}
-    />
-  );
-};
-
-/* =========================================================
-   Main landing
-   ========================================================= */
+const flow = ["Выбор автора", "Бриф и заказ", "Интеграция", "Выплаты"];
 
 export const LandingPage = () => {
-  const [introVisible, setIntroVisible] = useState(true);
-  // `useReducedMotion()` can be `null` on the first render. Normalise to a
-  // real boolean so motion props below are stable from the very first frame.
-  const reduceMotion = useReducedMotion() ?? false;
-
-  const heroRef = useRef<HTMLElement | null>(null);
-  // Track scroll progress while the hero section moves out of view.
-  // start: hero top hits viewport top -> 0
-  // end:   hero bottom hits viewport top -> 1
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-
-  // Smooth the raw scroll progress with a spring so the moon glides
-  // instead of tracking the wheel 1-to-1.
-  const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 60,
-    damping: 22,
-    mass: 0.6,
-    restDelta: 0.001,
-  });
-
-  // Moon flies up, fades, blurs and shrinks slightly as the user scrolls.
-  // Eased keyframes so motion accelerates gently rather than starting hard.
-  const moonY = useTransform(
-    smoothProgress,
-    [0, 0.25, 0.6, 1],
-    reduceMotion ? [0, 0, 0, 0] : [0, -60, -260, -780],
-  );
-  const moonOpacity = useTransform(smoothProgress, [0, 0.5, 0.85, 1], [1, 0.85, 0.2, 0]);
-  const moonScale = useTransform(
-    smoothProgress,
-    [0, 1],
-    reduceMotion ? [1, 1] : [1, 0.7],
-  );
-  const moonBlur = useTransform(
-    smoothProgress,
-    [0, 0.5, 1],
-    reduceMotion ? ["blur(0px)", "blur(0px)", "blur(0px)"] : ["blur(0px)", "blur(2px)", "blur(8px)"],
-  );
-
-  const heroMoonEntryInitial = reduceMotion
-    ? { opacity: 0 }
-    : { y: "-120vh", opacity: 0, filter: "blur(8px)" };
-
-  const heroMoonEntryAnimate = reduceMotion
-    ? { opacity: 1 }
-    : { y: 0, opacity: 1, filter: "blur(0px)" };
-
-  const heroMoonEntryTransition = reduceMotion
-    ? { duration: 0.4 }
-    : { duration: 1.6, ease: [0.16, 0.84, 0.3, 1] as const };
-
-  const finishIntro = useCallback(() => {
-    setIntroVisible(false);
-  }, []);
-
-  const session = useSessionTarget();
-  const isLoggedIn = session.ready && session.isAuthenticated && Boolean(session.href);
-
-  const primaryCtaHref = isLoggedIn ? (session.href as string) : "/register";
-  const primaryCtaLabel = isLoggedIn ? (session.label as string) : "Начать зарабатывать";
-  const secondaryCtaHref = isLoggedIn ? (session.href as string) : "/blogger/login";
-  const secondaryCtaLabel = isLoggedIn ? "К моему кабинету" : "Стать блогером";
-
   return (
     <main className={styles.page}>
-      {introVisible ? <IntroOverlay key="intro" onFinish={finishIntro} /> : null}
-
-      <TopBar session={session} />
-
-      {/* ---------- Hero ---------- */}
-      <section className={styles.hero} ref={heroRef}>
-        <video
-          className={styles.heroVideo}
-          autoPlay
-          muted
-          loop
-          playsInline
-          aria-hidden="true"
-          poster="/images/hero-poster.jpg"
-        >
-          <source src="/videos/hero.mp4" type="video/mp4" />
-        </video>
-
-        <div className={styles.heroOverlay} aria-hidden />
-        <div className={styles.heroVignette} aria-hidden />
-        <div className={styles.heroNoise} aria-hidden />
-
+      <section className={`${styles.hero} fadeIn`}>
         <div className={styles.heroContent}>
-          <div className={styles.heroMoonAnchor} aria-hidden>
-            <motion.div
-              className={styles.heroMoonStage}
-              style={{ y: moonY, opacity: moonOpacity, scale: moonScale, filter: moonBlur }}
-            >
-              {!introVisible ? (
-                <motion.div
-                  key="stars"
-                  className={styles.heroStarsLayer}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    duration: reduceMotion ? 0 : 1.8,
-                    delay: reduceMotion ? 0 : 0.45,
-                    ease: [0.16, 0.84, 0.3, 1] as const,
-                  }}
-                >
-                  <div className={styles.heroStars} />
-                </motion.div>
-              ) : null}
-              {!introVisible ? (
-                <motion.div
-                  key="moon-entry"
-                  className={styles.heroMoonEntry}
-                  initial={heroMoonEntryInitial}
-                  animate={heroMoonEntryAnimate}
-                  transition={heroMoonEntryTransition}
-                >
-                  <div className={styles.heroMoonHalo} />
-                  <div className={styles.heroMoon}>
-                    <span className={styles.heroMoonShade} />
-                    <span className={styles.heroMoonCraters} />
-                  </div>
-                </motion.div>
-              ) : null}
-            </motion.div>
-          </div>
-
-          <h1 className={styles.heroTitle}>
-            <span className={styles.heroTitleAccent}>looney moon</span>
-          </h1>
-
-          <div className={styles.heroAuthorWrap}>
-            <span className={styles.heroAuthorOrn} aria-hidden />
-            <p className={styles.heroAuthor}>платформа где делаются деньги</p>
-            <span className={styles.heroAuthorOrn} aria-hidden />
-          </div>
-
-          <div className={styles.heroActions}>
-            <Link href={primaryCtaHref} className={styles.heroActionPrimary}>
-              {primaryCtaLabel}
-            </Link>
-            <Link href={secondaryCtaHref} className={styles.heroActionGhost}>
-              {secondaryCtaLabel}
+          <p className={styles.eyebrow}>Рекламный маркетплейс</p>
+          <h1 className={styles.title}>Реклама у блогеров напрямую</h1>
+          <p className={styles.lead}>
+            Прямой доступ к кураторской базе проверенных креаторов. Заказывайте нативные интеграции, согласовывайте брифы и проводите безопасные сделки в едином личном кабинете без скрытых комиссий.
+          </p>
+          <div className={styles.actions}>
+            <Link href="/marketplace" className={styles.primaryAction}>
+              Попробовать <span aria-hidden="true" style={{ marginLeft: 8 }}>→</span>
             </Link>
           </div>
         </div>
+        <div className={styles.heroImageWrapper}>
+          <img src="/images/hero-editorial.png" alt="High fashion editorial model" />
+        </div>
       </section>
 
-      {/* ---------- Manifesto ---------- */}
-      <section className={styles.manifesto} id="manifest">
-        <div className={styles.manifestoInner}>
-          <AnimatedSection>
-            <p className={styles.processEyebrow}>Что вы получаете</p>
-          </AnimatedSection>
+      <FeaturedCreators />
 
-          <StaggerGroup className={styles.manifestoLines}>
-            {manifestoLines.map((line, idx) => (
-              <StaggerItem key={idx}>
-                <p className={styles.manifestoLine}>
-                  <strong>{line.strong}</strong>
-                  {line.soft ? <span>{` ${line.soft}`}</span> : null}
-                </p>
-              </StaggerItem>
+      <section className={styles.section} id="about">
+        <div className={styles.splitSection}>
+          <div className={styles.sectionHead}>
+            <p className={styles.eyebrow}>Как это устроено</p>
+            <h2 className={styles.sectionTitle}>Встреча брендов и креаторов</h2>
+            <p className={styles.sectionLead}>
+              Мы убрали посредников. Рекламодатели получают каталог с фильтрами и статистикой, а блогеры — гарантированную оплату и удобное управление расписанием.
+            </p>
+          </div>
+          <div className={styles.stackGrid}>
+            {roles.map((role) => (
+              <div key={role.title}>
+                <Link href={role.href} className={styles.card}>
+                  <h3 className={styles.cardTitle}>{role.title}</h3>
+                  <p className={styles.cardText}>{role.text}</p>
+                  <span className={styles.cardCta}>{role.cta}</span>
+                </Link>
+              </div>
             ))}
-          </StaggerGroup>
-        </div>
-      </section>
-
-      {/* ---------- Role picker ---------- */}
-      <section className={styles.rolePickerSection}>
-        <AnimatedSection>
-          <header className={styles.rolePickerHeader}>
-            <p className={styles.rolePickerEyebrow}>Выберите роль</p>
-            <h2 className={styles.rolePickerTitle}>
-              Здесь два пути. <em>Оба ведут к деньгам.</em>
-            </h2>
-          </header>
-        </AnimatedSection>
-
-        <StaggerGroup className={styles.rolePicker}>
-          <StaggerItem>
-            <Link href={isLoggedIn ? (session.href as string) : "/blogger/login"} className={styles.roleCard}>
-              <p className={styles.roleCardEyebrow}>Роль · Блогер</p>
-              <span className={styles.roleCardScript}>Я блогер</span>
-              <h3 className={styles.roleCardTitle}>Получайте интеграции и стройте сеть работников</h3>
-              <p className={styles.roleCardLead}>
-                Принимайте заявки, выпускайте рекламу, делитесь реферальной ссылкой. Сеть приведённых
-                работников приносит вам пассивную долю с каждой их сделки.
-              </p>
-              <div className={styles.roleCardSpacer} />
-              <span className={styles.roleCardCta}>
-                {isLoggedIn ? "Открыть кабинет" : "Войти в кабинет блогера"}
-              </span>
-            </Link>
-          </StaggerItem>
-
-          <StaggerItem>
-            <Link href={isLoggedIn ? (session.href as string) : "/register"} className={styles.roleCard}>
-              <p className={styles.roleCardEyebrow}>Роль · Работник</p>
-              <span className={styles.roleCardScript}>Я работник</span>
-              <h3 className={styles.roleCardTitle}>Находите продавцов, закрывайте сделки и зарабатывайте</h3>
-              <p className={styles.roleCardLead}>
-                Пишите рекламодателям маркетплейсов, согласовывайте интеграции с блогером и получайте
-                свою долю автоматически - после подтверждения администратора.
-              </p>
-              <div className={styles.roleCardSpacer} />
-              <span className={styles.roleCardCta}>
-                {isLoggedIn ? "Открыть кабинет" : "Начать как работник"}
-              </span>
-            </Link>
-          </StaggerItem>
-        </StaggerGroup>
-      </section>
-
-      {/* ---------- Process ---------- */}
-      <section className={styles.processSection}>
-        <AnimatedSection>
-          <header className={styles.processHeader}>
-            <p className={styles.processEyebrow}>Как устроена платформа</p>
-            <h2 className={styles.processTitle}>Каждая сделка проходит ровно четыре шага</h2>
-          </header>
-        </AnimatedSection>
-
-        <StaggerGroup className={styles.processGrid}>
-          {processSteps.map((step) => (
-            <StaggerItem key={step.num}>
-              <article className={styles.processCard}>
-                <span className={styles.processNum}>{step.num}</span>
-                <h3 className={styles.processCardTitle}>{step.title}</h3>
-                <p className={styles.processCardText}>{step.text}</p>
-              </article>
-            </StaggerItem>
-          ))}
-        </StaggerGroup>
-      </section>
-
-      {/* ---------- Footer ---------- */}
-      <footer className={styles.footer}>
-        <div className={styles.footerInner}>
-          <span>looney moon · {new Date().getFullYear()}</span>
-          <div className={styles.footerLinks}>
-            <Link href="/faq">FAQ</Link>
-            <Link href="/contacts">Контакты</Link>
-            {isLoggedIn ? (
-              <Link href={session.href as string}>{session.label}</Link>
-            ) : (
-              <Link href="/register">Войти через Telegram</Link>
-            )}
           </div>
         </div>
-      </footer>
+      </section>
+
+
+      <SiteFooter />
     </main>
   );
 };
+
+function FeaturedCreators() {
+  const { data, isLoading } = useQuery<{ items: FeaturedBlogger[] }>({
+    queryKey: ["featured-bloggers"],
+    placeholderData: { items: fallbackFeaturedBloggers },
+    retry: false,
+    queryFn: async () => {
+      const response = await fetch(`${appConfig.apiBaseUrl}/marketplace/bloggers?page_size=4&sort=audience_desc`);
+      if (!response.ok) throw new Error("Failed to fetch featured creators");
+      return response.json();
+    },
+  });
+  const featuredBloggers = data?.items?.length ? data.items : fallbackFeaturedBloggers;
+
+  return (
+    <section className={styles.featuredSection}>
+      <div className={styles.featuredHeader}>
+        <div>
+          <p className={styles.eyebrow}>Резиденты платформы</p>
+          <h2 className={styles.sectionTitle}>Кураторская подборка</h2>
+        </div>
+      </div>
+      
+      <div className={styles.featuredGrid}>
+        {isLoading ? (
+          <>
+            <div className={styles.featuredSkeleton} />
+            <div className={styles.featuredSkeleton} />
+            <div className={styles.featuredSkeleton} />
+            <div className={styles.featuredSkeleton} />
+          </>
+        ) : (
+          featuredBloggers.map((blogger) => (
+            <Link href={`/marketplace?q=${blogger.name}`} key={blogger.id} className={styles.featuredCard}>
+              <div className={styles.featuredImageWrapper}>
+                <img src={blogger.profile_image_url || "/images/placeholder-portrait.jpg"} alt={blogger.name} />
+              </div>
+              <div className={styles.featuredCardInfo}>
+                <h3 className={styles.featuredCardTitle}>{blogger.name}</h3>
+                <span className={styles.featuredCardCategory}>{categoryLabel(blogger.category)}</span>
+              </div>
+            </Link>
+          ))
+        )}
+      </div>
+      
+      <div className={styles.featuredFooter}>
+        <Link href="/marketplace" className={styles.secondaryAction}>
+          Перейти в каталог <span aria-hidden="true" style={{ marginLeft: 8 }}>→</span>
+        </Link>
+      </div>
+    </section>
+  );
+}

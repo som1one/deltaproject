@@ -6,9 +6,9 @@ import { useState } from "react";
 
 import { api } from "@/lib/api";
 import { AnimatedSection } from "@/components/common/animated-section";
+import { SiteFooter } from "@/components/common/site-footer";
 import { useToast } from "@/components/common/toast";
 import { CopyButton } from "@/components/common/copy-button";
-import { MarketingNav } from "@/components/marketing/marketing-nav";
 import styles from "@/components/marketing/info-page.module.css";
 
 const CONTACTS = {
@@ -45,15 +45,6 @@ export const ContactsPage = () => {
 
   return (
     <main className={styles.page}>
-      <MarketingNav
-        brandSub="агентство · контакты"
-        items={[
-          { href: "/", label: "Главная" },
-          { href: "/faq", label: "FAQ" },
-        ]}
-        cta={{ href: "/register", label: "Войти" }}
-      />
-
       <AnimatedSection>
         <section className={styles.hero}>
           <p className={styles.heroEyebrow}>Контакты</p>
@@ -181,14 +172,7 @@ export const ContactsPage = () => {
         </section>
       </AnimatedSection>
 
-      <footer className={styles.footer}>
-        <span>looney moon · {new Date().getFullYear()}</span>
-        <div className={styles.footerLinks}>
-          <Link href="/">Главная</Link>
-          <Link href="/faq">FAQ</Link>
-          <Link href="/register">Войти</Link>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 };
