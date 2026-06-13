@@ -26,7 +26,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.2rem 0 1.5rem;
+  padding: 1.2rem 2.4rem 1.5rem;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -35,6 +35,10 @@
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   margin-bottom: 2.4rem;
+  /* Break out of .container to span full viewport width */
+  width: 100vw;
+  margin-left: 50%;
+  transform: translateX(-50%);
 }
 
 .brand {
