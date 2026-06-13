@@ -10,23 +10,26 @@
   display: flex;
   flex-direction: column;
   border-bottom: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.66);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  background: rgba(250, 249, 247, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .topBarRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(150px, auto) 1fr auto auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem clamp(1.2rem, 4vw, 2.4rem);
+  gap: 1.25rem;
+  min-height: 72px;
+  padding: 0 clamp(1.5rem, 4vw, 3rem);
 }
 
 .brand {
   display: inline-flex;
   flex-direction: column;
   gap: 0.18rem;
+  width: fit-content;
+  text-decoration: none;
 }
 
 .brandMark {
@@ -49,18 +52,21 @@
 /* ---------- Desktop inline links ---------- */
 .links {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.25rem;
   align-items: center;
+  justify-content: flex-end;
   font-family: var(--font-narrow);
   font-size: 0.7rem;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
 }
 
 .link {
   display: inline-flex;
   align-items: center;
-  padding: 0.5rem 0.95rem;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 0.9rem;
   border-radius: var(--radius-pill);
   color: var(--text-muted);
   transition: color var(--transition-base), background var(--transition-base);
@@ -68,25 +74,31 @@
 
 .link:hover {
   color: var(--text-strong);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .cta {
   display: inline-flex;
   align-items: center;
-  margin-left: 0.6rem;
-  padding: 0.55rem 1.25rem;
+  justify-content: center;
+  justify-self: end;
+  min-width: 92px;
+  min-height: 40px;
+  padding: 0 1.2rem;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--text-strong);
   color: var(--text-strong);
-  background: rgba(255, 255, 255, 0.02);
-  transition: background var(--transition-base), border-color var(--transition-base),
-    transform var(--transition-base);
+  background: transparent;
+  font-family: var(--font-narrow);
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  transition: all 300ms ease;
 }
 
 .cta:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.28);
+  background: var(--text-strong);
+  color: var(--surface-base);
   transform: translateY(-1px);
 }
 
@@ -99,7 +111,7 @@
   height: 2.6rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
+  background: transparent;
   cursor: pointer;
   transition: background var(--transition-base), border-color var(--transition-base);
   -webkit-tap-highlight-color: transparent;
@@ -107,7 +119,7 @@
 
 .burger:hover,
 .burger:focus-visible {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.04);
   border-color: var(--border-strong);
 }
 
@@ -163,9 +175,9 @@
   z-index: 31;
   overflow: hidden;
   border-top: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.92);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  background: rgba(250, 249, 247, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .menuList {
@@ -194,7 +206,7 @@
 .menuLink:active,
 .menuLink:focus-visible {
   color: var(--text-strong);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .menuCta {
@@ -204,30 +216,35 @@
   margin-top: 0.45rem;
   padding: 1rem;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-strong);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--text-strong);
+  background: transparent;
   color: var(--text-strong);
   font-family: var(--font-narrow);
   font-size: 0.82rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  transition: background var(--transition-base), border-color var(--transition-base);
+  transition: background var(--transition-base), color var(--transition-base);
 }
 
 .menuCta:hover,
 .menuCta:active {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.28);
+  background: var(--text-strong);
+  color: var(--surface-base);
 }
 
 @media (max-width: 720px) {
   .topBarRow {
-    padding: 0.9rem 1.2rem;
+    display: flex;
+    min-height: 64px;
+    padding: 0 1.2rem;
   }
   .brandSub {
     display: none;
   }
   .links {
+    display: none;
+  }
+  .cta {
     display: none;
   }
   .burger {

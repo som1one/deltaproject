@@ -1,47 +1,11 @@
-import type { ReactNode } from "react";
+import { Suspense } from "react";
 import type { Metadata } from "next";
-import { Manrope, Cormorant_Garamond, Marck_Script, Caveat } from "next/font/google";
+import type { ReactNode } from "react";
 
 import { AppProviders } from "@/components/providers/app-providers";
+import { RefTracker } from "@/components/marketplace/ref-tracker";
 
 import "./globals.css";
-
-const manrope = Manrope({
-  subsets: ["latin", "cyrillic"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-  variable: "--font-manrope",
-  display: "swap",
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin", "cyrillic"],
-  weight: ["300", "400", "500", "600", "700"],
-  style: ["normal", "italic"],
-  variable: "--font-cormorant",
-  display: "swap",
-});
-
-/**
- * Marck Script — formal calligraphic script with full Cyrillic support.
- * Closest equivalent to Great Vibes for Russian text.
- */
-const marckScript = Marck_Script({
-  subsets: ["latin", "cyrillic"],
-  weight: ["400"],
-  variable: "--font-marck",
-  display: "swap",
-});
-
-/**
- * Caveat — secondary handwritten font, used for casual UI accents
- * (role-card scripts, 404 pages).
- */
-const caveat = Caveat({
-  subsets: ["latin", "cyrillic"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-caveat",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -65,19 +29,26 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "looney moon — агентство рекламы у блогеров",
-    description:
-      "Блогеры получают интеграции, работники закрывают сделки, платформа считает выплаты.",
+    description: "Блогеры получают интеграции, работники закрывают сделки, платформа считает выплаты.",
   },
   robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html
-      lang="ru"
-      className={`${manrope.variable} ${cormorant.variable} ${marckScript.variable} ${caveat.variable}`}
-    >
+    <html lang="ru">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Hanken+Grotesk:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Marck+Script&family=Caveat:wght@400;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
+        <Suspense fallback={null}>
+          <RefTracker />
+        </Suspense>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

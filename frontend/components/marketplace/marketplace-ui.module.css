@@ -1,0 +1,76 @@
+.loadingOverlay {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  gap: 1rem;
+  color: var(--ad-on-surface-variant, #444748);
+}
+
+.spinner {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--ad-surface-container-highest, #e3e2e0);
+  border-top-color: var(--ad-primary, #000000);
+  border-radius: 999px;
+  animation: spin 800ms linear infinite;
+}
+
+.spinnerSmall {
+  width: 22px;
+  height: 22px;
+}
+
+.spinnerLarge {
+  width: 48px;
+  height: 48px;
+}
+
+.loadingText {
+  margin: 0;
+  font: 500 0.95rem/1.5 var(--font-marketplace-sans), var(--font-body);
+}
+
+.errorContainer {
+  width: min(100%, 520px);
+  margin: 4rem auto;
+  padding: 2rem;
+  border: 1px solid var(--ad-surface-container-highest, #e3e2e0);
+  border-radius: 0.75rem;
+  background: var(--ad-surface-container-lowest, #ffffff);
+  color: var(--ad-primary, #000000);
+  text-align: center;
+}
+
+.errorIcon {
+  font-size: 1.8rem;
+}
+
+.errorTitle {
+  margin: 0.75rem 0 0;
+  font-family: var(--font-marketplace-serif), var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 500;
+}
+
+.errorMessage {
+  color: var(--ad-on-surface-variant, #444748);
+}
+
+.btn {
+  min-height: 44px;
+  border: 1px solid var(--ad-primary, #000000);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.btnPrimary {
+  background: var(--ad-primary, #000000);
+  color: var(--ad-on-primary, #ffffff);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

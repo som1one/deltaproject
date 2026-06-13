@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Каталог блогеров — AD_VANTAGE</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for refined look */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #faf9f7; }
+        ::-webkit-scrollbar-thumb { background: #e3e2e0; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #c8c6c6; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#c8c6c5",
+                        "background": "#faf9f7",
+                        "surface-tint": "#5f5e5e",
+                        "tertiary": "#000000",
+                        "on-tertiary-fixed-variant": "#474747",
+                        "tertiary-fixed": "#e4e2e2",
+                        "on-primary-container": "#858383",
+                        "secondary": "#4d635f",
+                        "secondary-container": "#cde5e0",
+                        "surface-container": "#efeeec",
+                        "tertiary-container": "#1b1c1c",
+                        "on-background": "#1a1c1b",
+                        "error-container": "#ffdad6",
+                        "surface-bright": "#faf9f7",
+                        "secondary-fixed-dim": "#b4cbc7",
+                        "primary-container": "#1c1b1b",
+                        "on-secondary-container": "#516763",
+                        "surface-container-highest": "#e3e2e0",
+                        "on-primary-fixed": "#1c1b1b",
+                        "surface-variant": "#e3e2e0",
+                        "surface": "#faf9f7",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#e5e2e1",
+                        "surface-dim": "#dadad8",
+                        "on-secondary-fixed": "#091f1d",
+                        "tertiary-fixed-dim": "#c8c6c6",
+                        "outline-variant": "#c4c7c7",
+                        "surface-container-low": "#f4f3f1",
+                        "primary-fixed-dim": "#c8c6c5",
+                        "on-surface-variant": "#444748",
+                        "surface-container-high": "#e9e8e6",
+                        "inverse-surface": "#2f3130",
+                        "on-primary-fixed-variant": "#474746",
+                        "secondary-fixed": "#d0e7e3",
+                        "on-secondary-fixed-variant": "#364b48",
+                        "primary": "#000000",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-container": "#848483",
+                        "on-error": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed": "#1b1c1c",
+                        "on-surface": "#1a1c1b",
+                        "inverse-on-surface": "#f1f1ef",
+                        "outline": "#747878"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "20px",
+                        "margin-desktop": "64px",
+                        "section-gap": "80px",
+                        "container-max": "1280px",
+                        "gutter": "24px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["EB Garamond"],
+                        "headline-md": ["EB Garamond"],
+                        "headline-lg-mobile": ["EB Garamond"],
+                        "body-md": ["Hanken Grotesk"],
+                        "label-md": ["Hanken Grotesk"],
+                        "label-sm": ["Hanken Grotesk"],
+                        "body-lg": ["Hanken Grotesk"],
+                        "display-lg": ["EB Garamond"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "headline-md": ["28px", { "lineHeight": "36px", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["32px", { "lineHeight": "40px", "fontWeight": "500" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "display-lg": ["64px", { "lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<nav class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile md:px-margin-desktop h-20 bg-background/95 backdrop-blur-sm border-b border-surface-container-highest hidden md:flex">
+<div class="flex items-center gap-12">
+<div class="font-headline-md text-headline-md font-medium tracking-tighter text-primary">AD_VANTAGE</div>
+<div class="flex items-center gap-8">
+<a class="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors duration-300" href="#">Каталог</a>
+<!-- Active Nav Item -->
+<a class="text-primary font-label-md text-label-md font-semibold border-b-2 border-primary pb-1 opacity-80 transition-all" href="#">Блогеры</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors duration-300" href="#">Кейсы</a>
+<a class="text-on-surface-variant font-label-md text-label-md hover:text-primary transition-colors duration-300" href="#">О нас</a>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-0 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="bg-transparent border-0 border-b border-surface-container-highest focus:border-primary focus:ring-0 pl-8 pb-1 w-48 font-body-md text-body-md placeholder-on-surface-variant/50 transition-colors" placeholder="Поиск..." type="text"/>
+</div>
+<a class="font-label-md text-label-md text-primary hover:text-primary/80 transition-colors" href="#">Личный кабинет</a>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-grow pt-[100px] md:pt-[120px] pb-section-gap px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto w-full">
+<!-- Page Header -->
+<header class="mb-12">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-display-lg md:text-display-lg text-primary mb-4">Найти идеальный голос</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Кураторская подборка профессиональных креаторов для брендов, ценящих качество и эстетику. Фильтруйте по аудитории, охватам и нишам.</p>
+</header>
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Sidebar Filters -->
+<aside class="col-span-12 lg:col-span-3 lg:pr-8">
+<div class="sticky top-[120px] flex flex-col gap-8">
+<!-- Search inside filters for mobile mostly -->
+<div class="lg:hidden relative">
+<span class="material-symbols-outlined absolute left-0 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full bg-transparent border-0 border-b border-surface-container-highest focus:border-primary focus:ring-0 pl-8 pb-2 font-body-md text-body-md placeholder-on-surface-variant/50 transition-colors" placeholder="Имя или никнейм..." type="text"/>
+</div>
+<!-- Filter Section: Categories -->
+<div>
+<h3 class="font-label-md text-label-md text-primary mb-4 uppercase tracking-widest">Категория</h3>
+<div class="flex flex-wrap gap-2">
+<button class="bg-primary text-on-primary font-label-sm text-label-sm px-3 py-1.5 rounded-[4px] transition-colors">Все ниши</button>
+<button class="bg-surface-container-low text-on-surface-variant border border-surface-container-highest hover:border-outline font-label-sm text-label-sm px-3 py-1.5 rounded-[4px] transition-all">Lifestyle</button>
+<button class="bg-surface-container-low text-on-surface-variant border border-surface-container-highest hover:border-outline font-label-sm text-label-sm px-3 py-1.5 rounded-[4px] transition-all">Tech &amp; IT</button>
+<button class="bg-surface-container-low text-on-surface-variant border border-surface-container-highest hover:border-outline font-label-sm text-label-sm px-3 py-1.5 rounded-[4px] transition-all">Fashion</button>
+<button class="bg-surface-container-low text-on-surface-variant border border-surface-container-highest hover:border-outline font-label-sm text-label-sm px-3 py-1.5 rounded-[4px] transition-all">Finance</button>
+<button class="bg-surface-container-low text-on-surface-variant border border-surface-container-highest hover:border-outline font-label-sm text-label-sm px-3 py-1.5 rounded-[4px] transition-all">Art &amp; Design</button>
+</div>
+</div>
+<!-- Filter Section: Audience -->
+<div class="pt-6 border-t border-surface-container-highest">
+<h3 class="font-label-md text-label-md text-primary mb-4 uppercase tracking-widest">Аудитория</h3>
+<div class="flex flex-col gap-3">
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="w-4 h-4 rounded-sm border-outline text-primary focus:ring-primary focus:ring-offset-background bg-transparent" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Nano (до 10k)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input checked="" class="w-4 h-4 rounded-sm border-outline text-primary focus:ring-primary focus:ring-offset-background bg-transparent" type="checkbox"/>
+<span class="font-body-md text-body-md text-primary transition-colors">Micro (10k - 100k)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input checked="" class="w-4 h-4 rounded-sm border-outline text-primary focus:ring-primary focus:ring-offset-background bg-transparent" type="checkbox"/>
+<span class="font-body-md text-body-md text-primary transition-colors">Macro (100k - 1M)</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="w-4 h-4 rounded-sm border-outline text-primary focus:ring-primary focus:ring-offset-background bg-transparent" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Mega (от 1M)</span>
+</label>
+</div>
+</div>
+<!-- Filter Section: Platform -->
+<div class="pt-6 border-t border-surface-container-highest">
+<h3 class="font-label-md text-label-md text-primary mb-4 uppercase tracking-widest">Платформа</h3>
+<div class="grid grid-cols-2 gap-3">
+<label class="flex items-center gap-3 cursor-pointer group">
+<input checked="" class="w-4 h-4 rounded-sm border-outline text-primary focus:ring-primary focus:ring-offset-background bg-transparent" type="checkbox"/>
+<span class="font-body-md text-body-md text-primary">Telegram</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="w-4 h-4 rounded-sm border-outline text-primary focus:ring-primary focus:ring-offset-background bg-transparent" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-surface-variant">YouTube</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="w-4 h-4 rounded-sm border-outline text-primary focus:ring-primary focus:ring-offset-background bg-transparent" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-surface-variant">Instagram</span>
+</label>
+</div>
+</div>
+<button class="mt-4 w-full bg-surface-container-low text-primary border border-primary/20 hover:border-primary hover:bg-surface-container-high font-label-md text-label-md py-3 rounded-lg transition-all">Сбросить фильтры</button>
+</div>
+</aside>
+<!-- Catalog Grid -->
+<div class="col-span-12 lg:col-span-9">
+<!-- Sorting Bar -->
+<div class="flex justify-between items-center mb-8 pb-4 border-b border-surface-container-highest">
+<span class="font-label-md text-label-md text-on-surface-variant">Найдено: 124 автора</span>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-outline">Сортировка:</span>
+<select class="bg-transparent border-none text-primary font-label-md text-label-md focus:ring-0 cursor-pointer pr-8 py-0">
+<option>По рейтингу (убывание)</option>
+<option>По стоимости (возрастание)</option>
+<option>По аудитории (убывание)</option>
+</select>
+</div>
+</div>
+<!-- Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Card 1 -->
+<article class="group bg-surface-container-lowest border border-surface-container-highest hover:border-outline/50 rounded-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
+<div class="relative h-64 overflow-hidden bg-surface-container">
+<img alt="Portrait of a blogger" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="A sophisticated portrait of a young female lifestyle blogger sitting in a modern, minimalist cafe with bright natural light filtering through large windows. She wears a tailored beige blazer, exuding a quiet luxury aesthetic. The image features a shallow depth of field, focusing sharply on her confident expression while softening the background. The color palette is composed of soft warm whites, natural wood tones, and subtle charcoal accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUoXKnb06O3hyh1bBD4V9dY2WDj9IjH_V1rl-_zIdHcpWC5OxgmeiKqrCbrDjrxdWdl9kwUWjzVoYEdsMqEH8yA58_jXduTfOeoG6sUGhLLLQRPDfUYMpCp4HNMWqnsxWo3-UP4vq77tQisnWsc5YIIrbXLhc8pxR6FJoRNw6ZBlZbXIQvxfq5kiTvzgW5jDEzaW9JXuShUN2bmC2zv-RuIpThUtWglSi_gZBUz8hJQOZIVtjKK-NzhZ3c0lyZ_Awlp4DnG-X1Zg"/>
+<div class="absolute top-4 left-4 flex gap-2">
+<span class="bg-surface-container-lowest/90 backdrop-blur-sm text-primary px-2.5 py-1 rounded-[4px] font-label-sm text-label-sm border border-primary/10">Lifestyle</span>
+<span class="bg-surface-container-lowest/90 backdrop-blur-sm text-primary px-2.5 py-1 rounded-[4px] font-label-sm text-label-sm border border-primary/10">Telegram</span>
+</div>
+<button class="absolute top-4 right-4 text-surface-container-lowest hover:text-primary-container transition-colors drop-shadow-md">
+<span class="material-symbols-outlined" data-weight="fill">bookmark</span>
+</button>
+</div>
+<div class="p-6 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary leading-tight">Анна Смирнова</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">@annasmirnova_est</p>
+</div>
+<div class="flex flex-col items-end">
+<div class="flex items-center text-secondary font-label-md text-label-md gap-1">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span>9.8</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline mt-1">Trust Score</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 mt-4 mb-6 flex-grow">
+                                Авторский взгляд на современный дизайн интерьеров, минимализм в жизни и осознанное потребление. Работаю с премиум сегментом.
+                            </p>
+<div class="grid grid-cols-2 gap-4 py-4 border-t border-surface-container-highest mb-6">
+<div>
+<p class="font-label-sm text-label-sm text-outline mb-1 uppercase tracking-wider">Аудитория</p>
+<p class="font-label-md text-label-md text-primary">85,400</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline mb-1 uppercase tracking-wider">CPV (~)</p>
+<p class="font-label-md text-label-md text-primary">от 4.5 ₽</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-lg hover:bg-primary/90 transition-colors">
+                                Предложить проект
+                            </button>
+</div>
+</article>
+<!-- Card 2 -->
+<article class="group bg-surface-container-lowest border border-surface-container-highest hover:border-outline/50 rounded-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
+<div class="relative h-64 overflow-hidden bg-surface-container">
+<img alt="Portrait of a tech blogger" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="A crisp, professional portrait of a male technology reviewer standing in a high-end architectural studio space. The lighting is bright and cool, reflecting a modern light-mode aesthetic. He is dressed in a dark, structured turtleneck, contrasting sharply against a stark white structural wall behind him. The composition is clean, relying on a palette of crisp whites, deep blacks, and subtle concrete greys to convey trust and expertise." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLTw2f3eYh6efnK89XKBDf_A5fwzlSNSSMknuY4zVsw4KhMWLQkkZNmovIpXLicc5PNeSkmSI7eFSw3lFZ05A-_A_QhgW3V6UZbB27cDGVtKFyCcPnVP23wXQTHsiB1A1GCq873zKCaPZD9-gH7CTCLIzZp6OTgfFwuofxgwXvR6ubfYo7cgZHcea9glftOXDJG5QMLa46YsysG43sspk0yfXJCoqCZYszG3LlmQhaHVwHNsRgvg1EBwR-inlfwkFW9w1iad-bNg"/>
+<div class="absolute top-4 left-4 flex gap-2">
+<span class="bg-surface-container-lowest/90 backdrop-blur-sm text-primary px-2.5 py-1 rounded-[4px] font-label-sm text-label-sm border border-primary/10">Tech &amp; IT</span>
+<span class="bg-surface-container-lowest/90 backdrop-blur-sm text-primary px-2.5 py-1 rounded-[4px] font-label-sm text-label-sm border border-primary/10">YouTube</span>
+</div>
+<button class="absolute top-4 right-4 text-surface-container-lowest hover:text-primary-container transition-colors drop-shadow-md">
+<span class="material-symbols-outlined">bookmark</span>
+</button>
+</div>
+<div class="p-6 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary leading-tight">Максим Коваль</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">@koval_tech</p>
+</div>
+<div class="flex flex-col items-end">
+<div class="flex items-center text-secondary font-label-md text-label-md gap-1">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span>9.5</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline mt-1">Trust Score</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 mt-4 mb-6 flex-grow">
+                                Глубокие обзоры гаджетов, аналитика IT-рынка и интервью с фаундерами. Высокая вовлеченность B2B сегмента.
+                            </p>
+<div class="grid grid-cols-2 gap-4 py-4 border-t border-surface-container-highest mb-6">
+<div>
+<p class="font-label-sm text-label-sm text-outline mb-1 uppercase tracking-wider">Аудитория</p>
+<p class="font-label-md text-label-md text-primary">320,000</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline mb-1 uppercase tracking-wider">CPV (~)</p>
+<p class="font-label-md text-label-md text-primary">от 2.8 ₽</p>
+</div>
+</div>
+<button class="w-full bg-surface-container-lowest text-primary border border-primary hover:bg-primary hover:text-on-primary font-label-md text-label-md py-3 rounded-lg transition-colors">
+                                Предложить проект
+                            </button>
+</div>
+</article>
+<!-- Card 3 -->
+<article class="group bg-surface-container-lowest border border-surface-container-highest hover:border-outline/50 rounded-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
+<div class="relative h-64 overflow-hidden bg-surface-container">
+<img alt="Portrait of a finance blogger" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="An elegant, editorial-style photo of a female financial advisor in a bright, upscale office environment. She looks directly into the lens with a calm, assured demeanor. The setting features subtle elements of modern luxury—a marble desk edge, a hint of a large abstract painting, and vast windows. The lighting is soft and ambient, casting minimal shadows and emphasizing a color scheme of light stone, crisp white, and deep charcoal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCD9SaJiSc_zdYIkA4SMrxkeUOlgoZKgQ8GfDOVs9Q1M6FODmPv_sJ-GU53VdeT-VTlBEboynsD4d3g6CdGq5s2Xq36ymHJSkZW5qjJkg2lriSi9dFVt_N2BoAaDkHKDqdRymlfWadSUpsnqfk0otyfxZ3txnHrihp26WzHE9Pav0cTdzLRqXtJdetDul4JWM7P-LEUZm8lzsbYLGV0oGzj-sBUsOI734uLRnkZCUCNpLOlTd2wepgp7daHSWXhQXKWeiddcAUjTQ"/>
+<div class="absolute top-4 left-4 flex gap-2">
+<span class="bg-surface-container-lowest/90 backdrop-blur-sm text-primary px-2.5 py-1 rounded-[4px] font-label-sm text-label-sm border border-primary/10">Finance</span>
+<span class="bg-surface-container-lowest/90 backdrop-blur-sm text-primary px-2.5 py-1 rounded-[4px] font-label-sm text-label-sm border border-primary/10">Telegram</span>
+</div>
+<button class="absolute top-4 right-4 text-surface-container-lowest hover:text-primary-container transition-colors drop-shadow-md">
+<span class="material-symbols-outlined">bookmark</span>
+</button>
+</div>
+<div class="p-6 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary leading-tight">Елена Романова</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">@romanova_invest</p>
+</div>
+<div class="flex flex-col items-end">
+<div class="flex items-center text-secondary font-label-md text-label-md gap-1">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span>9.9</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline mt-1">Trust Score</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 mt-4 mb-6 flex-grow">
+                                Сложные финансовые концепции простым языком. Инвестиции, венчур, управление личным капиталом для предпринимателей.
+                            </p>
+<div class="grid grid-cols-2 gap-4 py-4 border-t border-surface-container-highest mb-6">
+<div>
+<p class="font-label-sm text-label-sm text-outline mb-1 uppercase tracking-wider">Аудитория</p>
+<p class="font-label-md text-label-md text-primary">145,000</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline mb-1 uppercase tracking-wider">CPV (~)</p>
+<p class="font-label-md text-label-md text-primary">от 8.0 ₽</p>
+</div>
+</div>
+<button class="w-full bg-surface-container-lowest text-primary border border-primary hover:bg-primary hover:text-on-primary font-label-md text-label-md py-3 rounded-lg transition-colors">
+                                Предложить проект
+                            </button>
+</div>
+</article>
+<!-- Card 4 -->
+<article class="group bg-surface-container-lowest border border-surface-container-highest hover:border-outline/50 rounded-xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 shadow-sm hover:shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
+<div class="relative h-64 overflow-hidden bg-surface-container">
+<img alt="Portrait of a fashion blogger" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="A stylized, editorial photograph of a young male fashion influencer sitting on a minimal concrete bench. The scene implies a chic urban environment with a stark white textured wall in the background. He is styled in avant-garde, monochrome high-fashion streetwear. The image boasts high-key lighting, emphasizing the architectural neatness of the composition and maintaining a light, sophisticated color palette dominated by white, grey, and black." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7AiGfOdLV78veGll2De2fxXOvICk7POPZfK5i-_EHk-LopRArLSPTABZjRy4cuCf02CK3kBEcDDzKHiMfUOCq8VOdNyd27RMsRgziFMUBw8zMfFPdOa0W74jCqfP7FkCTdPATwkZD48NCa-3Zt3OeUSzJU0rONYNtLlQk5CbWSspmAq4ONfdBxRrSR4jb3t_yslsjeyg3ywH4jD_zrBaRJe9qJLweAcNy5tDn4io52zp3BfX7msr5YX4P4rDVHfig2cSr0-5UjA"/>
+<div class="absolute top-4 left-4 flex gap-2">
+<span class="bg-surface-container-lowest/90 backdrop-blur-sm text-primary px-2.5 py-1 rounded-[4px] font-label-sm text-label-sm border border-primary/10">Fashion</span>
+<span class="bg-surface-container-lowest/90 backdrop-blur-sm text-primary px-2.5 py-1 rounded-[4px] font-label-sm text-label-sm border border-primary/10">Instagram</span>
+</div>
+<button class="absolute top-4 right-4 text-surface-container-lowest hover:text-primary-container transition-colors drop-shadow-md">
+<span class="material-symbols-outlined">bookmark</span>
+</button>
+</div>
+<div class="p-6 flex flex-col flex-grow">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary leading-tight">Илья Власов</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">@vlasov_style</p>
+</div>
+<div class="flex flex-col items-end">
+<div class="flex items-center text-secondary font-label-md text-label-md gap-1">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+<span>8.9</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline mt-1">Trust Score</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 mt-4 mb-6 flex-grow">
+                                Концептуальная мода, стайлинг и визуальная эстетика. Сотрудничаю с локальными и международными нишевыми брендами одежды.
+                            </p>
+<div class="grid grid-cols-2 gap-4 py-4 border-t border-surface-container-highest mb-6">
+<div>
+<p class="font-label-sm text-label-sm text-outline mb-1 uppercase tracking-wider">Аудитория</p>
+<p class="font-label-md text-label-md text-primary">58,000</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-outline mb-1 uppercase tracking-wider">CPV (~)</p>
+<p class="font-label-md text-label-md text-primary">от 5.2 ₽</p>
+</div>
+</div>
+<button class="w-full bg-surface-container-lowest text-primary border border-primary hover:bg-primary hover:text-on-primary font-label-md text-label-md py-3 rounded-lg transition-colors">
+                                Предложить проект
+                            </button>
+</div>
+</article>
+</div>
+<!-- Pagination -->
+<div class="mt-12 flex justify-center items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded border border-surface-container-highest text-on-surface-variant hover:border-primary hover:text-primary transition-colors disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-[20px]">chevron_left</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded bg-primary text-on-primary font-label-md text-label-md">1</button>
+<button class="w-10 h-10 flex items-center justify-center rounded border border-surface-container-highest text-on-surface-variant hover:border-primary hover:text-primary font-label-md text-label-md transition-colors">2</button>
+<button class="w-10 h-10 flex items-center justify-center rounded border border-surface-container-highest text-on-surface-variant hover:border-primary hover:text-primary font-label-md text-label-md transition-colors">3</button>
+<span class="text-on-surface-variant px-2">...</span>
+<button class="w-10 h-10 flex items-center justify-center rounded border border-surface-container-highest text-on-surface-variant hover:border-primary hover:text-primary font-label-md text-label-md transition-colors">12</button>
+<button class="w-10 h-10 flex items-center justify-center rounded border border-surface-container-highest text-on-surface-variant hover:border-primary hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center bg-background px-4 pb-safe h-16 border-t border-surface-container-highest dark:border-transparent shadow-lg rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-primary dark:text-on-primary-fixed font-bold active:bg-surface-container p-2 rounded-lg transition-all scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1">search</span>
+<span class="font-label-sm text-label-sm">Поиск</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant/60 active:bg-surface-container p-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">receipt_long</span>
+<span class="font-label-sm text-label-sm">Заказы</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant/60 active:bg-surface-container p-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">forum</span>
+<span class="font-label-sm text-label-sm">Чат</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant/60 active:bg-surface-container p-2 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">account_circle</span>
+<span class="font-label-sm text-label-sm">Профиль</span>
+</a>
+</nav>
+<!-- Footer -->
+<footer class="w-full py-section-gap px-margin-mobile md:px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-8 bg-background dark:bg-background border-t border-surface-container-highest pb-[100px] lg:pb-section-gap">
+<div class="font-headline-md text-headline-md text-primary">
+            AD_VANTAGE
+        </div>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Политика конфиденциальности</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Условия использования</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Контакты</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">FAQ</a>
+</div>
+<div class="font-body-md text-body-md text-on-surface-variant text-center md:text-right">
+            © 2024 AD_VANTAGE. Все права защищены.
+        </div>
+</footer>
+</body></html>

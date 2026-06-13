@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import urlencode
 from uuid import UUID
 
@@ -37,7 +38,8 @@ from services.telegram_oauth_store import (
     create_signed_state,
     verify_signed_state,
 )
-from services.telegram_user_service import find_or_create_worker_by_telegram
+from services.telegram_user_service import find_or_create_worker_by_telegram, find_or_create_client_by_telegram
+from services.marketplace_referral_service import resolve_referral
 from utils.blogger_credentials import normalize_blogger_nickname
 from utils.request_ip import get_client_ip
 from utils.jwt_tokens import (
@@ -48,6 +50,8 @@ from utils.jwt_tokens import (
     verify_refresh_token,
 )
 from utils.security import verify_password
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -98,7 +102,8 @@ async def telegram_oauth_config():
 @limiter.limit(settings.rate_limit_login)
 async def telegram_oauth_start(
     request: Request,
-    linked_to: UUID | None = Query(default=None),
+    linked_to: str | None = Query(default=None),
+    role: str = Query(default="WORKER"),
     db: AsyncSession = Depends(get_db),
 ):
     """Top-level redirect на authorization endpoint Telegram OAuth.
@@ -110,20 +115,37 @@ async def telegram_oauth_start(
         raise HTTPException(status_code=503, detail="Telegram-вход не настроен на сервере")
 
     client_ip = get_client_ip(request)
-    await assert_registration_allowed_for_ip(db, client_ip)
 
-    if linked_to is not None:
-        ref_user = await db.get(User, linked_to)
-        if ref_user is None or ref_user.role != UserRole.BLOGER:
-            raise HTTPException(
-                status_code=400,
-                detail="Некорректный linked_to: нужен существующий блогер",
-            )
-        await assert_referral_registration_allowed_for_ip(db, client_ip, linked_to)
+    try:
+        await assert_registration_allowed_for_ip(db, client_ip)
+    except HTTPException:
+        raise
+    except Exception:
+        logger.warning("Telegram start: ошибка проверки IP %r, пропускаем лимит", client_ip)
+
+    if linked_to is not None and role == "WORKER":
+        try:
+            worker_linked_uuid = UUID(linked_to)
+        except ValueError:
+            worker_linked_uuid = None
+        if worker_linked_uuid:
+            ref_user = await db.get(User, worker_linked_uuid)
+            if ref_user is None or ref_user.role != UserRole.BLOGER:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Некорректный linked_to: нужен существующий блогер",
+                )
+            try:
+                await assert_referral_registration_allowed_for_ip(db, client_ip, worker_linked_uuid)
+            except HTTPException:
+                raise
+            except Exception:
+                logger.warning("Telegram start: ошибка проверки реферального лимита IP %r", client_ip)
 
     state = create_signed_state(
         linked_to=str(linked_to) if linked_to else None,
         client_ip=client_ip,
+        role=role,
     )
     redirect_uri = _telegram_redirect_uri()
 
@@ -175,24 +197,44 @@ async def telegram_oauth_callback(
         return _frontend_redirect(error=str(exc))
 
     linked_to_uuid: UUID | None = None
-    if state_entry.linked_to:
+    if state_entry.linked_to and state_entry.role == "WORKER":
         try:
             linked_to_uuid = UUID(state_entry.linked_to)
         except (TypeError, ValueError):
             linked_to_uuid = None
 
-    user = await find_or_create_worker_by_telegram(
-        db,
-        telegram_id=claims.sub,
-        username=claims.preferred_username,
-        name=claims.name,
-        linked_to=linked_to_uuid,
-    )
+    try:
+        if state_entry.role == "CLIENT":
+            client_referred_by: UUID | None = None
+            if state_entry.linked_to:
+                client_referred_by = await resolve_referral(state_entry.linked_to, db)
+
+            user = await find_or_create_client_by_telegram(
+                db,
+                telegram_id=claims.sub,
+                username=claims.preferred_username,
+                name=claims.name,
+                marketplace_referred_by=client_referred_by,
+            )
+        else:
+            user = await find_or_create_worker_by_telegram(
+                db,
+                telegram_id=claims.sub,
+                username=claims.preferred_username,
+                name=claims.name,
+                linked_to=linked_to_uuid,
+            )
+    except Exception as exc:
+        logger.exception("Telegram callback: ошибка создания/поиска пользователя tg_id=%s", claims.sub)
+        await db.rollback()
+        return _frontend_redirect(error="account_error")
 
     if not user.is_active:
         return _frontend_redirect(error="user_disabled")
-    if user.role != UserRole.WORKER:
+    if state_entry.role == "WORKER" and user.role != UserRole.WORKER:
         return _frontend_redirect(error="not_worker")
+    if state_entry.role == "CLIENT" and user.role != UserRole.CLIENT:
+        return _frontend_redirect(error="not_client")
 
     access = create_access_token(user.id)
     refresh = create_refresh_token(user.id)

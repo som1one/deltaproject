@@ -34,6 +34,20 @@ const ticketResults = new Map<string, "ok" | "error">();
 // instead of firing a duplicate POST that would 404 once the backend
 // invalidates the ticket.
 const pendingExchanges = new Map<string, Promise<{ token: string; refresh_token: string } | null>>();
+const ERROR_MESSAGES: Record<string, string> = {
+  state_expired: "Сессия авторизации истекла. Попробуйте войти ещё раз.",
+  user_disabled: "Ваш аккаунт деактивирован. Обратитесь в поддержку.",
+  not_worker: "Этот Telegram-аккаунт привязан к другой роли.",
+  not_client: "Этот Telegram-аккаунт привязан к другой роли.",
+  account_error: "Не удалось создать или найти аккаунт. Попробуйте ещё раз.",
+  missing_code_or_state: "Telegram не вернул код авторизации. Попробуйте ещё раз.",
+  server_misconfigured: "Сервер временно недоступен. Попробуйте позже.",
+};
+
+function humanizeError(raw: string): string {
+  return ERROR_MESSAGES[raw] || raw;
+}
+
 export const TelegramCallback = () => {
   const router = useRouter();
   const params = useSearchParams();
@@ -42,7 +56,7 @@ export const TelegramCallback = () => {
   const ticket = params.get("exchange");
   const errorParam = params.get("error");
 
-  const [error, setError] = useState<string>(errorParam ?? "");
+  const [error, setError] = useState<string>(errorParam ? humanizeError(errorParam) : "");
 
   useEffect(() => {
     if (errorParam) {

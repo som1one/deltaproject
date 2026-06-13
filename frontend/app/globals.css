@@ -70,13 +70,13 @@
   --glow-accent:   0 0 0 1px rgba(255,255,255,0.16), 0 24px 60px -16px rgba(255,255,255,0.10);
 
   /* ---------- Typography ---------- */
-  --font-display: var(--font-manrope), "Inter", "SF Pro Display", "Segoe UI Variable", system-ui, sans-serif;
-  --font-body:    var(--font-manrope), "Inter", "SF Pro Text", "Segoe UI Variable", system-ui, sans-serif;
-  --font-narrow:  var(--font-manrope), "Inter", "Bahnschrift SemiCondensed", "Arial Narrow", sans-serif;
+  --font-display: "Manrope", "Inter", "SF Pro Display", system-ui, sans-serif;
+  --font-body:    "Manrope", "Inter", "SF Pro Text", system-ui, sans-serif;
+  --font-narrow:  "Manrope", "Inter", "Arial Narrow", sans-serif;
   --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --font-serif:   var(--font-cormorant), "Cormorant Garamond", "Times New Roman", Georgia, serif;
-  --font-script:  var(--font-caveat), "Caveat", "Brush Script MT", "Lucida Handwriting", cursive;
-  --font-script-formal: var(--font-marck), "Marck Script", "Allura", "Great Vibes", "Pinyon Script", cursive;
+  --font-serif:   "Cormorant Garamond", "Times New Roman", Georgia, serif;
+  --font-script:  "Caveat", cursive;
+  --font-script-formal: "Marck Script", "Allura", "Great Vibes", cursive;
 
   /* ---------- Radii ---------- */
   --radius-xs:  4px;

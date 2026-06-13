@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+
+<html class="light" lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Вход в систему — AD_VANTAGE</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-primary": "#c8c6c5",
+                      "background": "#faf9f7",
+                      "surface-tint": "#5f5e5e",
+                      "tertiary": "#000000",
+                      "on-tertiary-fixed-variant": "#474747",
+                      "tertiary-fixed": "#e4e2e2",
+                      "on-primary-container": "#858383",
+                      "secondary": "#4d635f",
+                      "secondary-container": "#cde5e0",
+                      "surface-container": "#efeeec",
+                      "tertiary-container": "#1b1c1c",
+                      "on-background": "#1a1c1b",
+                      "error-container": "#ffdad6",
+                      "surface-bright": "#faf9f7",
+                      "secondary-fixed-dim": "#b4cbc7",
+                      "primary-container": "#1c1b1b",
+                      "on-secondary-container": "#516763",
+                      "surface-container-highest": "#e3e2e0",
+                      "on-primary-fixed": "#1c1b1b",
+                      "surface-variant": "#e3e2e0",
+                      "surface": "#faf9f7",
+                      "on-secondary": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "error": "#ba1a1a",
+                      "primary-fixed": "#e5e2e1",
+                      "surface-dim": "#dadad8",
+                      "on-secondary-fixed": "#091f1d",
+                      "tertiary-fixed-dim": "#c8c6c6",
+                      "outline-variant": "#c4c7c7",
+                      "surface-container-low": "#f4f3f1",
+                      "primary-fixed-dim": "#c8c6c5",
+                      "on-surface-variant": "#444748",
+                      "surface-container-high": "#e9e8e6",
+                      "inverse-surface": "#2f3130",
+                      "on-primary-fixed-variant": "#474746",
+                      "secondary-fixed": "#d0e7e3",
+                      "on-secondary-fixed-variant": "#364b48",
+                      "primary": "#000000",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-container": "#848483",
+                      "on-error": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-fixed": "#1b1c1c",
+                      "on-surface": "#1a1c1b",
+                      "inverse-on-surface": "#f1f1ef",
+                      "outline": "#747878"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "20px",
+                      "margin-desktop": "64px",
+                      "section-gap": "80px",
+                      "container-max": "1280px",
+                      "gutter": "24px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "headline-lg": ["EB Garamond"],
+                      "headline-md": ["EB Garamond"],
+                      "headline-lg-mobile": ["EB Garamond"],
+                      "body-md": ["Hanken Grotesk"],
+                      "label-md": ["Hanken Grotesk"],
+                      "label-sm": ["Hanken Grotesk"],
+                      "body-lg": ["Hanken Grotesk"],
+                      "display-lg": ["EB Garamond"]
+              },
+              "fontSize": {
+                      "headline-lg": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                      "headline-md": ["28px", {"lineHeight": "36px", "fontWeight": "500"}],
+                      "headline-lg-mobile": ["32px", {"lineHeight": "40px", "fontWeight": "500"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "display-lg": ["64px", {"lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "500"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom minimalist input styling removing default focus rings */
+        input:focus {
+            box-shadow: none !important;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex w-full overflow-hidden">
+<!-- Left Visual Panel (Desktop only) -->
+<div class="hidden md:flex md:w-1/2 relative bg-surface-container">
+<!-- Generative Image Placeholder -->
+<div class="absolute inset-0 bg-cover bg-center grayscale-[20%]" data-alt="A high-end, minimalist architectural interior of a modern office or gallery space. Soft, natural light cascades through tall windows onto pristine, ivory walls and polished concrete floors. The aesthetic is 'quiet luxury' with muted tones of light stone and deep shadows, conveying professionalism, stability, and curated editorial elegance. No people, focus on geometry and light." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuD9r3VSm5c2GZ6wUgI1kKwCxLVE1Ei5wB_wHeOXJi33oRf-8ghIxE3VjJ2EFhr7nSCOUJf1GYRa95kg_XqDQjvXb9RKgU9DsACzP6OrUro61vptBe0Qcqrnv_XZMI_anPp0fCJqOF4q9JDzGT4eyFa37bVtJq1gyqzahc5iRGVAFNjCOXlQodIASlccNiJTfqQrkK6yYalg0gMUglWne4rvC3Gh4ixtD63T3gCf5EX4WtK8uKQXhw7L3mrefihH3abMxSidJHmOLw');">
+</div>
+<!-- Overlay -->
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent mix-blend-multiply"></div>
+<!-- Brand Floating Element -->
+<div class="absolute bottom-margin-desktop left-margin-desktop z-10">
+<h1 class="font-display-lg text-display-lg text-on-primary tracking-tighter mix-blend-overlay opacity-90">AD_VANTAGE</h1>
+<p class="font-body-lg text-body-lg text-on-primary/70 mt-4 max-w-sm">
+                Платформа для премиальных рекламных размещений и кураторского контента.
+            </p>
+</div>
+</div>
+<!-- Right Form Panel -->
+<div class="w-full md:w-1/2 flex items-center justify-center p-margin-mobile md:p-margin-desktop bg-background relative z-10 overflow-y-auto">
+<div class="w-full max-w-md flex flex-col gap-12">
+<!-- Mobile Brand Header (hidden on desktop) -->
+<div class="md:hidden flex justify-center mb-8">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary tracking-tighter">AD_VANTAGE</h1>
+</div>
+<!-- Tab Navigation -->
+<div class="flex gap-8 border-b border-surface-container-highest pb-2 relative">
+<button class="font-label-md text-label-md text-primary pb-2 relative transition-colors" id="tab-login" onclick="switchTab('login')">
+                    Вход
+                    <span class="absolute bottom-[-9px] left-0 w-full h-[2px] bg-primary transition-all duration-300" id="indicator-login"></span>
+</button>
+<button class="font-label-md text-label-md text-outline-variant hover:text-primary pb-2 relative transition-colors" id="tab-register" onclick="switchTab('register')">
+                    Регистрация
+                    <span class="absolute bottom-[-9px] left-0 w-full h-[2px] bg-primary scale-x-0 transition-transform duration-300 origin-left" id="indicator-register"></span>
+</button>
+</div>
+<!-- Login Form -->
+<form class="flex flex-col gap-8 transition-opacity duration-300 opacity-100" id="form-login">
+<div class="flex flex-col gap-2">
+<h2 class="font-headline-md text-headline-md text-primary">С возвращением</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Введите ваши данные для доступа к платформе.</p>
+</div>
+<div class="flex flex-col gap-6">
+<div class="relative group">
+<input class="w-full bg-transparent border-0 border-b border-outline-variant text-on-surface font-body-md text-body-md px-0 py-2 focus:ring-0 focus:border-primary transition-colors peer" id="login-email" placeholder=" " required="" type="email"/>
+<label class="absolute left-0 top-2 font-body-md text-body-md text-on-surface-variant transition-all duration-200 peer-focus:-top-5 peer-focus:text-label-sm peer-focus:text-primary peer-[:not(:placeholder-shown)]:-top-5 peer-[:not(:placeholder-shown)]:text-label-sm cursor-text" for="login-email">Электронная почта</label>
+</div>
+<div class="relative group">
+<input class="w-full bg-transparent border-0 border-b border-outline-variant text-on-surface font-body-md text-body-md px-0 py-2 focus:ring-0 focus:border-primary transition-colors peer" id="login-password" placeholder=" " required="" type="password"/>
+<label class="absolute left-0 top-2 font-body-md text-body-md text-on-surface-variant transition-all duration-200 peer-focus:-top-5 peer-focus:text-label-sm peer-focus:text-primary peer-[:not(:placeholder-shown)]:-top-5 peer-[:not(:placeholder-shown)]:text-label-sm cursor-text" for="login-password">Пароль</label>
+</div>
+</div>
+<div class="flex items-center justify-between mt-2">
+<label class="flex items-center gap-2 cursor-pointer group">
+<input class="w-4 h-4 rounded-sm border-outline-variant text-primary focus:ring-primary focus:ring-offset-background bg-transparent transition-colors" type="checkbox"/>
+<span class="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Запомнить меня</span>
+</label>
+<a class="font-label-md text-label-md text-primary hover:opacity-70 transition-opacity" href="#">Забыли пароль?</a>
+</div>
+<button class="mt-4 w-full bg-primary text-on-primary font-label-md text-label-md py-4 rounded-lg hover:bg-primary/90 transition-all duration-300 shadow-sm active:scale-[0.98]" type="submit">
+                    Войти
+                </button>
+</form>
+<!-- Register Form (Hidden by default) -->
+<form class="flex flex-col gap-8 hidden opacity-0 transition-opacity duration-300 absolute w-full max-w-md" id="form-register">
+<div class="flex flex-col gap-2">
+<h2 class="font-headline-md text-headline-md text-primary">Создать аккаунт</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Присоединяйтесь к эксклюзивной сети рекламодателей.</p>
+</div>
+<div class="flex flex-col gap-6">
+<div class="relative group">
+<input class="w-full bg-transparent border-0 border-b border-outline-variant text-on-surface font-body-md text-body-md px-0 py-2 focus:ring-0 focus:border-primary transition-colors peer" id="reg-name" placeholder=" " required="" type="text"/>
+<label class="absolute left-0 top-2 font-body-md text-body-md text-on-surface-variant transition-all duration-200 peer-focus:-top-5 peer-focus:text-label-sm peer-focus:text-primary peer-[:not(:placeholder-shown)]:-top-5 peer-[:not(:placeholder-shown)]:text-label-sm cursor-text" for="reg-name">Имя и фамилия</label>
+</div>
+<div class="relative group">
+<input class="w-full bg-transparent border-0 border-b border-outline-variant text-on-surface font-body-md text-body-md px-0 py-2 focus:ring-0 focus:border-primary transition-colors peer" id="reg-email" placeholder=" " required="" type="email"/>
+<label class="absolute left-0 top-2 font-body-md text-body-md text-on-surface-variant transition-all duration-200 peer-focus:-top-5 peer-focus:text-label-sm peer-focus:text-primary peer-[:not(:placeholder-shown)]:-top-5 peer-[:not(:placeholder-shown)]:text-label-sm cursor-text" for="reg-email">Электронная почта</label>
+</div>
+<div class="relative group">
+<input class="w-full bg-transparent border-0 border-b border-outline-variant text-on-surface font-body-md text-body-md px-0 py-2 focus:ring-0 focus:border-primary transition-colors peer" id="reg-password" placeholder=" " required="" type="password"/>
+<label class="absolute left-0 top-2 font-body-md text-body-md text-on-surface-variant transition-all duration-200 peer-focus:-top-5 peer-focus:text-label-sm peer-focus:text-primary peer-[:not(:placeholder-shown)]:-top-5 peer-[:not(:placeholder-shown)]:text-label-sm cursor-text" for="reg-password">Пароль</label>
+</div>
+</div>
+<div class="mt-2">
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">
+                        Регистрируясь, вы принимаете <a class="text-primary underline hover:opacity-70 transition-opacity" href="#">Условия использования</a> и <a class="text-primary underline hover:opacity-70 transition-opacity" href="#">Политику конфиденциальности</a>.
+                    </p>
+</div>
+<button class="mt-4 w-full bg-primary text-on-primary font-label-md text-label-md py-4 rounded-lg hover:bg-primary/90 transition-all duration-300 shadow-sm active:scale-[0.98]" type="submit">
+                    Зарегистрироваться
+                </button>
+</form>
+</div>
+</div>
+<script>
+        function switchTab(tab) {
+            const loginForm = document.getElementById('form-login');
+            const registerForm = document.getElementById('form-register');
+            const tabLogin = document.getElementById('tab-login');
+            const tabRegister = document.getElementById('tab-register');
+            const indLogin = document.getElementById('indicator-login');
+            const indRegister = document.getElementById('indicator-register');
+
+            if (tab === 'login') {
+                // UI Logic for Tabs
+                tabLogin.classList.remove('text-outline-variant');
+                tabLogin.classList.add('text-primary');
+                tabRegister.classList.add('text-outline-variant');
+                tabRegister.classList.remove('text-primary');
+                
+                indLogin.classList.remove('scale-x-0');
+                indRegister.classList.add('scale-x-0');
+
+                // Form Transition
+                registerForm.style.opacity = '0';
+                setTimeout(() => {
+                    registerForm.classList.add('hidden');
+                    registerForm.classList.remove('relative');
+                    registerForm.classList.add('absolute');
+                    
+                    loginForm.classList.remove('hidden');
+                    loginForm.classList.remove('absolute');
+                    loginForm.classList.add('relative');
+                    
+                    // Small delay to allow display:block to apply before fading in
+                    setTimeout(() => {
+                        loginForm.style.opacity = '1';
+                    }, 50);
+                }, 300);
+
+            } else {
+                // UI Logic for Tabs
+                tabRegister.classList.remove('text-outline-variant');
+                tabRegister.classList.add('text-primary');
+                tabLogin.classList.add('text-outline-variant');
+                tabLogin.classList.remove('text-primary');
+                
+                indRegister.classList.remove('scale-x-0');
+                indLogin.classList.add('scale-x-0');
+
+                // Form Transition
+                loginForm.style.opacity = '0';
+                setTimeout(() => {
+                    loginForm.classList.add('hidden');
+                    loginForm.classList.remove('relative');
+                    loginForm.classList.add('absolute');
+                    
+                    registerForm.classList.remove('hidden');
+                    registerForm.classList.remove('absolute');
+                    registerForm.classList.add('relative');
+                    
+                    setTimeout(() => {
+                        registerForm.style.opacity = '1';
+                    }, 50);
+                }, 300);
+            }
+        }
+    </script>
+</body></html>

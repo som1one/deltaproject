@@ -66,3 +66,17 @@ class User(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    # Marketplace: permanent worker association for clients registered via referral
+    marketplace_referred_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    # Marketplace: earnings balance in kopeks (separate from deal-based `balance`)
+    marketplace_balance_kopeks: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default=text("0"),
+    )

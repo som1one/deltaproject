@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Детали заказа — AD_VANTAGE</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#c8c6c5",
+                        "background": "#faf9f7",
+                        "surface-tint": "#5f5e5e",
+                        "tertiary": "#000000",
+                        "on-tertiary-fixed-variant": "#474747",
+                        "tertiary-fixed": "#e4e2e2",
+                        "on-primary-container": "#858383",
+                        "secondary": "#4d635f",
+                        "secondary-container": "#cde5e0",
+                        "surface-container": "#efeeec",
+                        "tertiary-container": "#1b1c1c",
+                        "on-background": "#1a1c1b",
+                        "error-container": "#ffdad6",
+                        "surface-bright": "#faf9f7",
+                        "secondary-fixed-dim": "#b4cbc7",
+                        "primary-container": "#1c1b1b",
+                        "on-secondary-container": "#516763",
+                        "surface-container-highest": "#e3e2e0",
+                        "on-primary-fixed": "#1c1b1b",
+                        "surface-variant": "#e3e2e0",
+                        "surface": "#faf9f7",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "primary-fixed": "#e5e2e1",
+                        "surface-dim": "#dadad8",
+                        "on-secondary-fixed": "#091f1d",
+                        "tertiary-fixed-dim": "#c8c6c6",
+                        "outline-variant": "#c4c7c7",
+                        "surface-container-low": "#f4f3f1",
+                        "primary-fixed-dim": "#c8c6c5",
+                        "on-surface-variant": "#444748",
+                        "surface-container-high": "#e9e8e6",
+                        "inverse-surface": "#2f3130",
+                        "on-primary-fixed-variant": "#474746",
+                        "secondary-fixed": "#d0e7e3",
+                        "on-secondary-fixed-variant": "#364b48",
+                        "primary": "#000000",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-container": "#848483",
+                        "on-error": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed": "#1b1c1c",
+                        "on-surface": "#1a1c1b",
+                        "inverse-on-surface": "#f1f1ef",
+                        "outline": "#747878"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "20px",
+                        "margin-desktop": "64px",
+                        "section-gap": "80px",
+                        "container-max": "1280px",
+                        "gutter": "24px",
+                        "unit": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["EB Garamond"],
+                        "headline-md": ["EB Garamond"],
+                        "headline-lg-mobile": ["EB Garamond"],
+                        "body-md": ["Hanken Grotesk"],
+                        "label-md": ["Hanken Grotesk"],
+                        "label-sm": ["Hanken Grotesk"],
+                        "body-lg": ["Hanken Grotesk"],
+                        "display-lg": ["EB Garamond"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                        "headline-md": ["28px", {"lineHeight": "36px", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["32px", {"lineHeight": "40px", "fontWeight": "500"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "display-lg": ["64px", {"lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="hidden lg:flex flex-col h-screen p-6 gap-8 border-r border-surface-container-highest bg-surface-container-low dark:bg-surface-container-lowest docked h-full left-0 w-64 shadow-sm dark:shadow-none sticky top-0 z-40">
+<div class="font-headline-sm text-headline-sm text-primary mb-4">AD_VANTAGE</div>
+<div class="flex items-center gap-4 mb-8">
+<img alt="Аватар пользователя" class="w-12 h-12 rounded-full object-cover" data-alt="A professional headshot of a business executive in a modern office setting. The lighting is bright and clean, emphasizing a premium, sophisticated aesthetic. The background is slightly blurred but suggests a high-end corporate environment. The image uses a muted color palette to align with a luxury minimalist style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWTvHYQ0W9hgyznRbXFDo75cMPDImAf-eIUPZuPdBWALR94dcJR-qWmfGLzQO_PBWMeM_pFcfd9K0K6fVzB3A-_crvxsjex3p1c4DyskeF6eoJby_1-f_2vzR8A1Mqy9TAaATk5GanrArfIiSlAQnOsSddwsL8vDlsHrKpEvGcWrnySGakvIU3XUK5Nd1U2umlEEzYXyR9OjIoTEEJpownkKgwKC2V2SEllYE6T493vXAspZqzS-hwpK-kmmDdl7-PqR11N61Amg"/>
+<div>
+<div class="font-label-md text-label-md text-primary dark:text-on-background">Александр В.</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Рекламодатель</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-xl">add</span>
+            Создать заказ
+        </button>
+<div class="flex flex-col gap-2 flex-grow">
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Дашборд
+            </a>
+<a class="flex items-center gap-3 bg-primary text-on-primary rounded-lg px-4 py-3 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all font-label-md text-label-md Active: scale-95 duration-150" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+                Заказы
+            </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">payments</span>
+                Финансы
+            </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">chat</span>
+                Сообщения
+            </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 hover:bg-surface-container-highest dark:hover:bg-surface-variant transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Настройки
+            </a>
+</div>
+<div class="flex flex-col gap-2 mt-auto">
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">help</span>
+                Помощь
+            </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 transition-all font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Выход
+            </a>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-grow flex flex-col min-w-0">
+<!-- TopAppBar Contextual (Not the global topnav, but a contextual header for the detail view) -->
+<header class="h-20 px-margin-mobile md:px-margin-desktop flex items-center justify-between border-b border-surface-container-highest bg-background/95 backdrop-blur-sm sticky top-0 z-30">
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div>
+<h1 class="font-headline-md text-headline-md text-on-background">Заказ #ADV-8492</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Создан 12 Окт 2024</p>
+</div>
+</div>
+<div class="hidden md:flex gap-4">
+<button class="px-6 py-2 border border-primary/20 text-on-background rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors">Скачать договор</button>
+<button class="px-6 py-2 bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity">Оплатить 150,000 ₽</button>
+</div>
+</header>
+<div class="p-margin-mobile md:p-margin-desktop max-w-container-max mx-auto w-full flex-grow flex flex-col gap-section-gap">
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Main Details Column -->
+<div class="lg:col-span-8 flex flex-col gap-gutter">
+<!-- Blogger Profile Card -->
+<section class="bg-surface rounded-xl border border-surface-container-highest p-8 shadow-sm flex flex-col md:flex-row gap-8 items-start">
+<img alt="Фото блогера" class="w-32 h-32 rounded-lg object-cover flex-shrink-0" data-alt="A portrait of a stylish female content creator in a bright, modern studio. She is smiling subtly, conveying professionalism and approachability. The image has high clarity, soft natural lighting, and a muted background that fits a minimalist, high-end editorial aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAge_y8CAphx1DMp7G_v3wABaV2IrOVnLeZ_wQkT0MBU_u68rbO_Ado2IQUjA-N4QnUuemsb0LPQlwTfWoykvC5KZ3V7I4iSLI8RBDYgULDzrb48UjQ21v5vkwuvSCT4xFTlLGMkmpkTMai3t50BvXgUBplC5MxJE3lnbD-4JYhL29wKMqJz_MRN6quICSTa34r2ZoGmwawFh0BsG885XkUBy3Mv9QPPjJ5920Tp-UH_uI4G3bS5qjoVtXUHe4wvl4YkTgg8jpm0Q"/>
+<div class="flex-grow">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-background">Елена Смирнова</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Lifestyle &amp; Fashion блогер</p>
+</div>
+<span class="bg-surface-container-high text-on-surface-variant px-3 py-1 rounded-full font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">verified</span>
+                                    Проверен
+                                </span>
+</div>
+<div class="grid grid-cols-3 gap-4 mt-6 py-4 border-y border-surface-container-highest">
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1">Платформа</div>
+<div class="font-label-md text-label-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">photo_camera</span>
+                                        Instagram
+                                    </div>
+</div>
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1">Аудитория</div>
+<div class="font-label-md text-label-md">1.2M</div>
+</div>
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1">Формат</div>
+<div class="font-label-md text-label-md">Reels + Stories</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Timeline -->
+<section class="bg-surface rounded-xl border border-surface-container-highest p-8 shadow-sm">
+<h3 class="font-headline-md text-headline-md text-on-background mb-6">Статус сделки</h3>
+<div class="relative border-l border-surface-container-highest ml-3 flex flex-col gap-8">
+<!-- Step 1: Completed -->
+<div class="relative pl-8">
+<div class="absolute w-6 h-6 bg-primary rounded-full left-[-12px] top-0 border-4 border-surface flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary text-[14px]">check</span>
+</div>
+<h4 class="font-label-md text-label-md text-on-background">Согласование условий</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">ТЗ и сроки утверждены обеими сторонами.</p>
+<span class="font-label-sm text-label-sm text-outline mt-2 block">12 Окт 2024, 14:30</span>
+</div>
+<!-- Step 2: Active -->
+<div class="relative pl-8">
+<div class="absolute w-6 h-6 bg-surface border-2 border-primary rounded-full left-[-12px] top-0 flex items-center justify-center">
+<div class="w-2 h-2 bg-primary rounded-full"></div>
+</div>
+<h4 class="font-label-md text-label-md text-on-background">Ожидание оплаты</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Внесите средства на безопасный счет платформы.</p>
+<button class="mt-4 px-6 py-2 bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:opacity-90 transition-opacity">Оплатить 150,000 ₽</button>
+</div>
+<!-- Step 3: Pending -->
+<div class="relative pl-8">
+<div class="absolute w-6 h-6 bg-surface-container-highest rounded-full left-[-12px] top-0 border-4 border-surface"></div>
+<h4 class="font-label-md text-label-md text-outline">Создание контента</h4>
+<p class="font-body-md text-body-md text-outline-variant mt-1">Блогер приступит к работе после резервирования средств.</p>
+</div>
+<!-- Step 4: Pending -->
+<div class="relative pl-8">
+<div class="absolute w-6 h-6 bg-surface-container-highest rounded-full left-[-12px] top-0 border-4 border-surface"></div>
+<h4 class="font-label-md text-label-md text-outline">Публикация</h4>
+<p class="font-body-md text-body-md text-outline-variant mt-1">Выход материалов по согласованному графику.</p>
+</div>
+</div>
+</section>
+</div>
+<!-- Sidebar Details Column -->
+<div class="lg:col-span-4 flex flex-col gap-gutter">
+<!-- Financial Summary -->
+<section class="bg-surface rounded-xl border border-surface-container-highest p-6 shadow-sm">
+<h3 class="font-label-md text-label-md text-on-background uppercase tracking-wider mb-4 border-b border-surface-container-highest pb-2">Финансы</h3>
+<div class="flex flex-col gap-3 font-body-md text-body-md">
+<div class="flex justify-between items-center text-on-surface-variant">
+<span>Стоимость интеграции</span>
+<span>130,000 ₽</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant">
+<span>Комиссия платформы (15%)</span>
+<span>19,500 ₽</span>
+</div>
+<div class="flex justify-between items-center text-on-surface-variant">
+<span>Налоги</span>
+<span>500 ₽</span>
+</div>
+<div class="flex justify-between items-center mt-4 pt-4 border-t border-surface-container-highest font-headline-md text-headline-md text-on-background">
+<span>Итого</span>
+<span>150,000 ₽</span>
+</div>
+</div>
+<div class="mt-6 bg-surface-container-low p-4 rounded-lg flex gap-3 items-start border border-surface-container-highest">
+<span class="material-symbols-outlined text-secondary">security</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Средства будут заморожены на безопасном счете и списаны только после подтверждения публикации.</p>
+</div>
+</section>
+<!-- Deliverables / Technical Specs -->
+<section class="bg-surface rounded-xl border border-surface-container-highest p-6 shadow-sm">
+<h3 class="font-label-md text-label-md text-on-background uppercase tracking-wider mb-4 border-b border-surface-container-highest pb-2">Детали ТЗ</h3>
+<div class="flex flex-col gap-4">
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1">Продукт</div>
+<div class="font-body-md text-body-md text-on-background">Новая коллекция минималистичной одежды "Осень 2024"</div>
+</div>
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1">Обязательные хештеги</div>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="bg-surface-container px-2 py-1 rounded text-label-sm font-label-sm text-on-surface-variant">#ad_vantage</span>
+<span class="bg-surface-container px-2 py-1 rounded text-label-sm font-label-sm text-on-surface-variant">#minimaliststyle</span>
+</div>
+</div>
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1">Срок публикации</div>
+<div class="font-body-md text-body-md text-on-background">до 25 Октября 2024</div>
+</div>
+</div>
+</section>
+<!-- Support Action -->
+<button class="w-full py-4 border border-surface-container-highest bg-surface hover:bg-surface-container transition-colors rounded-xl flex items-center justify-center gap-2 text-on-background font-label-md text-label-md">
+<span class="material-symbols-outlined">support_agent</span>
+                        Связаться с поддержкой
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center bg-background px-4 pb-safe h-16 border-t border-surface-container-highest dark:border-transparent shadow-lg rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant/60 font-label-sm text-label-sm active:bg-surface-container" href="#">
+<span class="material-symbols-outlined">search</span>
+            Поиск
+        </a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-on-primary-fixed font-bold font-label-sm text-label-sm Active: scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+            Заказы
+        </a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant/60 font-label-sm text-label-sm active:bg-surface-container" href="#">
+<span class="material-symbols-outlined">forum</span>
+            Чат
+        </a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant/60 font-label-sm text-label-sm active:bg-surface-container" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+            Профиль
+        </a>
+</nav>
+</body></html>

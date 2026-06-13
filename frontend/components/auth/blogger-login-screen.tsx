@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -52,6 +52,8 @@ const steps = [
 
 export const BloggerLoginScreen = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextUrl = searchParams.get("next");
   const { setSession } = useAuth();
   const session = useSessionTarget();
   const [form, setForm] = useState({ nickname: "", password: "" });
@@ -66,7 +68,7 @@ export const BloggerLoginScreen = () => {
     onSuccess: (payload) => {
       setError("");
       setSession(payload.token, payload.refresh_token);
-      router.push("/cabinet");
+      router.push(nextUrl || "/cabinet");
     },
     onError: (nextError) => setError(nextError.message),
   });
@@ -74,9 +76,9 @@ export const BloggerLoginScreen = () => {
   // Если пользователь уже залогинен — редиректим в кабинет, не показывая форму.
   useEffect(() => {
     if (session.ready && session.isAuthenticated && session.href) {
-      router.replace(session.href);
+      router.replace(nextUrl || session.href);
     }
-  }, [router, session.ready, session.isAuthenticated, session.href]);
+  }, [router, session.ready, session.isAuthenticated, session.href, nextUrl]);
 
   if (session.ready && session.isAuthenticated) {
     return null;

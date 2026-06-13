@@ -52,9 +52,10 @@ class OAuthState:
     nonce: str
     linked_to: str | None = None
     client_ip: str = ""
+    role: str = "WORKER"
 
 
-def create_signed_state(*, linked_to: str | None, client_ip: str) -> OAuthState:
+def create_signed_state(*, linked_to: str | None, client_ip: str, role: str = "WORKER") -> OAuthState:
     """Возвращает OAuthState с уже сериализованным самоподдерживаемым ``state``."""
     nonce = secrets.token_urlsafe(TOKEN_BYTES)
     payload = {
@@ -62,6 +63,7 @@ def create_signed_state(*, linked_to: str | None, client_ip: str) -> OAuthState:
         "l": linked_to,
         "ip": client_ip,
         "t": _now(),
+        "r": role,
     }
     body = _b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
     sig = hmac.new(_state_secret(), body.encode("ascii"), hashlib.sha256).digest()
@@ -96,7 +98,8 @@ def verify_signed_state(state_token: str) -> OAuthState | None:
         return None
     linked_to = payload.get("l") if isinstance(payload.get("l"), str) else None
     client_ip = payload.get("ip") if isinstance(payload.get("ip"), str) else ""
-    return OAuthState(state=state_token, nonce=nonce, linked_to=linked_to, client_ip=client_ip)
+    role = payload.get("r") if isinstance(payload.get("r"), str) else "WORKER"
+    return OAuthState(state=state_token, nonce=nonce, linked_to=linked_to, client_ip=client_ip, role=role)
 
 
 @dataclass

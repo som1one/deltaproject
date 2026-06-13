@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Кабинет блогера — AD_VANTAGE</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-primary": "#c8c6c5",
+                      "background": "#faf9f7",
+                      "surface-tint": "#5f5e5e",
+                      "tertiary": "#000000",
+                      "on-tertiary-fixed-variant": "#474747",
+                      "tertiary-fixed": "#e4e2e2",
+                      "on-primary-container": "#858383",
+                      "secondary": "#4d635f",
+                      "secondary-container": "#cde5e0",
+                      "surface-container": "#efeeec",
+                      "tertiary-container": "#1b1c1c",
+                      "on-background": "#1a1c1b",
+                      "error-container": "#ffdad6",
+                      "surface-bright": "#faf9f7",
+                      "secondary-fixed-dim": "#b4cbc7",
+                      "primary-container": "#1c1b1b",
+                      "on-secondary-container": "#516763",
+                      "surface-container-highest": "#e3e2e0",
+                      "on-primary-fixed": "#1c1b1b",
+                      "surface-variant": "#e3e2e0",
+                      "surface": "#faf9f7",
+                      "on-secondary": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "error": "#ba1a1a",
+                      "primary-fixed": "#e5e2e1",
+                      "surface-dim": "#dadad8",
+                      "on-secondary-fixed": "#091f1d",
+                      "tertiary-fixed-dim": "#c8c6c6",
+                      "outline-variant": "#c4c7c7",
+                      "surface-container-low": "#f4f3f1",
+                      "primary-fixed-dim": "#c8c6c5",
+                      "on-surface-variant": "#444748",
+                      "surface-container-high": "#e9e8e6",
+                      "inverse-surface": "#2f3130",
+                      "on-primary-fixed-variant": "#474746",
+                      "secondary-fixed": "#d0e7e3",
+                      "on-secondary-fixed-variant": "#364b48",
+                      "primary": "#000000",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-container": "#848483",
+                      "on-error": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-fixed": "#1b1c1c",
+                      "on-surface": "#1a1c1b",
+                      "inverse-on-surface": "#f1f1ef",
+                      "outline": "#747878"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "20px",
+                      "margin-desktop": "64px",
+                      "section-gap": "80px",
+                      "container-max": "1280px",
+                      "gutter": "24px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "headline-lg": [
+                              "EB Garamond"
+                      ],
+                      "headline-md": [
+                              "EB Garamond"
+                      ],
+                      "headline-lg-mobile": [
+                              "EB Garamond"
+                      ],
+                      "body-md": [
+                              "Hanken Grotesk"
+                      ],
+                      "label-md": [
+                              "Hanken Grotesk"
+                      ],
+                      "label-sm": [
+                              "Hanken Grotesk"
+                      ],
+                      "body-lg": [
+                              "Hanken Grotesk"
+                      ],
+                      "display-lg": [
+                              "EB Garamond"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-md": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "64px",
+                              {
+                                      "lineHeight": "72px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased flex">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col h-screen p-6 gap-8 border-r border-surface-container-highest bg-surface-container-low w-64 fixed left-0 top-0 z-40">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden">
+<img alt="Аватар пользователя" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKbEqJW9eFWd0rWoMeCyaTNFDZPt3LUa7Z-xC9Y0ZuUGtY2bQwSPazjIQ6KEnHNFpx1H93dwPhcsiSm3qtG4_CDmJuuQ-d_JqX04WO1VPiGBG8YQCxx2g1k-en_odbwOEppGSMcXmqucuy-VscHAGiTNp-KcMSVd9zEPBs8Krzg40np5Q7QsZJzLH52qF9n8rZYF1MH_chAmXgqILb3CfO0XJoCPqGj0jtRxrCdtBhVRR7hb8gVnDlPCicGMNRCAQLpzxa9_Z-BA"/>
+</div>
+<div>
+<div class="font-label-md text-label-md text-primary">Александр В.</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Блогер</div>
+</div>
+</div>
+<button class="bg-primary text-on-primary font-label-md text-label-md py-3 px-4 rounded-lg hover:bg-surface-tint transition-colors text-center">
+            Добавить площадку
+        </button>
+<div class="flex flex-col gap-2 flex-grow">
+<a class="flex items-center gap-3 bg-primary text-on-primary rounded-lg px-4 py-3 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Дашборд</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 font-label-md text-label-md transition-colors" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span>Заказы</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 font-label-md text-label-md transition-colors" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span>Финансы</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 font-label-md text-label-md transition-colors" href="#">
+<span class="material-symbols-outlined">chat</span>
+<span>Сообщения</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 font-label-md text-label-md transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Настройки</span>
+</a>
+</div>
+<div class="flex flex-col gap-2 mt-auto border-t border-surface-container-highest pt-6">
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 font-label-md text-label-md transition-colors" href="#">
+<span class="material-symbols-outlined">help</span>
+<span>Помощь</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg px-4 py-3 font-label-md text-label-md transition-colors" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span>Выход</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-0 md:ml-64 p-margin-mobile md:p-margin-desktop min-h-screen">
+<header class="mb-section-gap">
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-2">Обзор кабинета</h1>
+<p class="text-on-surface-variant font-body-md text-body-md">Управление профилем, заказами и финансами.</p>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Profile Overview (Spans 4 cols on desktop) -->
+<section class="md:col-span-4 bg-surface-container-lowest rounded-xl border border-surface-container-highest/50 p-6 flex flex-col gap-6 relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-surface-container-lowest to-surface-container-low opacity-50 z-0"></div>
+<div class="relative z-10 flex items-start justify-between">
+<h2 class="font-headline-md text-headline-md text-primary">Профиль</h2>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2" title="Редактировать">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+<div class="relative z-10 flex items-center gap-4">
+<div class="w-16 h-16 rounded-full bg-surface-container-highest overflow-hidden border-2 border-surface-container-lowest">
+<img alt="Аватар профиля" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMXDLaZy69V4ShJ44JhbrfoOjNdpa5RaVpq3iQiH1f618whsX8OJLOIJFiZOTY5LLHLN1rDDfjdidvob7vz8EvMY-5T-vI1pLrFIFJz6ULLHNgX_GIohUhApEAUCoFUpUdbNnudEujrwnNG0Jmo0C-9n68F5WMDuzKeE2Zg1Er6Xye7pflB5jI7_KY8jXiqgRUaS6DCZWNE4WyXZ2oPdEs3O3NVbvJZdwDH7FKdgEwsVrbsLbYDU35o6GwcqYW7XyYeR6KKQPQCg"/>
+</div>
+<div>
+<div class="font-label-md text-label-md text-primary text-lg">Александр В.</div>
+<div class="flex items-center gap-2 mt-1">
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-on-surface-variant font-label-sm text-label-sm">Lifestyle</span>
+<span class="px-2 py-0.5 bg-surface-container-high rounded text-on-surface-variant font-label-sm text-label-sm">Tech</span>
+</div>
+</div>
+</div>
+<div class="relative z-10 grid grid-cols-2 gap-4 mt-4">
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1">Рейтинг</div>
+<div class="font-label-md text-label-md text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-sm text-secondary">star</span>
+                            4.9
+                        </div>
+</div>
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-1">Охват</div>
+<div class="font-label-md text-label-md text-primary">~120K</div>
+</div>
+</div>
+</section>
+<!-- Finance Overview (Spans 8 cols on desktop) -->
+<section class="md:col-span-8 bg-surface-container-lowest rounded-xl border border-surface-container-highest/50 p-6 flex flex-col gap-6">
+<div class="flex items-start justify-between">
+<h2 class="font-headline-md text-headline-md text-primary">Финансы</h2>
+<a class="text-on-surface-variant hover:text-primary transition-colors font-label-sm text-label-sm flex items-center gap-1" href="#">
+                        Детализация
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-container-low p-4 rounded-lg border border-surface-container-highest/30">
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-2">Доступно к выводу</div>
+<div class="font-headline-md text-headline-md text-primary">145 000 ₽</div>
+<button class="mt-4 w-full bg-primary text-on-primary font-label-sm text-label-sm py-2 rounded transition-colors hover:bg-surface-tint">
+                            Вывести средства
+                        </button>
+</div>
+<div class="bg-surface-container-low p-4 rounded-lg border border-surface-container-highest/30 flex flex-col justify-between">
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-2">В холде (выполняются)</div>
+<div class="font-headline-md text-headline-md text-on-surface-variant/80">32 500 ₽</div>
+</div>
+<div class="text-xs text-on-surface-variant/60 mt-4">Разморозка после подтверждения</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded-lg border border-surface-container-highest/30 flex flex-col justify-between">
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant mb-2">Заработано за месяц</div>
+<div class="font-headline-md text-headline-md text-secondary">210 000 ₽</div>
+</div>
+<div class="flex items-center gap-1 text-xs text-secondary mt-4">
+<span class="material-symbols-outlined text-xs">trending_up</span>
+                            +12% к прошлому месяцу
+                        </div>
+</div>
+</div>
+</section>
+<!-- Incoming Orders List (Spans full 12 cols) -->
+<section class="md:col-span-12 bg-surface-container-lowest rounded-xl border border-surface-container-highest/50 p-6">
+<div class="flex items-center justify-between mb-6 border-b border-surface-container-highest pb-4">
+<h2 class="font-headline-md text-headline-md text-primary">Входящие заказы</h2>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-surface-container-high rounded font-label-sm text-label-sm text-primary">Все</button>
+<button class="px-3 py-1 bg-transparent hover:bg-surface-container-low rounded font-label-sm text-label-sm text-on-surface-variant transition-colors">Новые</button>
+<button class="px-3 py-1 bg-transparent hover:bg-surface-container-low rounded font-label-sm text-label-sm text-on-surface-variant transition-colors">В работе</button>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Order Row 1: New -->
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-surface-container-low rounded-lg border border-transparent hover:border-surface-container-highest transition-all group">
+<div class="flex items-start gap-4 mb-4 md:mb-0">
+<div class="w-12 h-12 bg-primary-container text-on-primary-container rounded flex items-center justify-center font-bold font-label-md">
+                                T
+                            </div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-md text-label-md text-primary">Интеграция Tinkoff Black</span>
+<span class="px-2 py-0.5 bg-secondary-container text-on-secondary-container rounded text-xs font-medium">Новый</span>
+</div>
+<div class="font-body-md text-body-md text-on-surface-variant text-sm">Формат: Пост + Stories • Дедлайн: 24 Окт</div>
+</div>
+</div>
+<div class="flex items-center justify-between w-full md:w-auto gap-8">
+<div class="text-right">
+<div class="font-label-md text-label-md text-primary">45 000 ₽</div>
+<div class="text-xs text-on-surface-variant">Комиссия: 5%</div>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 border border-surface-container-highest hover:bg-surface-container-highest rounded text-primary font-label-sm text-label-sm transition-colors">Отклонить</button>
+<button class="px-4 py-2 bg-primary hover:bg-surface-tint text-on-primary rounded font-label-sm text-label-sm transition-colors">Принять</button>
+</div>
+</div>
+</div>
+<!-- Order Row 2: In Progress -->
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-surface-container-lowest rounded-lg border border-surface-container-highest hover:shadow-sm transition-all group">
+<div class="flex items-start gap-4 mb-4 md:mb-0">
+<div class="w-12 h-12 bg-surface-variant text-on-surface-variant rounded flex items-center justify-center font-bold font-label-md">
+                                Y
+                            </div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-md text-label-md text-primary">Реклама Яндекс Маркет</span>
+<span class="px-2 py-0.5 bg-surface-container-high text-on-surface-variant rounded text-xs font-medium">В работе</span>
+</div>
+<div class="font-body-md text-body-md text-on-surface-variant text-sm">Формат: Видео-интеграция • Дедлайн: 20 Окт</div>
+</div>
+</div>
+<div class="flex items-center justify-between w-full md:w-auto gap-8">
+<div class="text-right">
+<div class="font-label-md text-label-md text-primary">80 000 ₽</div>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 bg-surface-container-low hover:bg-surface-container-highest border border-surface-container-highest rounded text-primary font-label-sm text-label-sm transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">chat</span>
+                                    Чат
+                                </button>
+<button class="px-4 py-2 bg-primary hover:bg-surface-tint text-on-primary rounded font-label-sm text-label-sm transition-colors">Сдать материал</button>
+</div>
+</div>
+</div>
+<!-- Order Row 3: Completed -->
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-surface-container-lowest rounded-lg border border-surface-container-highest opacity-70 hover:opacity-100 transition-all group">
+<div class="flex items-start gap-4 mb-4 md:mb-0">
+<div class="w-12 h-12 bg-surface-variant text-on-surface-variant rounded flex items-center justify-center font-bold font-label-md">
+                                M
+                            </div>
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="font-label-md text-label-md text-primary line-through decoration-surface-container-highest">Промокод MegaMarket</span>
+<span class="px-2 py-0.5 bg-surface-dim text-on-surface rounded text-xs font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[10px]">check</span>
+                                        Завершен
+                                    </span>
+</div>
+<div class="font-body-md text-body-md text-on-surface-variant text-sm">Формат: Stories • Выполнен: 12 Окт</div>
+</div>
+</div>
+<div class="flex items-center justify-between w-full md:w-auto gap-8">
+<div class="text-right">
+<div class="font-label-md text-label-md text-primary">15 000 ₽</div>
+<div class="text-xs text-secondary flex items-center gap-1 justify-end">
+<span class="material-symbols-outlined text-[10px]">done_all</span>
+                                    Выплачено
+                                </div>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 bg-transparent hover:bg-surface-container-low rounded text-on-surface-variant font-label-sm text-label-sm transition-colors">Детали</button>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-6 text-center">
+<a class="text-primary font-label-sm text-label-sm hover:underline" href="#">Показать все заказы</a>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center bg-background px-4 pb-safe h-16 shadow-lg border-t border-surface-container-highest">
+<a class="flex flex-col items-center justify-center text-on-surface-variant font-label-sm text-label-sm hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">search</span>
+<span>Поиск</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant font-label-sm text-label-sm hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">receipt_long</span>
+<span>Заказы</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant font-label-sm text-label-sm hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">forum</span>
+<span>Чат</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary font-label-sm text-label-sm font-bold" href="#">
+<span class="material-symbols-outlined fill mb-1">account_circle</span>
+<span>Профиль</span>
+</a>
+</nav>
+</body></html>

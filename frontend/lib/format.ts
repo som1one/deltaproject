@@ -23,16 +23,7 @@ export const formatShortDate = (value: string | null) =>
       }).format(new Date(value))
     : "—";
 
-/**
- * Русское склонение по числу.
- * @example pluralRu(1, ['сделка', 'сделки', 'сделок']) // 'сделка'
- * @example pluralRu(3, ['сделка', 'сделки', 'сделок']) // 'сделки'
- * @example pluralRu(5, ['сделка', 'сделки', 'сделок']) // 'сделок'
- */
-export const pluralRu = (
-  count: number,
-  forms: readonly [string, string, string],
-): string => {
+export const pluralRu = (count: number, forms: readonly [string, string, string]): string => {
   const abs = Math.abs(count);
   const mod10 = abs % 10;
   const mod100 = abs % 100;
@@ -50,6 +41,8 @@ export const formatRole = (role: string) => {
       return "Блогер";
     case "Admin":
       return "Администратор";
+    case "Client":
+      return "Клиент";
     default:
       return role;
   }
@@ -85,7 +78,6 @@ export const dealStatusTone = (
     case "NEW":
     case "REVIEW":
     case "CONFIRMED":
-      return "active";
     case "ESCROW_HELD":
       return "active";
     case "PAID":
@@ -93,7 +85,6 @@ export const dealStatusTone = (
     case "COMPLETED":
       return "muted";
     case "REJECTED":
-      return "danger";
     case "REFUNDED":
       return "danger";
     default:

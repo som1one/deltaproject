@@ -232,6 +232,12 @@ class Settings(BaseSettings):
         description="Если задан — заголовок X-Yukassa-Webhook-Secret должен совпадать",
     )
 
+    marketplace_frontend_url: str = Field(
+        default="http://localhost:3000",
+        validation_alias="MARKETPLACE_FRONTEND_URL",
+        description="Базовый URL фронтенда маркетплейса для генерации реферальных ссылок",
+    )
+
     @property
     def yukassa_payout_active(self) -> bool:
         """Выплаты через API ЮKassa (требуются shop id и секрет)."""

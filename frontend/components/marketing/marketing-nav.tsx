@@ -56,10 +56,12 @@ export const MarketingNav = ({ brandSub = "агентство", items, cta }: Ma
               {label}
             </Link>
           ))}
-          <Link href={cta.href} className={styles.cta}>
-            {cta.label}
-          </Link>
         </nav>
+
+        {/* Desktop CTA — pinned to the right edge */}
+        <Link href={cta.href} className={styles.cta}>
+          {cta.label}
+        </Link>
 
         {/* Burger trigger (mobile) */}
         <button

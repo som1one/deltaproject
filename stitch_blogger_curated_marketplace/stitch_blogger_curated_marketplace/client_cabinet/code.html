@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<html lang="ru"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Кабинет заказчика — AD_VANTAGE</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&amp;family=Hanken+Grotesk:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-primary": "#c8c6c5",
+                      "background": "#faf9f7",
+                      "surface-tint": "#5f5e5e",
+                      "tertiary": "#000000",
+                      "on-tertiary-fixed-variant": "#474747",
+                      "tertiary-fixed": "#e4e2e2",
+                      "on-primary-container": "#858383",
+                      "secondary": "#4d635f",
+                      "secondary-container": "#cde5e0",
+                      "surface-container": "#efeeec",
+                      "tertiary-container": "#1b1c1c",
+                      "on-background": "#1a1c1b",
+                      "error-container": "#ffdad6",
+                      "surface-bright": "#faf9f7",
+                      "secondary-fixed-dim": "#b4cbc7",
+                      "primary-container": "#1c1b1b",
+                      "on-secondary-container": "#516763",
+                      "surface-container-highest": "#e3e2e0",
+                      "on-primary-fixed": "#1c1b1b",
+                      "surface-variant": "#e3e2e0",
+                      "surface": "#faf9f7",
+                      "on-secondary": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "error": "#ba1a1a",
+                      "primary-fixed": "#e5e2e1",
+                      "surface-dim": "#dadad8",
+                      "on-secondary-fixed": "#091f1d",
+                      "tertiary-fixed-dim": "#c8c6c6",
+                      "outline-variant": "#c4c7c7",
+                      "surface-container-low": "#f4f3f1",
+                      "primary-fixed-dim": "#c8c6c5",
+                      "on-surface-variant": "#444748",
+                      "surface-container-high": "#e9e8e6",
+                      "inverse-surface": "#2f3130",
+                      "on-primary-fixed-variant": "#474746",
+                      "secondary-fixed": "#d0e7e3",
+                      "on-secondary-fixed-variant": "#364b48",
+                      "primary": "#000000",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-container": "#848483",
+                      "on-error": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-fixed": "#1b1c1c",
+                      "on-surface": "#1a1c1b",
+                      "inverse-on-surface": "#f1f1ef",
+                      "outline": "#747878"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "20px",
+                      "margin-desktop": "64px",
+                      "section-gap": "80px",
+                      "container-max": "1280px",
+                      "gutter": "24px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "headline-lg": [
+                              "EB Garamond"
+                      ],
+                      "headline-md": [
+                              "EB Garamond"
+                      ],
+                      "headline-lg-mobile": [
+                              "EB Garamond"
+                      ],
+                      "body-md": [
+                              "Hanken Grotesk"
+                      ],
+                      "label-md": [
+                              "Hanken Grotesk"
+                      ],
+                      "label-sm": [
+                              "Hanken Grotesk"
+                      ],
+                      "body-lg": [
+                              "Hanken Grotesk"
+                      ],
+                      "display-lg": [
+                              "EB Garamond"
+                      ]
+              },
+              "fontSize": {
+                      "headline-lg": [
+                              "40px",
+                              {
+                                      "lineHeight": "48px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-md": [
+                              "28px",
+                              {
+                                      "lineHeight": "36px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "display-lg": [
+                              "64px",
+                              {
+                                      "lineHeight": "72px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+<!-- TopNavBar (Web) -->
+<header class="hidden md:flex fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-desktop h-20 bg-background/95 backdrop-blur-sm border-b border-surface-container-highest">
+<div class="flex items-center gap-8">
+<a class="font-headline-md text-headline-md font-medium tracking-tighter text-primary" href="#">AD_VANTAGE</a>
+</div>
+<nav class="flex gap-6">
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-300" href="#">Каталог</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-300" href="#">Блогеры</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-300" href="#">Кейсы</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors duration-300" href="#">О нас</a>
+</nav>
+<div>
+<a class="font-body-md text-body-md text-primary font-semibold border-b-2 border-primary opacity-80 transition-all" href="#">Личный кабинет</a>
+</div>
+</header>
+<div class="flex flex-1 pt-20 md:pt-20">
+<!-- SideNavBar (Web) -->
+<aside class="hidden lg:flex flex-col h-screen p-6 gap-8 border-r border-surface-container-highest bg-surface-container-low docked left-0 w-64 shadow-sm fixed top-20">
+<div class="flex flex-col gap-2">
+<div class="font-headline-sm text-headline-sm text-primary font-medium tracking-tighter">AD_VANTAGE</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-on-surface-variant">person</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-primary">Александр В.</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Рекламодатель</span>
+</div>
+</div>
+<nav class="flex flex-col gap-2 flex-1">
+<a class="flex items-center gap-3 bg-primary text-on-primary rounded-lg px-4 py-3 font-label-md text-label-md scale-95 duration-150 transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                     Дашборд
+                 </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-lg px-4 py-3 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">shopping_cart</span>
+                     Заказы
+                 </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-lg px-4 py-3 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">payments</span>
+                     Финансы
+                 </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-lg px-4 py-3 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">chat</span>
+                     Сообщения
+                 </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-lg px-4 py-3 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+                     Настройки
+                 </a>
+</nav>
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-lg hover:opacity-90 transition-opacity">
+                 Создать заказ
+             </button>
+<div class="flex flex-col gap-2 mt-auto">
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-lg px-4 py-3 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">help</span>
+                     Помощь
+                 </a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:bg-surface-container-highest transition-all rounded-lg px-4 py-3 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">logout</span>
+                     Выход
+                 </a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 w-full px-margin-mobile md:px-margin-desktop py-section-gap lg:ml-64 max-w-container-max mx-auto">
+<header class="mb-12">
+<h1 class="font-headline-lg text-headline-lg md:font-display-lg md:text-display-lg text-primary mb-4">Обзор</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">Ваш текущий статус рекламных кампаний и баланс.</p>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter mb-16">
+<!-- Total Spending Summary (Spans 4 columns) -->
+<div class="md:col-span-4 bg-surface-container-low rounded-xl p-8 border-[0.5px] border-tertiary/10 flex flex-col justify-between">
+<div>
+<div class="flex items-center gap-2 mb-2 text-on-surface-variant">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<h2 class="font-label-md text-label-md uppercase tracking-wider">Всего потрачено</h2>
+</div>
+<p class="font-headline-lg text-headline-lg text-primary">1 450 000 ₽</p>
+</div>
+<div class="mt-8">
+<div class="flex justify-between items-center mb-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Бюджет на месяц</span>
+<span class="font-label-sm text-label-sm text-primary">75% израсходовано</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 75%;"></div>
+</div>
+</div>
+</div>
+<!-- Quick Actions (Spans 8 columns) -->
+<div class="md:col-span-8 bg-surface-container-low rounded-xl p-8 border-[0.5px] border-tertiary/10 flex flex-col md:flex-row gap-6 items-center justify-between relative overflow-hidden group">
+<div class="absolute inset-0 bg-gradient-to-br from-surface-container-low to-surface-container pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+<div class="relative z-10">
+<h2 class="font-headline-md text-headline-md text-primary mb-2">Готовы к новому запуску?</h2>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-md">Создайте новый заказ или выберите площадку из нашего кураторского каталога.</p>
+</div>
+<div class="flex flex-col sm:flex-row gap-4 relative z-10 w-full md:w-auto">
+<button class="bg-primary text-on-primary font-label-md text-label-md px-6 py-3 rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap">
+                            Новый заказ
+                        </button>
+<button class="bg-transparent border border-primary/20 text-primary font-label-md text-label-md px-6 py-3 rounded-lg hover:bg-surface-container transition-colors whitespace-nowrap">
+                            Перейти в каталог
+                        </button>
+</div>
+</div>
+</div>
+<!-- Active Orders List -->
+<section>
+<div class="flex justify-between items-end mb-6 border-b border-surface-container-highest pb-4">
+<h2 class="font-headline-md text-headline-md text-primary">Активные заказы</h2>
+<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1" href="#">
+                        Все заказы <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</a>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Order Card 1: Production -->
+<div class="bg-surface rounded-xl p-6 border-[0.5px] border-tertiary/10 hover:shadow-sm transition-shadow duration-300 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+<div class="flex items-center gap-4 w-full md:w-1/3">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">campaign</span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-primary mb-1">Рекламная интеграция "Tech Review"</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">ID: #ORD-8492</p>
+</div>
+</div>
+<div class="w-full md:w-1/4">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[16px] text-secondary">pending</span>
+<span class="font-label-md text-label-md text-secondary">В производстве</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Ожидается: 24 Окт 2024</p>
+</div>
+<div class="w-full md:w-1/6 text-left md:text-right">
+<p class="font-label-md text-label-md text-primary">450 000 ₽</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Оплачено</p>
+</div>
+<div class="w-full md:w-auto">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Order Card 2: Payment -->
+<div class="bg-surface rounded-xl p-6 border-[0.5px] border-tertiary/10 hover:shadow-sm transition-shadow duration-300 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+<div class="flex items-center gap-4 w-full md:w-1/3">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">article</span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-primary mb-1">Спецпроект "Lifestyle 2024"</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">ID: #ORD-8493</p>
+</div>
+</div>
+<div class="w-full md:w-1/4">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[16px] text-error">credit_card</span>
+<span class="font-label-md text-label-md text-error">Ожидает оплаты</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">До: 20 Окт 2024</p>
+</div>
+<div class="w-full md:w-1/6 text-left md:text-right">
+<p class="font-label-md text-label-md text-primary">820 000 ₽</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Счет выставлен</p>
+</div>
+<div class="w-full md:w-auto flex items-center gap-4">
+<button class="bg-primary text-on-primary font-label-sm text-label-sm px-4 py-2 rounded-md hover:opacity-90 transition-opacity">
+                                Оплатить
+                            </button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<!-- Order Card 3: Completed -->
+<div class="bg-surface rounded-xl p-6 border-[0.5px] border-tertiary/10 hover:shadow-sm transition-shadow duration-300 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 opacity-70 hover:opacity-100">
+<div class="flex items-center gap-4 w-full md:w-1/3">
+<div class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div>
+<h3 class="font-label-md text-label-md text-primary mb-1">Баннерная кампания Q3</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">ID: #ORD-8488</p>
+</div>
+</div>
+<div class="w-full md:w-1/4">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">task_alt</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Завершен</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant">15 Окт 2024</p>
+</div>
+<div class="w-full md:w-1/6 text-left md:text-right">
+<p class="font-label-md text-label-md text-primary">180 000 ₽</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Оплачено</p>
+</div>
+<div class="w-full md:w-auto">
+<button class="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">download</span> Отчет
+                             </button>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- BottomNavBar (Mobile) -->
+<nav class="lg:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center bg-background px-4 pb-safe h-16 border-t border-surface-container-highest shadow-lg rounded-t-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-sm text-label-sm mt-1">Поиск</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="font-label-sm text-label-sm mt-1">Заказы</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">forum</span>
+<span class="font-label-sm text-label-sm mt-1">Чат</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary font-bold active:bg-surface-container scale-90 duration-200" href="#">
+<span class="material-symbols-outlined fill">account_circle</span>
+<span class="font-label-sm text-label-sm mt-1">Профиль</span>
+</a>
+</nav>
+<!-- Footer -->
+<footer class="w-full py-section-gap px-margin-mobile md:px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-8 bg-background border-t border-surface-container-highest mt-auto lg:ml-64">
+<div class="font-headline-md text-headline-md text-primary">AD_VANTAGE</div>
+<nav class="flex flex-wrap justify-center gap-6">
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Политика конфиденциальности</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Условия использования</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Контакты</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">FAQ</a>
+</nav>
+<div class="font-body-md text-body-md text-on-surface-variant">© 2024 AD_VANTAGE. Все права защищены.</div>
+</footer>
+</body></html>

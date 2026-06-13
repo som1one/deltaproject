@@ -25,6 +25,14 @@ from routers import (
     auth,
     deals,
     health,
+    marketplace,
+    marketplace_admin,
+    marketplace_auth,
+    marketplace_blogger_profile,
+    marketplace_orders,
+    marketplace_payments,
+    marketplace_support,
+    marketplace_withdrawals,
     me,
     question,
     referral,
@@ -106,8 +114,16 @@ def create_app() -> FastAPI:
     app.include_router(question.router)
     app.include_router(referral.router)
     app.include_router(admin.router)
+    app.include_router(marketplace_admin.router)
     app.include_router(worker_message_scripts_admin.router)
     app.include_router(webhooks_yookassa.router)
+    app.include_router(marketplace.router)
+    app.include_router(marketplace_auth.router)
+    app.include_router(marketplace_blogger_profile.router)
+    app.include_router(marketplace_orders.router)
+    app.include_router(marketplace_payments.router)
+    app.include_router(marketplace_support.router)
+    app.include_router(marketplace_withdrawals.router)
     return app
 
 
