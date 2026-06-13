@@ -12,7 +12,18 @@ def normalize_pan(raw: str) -> str:
 
 
 def luhn_ok(pan: str) -> bool:
-    return True
+    digits = [int(d) for d in pan if d.isdigit()]
+    if not digits:
+        return False
+    digits.reverse()
+    total = 0
+    for i, d in enumerate(digits):
+        if i % 2 == 1:
+            d *= 2
+            if d > 9:
+                d -= 9
+        total += d
+    return total % 10 == 0
 
 
 def card_fingerprint(pan_normalized: str, pepper: str) -> str:
