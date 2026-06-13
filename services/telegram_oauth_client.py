@@ -58,9 +58,8 @@ async def exchange_code(*, code: str, redirect_uri: str) -> str:
     }
     auth = (settings.telegram_oauth_client_id, settings.telegram_oauth_client_secret)
     try:
-        # Force IPv4 — many VPS lack IPv6 outbound routing and httpx tries
-        # AAAA first, resulting in ConnectTimeout to Telegram.
-        transport = httpx.AsyncHTTPTransport(local_address="0.0.0.0")
+        proxy = settings.telegram_oauth_proxy.strip() or None
+        transport = httpx.AsyncHTTPTransport(proxy=proxy) if proxy else None
         async with httpx.AsyncClient(timeout=_TOKEN_TIMEOUT_SECONDS, transport=transport) as client:
             response = await client.post(url, data=data, auth=auth)
     except (httpx.HTTPError, asyncio.TimeoutError) as exc:
