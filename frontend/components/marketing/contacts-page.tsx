@@ -12,9 +12,8 @@ import { CopyButton } from "@/components/common/copy-button";
 import styles from "@/components/marketing/info-page.module.css";
 
 const CONTACTS = {
-  telegram: "@delta_agency",
-  telegramUrl: "https://t.me/delta_agency",
-  email: "hello@delta.team",
+  telegram: "@looneymoonhelper",
+  telegramUrl: "https://t.me/looneymoonhelper",
 };
 
 export const ContactsPage = () => {
@@ -73,21 +72,6 @@ export const ContactsPage = () => {
                 Открыть Telegram
               </a>
               <CopyButton value={CONTACTS.telegram} kind="secondary" toastText="Telegram скопирован" />
-            </div>
-          </article>
-
-          <article className={styles.contactCard}>
-            <p className={styles.contactEyebrow}>Email</p>
-            <h2 className={styles.contactTitle}>Деловые вопросы</h2>
-            <p className={styles.contactValue}>{CONTACTS.email}</p>
-            <p className={styles.contactNote}>
-              Партнёрства, интеграции, юридические вопросы. Ответ в течение одного рабочего дня.
-            </p>
-            <div className={styles.contactCardActions}>
-              <a href={`mailto:${CONTACTS.email}`} className={styles.contactAction}>
-                Написать письмо
-              </a>
-              <CopyButton value={CONTACTS.email} kind="secondary" toastText="Email скопирован" />
             </div>
           </article>
         </section>
