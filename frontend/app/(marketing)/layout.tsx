@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 
-import { MarketingNavShell } from "@/components/marketing/marketing-nav-shell";
+import { AgencyNav } from "@/components/marketing/agency-nav";
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <MarketingNavShell />
+      <AgencyNav />
       {children}
     </>
   );
