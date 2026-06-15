@@ -494,23 +494,44 @@
 
 .formSubmit {
   appearance: none;
-  border: 1px solid var(--accent);
+  position: relative;
+  border: 2px solid var(--accent);
   background: var(--accent);
   color: var(--accent-ink);
   border-radius: var(--radius-pill);
   padding: 0.85rem 1.6rem;
   font: inherit;
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 0.92rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: background var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 0 0 #b3b3b3;
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease,
+    background var(--transition-base),
+    opacity var(--transition-base);
+}
+
+.formSubmit:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 3px;
 }
 
 .formSubmit:hover {
   background: var(--accent-deep);
+  border-color: var(--accent-deep);
   transform: translateY(-1px);
-  box-shadow: var(--glow-accent);
+  box-shadow: 0 5px 0 0 #999999;
+}
+
+.formSubmit:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 0 transparent;
 }
 
 .formSubmit:disabled {
