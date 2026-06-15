@@ -15,7 +15,7 @@ export const AgencyNav = () => {
         <span className={styles.brandSub}>агентство</span>
       </Link>
       <nav className={styles.links}>
-        <Link href="#manifest">О платформе</Link>
+        <Link href="/#manifest">О платформе</Link>
         <Link href="/faq">FAQ</Link>
         <Link href="/contacts">Контакты</Link>
         {isLoggedIn ? (
