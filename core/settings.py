@@ -102,6 +102,11 @@ class Settings(BaseSettings):
         validation_alias="TELEGRAM_OAUTH_PROXY",
         description="SOCKS5 прокси для запросов к oauth.telegram.org (обход блокировки РКН), напр. socks5://127.0.0.1:40000",
     )
+    telegram_oauth_proxy_secret: str = Field(
+        default="",
+        validation_alias="TELEGRAM_OAUTH_PROXY_SECRET",
+        description="Секрет X-Proxy-Secret для Cloudflare Worker прокси (если Worker защищён AUTH_SECRET)",
+    )
 
     register_max_sessions_per_ip: int = Field(
         default=5,

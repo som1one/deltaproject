@@ -57,11 +57,17 @@ async def exchange_code(*, code: str, redirect_uri: str) -> str:
         "redirect_uri": redirect_uri,
     }
     auth = (settings.telegram_oauth_client_id, settings.telegram_oauth_client_secret)
+
+    headers: dict[str, str] = {}
+    proxy_secret = settings.telegram_oauth_proxy_secret.strip()
+    if proxy_secret:
+        headers["X-Proxy-Secret"] = proxy_secret
+
     try:
         proxy = settings.telegram_oauth_proxy.strip() or None
         transport = httpx.AsyncHTTPTransport(proxy=proxy) if proxy else None
         async with httpx.AsyncClient(timeout=_TOKEN_TIMEOUT_SECONDS, transport=transport) as client:
-            response = await client.post(url, data=data, auth=auth)
+            response = await client.post(url, data=data, auth=auth, headers=headers)
     except (httpx.HTTPError, asyncio.TimeoutError) as exc:
         logger.warning("Telegram OAuth token endpoint unreachable: %s", exc)
         raise TelegramOAuthError("Не удалось связаться с Telegram OAuth") from exc
