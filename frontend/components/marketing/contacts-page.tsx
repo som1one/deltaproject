@@ -12,8 +12,14 @@ import { CopyButton } from "@/components/common/copy-button";
 import styles from "@/components/marketing/info-page.module.css";
 
 const CONTACTS = {
-  telegram: "@looneymoonhelper",
-  telegramUrl: "https://t.me/looneymoonhelper",
+  support: {
+    telegram: "@looneymoonhelper",
+    telegramUrl: "https://t.me/looneymoonhelper",
+  },
+  blogger: {
+    telegram: "@deltasmaxxx",
+    telegramUrl: "https://t.me/deltasmaxxx",
+  },
 };
 
 export const ContactsPage = () => {
@@ -62,16 +68,31 @@ export const ContactsPage = () => {
         <section className={styles.contactsGrid}>
           <article className={styles.contactCard}>
             <p className={styles.contactEyebrow}>Telegram</p>
-            <h2 className={styles.contactTitle}>Напишите напрямую</h2>
-            <p className={styles.contactValue}>{CONTACTS.telegram}</p>
+            <h2 className={styles.contactTitle}>Техподдержка</h2>
+            <p className={styles.contactValue}>{CONTACTS.support.telegram}</p>
             <p className={styles.contactNote}>
-              Самый быстрый способ. Отвечаем в рабочее время в течение нескольких часов.
+              Вопросы по работе платформы, проблемы с доступом, баги. Отвечаем в рабочее время.
             </p>
             <div className={styles.contactCardActions}>
-              <a href={CONTACTS.telegramUrl} target="_blank" rel="noreferrer" className={styles.contactAction}>
+              <a href={CONTACTS.support.telegramUrl} target="_blank" rel="noreferrer" className={styles.contactAction}>
                 Открыть Telegram
               </a>
-              <CopyButton value={CONTACTS.telegram} kind="secondary" toastText="Telegram скопирован" />
+              <CopyButton value={CONTACTS.support.telegram} kind="secondary" toastText="Telegram скопирован" />
+            </div>
+          </article>
+
+          <article className={styles.contactCard}>
+            <p className={styles.contactEyebrow}>Telegram</p>
+            <h2 className={styles.contactTitle}>Заявка блогера</h2>
+            <p className={styles.contactValue}>{CONTACTS.blogger.telegram}</p>
+            <p className={styles.contactNote}>
+              Хотите работать с нами? Напишите — обсудим условия и подключим к платформе.
+            </p>
+            <div className={styles.contactCardActions}>
+              <a href={CONTACTS.blogger.telegramUrl} target="_blank" rel="noreferrer" className={styles.contactAction}>
+                Открыть Telegram
+              </a>
+              <CopyButton value={CONTACTS.blogger.telegram} kind="secondary" toastText="Telegram скопирован" />
             </div>
           </article>
         </section>
