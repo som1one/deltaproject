@@ -40,6 +40,14 @@ _jwks_lock = asyncio.Lock()
 _jwks_client: PyJWKClient | None = None
 
 
+class HttpxJWKClient(PyJWKClient):
+    def fetch_data(self) -> Any:
+        import httpx
+        with httpx.Client(timeout=15.0) as client:
+            response = client.get(self.uri, headers=self.headers)
+            response.raise_for_status()
+            return response.json()
+
 def _get_jwks_client() -> PyJWKClient:
     """Lazy-инициализация PyJWKClient с кешированием ключей."""
     global _jwks_client
@@ -50,8 +58,12 @@ def _get_jwks_client() -> PyJWKClient:
         if proxy.startswith("https://"):
             jwks_url = f"{proxy.rstrip('/')}/.well-known/jwks.json"
 
-        # Cloudflare на workers.dev по умолчанию блокирует Python-urllib
-        _jwks_client = PyJWKClient(jwks_url, cache_keys=True, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
+        # Используем кастомный клиент на базе httpx, так как urllib может падать с 'Network is unreachable' (IPv6 issues)
+        _jwks_client = HttpxJWKClient(
+            jwks_url, 
+            cache_keys=True, 
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        )
     return _jwks_client
 
 
