@@ -50,7 +50,8 @@ def _get_jwks_client() -> PyJWKClient:
         if proxy.startswith("https://"):
             jwks_url = f"{proxy.rstrip('/')}/.well-known/jwks.json"
 
-        _jwks_client = PyJWKClient(jwks_url, cache_keys=True)
+        # Cloudflare на workers.dev по умолчанию блокирует Python-urllib
+        _jwks_client = PyJWKClient(jwks_url, cache_keys=True, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"})
     return _jwks_client
 
 
