@@ -114,7 +114,7 @@ def verify_id_token(*, id_token: str, expected_nonce: str) -> TelegramOIDCClaims
     try:
         signing_key = _get_jwks_client().get_signing_key_from_jwt(id_token)
     except PyJWTError as exc:
-        raise TelegramOAuthError("Не удалось получить ключ подписи Telegram") from exc
+        raise TelegramOAuthError(f"Не удалось получить ключ подписи Telegram: {exc}") from exc
 
     try:
         decoded = jwt.decode(
