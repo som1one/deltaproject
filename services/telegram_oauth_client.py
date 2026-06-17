@@ -44,15 +44,32 @@ class HttpxJWKClient(PyJWKClient):
     def fetch_data(self) -> Any:
         import httpx
         from jwt.exceptions import PyJWKClientError
+        import threading
+        import asyncio
+
+        result = []
+        err = []
+
+        def _run_fetch():
+            try:
+                async def fetch():
+                    async with httpx.AsyncClient(timeout=15.0) as client:
+                        response = await client.get(self.uri, headers=self.headers)
+                        response.raise_for_status()
+                        return response.json()
+                result.append(asyncio.run(fetch()))
+            except Exception as e:
+                err.append(e)
+
         try:
-            # Принудительно используем IPv4 (0.0.0.0) для обхода сломанного IPv6 (Network is unreachable)
-            transport = httpx.HTTPTransport(local_address="0.0.0.0")
-            with httpx.Client(timeout=15.0, transport=transport) as client:
-                response = client.get(self.uri, headers=self.headers)
-                response.raise_for_status()
-                return response.json()
+            t = threading.Thread(target=_run_fetch)
+            t.start()
+            t.join()
+            if err:
+                raise err[0]
+            return result[0]
         except Exception as e:
-            raise PyJWKClientError(f"Httpx fetch failed: {type(e).__name__} {e}") from e
+            raise PyJWKClientError(f"AsyncClient fetch failed: {type(e).__name__} {e}") from e
 
 def _get_jwks_client() -> PyJWKClient:
     """Lazy-инициализация PyJWKClient с кешированием ключей."""
