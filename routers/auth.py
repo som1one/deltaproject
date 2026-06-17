@@ -192,7 +192,7 @@ async def telegram_oauth_callback(
 
     try:
         id_token = await exchange_code(code=code, redirect_uri=redirect_uri)
-        claims = verify_id_token(id_token=id_token, expected_nonce=state_entry.nonce)
+        claims = await verify_id_token(id_token=id_token, expected_nonce=state_entry.nonce)
     except TelegramOAuthError as exc:
         return _frontend_redirect(error=str(exc))
 
