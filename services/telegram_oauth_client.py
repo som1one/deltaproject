@@ -44,7 +44,13 @@ def _get_jwks_client() -> PyJWKClient:
     """Lazy-инициализация PyJWKClient с кешированием ключей."""
     global _jwks_client
     if _jwks_client is None:
-        _jwks_client = PyJWKClient(settings.telegram_oauth_jwks_url, cache_keys=True)
+        jwks_url = settings.telegram_oauth_jwks_url
+        proxy = settings.telegram_oauth_proxy.strip()
+        # Если прокси начинается с https://, считаем это reverse-proxy (например, Cloudflare Worker)
+        if proxy.startswith("https://"):
+            jwks_url = f"{proxy.rstrip('/')}/.well-known/jwks.json"
+
+        _jwks_client = PyJWKClient(jwks_url, cache_keys=True)
     return _jwks_client
 
 
@@ -65,7 +71,15 @@ async def exchange_code(*, code: str, redirect_uri: str) -> str:
 
     try:
         proxy = settings.telegram_oauth_proxy.strip() or None
-        transport = httpx.AsyncHTTPTransport(proxy=proxy) if proxy else None
+        
+        if proxy and proxy.startswith("https://"):
+            # Если прокси начинается с https:// - это Cloudflare Worker (reverse-proxy)
+            url = f"{proxy.rstrip('/')}/token"
+            transport = None
+        else:
+            url = f"{settings.telegram_oauth_issuer.rstrip('/')}/token"
+            transport = httpx.AsyncHTTPTransport(proxy=proxy) if proxy else None
+            
         async with httpx.AsyncClient(timeout=_TOKEN_TIMEOUT_SECONDS, transport=transport) as client:
             response = await client.post(url, data=data, auth=auth, headers=headers)
     except (httpx.HTTPError, asyncio.TimeoutError) as exc:
