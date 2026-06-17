@@ -37,10 +37,10 @@ import {
   StatusPill,
   TableWrap,
   TextArea,
-  TextInput,
   TopNav,
   TwoColumn,
   NavLink,
+  NavButton,
 } from "@/components/common/ui";
 import { CopyButton } from "@/components/common/copy-button";
 import { PayoutCardInput } from "@/components/common/payout-card-input";
@@ -2443,9 +2443,9 @@ export default function CabinetDashboard() {
       <TopNav brandSub={meQuery.data?.role === "Bloger" ? "кабинет блогера" : "кабинет воркера"}>
         <NavLink href="/">На главную</NavLink>
         {meQuery.data ? (
-          <Button type="button" kind="ghost" onClick={() => void logout()}>
-            <Icon d={ICONS.logout} /> Выйти
-          </Button>
+          <NavButton onClick={() => void logout()}>
+            Выйти
+          </NavButton>
         ) : null}
       </TopNav>
       {content}

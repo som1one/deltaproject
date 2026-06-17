@@ -42,6 +42,12 @@ export const NavLink = ({ href, children }: { href: string; children: ReactNode 
   </Link>
 );
 
+export const NavButton = ({ onClick, children }: { onClick: () => void; children: ReactNode }) => (
+  <button type="button" onClick={onClick} className={`${styles.navLink} ${styles.navButton}`}>
+    {children}
+  </button>
+);
+
 export const PageHero = ({
   eyebrow,
   title,

@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    UI primitives — premium monochrome.
    Pure black / white / grey. Quiet luxury.
    Class names preserved 1:1 for backward compatibility.
@@ -26,7 +26,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.2rem 2.4rem 1.5rem;
+  padding: 0.8rem 2.4rem;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -79,7 +79,7 @@
   align-items: center;
 }
 
-.navLink {
+.navLink, .navButton {
   color: var(--text-muted);
   text-decoration: none;
   font-size: 0.86rem;
@@ -89,7 +89,14 @@
   transition: color var(--transition-base);
 }
 
-.navLink::after {
+.navButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.navLink::after, .navButton::after {
   content: "";
   position: absolute;
   left: 0.2rem;
@@ -102,11 +109,11 @@
   transition: transform var(--transition-slow);
 }
 
-.navLink:hover {
+.navLink:hover, .navButton:hover {
   color: var(--text-strong);
 }
 
-.navLink:hover::after {
+.navLink:hover::after, .navButton:hover::after {
   transform: scaleX(1);
 }
 
