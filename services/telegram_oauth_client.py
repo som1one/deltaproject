@@ -53,7 +53,7 @@ class HttpxJWKClient(PyJWKClient):
         def _run_fetch():
             try:
                 async def fetch():
-                    async with httpx.AsyncClient(timeout=15.0) as client:
+                    async with httpx.AsyncClient(timeout=15.0, trust_env=False) as client:
                         response = await client.get(self.uri, headers=self.headers)
                         response.raise_for_status()
                         return response.json()
@@ -118,7 +118,7 @@ async def exchange_code(*, code: str, redirect_uri: str) -> str:
             url = f"{settings.telegram_oauth_issuer.rstrip('/')}/token"
             transport = httpx.AsyncHTTPTransport(proxy=proxy) if proxy else None
             
-        async with httpx.AsyncClient(timeout=30.0, transport=transport) as client:
+        async with httpx.AsyncClient(timeout=30.0, transport=transport, trust_env=False) as client:
             response = await client.post(url, data=data, auth=auth, headers=headers)
     except (httpx.HTTPError, asyncio.TimeoutError) as exc:
         logger.warning("Telegram OAuth token endpoint unreachable: %s", exc)
