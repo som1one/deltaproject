@@ -10,6 +10,7 @@ class MarketplaceOrderStatus(str, enum.Enum):
     BLOGGER_CONFIRMED = "BLOGGER_CONFIRMED"
     COMPLETED = "COMPLETED"
     REFUNDED = "REFUNDED"
+    CANCELLED = "CANCELLED"
 
 
 class BloggerCategory(str, enum.Enum):

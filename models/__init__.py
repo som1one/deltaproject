@@ -17,10 +17,14 @@ from models.deal import Deal
 from models.deal_admin_log import DealAdminLog
 from models.ledger_entry import LedgerEntry
 from models.marketplace_escrow_ledger import MarketplaceEscrowEntry
+from models.marketplace_message import MarketplaceMessage
 from models.marketplace_order import MarketplaceOrder
+from models.notification import Notification
+from models.order_status_history import OrderStatusHistory
 from models.marketplace_referral import MarketplaceReferral
 from models.marketplace_settings import MarketplaceSettings
 from models.marketplace_withdrawal import MarketplaceWithdrawal
+from models.settlement_account import SettlementAccount
 from models.question import Question
 from models.referral import ReferralLink
 from models.support_ticket import SupportTicket
@@ -43,13 +47,17 @@ __all__ = [
     "LedgerEntry",
     "LedgerEntryStatus",
     "MarketplaceEscrowEntry",
+    "MarketplaceMessage",
     "MarketplaceOrder",
     "MarketplaceOrderStatus",
+    "Notification",
+    "OrderStatusHistory",
     "MarketplaceReferral",
     "MarketplaceSettings",
     "MarketplaceWithdrawal",
     "Question",
     "ReferralLink",
+    "SettlementAccount",
     "SupportTicket",
     "SupportTicketStatus",
     "User",

@@ -1,7 +1,7 @@
 """Marketplace Referral Service.
 
-Handles worker referral link generation, resolution, and commission history
-for the blogger marketplace.
+Handles worker referral link generation, resolution, commission history,
+and immutability of the marketplace_referred_by field for the blogger marketplace.
 """
 
 import secrets
@@ -16,6 +16,18 @@ from enums.user import UserRole
 from models.marketplace_escrow_ledger import MarketplaceEscrowEntry
 from models.marketplace_referral import MarketplaceReferral
 from models.user import User
+
+
+class ReferralAlreadyAssignedError(Exception):
+    """Raised when attempting to change an already-set marketplace_referred_by."""
+
+    def __init__(self, user_id: uuid.UUID, existing_worker_id: uuid.UUID) -> None:
+        self.user_id = user_id
+        self.existing_worker_id = existing_worker_id
+        super().__init__(
+            f"User {user_id} is already referred by worker {existing_worker_id}. "
+            "Referral assignment is permanent and cannot be changed."
+        )
 
 
 _REF_CODE_LENGTH = 10
@@ -101,6 +113,64 @@ async def resolve_referral(ref_code: str, db: AsyncSession) -> uuid.UUID | None:
         return None
 
     return referral.worker_id
+
+
+async def assign_referral(
+    user_id: uuid.UUID,
+    worker_id: uuid.UUID,
+    db: AsyncSession,
+) -> None:
+    """Assign a worker referral to a client user (immutable operation).
+
+    Sets `marketplace_referred_by` on the user. If the field is already set,
+    raises ReferralAlreadyAssignedError — the referral binding is permanent
+    and cannot be overwritten (Requirement 6.3).
+
+    Args:
+        user_id: The client user's ID.
+        worker_id: The worker's ID to assign as referrer.
+        db: Database session.
+
+    Raises:
+        ReferralAlreadyAssignedError: If user already has a referral assigned.
+        ValueError: If the user is not found or not a Client.
+    """
+    user = await db.get(User, user_id)
+    if user is None:
+        raise ValueError(f"User {user_id} not found")
+    if user.role != UserRole.CLIENT:
+        raise ValueError(f"User {user_id} is not a Client")
+
+    # Immutability check: if already assigned, reject any change
+    if user.marketplace_referred_by is not None:
+        if user.marketplace_referred_by == worker_id:
+            # Same worker — idempotent, no-op
+            return
+        raise ReferralAlreadyAssignedError(user_id, user.marketplace_referred_by)
+
+    # Validate that the worker exists and is active
+    worker = await db.get(User, worker_id)
+    if worker is None or worker.role != UserRole.WORKER:
+        raise ValueError(f"Worker {worker_id} not found or not a Worker")
+
+    user.marketplace_referred_by = worker_id
+    await db.flush()
+
+
+def get_worker_id_for_order(user: User) -> uuid.UUID | None:
+    """Get the worker_id to assign to a new order from the client's referral binding.
+
+    Returns the permanently-bound worker's ID from the client's
+    `marketplace_referred_by` field. This is used when creating marketplace orders
+    to snapshot the worker who should receive commission (Requirement 6.2, 6.4).
+
+    Args:
+        user: The client user creating the order.
+
+    Returns:
+        The worker UUID if the client was referred, None otherwise.
+    """
+    return user.marketplace_referred_by
 
 
 async def get_referred_clients(

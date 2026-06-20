@@ -240,6 +240,13 @@ export const AgencyLandingPage = () => {
                   }}
                 >
                   <div className={styles.heroStars} />
+                  <div className={styles.shootingStarsLayer}>
+                    <div className={`${styles.shootingStar} ${styles.shootingStar1}`} />
+                    <div className={`${styles.shootingStar} ${styles.shootingStar2}`} />
+                    <div className={`${styles.shootingStar} ${styles.shootingStar3}`} />
+                    <div className={`${styles.shootingStar} ${styles.shootingStar4}`} />
+                    <div className={`${styles.shootingStar} ${styles.shootingStar5}`} />
+                  </div>
                 </motion.div>
               ) : null}
               {!introVisible ? (

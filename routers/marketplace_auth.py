@@ -19,7 +19,7 @@ from schemas.marketplace_auth import (
     ClientRegisterRequest,
     TokenResponse,
 )
-from services.marketplace_referral_service import resolve_referral
+from services.marketplace_referral_service import assign_referral, resolve_referral, ReferralAlreadyAssignedError
 from utils.jwt_tokens import (
     create_access_token,
     create_refresh_token,
@@ -65,11 +65,17 @@ async def register_client(
         hash_pass=hash_password(body.password),
         role=UserRole.CLIENT,
         is_active=True,
-        marketplace_referred_by=referred_by,
+        marketplace_referred_by=None,
     )
     db.add(user)
     await db.flush()
     await db.refresh(user)
+
+    # Assign referral using immutable service (Requirement 6.1, 6.3)
+    if referred_by is not None:
+        await assign_referral(user.id, referred_by, db)
+        await db.refresh(user)
+
     await db.commit()
 
     # Generate tokens

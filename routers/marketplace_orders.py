@@ -7,12 +7,12 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select, func, update
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from dependencies.auth import get_current_user
@@ -25,10 +25,14 @@ from models.marketplace_settings import MarketplaceSettings
 from models.user import User
 from schemas.marketplace_orders import (
     OrderCreateRequest,
+    OrderDetailResponse,
     OrderListResponse,
     OrderResponse,
 )
-from services import marketplace_escrow_service
+from schemas.settlement_account import SettlementAccountResponse
+from services import marketplace_escrow_service, notification_service, settlement_account_service
+from services.marketplace_referral_service import get_worker_id_for_order
+from services.order_state_machine import transition_order
 
 router = APIRouter(prefix="/marketplace/orders", tags=["marketplace-orders"])
 
@@ -88,10 +92,11 @@ async def create_order(
         )
 
     platform_commission_pct = settings.platform_commission_pct
-    # Worker commission only if client was referred by a worker
+    # Worker commission only if client was referred by a worker (Requirement 6.2, 6.4)
+    worker_id = get_worker_id_for_order(user)
     worker_commission_pct = (
         settings.worker_referral_commission_pct
-        if user.marketplace_referred_by is not None
+        if worker_id is not None
         else Decimal("0.00")
     )
 
@@ -99,9 +104,9 @@ async def create_order(
     order = MarketplaceOrder(
         client_id=user.id,
         blogger_id=body.blogger_id,
-        worker_id=user.marketplace_referred_by,
+        worker_id=worker_id,
         status=MarketplaceOrderStatus.PENDING_PAYMENT.value,
-        amount_kopeks=profile.average_price_kopeks,
+        amount_kopeks=body.amount_kopeks,
         message=body.message,
         platform_commission_pct=platform_commission_pct,
         worker_commission_pct=worker_commission_pct,
@@ -162,15 +167,16 @@ async def list_orders(
     )
 
 
-@router.get("/{order_id}", response_model=OrderResponse)
+@router.get("/{order_id}", response_model=OrderDetailResponse)
 async def get_order(
     order_id: uuid.UUID,
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
-) -> OrderResponse:
+) -> OrderDetailResponse:
     """Детали заказа с проверкой доступа.
 
-    Доступно клиенту-владельцу заказа или назначенному блогеру.
+    Доступно клиенту-владельцу заказа, назначенному блогеру или Admin.
+    Возвращает settlement_account (только для PENDING_PAYMENT) и available_actions.
     """
     order_result = await db.execute(
         select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
@@ -183,14 +189,53 @@ async def get_order(
             detail="Заказ не найден",
         )
 
-    # Auth check: only order client or assigned blogger can view
-    if user.id != order.client_id and user.id != order.blogger_id:
+    # Auth check: order client, assigned blogger, or Admin (Requirement 2.4)
+    is_admin = user.role == UserRole.ADMIN
+    is_client = user.id == order.client_id
+    is_blogger = user.id == order.blogger_id
+
+    if not (is_client or is_blogger or is_admin):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Нет доступа к этому заказу",
         )
 
-    return OrderResponse.model_validate(order)
+    # Build settlement_account: only for PENDING_PAYMENT and only for client or Admin (Req 2.1, 2.3)
+    sa_response: SettlementAccountResponse | None = None
+    if order.status == MarketplaceOrderStatus.PENDING_PAYMENT.value and (is_client or is_admin):
+        account = await settlement_account_service.get_settlement_account(db)
+        if account is not None:
+            sa_response = SettlementAccountResponse.model_validate(account)
+
+    # Build available_actions based on role and status (Req 2.1, 2.2, 2.3, 2.4)
+    available_actions: list[str] = []
+    order_status = order.status
+
+    if is_admin:
+        if order_status == MarketplaceOrderStatus.PENDING_PAYMENT.value:
+            available_actions.append("confirm_payment")
+        if order_status in (
+            MarketplaceOrderStatus.ESCROW_HELD.value,
+            MarketplaceOrderStatus.BLOGGER_CONFIRMED.value,
+        ):
+            available_actions.append("refund")
+
+    if is_blogger and order.blogger_id == user.id:
+        if order_status == MarketplaceOrderStatus.ESCROW_HELD.value:
+            available_actions.append("complete")
+
+    if is_client and order.client_id == user.id:
+        if order_status == MarketplaceOrderStatus.BLOGGER_CONFIRMED.value:
+            available_actions.append("confirm")
+        if order_status == MarketplaceOrderStatus.PENDING_PAYMENT.value:
+            available_actions.append("cancel")
+
+    # Construct response
+    response = OrderDetailResponse.model_validate(order)
+    response.settlement_account = sa_response
+    response.available_actions = available_actions
+
+    return response
 
 
 @router.patch("/{order_id}/complete", response_model=OrderResponse)
@@ -203,7 +248,7 @@ async def complete_order(
 
     Переход: ESCROW_HELD → BLOGGER_CONFIRMED.
     Только назначенный блогер может выполнить это действие.
-    Использует атомарный UPDATE ... WHERE status = expected_status.
+    Устанавливает blogger_confirmed_at и уведомляет заказчика.
     """
     # Verify user is a blogger
     if user.role != UserRole.BLOGER:
@@ -212,46 +257,43 @@ async def complete_order(
             detail="Только блогеры могут отмечать заказы выполненными",
         )
 
-    # Atomic update: only if order belongs to this blogger AND status is ESCROW_HELD
-    stmt = (
-        update(MarketplaceOrder)
-        .where(
-            MarketplaceOrder.id == order_id,
-            MarketplaceOrder.blogger_id == user.id,
-            MarketplaceOrder.status == MarketplaceOrderStatus.ESCROW_HELD.value,
-        )
-        .values(
-            status=MarketplaceOrderStatus.BLOGGER_CONFIRMED.value,
-        )
-        .returning(MarketplaceOrder)
+    # Fetch order
+    order_result = await db.execute(
+        select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
     )
-    result = await db.execute(stmt)
-    order = result.scalar_one_or_none()
+    order = order_result.scalar_one_or_none()
 
     if order is None:
-        # Determine the reason for failure
-        existing_result = await db.execute(
-            select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
-        )
-        existing_order = existing_result.scalar_one_or_none()
-
-        if existing_order is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Заказ не найден",
-            )
-
-        if existing_order.blogger_id != user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Вы не являетесь исполнителем этого заказа",
-            )
-
-        # Status mismatch
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Невозможно завершить заказ в статусе {existing_order.status}",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Заказ не найден",
         )
+
+    # Check that the user is the assigned blogger (Requirement 4.3)
+    if order.blogger_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Вы не являетесь исполнителем этого заказа",
+        )
+
+    # Transition via state machine (validates ESCROW_HELD → BLOGGER_CONFIRMED)
+    order = await transition_order(
+        db, order, MarketplaceOrderStatus.BLOGGER_CONFIRMED, user.id
+    )
+
+    # Set blogger_confirmed_at timestamp
+    order.blogger_confirmed_at = datetime.now(timezone.utc)
+
+    # Notify the client that blogger confirmed completion (Requirement 14.2)
+    await notification_service.notify(
+        db=db,
+        user_id=order.client_id,
+        event_type="blogger_confirmed",
+        payload={
+            "order_id": str(order.id),
+            "blogger_name": user.name,
+        },
+    )
 
     await db.commit()
     await db.refresh(order)
@@ -268,62 +310,122 @@ async def confirm_order(
 
     Переход: BLOGGER_CONFIRMED → COMPLETED.
     Только клиент-владелец заказа может выполнить это действие.
-    После подтверждения вызывается distribute_funds для распределения средств.
-    Использует атомарный UPDATE ... WHERE status = expected_status.
+    После подтверждения:
+    - Устанавливается completed_at
+    - Вызывается distribute_funds для распределения средств
+    - Отправляются уведомления блогеру и воркеру (если привязан)
+    """
+    # Verify user is a client (Requirement 4.6)
+    if user.role != UserRole.CLIENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Только клиенты могут подтверждать получение",
+        )
+
+    # Fetch order
+    order_result = await db.execute(
+        select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
+    )
+    order = order_result.scalar_one_or_none()
+
+    if order is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Заказ не найден",
+        )
+
+    # Check ownership: only the client who created the order (Requirement 4.6)
+    if order.client_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Вы не являетесь владельцем этого заказа",
+        )
+
+    # Transition via state machine (validates BLOGGER_CONFIRMED → COMPLETED)
+    order = await transition_order(
+        db, order, MarketplaceOrderStatus.COMPLETED, user.id
+    )
+
+    # Set completed_at timestamp
+    order.completed_at = datetime.now(timezone.utc)
+
+    # Distribute funds (Requirement 4.7)
+    await marketplace_escrow_service.distribute_funds(
+        order_id=order.id,
+        db=db,
+    )
+
+    # Notify blogger about order completion (Requirement 14.3)
+    await notification_service.notify(
+        db=db,
+        user_id=order.blogger_id,
+        event_type="order_completed",
+        payload={
+            "order_id": str(order.id),
+            "amount": order.amount_kopeks,
+            "client_name": user.name,
+        },
+    )
+
+    # Notify worker about commission if worker is attached (Requirement 14.3)
+    if order.worker_id is not None:
+        await notification_service.notify(
+            db=db,
+            user_id=order.worker_id,
+            event_type="order_completed_worker_commission",
+            payload={
+                "order_id": str(order.id),
+                "amount": order.amount_kopeks,
+                "client_name": user.name,
+            },
+        )
+
+    await db.commit()
+    await db.refresh(order)
+    return OrderResponse.model_validate(order)
+
+
+@router.patch("/{order_id}/cancel", response_model=OrderResponse)
+async def cancel_order(
+    order_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OrderResponse:
+    """Клиент отменяет заказ.
+
+    Переход: PENDING_PAYMENT → CANCELLED.
+    Только клиент-владелец заказа может отменить его.
+    Использует transition_order для валидации перехода и записи в историю.
     """
     # Verify user is a client
     if user.role != UserRole.CLIENT:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Только клиенты могут подтверждать доставку",
+            detail="Только клиенты могут отменять заказы",
         )
 
-    # Atomic update: only if order belongs to this client AND status is BLOGGER_CONFIRMED
-    stmt = (
-        update(MarketplaceOrder)
-        .where(
-            MarketplaceOrder.id == order_id,
-            MarketplaceOrder.client_id == user.id,
-            MarketplaceOrder.status == MarketplaceOrderStatus.BLOGGER_CONFIRMED.value,
-        )
-        .values(
-            status=MarketplaceOrderStatus.COMPLETED.value,
-            completed_at=func.now(),
-        )
-        .returning(MarketplaceOrder)
+    # Fetch order
+    order_result = await db.execute(
+        select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
     )
-    result = await db.execute(stmt)
-    order = result.scalar_one_or_none()
+    order = order_result.scalar_one_or_none()
 
     if order is None:
-        # Determine the reason for failure
-        existing_result = await db.execute(
-            select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
-        )
-        existing_order = existing_result.scalar_one_or_none()
-
-        if existing_order is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Заказ не найден",
-            )
-
-        if existing_order.client_id != user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Вы не являетесь владельцем этого заказа",
-            )
-
-        # Status mismatch
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Невозможно подтвердить заказ в статусе {existing_order.status}",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Заказ не найден",
         )
 
-    # Distribute funds after successful confirmation
-    await marketplace_escrow_service.distribute_funds(
-        order_id=order.id,
-        db=db,
+    # Check ownership
+    if order.client_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Вы не являетесь владельцем этого заказа",
+        )
+
+    # Transition via state machine (validates PENDING_PAYMENT → CANCELLED)
+    order = await transition_order(
+        db, order, MarketplaceOrderStatus.CANCELLED, user.id
     )
 
     await db.commit()

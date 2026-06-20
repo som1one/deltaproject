@@ -1,0 +1,40 @@
+import uuid
+from datetime import datetime
+
+from sqlalchemy import DateTime, ForeignKey, Index, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
+
+from models.base import Base
+
+
+class OrderStatusHistory(Base):
+    __tablename__ = "order_status_history"
+    __table_args__ = (
+        Index("ix_osh_order_id", "order_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    order_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("marketplace_orders.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    old_status: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    new_status: Mapped[str] = mapped_column(String(30), nullable=False)
+    changed_by: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    reason: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )

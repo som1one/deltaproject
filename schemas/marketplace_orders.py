@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from enums.marketplace import MarketplaceOrderStatus
+from schemas.settlement_account import SettlementAccountResponse
 
 
 class OrderCreateRequest(BaseModel):
@@ -14,6 +16,7 @@ class OrderCreateRequest(BaseModel):
 
     blogger_id: uuid.UUID
     message: Annotated[str, Field(min_length=1, max_length=1000)]
+    amount_kopeks: int = Field(..., ge=100, le=1_000_000_000)
 
 
 class OrderResponse(BaseModel):
@@ -46,3 +49,55 @@ class OrderListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class OrderDetailResponse(OrderResponse):
+    """Расширенный ответ с деталями заказа, включая реквизиты р/с и доступные действия."""
+
+    settlement_account: SettlementAccountResponse | None = None
+    available_actions: list[str] = []
+
+
+class RefundRequest(BaseModel):
+    """Запрос на возврат средств по заказу."""
+
+    reason: str = Field(..., min_length=1, max_length=1000, description="Причина возврата (1–1000 символов)")
+
+    @field_validator("reason")
+    @classmethod
+    def reason_not_whitespace(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Причина не может состоять только из пробелов")
+        return v
+
+
+class CommissionSettingsUpdate(BaseModel):
+    """Обновление настроек комиссий платформы и воркера."""
+
+    platform_commission_pct: Decimal = Field(
+        ...,
+        ge=Decimal("1"),
+        le=Decimal("50"),
+        decimal_places=2,
+        description="Комиссия платформы (1–50%, до 2 знаков после запятой)",
+    )
+    worker_commission_pct: Decimal = Field(
+        ...,
+        ge=Decimal("1"),
+        le=Decimal("30"),
+        decimal_places=2,
+        description="Комиссия воркера (1–30%, до 2 знаков после запятой)",
+    )
+
+    @model_validator(mode="after")
+    def check_total(self) -> "CommissionSettingsUpdate":
+        if self.platform_commission_pct + self.worker_commission_pct > Decimal("80"):
+            raise ValueError("Сумма комиссий не может превышать 80%")
+        return self
+
+
+class CommissionSettingsReadResponse(BaseModel):
+    """Ответ с текущими настройками комиссий (для /commission-settings)."""
+
+    platform_commission_pct: Decimal
+    worker_commission_pct: Decimal

@@ -11,12 +11,16 @@ import uuid
 from dataclasses import dataclass
 from decimal import Decimal
 
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from enums.marketplace import MarketplaceOrderStatus
 from models.marketplace_escrow_ledger import MarketplaceEscrowEntry
 from models.marketplace_order import MarketplaceOrder
 from models.user import User
+from services.notification_service import notify
+from services.order_state_machine import transition_order
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +104,228 @@ async def freeze_funds(
     await db.flush()
 
 
+async def confirm_payment(
+    order_id: uuid.UUID,
+    admin_id: uuid.UUID,
+    db: AsyncSession,
+) -> MarketplaceOrder:
+    """Админ подтверждает оплату: PENDING_PAYMENT → ESCROW_HELD + freeze.
+
+    Логика:
+    1. Проверка идемпотентности — если freeze уже выполнен, загружаем и возвращаем заказ.
+    2. Загрузка заказа с блокировкой (SELECT FOR UPDATE).
+    3. Проверка статуса PENDING_PAYMENT (409 если другой).
+    4. Переход статуса через transition_order → ESCROW_HELD.
+    5. Установка confirmed_by = admin_id.
+    6. Вызов freeze_funds для создания ledger-записи.
+    7. Уведомление блогеру о новом заказе в работе.
+
+    Args:
+        order_id: UUID заказа.
+        admin_id: UUID администратора, подтверждающего оплату.
+        db: Асинхронная сессия БД.
+
+    Returns:
+        Обновлённый объект MarketplaceOrder.
+
+    Raises:
+        HTTPException(404): Заказ не найден.
+        HTTPException(409): Заказ не в статусе PENDING_PAYMENT (и не ESCROW_HELD).
+    """
+    # Проверка идемпотентности: если freeze уже создан — заказ уже подтверждён
+    existing = await db.execute(
+        select(MarketplaceEscrowEntry).where(
+            MarketplaceEscrowEntry.idempotency_key == f"{order_id}:freeze",
+        )
+    )
+    if existing.scalar_one_or_none() is not None:
+        # Заказ уже подтверждён — вернуть текущее состояние
+        order = (
+            await db.execute(
+                select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
+            )
+        ).scalar_one_or_none()
+        if order is not None:
+            logger.info("confirm_payment: уже выполнено для order_id=%s", order_id)
+            return order
+
+    # Загрузка заказа с блокировкой
+    order = (
+        await db.execute(
+            select(MarketplaceOrder)
+            .where(MarketplaceOrder.id == order_id)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+
+    if order is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Заказ {order_id} не найден",
+        )
+
+    # Идемпотентность: если заказ уже в ESCROW_HELD — вернуть без ошибки
+    if order.status == MarketplaceOrderStatus.ESCROW_HELD.value:
+        logger.info("confirm_payment: заказ уже в ESCROW_HELD, order_id=%s", order_id)
+        return order
+
+    # Проверка допустимого статуса (transition_order выбросит 409 если переход невозможен)
+    if order.status != MarketplaceOrderStatus.PENDING_PAYMENT.value:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Подтверждение оплаты невозможно: заказ в статусе {order.status}",
+        )
+
+    # Переход статуса: PENDING_PAYMENT → ESCROW_HELD
+    order = await transition_order(
+        db=db,
+        order=order,
+        target_status=MarketplaceOrderStatus.ESCROW_HELD,
+        changed_by=admin_id,
+    )
+
+    # Установка подтвердившего администратора
+    order.confirmed_by = admin_id
+
+    # Заморозка средств (ledger entry)
+    await freeze_funds(
+        order_id=order.id,
+        amount_kopeks=order.amount_kopeks,
+        db=db,
+    )
+
+    # Уведомление блогеру о новом заказе в работе
+    client = (
+        await db.execute(
+            select(User).where(User.id == order.client_id)
+        )
+    ).scalar_one_or_none()
+    client_name = client.name if client else "Неизвестный клиент"
+
+    await notify(
+        db=db,
+        user_id=order.blogger_id,
+        event_type="order_confirmed",
+        payload={
+            "order_id": str(order.id),
+            "amount": order.amount_kopeks,
+            "client_name": client_name,
+        },
+    )
+
+    await db.flush()
+
+    return order
+
+
+async def process_refund(
+    order_id: uuid.UUID,
+    admin_id: uuid.UUID,
+    reason: str,
+    db: AsyncSession,
+) -> MarketplaceOrder:
+    """Админ оформляет возврат: ESCROW_HELD/BLOGGER_CONFIRMED → REFUNDED.
+
+    Логика:
+    1. Загрузка заказа с блокировкой (SELECT FOR UPDATE).
+    2. Идемпотентность: если заказ уже в REFUNDED — вернуть без ошибки.
+    3. Проверка допустимого статуса (ESCROW_HELD или BLOGGER_CONFIRMED).
+    4. Переход статуса через transition_order → REFUNDED.
+    5. Установка refunded_at, refund_reason, refunded_by.
+    6. Балансы НЕ меняются (средства были заморожены, не распределены).
+    7. Уведомления заказчику и блогеру.
+
+    Args:
+        order_id: UUID заказа.
+        admin_id: UUID администратора, оформляющего возврат.
+        reason: Причина возврата (1–1000 символов).
+        db: Асинхронная сессия БД.
+
+    Returns:
+        Обновлённый объект MarketplaceOrder.
+
+    Raises:
+        HTTPException(404): Заказ не найден.
+        HTTPException(409): Заказ не в допустимом статусе для возврата.
+    """
+    from datetime import datetime, timezone
+
+    # Загрузка заказа с блокировкой
+    order = (
+        await db.execute(
+            select(MarketplaceOrder)
+            .where(MarketplaceOrder.id == order_id)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+
+    if order is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Заказ {order_id} не найден",
+        )
+
+    # Идемпотентность: если заказ уже в REFUNDED — вернуть без ошибки
+    if order.status == MarketplaceOrderStatus.REFUNDED.value:
+        logger.info("process_refund: заказ уже в REFUNDED, order_id=%s", order_id)
+        return order
+
+    # Проверка допустимого статуса
+    allowed_statuses = {
+        MarketplaceOrderStatus.ESCROW_HELD.value,
+        MarketplaceOrderStatus.BLOGGER_CONFIRMED.value,
+    }
+    if order.status not in allowed_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Возврат невозможен: заказ в статусе {order.status}",
+        )
+
+    # Переход статуса: → REFUNDED
+    order = await transition_order(
+        db=db,
+        order=order,
+        target_status=MarketplaceOrderStatus.REFUNDED,
+        changed_by=admin_id,
+        reason=reason,
+    )
+
+    # Установка полей возврата
+    order.refunded_at = datetime.now(timezone.utc)
+    order.refund_reason = reason
+    order.refunded_by = admin_id
+
+    # Балансы НЕ меняются — средства были заморожены, но не распределены
+
+    # Уведомление заказчику о возврате
+    await notify(
+        db=db,
+        user_id=order.client_id,
+        event_type="order_refunded",
+        payload={
+            "order_id": str(order.id),
+            "amount": order.amount_kopeks,
+            "reason": reason,
+        },
+    )
+
+    # Уведомление блогеру о возврате
+    await notify(
+        db=db,
+        user_id=order.blogger_id,
+        event_type="order_refunded",
+        payload={
+            "order_id": str(order.id),
+            "amount": order.amount_kopeks,
+            "reason": reason,
+        },
+    )
+
+    await db.flush()
+
+    return order
+
+
 async def distribute_funds(
     order_id: uuid.UUID,
     db: AsyncSession,
@@ -109,16 +335,24 @@ async def distribute_funds(
     Рассчитывает доли по формуле (floor для worker/platform, остаток блогеру),
     создаёт ledger-записи, кредитует marketplace_balance_kopeks участникам.
 
+    Формула:
+    - platform_share = floor(amount * platform_pct / 100)
+    - worker_share = floor(amount * worker_pct / 100), 0 если нет воркера
+    - blogger_share = amount - platform_share - worker_share
+    - Инвариант: blogger + worker + platform == amount
+
     Использует SELECT FOR UPDATE на строке заказа для конкурентной безопасности.
-    Идемпотентно: если записи распределения уже существуют — возвращает результат
+    Идемпотентно: если запись с idempotency_key уже существует — возвращает результат
     без повторного начисления.
     """
-    idempotency_key_blogger = f"{order_id}:release_blogger"
+    from core.settings import settings
 
-    # Проверка идемпотентности — если блогерская запись уже есть, распределение выполнено
+    idempotency_key = f"{order_id}:distribute"
+
+    # Проверка идемпотентности — если distribute уже выполнен, пропускаем
     existing = await db.execute(
         select(MarketplaceEscrowEntry).where(
-            MarketplaceEscrowEntry.idempotency_key == idempotency_key_blogger,
+            MarketplaceEscrowEntry.idempotency_key == idempotency_key,
         )
     )
     if existing.scalar_one_or_none() is not None:
@@ -160,7 +394,7 @@ async def distribute_funds(
     if order is None:
         raise ValueError(f"Заказ {order_id} не найден")
 
-    # Рассчитать доли
+    # Рассчитать доли — если worker_id отсутствует, worker_pct = 0 → вся доля блогеру
     worker_pct = order.worker_commission_pct if order.worker_id else Decimal("0")
     blogger_share, worker_share, platform_share = calculate_distribution(
         amount_kopeks=order.amount_kopeks,
@@ -168,7 +402,10 @@ async def distribute_funds(
         worker_commission_pct=worker_pct,
     )
 
-    # Создать ledger-записи
+    platform_user_id = settings.platform_revenue_user_id
+
+    # Создать ledger-записи для каждого получателя
+    # Запись блогера — используется как маркер идемпотентности (основной ключ)
     db.add(
         MarketplaceEscrowEntry(
             order_id=order_id,
@@ -176,10 +413,11 @@ async def distribute_funds(
             entry_type="release_blogger",
             amount_kopeks=blogger_share,
             note="Доля блогера по заказу",
-            idempotency_key=idempotency_key_blogger,
+            idempotency_key=idempotency_key,
         )
     )
 
+    # Запись воркера (только если есть комиссия и воркер привязан)
     if worker_share > 0 and order.worker_id:
         db.add(
             MarketplaceEscrowEntry(
@@ -192,10 +430,11 @@ async def distribute_funds(
             )
         )
 
+    # Запись платформы — user_id = platform_revenue_user_id
     db.add(
         MarketplaceEscrowEntry(
             order_id=order_id,
-            user_id=order.client_id,  # platform entry attributed to client (source)
+            user_id=platform_user_id,
             entry_type="release_platform",
             amount_kopeks=platform_share,
             note="Комиссия платформы",
@@ -204,6 +443,7 @@ async def distribute_funds(
     )
 
     # Кредитовать балансы участников
+    # Блогер
     blogger_user = (
         await db.execute(
             select(User).where(User.id == order.blogger_id).with_for_update()
@@ -212,6 +452,7 @@ async def distribute_funds(
     if blogger_user is not None:
         blogger_user.marketplace_balance_kopeks += blogger_share
 
+    # Воркер (если есть комиссия)
     if worker_share > 0 and order.worker_id:
         worker_user = (
             await db.execute(
@@ -220,6 +461,15 @@ async def distribute_funds(
         ).scalar_one_or_none()
         if worker_user is not None:
             worker_user.marketplace_balance_kopeks += worker_share
+
+    # Платформа — кредитовать системного пользователя
+    platform_user = (
+        await db.execute(
+            select(User).where(User.id == platform_user_id).with_for_update()
+        )
+    ).scalar_one_or_none()
+    if platform_user is not None:
+        platform_user.marketplace_balance_kopeks += platform_share
 
     await db.flush()
 

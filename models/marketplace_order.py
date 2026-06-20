@@ -64,6 +64,26 @@ class MarketplaceOrder(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    # Refund tracking
+    refunded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    refund_reason: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    refunded_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    # Payment confirmation tracking
+    confirmed_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    # Blogger confirmation timestamp
+    blogger_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

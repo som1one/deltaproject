@@ -158,6 +158,7 @@ async def test_create_order_201_success() -> None:
                 json={
                     "blogger_id": str(blogger.id),
                     "message": "Хочу рекламу",
+                    "amount_kopeks": 500000,
                 },
             )
         assert r.status_code == 201
@@ -187,6 +188,7 @@ async def test_create_order_403_non_client() -> None:
                 json={
                     "blogger_id": str(uuid.uuid4()),
                     "message": "Test message",
+                    "amount_kopeks": 500000,
                 },
             )
         assert r.status_code == 403
@@ -213,6 +215,7 @@ async def test_create_order_422_empty_message() -> None:
                 json={
                     "blogger_id": str(uuid.uuid4()),
                     "message": "",
+                    "amount_kopeks": 500000,
                 },
             )
         assert r.status_code == 422
@@ -239,6 +242,7 @@ async def test_create_order_422_message_too_long() -> None:
                 json={
                     "blogger_id": str(uuid.uuid4()),
                     "message": "x" * 1001,
+                    "amount_kopeks": 500000,
                 },
             )
         assert r.status_code == 422
@@ -268,6 +272,7 @@ async def test_create_order_404_blogger_not_found() -> None:
                 json={
                     "blogger_id": str(uuid.uuid4()),
                     "message": "Valid message",
+                    "amount_kopeks": 500000,
                 },
             )
         assert r.status_code == 404
@@ -301,6 +306,7 @@ async def test_create_order_400_blogger_inactive() -> None:
                 json={
                     "blogger_id": str(blogger.id),
                     "message": "Valid message",
+                    "amount_kopeks": 500000,
                 },
             )
         assert r.status_code == 400
@@ -335,6 +341,7 @@ async def test_create_order_400_orders_disabled() -> None:
                 json={
                     "blogger_id": str(blogger.id),
                     "message": "Valid message",
+                    "amount_kopeks": 500000,
                 },
             )
         assert r.status_code == 400
@@ -423,9 +430,12 @@ async def test_get_order_200_client_owner() -> None:
 
     async def fake_db():
         session = AsyncMock()
-        result = MagicMock()
-        result.scalar_one_or_none = MagicMock(return_value=order)
-        session.execute = AsyncMock(return_value=result)
+        # First execute returns order, second returns settlement account (None)
+        order_result = MagicMock()
+        order_result.scalar_one_or_none = MagicMock(return_value=order)
+        sa_result = MagicMock()
+        sa_result.scalar_one_or_none = MagicMock(return_value=None)
+        session.execute = AsyncMock(side_effect=[order_result, sa_result])
         yield session
 
     app.dependency_overrides[get_db] = fake_db
@@ -433,6 +443,9 @@ async def test_get_order_200_client_owner() -> None:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             r = await ac.get(f"/marketplace/orders/{order.id}")
         assert r.status_code == 200
+        data = r.json()
+        assert data["settlement_account"] is None
+        assert "cancel" in data["available_actions"]
     finally:
         app.dependency_overrides.clear()
 
@@ -516,7 +529,6 @@ async def test_complete_order_200_success() -> None:
     blogger = _make_blogger_user()
     client = _make_client_user()
     order = _make_order(client.id, blogger.id, status=MarketplaceOrderStatus.ESCROW_HELD.value)
-    order.status = MarketplaceOrderStatus.BLOGGER_CONFIRMED.value  # after update
 
     app.dependency_overrides[get_current_user] = lambda: blogger
 
@@ -525,23 +537,37 @@ async def test_complete_order_200_success() -> None:
         result = MagicMock()
         result.scalar_one_or_none = MagicMock(return_value=order)
         session.execute = AsyncMock(return_value=result)
+        session.add = MagicMock()
+        session.flush = AsyncMock()
         session.commit = AsyncMock()
 
         async def fake_refresh(obj):
-            pass
+            # After transition, status should be BLOGGER_CONFIRMED
+            obj.status = MarketplaceOrderStatus.BLOGGER_CONFIRMED.value
 
         session.refresh = fake_refresh
         yield session
 
     app.dependency_overrides[get_db] = fake_db
-    try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-            r = await ac.patch(f"/marketplace/orders/{order.id}/complete")
-        assert r.status_code == 200
-        data = r.json()
-        assert data["status"] == "BLOGGER_CONFIRMED"
-    finally:
-        app.dependency_overrides.clear()
+
+    with patch(
+        "routers.marketplace_orders.notification_service.notify",
+        new_callable=AsyncMock,
+    ) as mock_notify:
+        try:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+                r = await ac.patch(f"/marketplace/orders/{order.id}/complete")
+            assert r.status_code == 200
+            data = r.json()
+            assert data["status"] == "BLOGGER_CONFIRMED"
+            mock_notify.assert_called_once()
+            call_kwargs = mock_notify.call_args.kwargs
+            assert call_kwargs["user_id"] == client.id
+            assert call_kwargs["event_type"] == "blogger_confirmed"
+            assert call_kwargs["payload"]["order_id"] == str(order.id)
+            assert call_kwargs["payload"]["blogger_name"] == blogger.name
+        finally:
+            app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
@@ -556,20 +582,9 @@ async def test_complete_order_403_wrong_blogger() -> None:
 
     async def fake_db():
         session = AsyncMock()
-        call_count = {"n": 0}
-
-        async def mock_execute(stmt):
-            call_count["n"] += 1
-            result = MagicMock()
-            if call_count["n"] == 1:
-                # Atomic update returns None (not assigned to this blogger)
-                result.scalar_one_or_none = MagicMock(return_value=None)
-            else:
-                # Lookup for error detail
-                result.scalar_one_or_none = MagicMock(return_value=order)
-            return result
-
-        session.execute = mock_execute
+        result = MagicMock()
+        result.scalar_one_or_none = MagicMock(return_value=order)
+        session.execute = AsyncMock(return_value=result)
         yield session
 
     app.dependency_overrides[get_db] = fake_db

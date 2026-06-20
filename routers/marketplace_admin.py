@@ -9,39 +9,66 @@ Endpoints:
 - GET  /admin/marketplace/support/tickets — открытые тикеты
 - PATCH /admin/marketplace/support/tickets/{id}/resolve — закрытие тикета
 - PATCH /admin/marketplace/bloggers/{id} — редактирование профиля блогера
+- GET  /admin/settlement-account — получить реквизиты р/с
+- PUT  /admin/settlement-account — сохранить реквизиты р/с
 """
 
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from dependencies.auth import get_current_admin_or_tech
 from dependencies.database import get_db
 from enums.marketplace import MarketplaceOrderStatus, SupportTicketStatus
 from enums.user import UserRole
 from models.blogger_profile import BloggerProfile
+from models.marketplace_escrow_ledger import MarketplaceEscrowEntry
 from models.marketplace_order import MarketplaceOrder
 from models.marketplace_settings import MarketplaceSettings
+from models.order_status_history import OrderStatusHistory
 from models.support_ticket import SupportTicket
 from models.user import User
 from schemas.marketplace import BloggerProfileResponse, BloggerProfileUpdateRequest
 from schemas.marketplace_admin import (
+    AdminMarketplaceSummaryResponse,
+    AdminOrderDetailResponse,
+    AdminOrderListResponse,
+    AdminOrderResponse,
     CommissionSettingsRequest,
     CommissionSettingsResponse,
     DashboardResponse,
+    DistributionBreakdown,
+    EscrowLedgerEntry,
+    OrderCountByStatus,
     OrderResolveRequest,
+    StatusHistoryEntry,
 )
-from schemas.marketplace_orders import OrderListResponse, OrderResponse
+from schemas.marketplace_orders import (
+    CommissionSettingsReadResponse,
+    CommissionSettingsUpdate,
+    OrderResponse,
+    RefundRequest,
+)
+
 from schemas.marketplace_support import TicketListResponse, TicketResponse
-from services.marketplace_escrow_service import distribute_funds, refund_to_client
+from schemas.settlement_account import SettlementAccountResponse, SettlementAccountUpsert
+from services.marketplace_escrow_service import calculate_distribution, confirm_payment, distribute_funds, process_refund, refund_to_client
+from services.settlement_account_service import (
+    get_settlement_account,
+    upsert_settlement_account,
+)
 
 router = APIRouter(prefix="/admin/marketplace", tags=["admin-marketplace"])
+
+settlement_router = APIRouter(prefix="/admin", tags=["admin-settlement-account"])
 
 
 # ---------------------------------------------------------------------------
@@ -102,11 +129,12 @@ async def get_marketplace_dashboard(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/orders", response_model=OrderListResponse)
+@router.get("/orders", response_model=AdminOrderListResponse)
 async def get_marketplace_orders(
     db: Annotated[AsyncSession, Depends(get_db)],
     _admin: Annotated[User, Depends(get_current_admin_or_tech)],
     page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 50,
     status_filter: Annotated[
         MarketplaceOrderStatus | None,
         Query(alias="status", description="Фильтр по статусу заказа"),
@@ -127,14 +155,38 @@ async def get_marketplace_orders(
         uuid.UUID | None,
         Query(description="Фильтр по ID клиента"),
     ] = None,
-) -> OrderListResponse:
-    """Список всех заказов маркетплейса с фильтрами, 50 на страницу."""
+    worker_id: Annotated[
+        uuid.UUID | None,
+        Query(description="Фильтр по ID воркера"),
+    ] = None,
+) -> AdminOrderListResponse:
+    """Список всех заказов маркетплейса с фильтрами и пагинацией.
 
-    page_size = 50
+    Включает имена участников (client_name, blogger_name, worker_name).
+    Сортировка по дате создания (новые первыми).
+    """
+
     offset = (page - 1) * page_size
 
-    # Base query
-    query = select(MarketplaceOrder)
+    # Aliases for User table to join for names
+    ClientUser = aliased(User, flat=True)
+    BloggerUser = aliased(User, flat=True)
+    WorkerUser = aliased(User, flat=True)
+
+    # Base query with joins for names
+    query = (
+        select(
+            MarketplaceOrder,
+            ClientUser.name.label("client_name"),
+            BloggerUser.name.label("blogger_name"),
+            WorkerUser.name.label("worker_name"),
+        )
+        .join(ClientUser, MarketplaceOrder.client_id == ClientUser.id)
+        .join(BloggerUser, MarketplaceOrder.blogger_id == BloggerUser.id)
+        .outerjoin(WorkerUser, MarketplaceOrder.worker_id == WorkerUser.id)
+    )
+
+    # Count query (without joins, for efficiency)
     count_query = select(func.count()).select_from(MarketplaceOrder)
 
     # Apply filters
@@ -153,22 +205,260 @@ async def get_marketplace_orders(
     if client_id is not None:
         query = query.where(MarketplaceOrder.client_id == client_id)
         count_query = count_query.where(MarketplaceOrder.client_id == client_id)
+    if worker_id is not None:
+        query = query.where(MarketplaceOrder.worker_id == worker_id)
+        count_query = count_query.where(MarketplaceOrder.worker_id == worker_id)
 
     # Get total count
     total_result = await db.execute(count_query)
     total = total_result.scalar_one()
 
-    # Get paginated results
+    # Get paginated results ordered by created_at descending
     query = query.order_by(MarketplaceOrder.created_at.desc()).offset(offset).limit(page_size)
     result = await db.execute(query)
-    orders = result.scalars().all()
+    rows = result.all()
 
-    return OrderListResponse(
-        items=[OrderResponse.model_validate(o) for o in orders],
+    # Build response items with names
+    items = []
+    for row in rows:
+        order = row[0]
+        items.append(
+            AdminOrderResponse(
+                id=order.id,
+                client_id=order.client_id,
+                blogger_id=order.blogger_id,
+                worker_id=order.worker_id,
+                amount_kopeks=order.amount_kopeks,
+                status=order.status,
+                created_at=order.created_at,
+                updated_at=order.updated_at,
+                client_name=row.client_name or "",
+                blogger_name=row.blogger_name or "",
+                worker_name=row.worker_name,
+            )
+        )
+
+    return AdminOrderListResponse(
+        items=items,
         total=total,
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/orders/{order_id}", response_model=AdminOrderDetailResponse)
+async def get_marketplace_order_detail(
+    order_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> AdminOrderDetailResponse:
+    """Полная информация о заказе для админ-панели.
+
+    Включает:
+    - Все поля заказа + имена участников
+    - Историю смены статусов (OrderStatusHistory)
+    - Записи эскроу-журнала (MarketplaceEscrowEntry)
+    - Доли распределения (blogger_share, worker_share, platform_share)
+    """
+
+    # Aliases for participant names
+    ClientUser = aliased(User, flat=True)
+    BloggerUser = aliased(User, flat=True)
+    WorkerUser = aliased(User, flat=True)
+
+    result = await db.execute(
+        select(
+            MarketplaceOrder,
+            ClientUser.name.label("client_name"),
+            BloggerUser.name.label("blogger_name"),
+            WorkerUser.name.label("worker_name"),
+        )
+        .join(ClientUser, MarketplaceOrder.client_id == ClientUser.id)
+        .join(BloggerUser, MarketplaceOrder.blogger_id == BloggerUser.id)
+        .outerjoin(WorkerUser, MarketplaceOrder.worker_id == WorkerUser.id)
+        .where(MarketplaceOrder.id == order_id)
+    )
+    row = result.one_or_none()
+
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Заказ не найден",
+        )
+
+    order = row[0]
+
+    # Fetch status history
+    history_result = await db.execute(
+        select(OrderStatusHistory)
+        .where(OrderStatusHistory.order_id == order_id)
+        .order_by(OrderStatusHistory.created_at.asc())
+    )
+    history_rows = history_result.scalars().all()
+    status_history = [
+        StatusHistoryEntry(
+            id=h.id,
+            old_status=h.old_status,
+            new_status=h.new_status,
+            changed_by=h.changed_by,
+            reason=h.reason,
+            created_at=h.created_at,
+        )
+        for h in history_rows
+    ]
+
+    # Fetch escrow ledger entries
+    ledger_result = await db.execute(
+        select(MarketplaceEscrowEntry)
+        .where(MarketplaceEscrowEntry.order_id == order_id)
+        .order_by(MarketplaceEscrowEntry.created_at.asc())
+    )
+    ledger_rows = ledger_result.scalars().all()
+    ledger_entries = [
+        EscrowLedgerEntry(
+            id=e.id,
+            user_id=e.user_id,
+            entry_type=e.entry_type,
+            amount_kopeks=e.amount_kopeks,
+            note=e.note,
+            created_at=e.created_at,
+        )
+        for e in ledger_rows
+    ]
+
+    # Calculate distribution breakdown based on commission snapshot
+    worker_pct = order.worker_commission_pct if order.worker_id else Decimal("0")
+    blogger_share, worker_share, platform_share = calculate_distribution(
+        amount_kopeks=order.amount_kopeks,
+        platform_commission_pct=order.platform_commission_pct,
+        worker_commission_pct=worker_pct,
+    )
+    distribution = DistributionBreakdown(
+        blogger_share=blogger_share,
+        worker_share=worker_share,
+        platform_share=platform_share,
+    )
+
+    return AdminOrderDetailResponse(
+        id=order.id,
+        client_id=order.client_id,
+        blogger_id=order.blogger_id,
+        worker_id=order.worker_id,
+        amount_kopeks=order.amount_kopeks,
+        status=order.status,
+        message=order.message,
+        platform_commission_pct=order.platform_commission_pct,
+        worker_commission_pct=order.worker_commission_pct,
+        created_at=order.created_at,
+        updated_at=order.updated_at,
+        paid_at=order.paid_at,
+        completed_at=order.completed_at,
+        blogger_confirmed_at=order.blogger_confirmed_at,
+        refunded_at=order.refunded_at,
+        refund_reason=order.refund_reason,
+        client_name=row.client_name or "",
+        blogger_name=row.blogger_name or "",
+        worker_name=row.worker_name,
+        status_history=status_history,
+        ledger_entries=ledger_entries,
+        distribution=distribution,
+    )
+
+
+@router.get("/summary", response_model=AdminMarketplaceSummaryResponse)
+async def get_marketplace_summary(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> AdminMarketplaceSummaryResponse:
+    """Сводка по заказам маркетплейса.
+
+    Возвращает:
+    - Общий оборот (сумма amount_kopeks для заказов в ESCROW_HELD, BLOGGER_CONFIRMED, COMPLETED)
+    - Количество заказов по каждому статусу
+    - Общая сумма комиссий воркерам (сумма release_worker из escrow ledger)
+    """
+
+    # Total turnover (orders in active/completed statuses)
+    turnover_statuses = [
+        MarketplaceOrderStatus.ESCROW_HELD.value,
+        MarketplaceOrderStatus.BLOGGER_CONFIRMED.value,
+        MarketplaceOrderStatus.COMPLETED.value,
+    ]
+    turnover_result = await db.execute(
+        select(func.coalesce(func.sum(MarketplaceOrder.amount_kopeks), 0)).where(
+            MarketplaceOrder.status.in_(turnover_statuses)
+        )
+    )
+    total_turnover_kopeks = turnover_result.scalar_one()
+
+    # Count by status
+    count_result = await db.execute(
+        select(
+            MarketplaceOrder.status,
+            func.count().label("cnt"),
+        )
+        .group_by(MarketplaceOrder.status)
+    )
+    count_rows = count_result.all()
+    orders_by_status = [
+        OrderCountByStatus(status=row.status, count=row.cnt)
+        for row in count_rows
+    ]
+
+    # Total worker commissions (sum of release_worker entries)
+    worker_commissions_result = await db.execute(
+        select(func.coalesce(func.sum(MarketplaceEscrowEntry.amount_kopeks), 0)).where(
+            MarketplaceEscrowEntry.entry_type == "release_worker"
+        )
+    )
+    total_worker_commissions_kopeks = worker_commissions_result.scalar_one()
+
+    return AdminMarketplaceSummaryResponse(
+        total_turnover_kopeks=total_turnover_kopeks,
+        orders_by_status=orders_by_status,
+        total_worker_commissions_kopeks=total_worker_commissions_kopeks,
+    )
+
+
+@router.patch("/orders/{order_id}/confirm-payment", response_model=OrderResponse)
+async def confirm_order_payment(
+    order_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> OrderResponse:
+    """Подтвердить получение оплаты по заказу.
+
+    Переводит заказ из PENDING_PAYMENT в ESCROW_HELD,
+    замораживает средства на платформе. Только для Admin.
+    """
+    order = await confirm_payment(order_id=order_id, admin_id=admin.id, db=db)
+    await db.commit()
+    await db.refresh(order)
+    return OrderResponse.model_validate(order)
+
+
+@router.patch("/orders/{order_id}/refund", response_model=OrderResponse)
+async def refund_order(
+    order_id: uuid.UUID,
+    body: RefundRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> OrderResponse:
+    """Оформить возврат средств по заказу.
+
+    Допускается для заказов в статусах ESCROW_HELD и BLOGGER_CONFIRMED.
+    Переводит заказ в статус REFUNDED. Балансы участников не меняются.
+    Только для Admin.
+    """
+    order = await process_refund(
+        order_id=order_id,
+        admin_id=admin.id,
+        reason=body.reason,
+        db=db,
+    )
+    await db.commit()
+    await db.refresh(order)
+    return OrderResponse.model_validate(order)
 
 
 @router.patch("/orders/{order_id}/resolve", response_model=OrderResponse)
@@ -264,6 +554,58 @@ async def update_marketplace_settings(
     return CommissionSettingsResponse(
         platform_commission_pct=settings.platform_commission_pct,
         worker_referral_commission_pct=settings.worker_referral_commission_pct,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Commission Settings (new /commission-settings endpoints)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/commission-settings", response_model=CommissionSettingsReadResponse)
+async def get_commission_settings(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> CommissionSettingsReadResponse:
+    """Получить текущие значения комиссий платформы и воркера.
+
+    Возвращает platform_commission_pct и worker_commission_pct с точностью
+    до 2 знаков после запятой.
+    """
+
+    settings = await _get_or_create_settings(db)
+    return CommissionSettingsReadResponse(
+        platform_commission_pct=settings.platform_commission_pct,
+        worker_commission_pct=settings.worker_referral_commission_pct,
+    )
+
+
+@router.put("/commission-settings", response_model=CommissionSettingsReadResponse)
+async def update_commission_settings(
+    body: CommissionSettingsUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> CommissionSettingsReadResponse:
+    """Обновить настройки комиссий платформы и воркера.
+
+    Валидация:
+    - platform_commission_pct: 1–50%, макс. 2 знака после запятой
+    - worker_commission_pct: 1–30%, макс. 2 знака после запятой
+    - Сумма комиссий не более 80%
+    """
+
+    settings = await _get_or_create_settings(db)
+    settings.platform_commission_pct = body.platform_commission_pct
+    settings.worker_referral_commission_pct = body.worker_commission_pct
+    settings.updated_by = admin.id
+
+    await db.flush()
+    await db.commit()
+    await db.refresh(settings)
+
+    return CommissionSettingsReadResponse(
+        platform_commission_pct=settings.platform_commission_pct,
+        worker_commission_pct=settings.worker_referral_commission_pct,
     )
 
 
@@ -463,3 +805,46 @@ async def _get_or_create_settings(db: AsyncSession) -> MarketplaceSettings:
         db.add(settings)
         await db.flush()
     return settings
+
+
+# ---------------------------------------------------------------------------
+# Settlement Account (Расчётный счёт)
+# ---------------------------------------------------------------------------
+
+
+@settlement_router.get("/settlement-account", response_model=SettlementAccountResponse)
+async def get_settlement_account_endpoint(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> SettlementAccountResponse:
+    """Получить текущие реквизиты расчётного счёта.
+
+    Возвращает 404, если реквизиты ещё не настроены.
+    """
+    account = await get_settlement_account(db)
+    if account is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Реквизиты расчётного счёта не настроены",
+        )
+    return SettlementAccountResponse.model_validate(account)
+
+
+@settlement_router.put("/settlement-account", response_model=SettlementAccountResponse)
+async def put_settlement_account_endpoint(
+    body: SettlementAccountUpsert,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> SettlementAccountResponse:
+    """Создать или обновить реквизиты расчётного счёта.
+
+    Валидирует формат полей:
+    - account_number: ровно 20 цифр
+    - bic: ровно 9 цифр
+    - bank_name: 1–255 символов
+    - recipient_name: 1–255 символов
+    """
+    account = await upsert_settlement_account(db, body, admin.id)
+    await db.commit()
+    await db.refresh(account)
+    return SettlementAccountResponse.model_validate(account)

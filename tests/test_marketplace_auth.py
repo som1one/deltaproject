@@ -203,6 +203,9 @@ async def test_register_with_valid_referral() -> None:
     with patch(
         "routers.marketplace_auth.resolve_referral",
         new=AsyncMock(return_value=worker_id),
+    ), patch(
+        "routers.marketplace_auth.assign_referral",
+        new=AsyncMock(return_value=None),
     ):
         try:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:

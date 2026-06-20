@@ -16,6 +16,7 @@ from enums.user import UserRole
 from models.user import User
 from schemas.auth import RegisterRequest
 from services.auth_service import create_user
+from services.marketplace_referral_service import assign_referral
 
 
 def telegram_worker_email(telegram_id: str) -> str:
@@ -159,10 +160,16 @@ async def find_or_create_client_by_telegram(
         hash_pass=secrets.token_urlsafe(24),  # No raw password access needed
         role=UserRole.CLIENT,
         is_active=True,
-        marketplace_referred_by=validated_referred_by,
+        marketplace_referred_by=None,
     )
     session.add(user)
     try:
+        await session.flush()
+        await session.refresh(user)
+        # Assign referral using immutable service (Requirement 6.1, 6.3)
+        if validated_referred_by is not None:
+            await assign_referral(user.id, validated_referred_by, session)
+            await session.refresh(user)
         await session.commit()
         await session.refresh(user)
     except IntegrityError:
