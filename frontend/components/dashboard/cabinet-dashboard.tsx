@@ -37,6 +37,7 @@ import {
   StatusPill,
   TableWrap,
   TextArea,
+  TextInput,
   TopNav,
   TwoColumn,
   NavLink,
