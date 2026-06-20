@@ -221,6 +221,31 @@ export const AgencyLandingPage = () => {
         <div className={styles.heroVignette} aria-hidden />
         <div className={styles.heroNoise} aria-hidden />
 
+        {/* Stars layer — full-screen, behind content but above overlays */}
+        {!introVisible ? (
+          <motion.div
+            key="stars-fullscreen"
+            className={styles.heroStarsLayer}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: reduceMotion ? 0 : 1.8,
+              delay: reduceMotion ? 0 : 0.45,
+              ease: [0.16, 0.84, 0.3, 1] as const,
+            }}
+          >
+            <div className={styles.heroStars} />
+            <div className={styles.heroStars2} />
+            <div className={styles.shootingStarsLayer}>
+              <div className={`${styles.shootingStar} ${styles.shootingStar1}`} />
+              <div className={`${styles.shootingStar} ${styles.shootingStar2}`} />
+              <div className={`${styles.shootingStar} ${styles.shootingStar3}`} />
+              <div className={`${styles.shootingStar} ${styles.shootingStar4}`} />
+              <div className={`${styles.shootingStar} ${styles.shootingStar5}`} />
+            </div>
+          </motion.div>
+        ) : null}
+
         <div className={styles.heroContent}>
           <div className={styles.heroMoonAnchor} aria-hidden>
             <motion.div
@@ -244,29 +269,6 @@ export const AgencyLandingPage = () => {
               ) : null}
             </motion.div>
           </div>
-
-          {!introVisible ? (
-            <motion.div
-              key="stars-fullscreen"
-              className={styles.heroStarsLayer}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                duration: reduceMotion ? 0 : 1.8,
-                delay: reduceMotion ? 0 : 0.45,
-                ease: [0.16, 0.84, 0.3, 1] as const,
-              }}
-            >
-              <div className={styles.heroStars} />
-              <div className={styles.shootingStarsLayer}>
-                <div className={`${styles.shootingStar} ${styles.shootingStar1}`} />
-                <div className={`${styles.shootingStar} ${styles.shootingStar2}`} />
-                <div className={`${styles.shootingStar} ${styles.shootingStar3}`} />
-                <div className={`${styles.shootingStar} ${styles.shootingStar4}`} />
-                <div className={`${styles.shootingStar} ${styles.shootingStar5}`} />
-              </div>
-            </motion.div>
-          ) : null}
 
           <h1 className={styles.heroTitle}>
             <span className={styles.heroTitleAccent}>looney moon</span>

@@ -545,10 +545,12 @@
   mix-blend-mode: normal;
 }
 
-/* Wrapper that lets stars fade in independently of the moon's drop animation. */
+/* Wrapper that lets stars fade in independently of the moon's drop animation.
+   Positioned at the .hero level to span the full viewport. */
 .heroStarsLayer {
   position: absolute;
   inset: 0;
+  z-index: 5;
   pointer-events: none;
   will-change: opacity;
   overflow: hidden;
@@ -560,8 +562,8 @@
   inset: 0;
   pointer-events: none;
   /* Mask: transparent circle in center (moon area), white everywhere else */
-  -webkit-mask-image: radial-gradient(ellipse 22% 32% at 50% 38%, transparent 70%, black 100%);
-  mask-image: radial-gradient(ellipse 22% 32% at 50% 38%, transparent 70%, black 100%);
+  -webkit-mask-image: radial-gradient(circle 18vw at 50% 44%, transparent 80%, black 100%);
+  mask-image: radial-gradient(circle 18vw at 50% 44%, transparent 80%, black 100%);
   background-image:
     /* Large bright stars — spread across full screen */
     radial-gradient(2.8px 2.8px at 3% 5%, rgba(255, 255, 255, 1), transparent 50%),
@@ -676,7 +678,66 @@
 }
 
 @keyframes heroStarsTwinkle {
-  0%, 100% { opacity: 0.7; }
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+/* Second star layer — offset positions for extra density */
+.heroStars2 {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(circle 18vw at 50% 44%, transparent 80%, black 100%);
+  mask-image: radial-gradient(circle 18vw at 50% 44%, transparent 80%, black 100%);
+  background-image:
+    /* Extra large bright stars in corners and edges */
+    radial-gradient(3.0px 3.0px at 1% 2%, rgba(255, 255, 255, 1), transparent 50%),
+    radial-gradient(2.8px 2.8px at 98% 3%, rgba(255, 255, 255, 0.95), transparent 50%),
+    radial-gradient(3.0px 3.0px at 2% 97%, rgba(255, 255, 255, 1), transparent 50%),
+    radial-gradient(2.8px 2.8px at 97% 96%, rgba(255, 255, 255, 0.95), transparent 50%),
+    radial-gradient(2.6px 2.6px at 50% 2%, rgba(255, 255, 255, 1), transparent 50%),
+    radial-gradient(2.8px 2.8px at 25% 95%, rgba(255, 255, 255, 0.95), transparent 50%),
+    radial-gradient(2.6px 2.6px at 75% 97%, rgba(255, 255, 255, 1), transparent 50%),
+    radial-gradient(3.0px 3.0px at 4% 35%, rgba(255, 255, 255, 0.95), transparent 50%),
+    radial-gradient(2.8px 2.8px at 96% 42%, rgba(255, 255, 255, 1), transparent 50%),
+    radial-gradient(2.6px 2.6px at 10% 75%, rgba(255, 255, 255, 0.9), transparent 50%),
+    radial-gradient(2.8px 2.8px at 90% 78%, rgba(255, 255, 255, 0.95), transparent 50%),
+    radial-gradient(2.6px 2.6px at 20% 28%, rgba(255, 255, 255, 1), transparent 50%),
+    radial-gradient(2.8px 2.8px at 80% 22%, rgba(255, 255, 255, 0.9), transparent 50%),
+    /* Additional medium stars */
+    radial-gradient(2.0px 2.0px at 6% 15%, rgba(255, 255, 255, 0.85), transparent 50%),
+    radial-gradient(1.8px 1.8px at 94% 12%, rgba(255, 255, 255, 0.8), transparent 50%),
+    radial-gradient(2.0px 2.0px at 3% 65%, rgba(255, 255, 255, 0.85), transparent 50%),
+    radial-gradient(1.8px 1.8px at 97% 58%, rgba(255, 255, 255, 0.8), transparent 50%),
+    radial-gradient(2.0px 2.0px at 8% 85%, rgba(255, 255, 255, 0.85), transparent 50%),
+    radial-gradient(1.8px 1.8px at 92% 82%, rgba(255, 255, 255, 0.8), transparent 50%),
+    radial-gradient(2.0px 2.0px at 30% 5%, rgba(255, 255, 255, 0.85), transparent 50%),
+    radial-gradient(1.8px 1.8px at 70% 8%, rgba(255, 255, 255, 0.8), transparent 50%),
+    radial-gradient(2.0px 2.0px at 15% 50%, rgba(255, 255, 255, 0.85), transparent 50%),
+    radial-gradient(1.8px 1.8px at 85% 55%, rgba(255, 255, 255, 0.8), transparent 50%),
+    radial-gradient(2.0px 2.0px at 40% 88%, rgba(255, 255, 255, 0.85), transparent 50%),
+    radial-gradient(1.8px 1.8px at 60% 82%, rgba(255, 255, 255, 0.8), transparent 50%),
+    /* Additional small twinkle stars */
+    radial-gradient(1.3px 1.3px at 4% 28%, rgba(255, 255, 255, 0.7), transparent 55%),
+    radial-gradient(1.3px 1.3px at 96% 32%, rgba(255, 255, 255, 0.65), transparent 55%),
+    radial-gradient(1.3px 1.3px at 2% 72%, rgba(255, 255, 255, 0.7), transparent 55%),
+    radial-gradient(1.3px 1.3px at 98% 68%, rgba(255, 255, 255, 0.65), transparent 55%),
+    radial-gradient(1.3px 1.3px at 12% 4%, rgba(255, 255, 255, 0.7), transparent 55%),
+    radial-gradient(1.3px 1.3px at 88% 96%, rgba(255, 255, 255, 0.65), transparent 55%),
+    radial-gradient(1.3px 1.3px at 35% 68%, rgba(255, 255, 255, 0.7), transparent 55%),
+    radial-gradient(1.3px 1.3px at 65% 62%, rgba(255, 255, 255, 0.65), transparent 55%),
+    radial-gradient(1.3px 1.3px at 22% 82%, rgba(255, 255, 255, 0.7), transparent 55%),
+    radial-gradient(1.3px 1.3px at 78% 88%, rgba(255, 255, 255, 0.65), transparent 55%),
+    radial-gradient(1.3px 1.3px at 50% 8%, rgba(255, 255, 255, 0.7), transparent 55%),
+    radial-gradient(1.3px 1.3px at 44% 42%, rgba(255, 255, 255, 0.65), transparent 55%),
+    radial-gradient(1.3px 1.3px at 56% 55%, rgba(255, 255, 255, 0.7), transparent 55%),
+    radial-gradient(1.3px 1.3px at 17% 38%, rgba(255, 255, 255, 0.65), transparent 55%),
+    radial-gradient(1.3px 1.3px at 83% 35%, rgba(255, 255, 255, 0.7), transparent 55%);
+  animation: heroStarsTwinkle2 8s ease-in-out infinite;
+}
+
+@keyframes heroStarsTwinkle2 {
+  0%, 100% { opacity: 0.75; }
   50% { opacity: 1; }
 }
 
@@ -760,6 +821,7 @@
   .heroMoon,
   .heroMoonHalo,
   .heroStars,
+  .heroStars2,
   .shootingStar {
     animation: none;
   }
