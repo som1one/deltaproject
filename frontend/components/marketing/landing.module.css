@@ -827,32 +827,41 @@
   }
 }
 
-/* Fewer stars on mobile */
+/* Fewer stars on mobile — chaotic scatter, no grid pattern */
 @media (max-width: 720px) {
   .heroStars {
     background-image:
-      /* Large bright stars — reduced set */
-      radial-gradient(2.6px 2.6px at 5% 8%, rgba(255, 255, 255, 1), transparent 50%),
-      radial-gradient(2.6px 2.6px at 88% 5%, rgba(255, 255, 255, 1), transparent 50%),
-      radial-gradient(2.8px 2.8px at 8% 45%, rgba(255, 255, 255, 1), transparent 50%),
-      radial-gradient(2.6px 2.6px at 92% 35%, rgba(255, 255, 255, 0.95), transparent 50%),
-      radial-gradient(2.8px 2.8px at 18% 88%, rgba(255, 255, 255, 0.95), transparent 50%),
-      radial-gradient(2.6px 2.6px at 82% 78%, rgba(255, 255, 255, 1), transparent 50%),
-      radial-gradient(2.8px 2.8px at 50% 95%, rgba(255, 255, 255, 1), transparent 50%),
-      radial-gradient(2.4px 2.4px at 42% 5%, rgba(255, 255, 255, 1), transparent 50%),
-      /* Medium stars — reduced */
-      radial-gradient(1.8px 1.8px at 10% 30%, rgba(255, 255, 255, 0.85), transparent 50%),
-      radial-gradient(1.8px 1.8px at 90% 48%, rgba(255, 255, 255, 0.85), transparent 50%),
-      radial-gradient(2.0px 2.0px at 25% 55%, rgba(255, 255, 255, 0.9), transparent 50%),
-      radial-gradient(1.8px 1.8px at 72% 60%, rgba(255, 255, 255, 0.85), transparent 50%),
-      radial-gradient(2.0px 2.0px at 15% 95%, rgba(255, 255, 255, 0.9), transparent 50%),
-      radial-gradient(1.8px 1.8px at 60% 82%, rgba(255, 255, 255, 0.85), transparent 50%),
-      /* Small stars — just a few */
-      radial-gradient(1.4px 1.4px at 3% 18%, rgba(255, 255, 255, 0.7), transparent 55%),
-      radial-gradient(1.4px 1.4px at 95% 22%, rgba(255, 255, 255, 0.7), transparent 55%),
-      radial-gradient(1.4px 1.4px at 20% 72%, rgba(255, 255, 255, 0.7), transparent 55%),
-      radial-gradient(1.4px 1.4px at 78% 88%, rgba(255, 255, 255, 0.7), transparent 55%),
-      radial-gradient(1.4px 1.4px at 45% 12%, rgba(255, 255, 255, 0.7), transparent 55%);
+      /* Bright stars — scattered irregularly */
+      radial-gradient(2.7px 2.7px at 3% 6%, rgba(255, 255, 255, 1), transparent 50%),
+      radial-gradient(2.5px 2.5px at 91% 11%, rgba(255, 255, 255, 0.95), transparent 50%),
+      radial-gradient(2.8px 2.8px at 14% 38%, rgba(255, 255, 255, 1), transparent 50%),
+      radial-gradient(2.6px 2.6px at 76% 4%, rgba(255, 255, 255, 0.95), transparent 50%),
+      radial-gradient(2.4px 2.4px at 58% 91%, rgba(255, 255, 255, 1), transparent 50%),
+      radial-gradient(2.7px 2.7px at 6% 73%, rgba(255, 255, 255, 0.95), transparent 50%),
+      radial-gradient(2.5px 2.5px at 85% 67%, rgba(255, 255, 255, 1), transparent 50%),
+      radial-gradient(2.8px 2.8px at 37% 3%, rgba(255, 255, 255, 0.95), transparent 50%),
+      radial-gradient(2.6px 2.6px at 94% 84%, rgba(255, 255, 255, 1), transparent 50%),
+      radial-gradient(2.4px 2.4px at 22% 93%, rgba(255, 255, 255, 0.95), transparent 50%),
+      /* Medium — random positions */
+      radial-gradient(1.9px 1.9px at 11% 17%, rgba(255, 255, 255, 0.88), transparent 50%),
+      radial-gradient(1.7px 1.7px at 67% 23%, rgba(255, 255, 255, 0.82), transparent 50%),
+      radial-gradient(2.0px 2.0px at 43% 71%, rgba(255, 255, 255, 0.87), transparent 50%),
+      radial-gradient(1.8px 1.8px at 89% 43%, rgba(255, 255, 255, 0.84), transparent 50%),
+      radial-gradient(1.9px 1.9px at 4% 56%, rgba(255, 255, 255, 0.86), transparent 50%),
+      radial-gradient(1.7px 1.7px at 72% 89%, rgba(255, 255, 255, 0.83), transparent 50%),
+      radial-gradient(2.0px 2.0px at 29% 48%, rgba(255, 255, 255, 0.88), transparent 50%),
+      radial-gradient(1.8px 1.8px at 53% 14%, rgba(255, 255, 255, 0.85), transparent 50%),
+      /* Small dim — chaotic fill */
+      radial-gradient(1.3px 1.3px at 7% 29%, rgba(255, 255, 255, 0.68), transparent 55%),
+      radial-gradient(1.4px 1.4px at 83% 19%, rgba(255, 255, 255, 0.72), transparent 55%),
+      radial-gradient(1.2px 1.2px at 31% 62%, rgba(255, 255, 255, 0.65), transparent 55%),
+      radial-gradient(1.4px 1.4px at 96% 53%, rgba(255, 255, 255, 0.7), transparent 55%),
+      radial-gradient(1.3px 1.3px at 18% 81%, rgba(255, 255, 255, 0.67), transparent 55%),
+      radial-gradient(1.2px 1.2px at 62% 7%, rgba(255, 255, 255, 0.63), transparent 55%),
+      radial-gradient(1.4px 1.4px at 47% 86%, rgba(255, 255, 255, 0.71), transparent 55%),
+      radial-gradient(1.3px 1.3px at 79% 37%, rgba(255, 255, 255, 0.66), transparent 55%),
+      radial-gradient(1.2px 1.2px at 9% 94%, rgba(255, 255, 255, 0.64), transparent 55%),
+      radial-gradient(1.4px 1.4px at 55% 47%, rgba(255, 255, 255, 0.69), transparent 55%);
   }
 
   .heroStars2 {
