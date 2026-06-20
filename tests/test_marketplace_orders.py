@@ -628,7 +628,6 @@ async def test_confirm_order_200_success() -> None:
     order = _make_order(
         client.id, blogger.id, status=MarketplaceOrderStatus.BLOGGER_CONFIRMED.value
     )
-    order.status = MarketplaceOrderStatus.COMPLETED.value  # after update
 
     app.dependency_overrides[get_current_user] = lambda: client
 
@@ -638,6 +637,8 @@ async def test_confirm_order_200_success() -> None:
         result.scalar_one_or_none = MagicMock(return_value=order)
         session.execute = AsyncMock(return_value=result)
         session.commit = AsyncMock()
+        session.flush = AsyncMock()
+        session.add = MagicMock()
 
         async def fake_refresh(obj):
             pass
@@ -650,7 +651,10 @@ async def test_confirm_order_200_success() -> None:
     with patch(
         "routers.marketplace_orders.marketplace_escrow_service.distribute_funds",
         new_callable=AsyncMock,
-    ) as mock_distribute:
+    ) as mock_distribute, patch(
+        "routers.marketplace_orders.notification_service.notify",
+        new_callable=AsyncMock,
+    ):
         try:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
                 r = await ac.patch(f"/marketplace/orders/{order.id}/confirm")
@@ -676,20 +680,9 @@ async def test_confirm_order_403_wrong_client() -> None:
 
     async def fake_db():
         session = AsyncMock()
-        call_count = {"n": 0}
-
-        async def mock_execute(stmt):
-            call_count["n"] += 1
-            result = MagicMock()
-            if call_count["n"] == 1:
-                # Atomic update returns None (not this client's order)
-                result.scalar_one_or_none = MagicMock(return_value=None)
-            else:
-                # Lookup for error detail
-                result.scalar_one_or_none = MagicMock(return_value=order)
-            return result
-
-        session.execute = mock_execute
+        result = MagicMock()
+        result.scalar_one_or_none = MagicMock(return_value=order)
+        session.execute = AsyncMock(return_value=result)
         yield session
 
     app.dependency_overrides[get_db] = fake_db
