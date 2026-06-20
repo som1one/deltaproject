@@ -258,7 +258,6 @@ export const AgencyLandingPage = () => {
               }}
             >
               <div className={styles.heroStars} />
-              <div className={styles.heroStarsEdge} />
               <div className={styles.shootingStarsLayer}>
                 <div className={`${styles.shootingStar} ${styles.shootingStar1}`} />
                 <div className={`${styles.shootingStar} ${styles.shootingStar2}`} />
