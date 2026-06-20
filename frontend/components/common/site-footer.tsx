@@ -11,8 +11,8 @@ export function SiteFooter() {
         <div className={styles.top}>
           <span className={styles.logo}>Looney Moon</span>
           <div className={styles.links}>
-            <Link href="/contacts">Политика конфиденциальности</Link>
-            <Link href="/contacts">Условия использования</Link>
+            <Link href="/privacy">Политика конфиденциальности</Link>
+            <Link href="/terms">Условия использования</Link>
           </div>
         </div>
 
