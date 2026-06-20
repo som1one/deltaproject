@@ -827,6 +827,44 @@
   }
 }
 
+/* Fewer stars on mobile */
+@media (max-width: 720px) {
+  .heroStars {
+    background-image:
+      /* Large bright stars — reduced set */
+      radial-gradient(2.6px 2.6px at 5% 8%, rgba(255, 255, 255, 1), transparent 50%),
+      radial-gradient(2.6px 2.6px at 88% 5%, rgba(255, 255, 255, 1), transparent 50%),
+      radial-gradient(2.8px 2.8px at 8% 45%, rgba(255, 255, 255, 1), transparent 50%),
+      radial-gradient(2.6px 2.6px at 92% 35%, rgba(255, 255, 255, 0.95), transparent 50%),
+      radial-gradient(2.8px 2.8px at 18% 88%, rgba(255, 255, 255, 0.95), transparent 50%),
+      radial-gradient(2.6px 2.6px at 82% 78%, rgba(255, 255, 255, 1), transparent 50%),
+      radial-gradient(2.8px 2.8px at 50% 95%, rgba(255, 255, 255, 1), transparent 50%),
+      radial-gradient(2.4px 2.4px at 42% 5%, rgba(255, 255, 255, 1), transparent 50%),
+      /* Medium stars — reduced */
+      radial-gradient(1.8px 1.8px at 10% 30%, rgba(255, 255, 255, 0.85), transparent 50%),
+      radial-gradient(1.8px 1.8px at 90% 48%, rgba(255, 255, 255, 0.85), transparent 50%),
+      radial-gradient(2.0px 2.0px at 25% 55%, rgba(255, 255, 255, 0.9), transparent 50%),
+      radial-gradient(1.8px 1.8px at 72% 60%, rgba(255, 255, 255, 0.85), transparent 50%),
+      radial-gradient(2.0px 2.0px at 15% 95%, rgba(255, 255, 255, 0.9), transparent 50%),
+      radial-gradient(1.8px 1.8px at 60% 82%, rgba(255, 255, 255, 0.85), transparent 50%),
+      /* Small stars — just a few */
+      radial-gradient(1.4px 1.4px at 3% 18%, rgba(255, 255, 255, 0.7), transparent 55%),
+      radial-gradient(1.4px 1.4px at 95% 22%, rgba(255, 255, 255, 0.7), transparent 55%),
+      radial-gradient(1.4px 1.4px at 20% 72%, rgba(255, 255, 255, 0.7), transparent 55%),
+      radial-gradient(1.4px 1.4px at 78% 88%, rgba(255, 255, 255, 0.7), transparent 55%),
+      radial-gradient(1.4px 1.4px at 45% 12%, rgba(255, 255, 255, 0.7), transparent 55%);
+  }
+
+  .heroStars2 {
+    display: none;
+  }
+
+  .shootingStar4,
+  .shootingStar5 {
+    display: none;
+  }
+}
+
 .heroEyebrow {
   display: inline-flex;
   align-items: center;
