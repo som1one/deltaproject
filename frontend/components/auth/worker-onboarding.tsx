@@ -117,7 +117,7 @@ export const WorkerOnboarding = ({ username }: { username?: string }) => {
       </JourneyPanel>
 
       <JourneyPanel tone="dark">
-        <JourneyEyebrow>Что вы получаете</JourneyEyebrow>
+        <JourneyEyebrow>Что это</JourneyEyebrow>
         <JourneyTitle>Готовая инфраструктура для рекламных сделок</JourneyTitle>
         <JourneyLead>
           Никаких таблиц, чатов и ручных расчётов. Скрипты, статусы, проценты и выплаты живут в одном кабинете —

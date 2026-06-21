@@ -11,12 +11,7 @@ import styles from "@/components/marketing/landing.module.css";
 const QUOTE = "«Великое рождается из тишины, а не из шума».";
 const AUTHOR = "Томас Карлейль";
 
-const manifestoLines: { strong: string; soft: string }[] = [
-  { strong: "Прозрачные сделки", soft: "от первой переписки до выплаты." },
-  { strong: "Точные расчёты", soft: "без таблиц и калькуляторов." },
-  { strong: "Защищённая сеть", soft: "блогеров, работников и рефералов." },
-  { strong: "Одна платформа", soft: "вместо десятка чатов и документов." },
-];
+
 
 const processSteps: { num: string; title: string; text: string }[] = [
   {
@@ -291,22 +286,46 @@ export const AgencyLandingPage = () => {
         </div>
       </section>
 
-      {/* ---------- Manifesto ---------- */}
-      <section className={styles.manifesto} id="manifest">
-        <div className={styles.manifestoInner}>
+      {/* ---------- What is it ---------- */}
+      <section className={styles.aboutPlatform} id="about">
+        <div className={styles.aboutPlatformInner}>
           <AnimatedSection>
-            <p className={styles.processEyebrow}>Что вы получаете</p>
+            <header className={styles.aboutHeader}>
+              <p className={styles.aboutEyebrow}>Что это</p>
+              <h2 className={styles.aboutTitle}>
+                Платформа, которая объединяет <em>работников</em> и <em>блогеров</em> в единую экосистему.
+              </h2>
+            </header>
           </AnimatedSection>
-
-          <StaggerGroup className={styles.manifestoLines}>
-            {manifestoLines.map((line, idx) => (
-              <StaggerItem key={idx}>
-                <p className={styles.manifestoLine}>
-                  <strong>{line.strong}</strong>
-                  {line.soft ? <span>{` ${line.soft}`}</span> : null}
+          
+          <StaggerGroup className={styles.aboutGrid}>
+            <StaggerItem>
+              <div className={styles.aboutCard}>
+                <div className={styles.aboutCardGlow} aria-hidden />
+                <h3 className={styles.aboutCardTitle}>Единое окно</h3>
+                <p className={styles.aboutCardText}>
+                  Больше никаких таблиц, разрозненных чатов и потерянных оплат. Все этапы сделки, от первого контакта до выплаты, проходят в одном месте.
                 </p>
-              </StaggerItem>
-            ))}
+              </div>
+            </StaggerItem>
+            <StaggerItem>
+              <div className={styles.aboutCard}>
+                <div className={styles.aboutCardGlow} aria-hidden />
+                <h3 className={styles.aboutCardTitle}>Автоматизация</h3>
+                <p className={styles.aboutCardText}>
+                  Система сама рассчитывает доли каждого участника (работника, блогера и реферала) и распределяет балансы автоматически после подтверждения.
+                </p>
+              </div>
+            </StaggerItem>
+            <StaggerItem>
+              <div className={styles.aboutCard}>
+                <div className={styles.aboutCardGlow} aria-hidden />
+                <h3 className={styles.aboutCardTitle}>Прозрачность</h3>
+                <p className={styles.aboutCardText}>
+                  Каждая сделка прозрачна и защищена. Вы всегда знаете, на каком этапе находится интеграция и когда поступят средства.
+                </p>
+              </div>
+            </StaggerItem>
           </StaggerGroup>
         </div>
       </section>
