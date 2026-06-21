@@ -191,12 +191,10 @@ export const JourneyLinkRow = ({ children }: { children: ReactNode }) => (
 export const JourneyMoon = () => (
   <div className={styles.moonStage} aria-hidden>
     <div className={styles.moonHalo} />
-    <img
-      src="/images/moon.svg"
-      alt=""
-      className={styles.moonImg}
-      draggable={false}
-    />
+    <div className={styles.moon}>
+      <span className={styles.moonShade} />
+      <span className={styles.moonCraters} />
+    </div>
   </div>
 );
 

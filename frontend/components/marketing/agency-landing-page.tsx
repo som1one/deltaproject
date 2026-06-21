@@ -261,12 +261,10 @@ export const AgencyLandingPage = () => {
                   transition={heroMoonEntryTransition}
                 >
                   <div className={styles.heroMoonHalo} />
-                  <img
-                    src="/images/moon.svg"
-                    alt=""
-                    className={styles.heroMoonImg}
-                    draggable={false}
-                  />
+                  <div className={styles.heroMoon}>
+                    <span className={styles.heroMoonShade} />
+                    <span className={styles.heroMoonCraters} />
+                  </div>
                 </motion.div>
               ) : null}
             </motion.div>
@@ -297,7 +295,7 @@ export const AgencyLandingPage = () => {
       <section className={styles.manifesto} id="manifest">
         <div className={styles.manifestoInner}>
           <AnimatedSection>
-            <p className={styles.processEyebrow}>Что это</p>
+            <p className={styles.processEyebrow}>Что вы получаете</p>
           </AnimatedSection>
 
           <StaggerGroup className={styles.manifestoLines}>
