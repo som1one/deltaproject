@@ -390,6 +390,12 @@
   justify-items: center;
 }
 
+@media (max-width: 720px) {
+  .heroContent {
+    gap: 1rem;
+  }
+}
+
 /* ---------- Moon behind the logo ---------- */
 
 /* Anchor handles centering — its transform stays untouched so the
