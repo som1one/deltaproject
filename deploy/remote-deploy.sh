@@ -90,7 +90,7 @@ fi
 echo "[deploy] restart services"
 $SUDO systemctl restart "$BACKEND_UNIT"
 $SUDO systemctl restart "$FRONTEND_UNIT"
-$SUDO systemctl restart "$MARKETPLACE_UNIT"
+$SUDO systemctl restart "$MARKETPLACE_UNIT" || echo "[deploy] marketplace service failed to start (check journalctl)"
 
 echo "[deploy] health check"
 for i in 1 2 3 4 5; do
