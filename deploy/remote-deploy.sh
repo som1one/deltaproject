@@ -42,15 +42,8 @@ $NPM_BIN run build
 cd ..
 
 echo "[deploy] marketplace build"
-cd marketplace
-$NPM_BIN ci
-$NPM_BIN run build
-cd ..
-
-# --- Marketplace one-time setup (idempotent) ---
+# Ensure .env.local exists BEFORE build (Next.js inlines NEXT_PUBLIC_* at build time)
 MARKETPLACE_DOMAIN="marketplace.looneymoon.ru"
-
-# Create .env.local if missing
 if [[ ! -f marketplace/.env.local ]]; then
   echo "[deploy] creating marketplace/.env.local"
   cat > marketplace/.env.local << EOF
@@ -59,6 +52,12 @@ NEXT_PUBLIC_APP_URL=https://$MARKETPLACE_DOMAIN
 NEXT_PUBLIC_MAIN_APP_URL=http://looneymoon.ru
 EOF
 fi
+cd marketplace
+$NPM_BIN ci
+$NPM_BIN run build
+cd ..
+
+# --- Marketplace one-time infra setup (idempotent) ---
 
 # Install systemd unit if not present
 if [[ ! -f /etc/systemd/system/deltaproject-marketplace.service ]]; then
