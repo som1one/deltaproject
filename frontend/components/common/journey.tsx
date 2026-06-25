@@ -163,6 +163,22 @@ export const JourneySteps = ({
   </div>
 );
 
+export const JourneyFeatureGrid = ({
+  features,
+}: {
+  features: readonly { icon: string; title: string; text: string }[];
+}) => (
+  <div className={styles.featureGrid}>
+    {features.map((feature) => (
+      <article key={feature.title} className={styles.featureCard}>
+        <span className={styles.featureIcon} aria-hidden>{feature.icon}</span>
+        <h3 className={styles.featureTitle}>{feature.title}</h3>
+        <p className={styles.featureText}>{feature.text}</p>
+      </article>
+    ))}
+  </div>
+);
+
 export const JourneyFeedback = ({
   tone,
   children,
