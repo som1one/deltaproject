@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +13,6 @@ import {
   JourneyEyebrow,
   JourneyFeedback,
   JourneyLead,
-  JourneyLinkRow,
   JourneyList,
   JourneyPanel,
   JourneyReferralBadge,
@@ -99,9 +97,6 @@ export const WorkerOnboarding = ({ username }: { username?: string }) => {
 
         <JourneyActions>
           <TelegramButton linkedTo={referralQuery.data?.user_id || null} />
-          <JourneyLinkRow>
-            <Link href="/blogger/login">Я блогер</Link>
-          </JourneyLinkRow>
         </JourneyActions>
 
         {username && referralQuery.isError ? (

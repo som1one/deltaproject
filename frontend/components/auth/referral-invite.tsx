@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 
@@ -10,13 +9,12 @@ import { telegramStorage } from "@/lib/storage";
 import { TelegramButton } from "@/components/auth/telegram-button";
 import {
   JourneyEyebrow,
+  JourneyFeatureGrid,
   JourneyFeedback,
   JourneyLead,
-  JourneyLinkRow,
   JourneyList,
   JourneyPanel,
   JourneyShell,
-  JourneySteps,
   JourneyTitle,
 } from "@/components/common/journey";
 import styles from "@/components/auth/referral-invite.module.css";
@@ -27,21 +25,36 @@ const facts = [
   "Вы видите свои сделки, статусы и баланс с первого дня",
 ] as const;
 
-const steps = [
+const features = [
   {
-    id: "01",
-    title: "Один клик в Telegram",
-    text: "Подтверждение учётной записи без email и пароля. Ник и имя — из вашего профиля.",
+    icon: "⚡",
+    title: "Мгновенная регистрация",
+    text: "Вход через Telegram за один клик. Без email, паролей и анкет — ник и аватар подтягиваются из профиля.",
   },
   {
-    id: "02",
-    title: "Кабинет собирается сам",
-    text: "Привязка к блогеру выставляется автоматически. Скрипты и список блогеров — внутри.",
+    icon: "🔗",
+    title: "Связь блогер — воркер",
+    text: "Платформа связывает блогеров и их представителей. Каждый видит свои задачи, статусы и баланс.",
   },
   {
-    id: "03",
-    title: "Первая сделка",
-    text: "Пишете продавцам по готовым шаблонам, заводите заявку, блогер принимает её в кабинете.",
+    icon: "📋",
+    title: "Готовые скрипты",
+    text: "Шаблоны сообщений для продавцов. Не нужно придумывать — берёте и пишете по сценарию.",
+  },
+  {
+    icon: "💰",
+    title: "Автоматический расчёт",
+    text: "Доли блогера и воркера считаются системой. Вся бухгалтерия прозрачна и доступна в кабинете.",
+  },
+  {
+    icon: "📊",
+    title: "Прозрачные статусы",
+    text: "Каждая сделка проходит чёткие этапы — от заявки до выплаты. Всё видно обеим сторонам.",
+  },
+  {
+    icon: "🏦",
+    title: "Вывод на карту",
+    text: "Накопленный баланс можно вывести прямо из личного кабинета. Без ручных переводов и согласований.",
   },
 ] as const;
 
@@ -97,9 +110,6 @@ export const ReferralInvite = ({ username }: { username: string }) => {
 
         <div className={styles.inviteActions}>
           <TelegramButton linkedTo={referralQuery.data?.user_id || null} />
-          <JourneyLinkRow>
-            <Link href="/blogger/login">Я блогер</Link>
-          </JourneyLinkRow>
         </div>
 
         {referralQuery.isError ? (
@@ -112,13 +122,14 @@ export const ReferralInvite = ({ username }: { username: string }) => {
       </JourneyPanel>
 
       <JourneyPanel tone="dark">
-        <JourneyEyebrow>Что вы получите</JourneyEyebrow>
-        <JourneyTitle>Тихая система. Никакой возни.</JourneyTitle>
+        <JourneyEyebrow>Что это</JourneyEyebrow>
+        <JourneyTitle>Платформа для блогеров и их команд</JourneyTitle>
         <JourneyLead>
-          Регистрация занимает минуту. Дальше — поиск продавцов, готовые скрипты, автоматический
-          расчёт долей и прозрачные статусы по каждой сделке.
+          looney moon — закрытая система, где блогеры получают рекламодателей через проверенных
+          воркеров, а воркеры зарабатывают долю с каждой закрытой сделки. Всё автоматизировано:
+          от поиска продавцов до расчёта выплат.
         </JourneyLead>
-        <JourneySteps steps={steps} />
+        <JourneyFeatureGrid features={features} />
       </JourneyPanel>
     </JourneyShell>
   );
