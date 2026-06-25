@@ -14,6 +14,13 @@ MARKETPLACE_UNIT="${MARKETPLACE_UNIT:-deltaproject-marketplace.service}"
 echo "[deploy] repo: $REPO_DIR"
 cd "$REPO_DIR"
 
+# Под root sudo не нужен; под обычным юзером — sudo -n (NOPASSWD).
+if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+  SUDO=""
+else
+  SUDO="sudo -n"
+fi
+
 echo "[deploy] git pull"
 git fetch --all --prune
 git reset --hard origin/main
@@ -40,13 +47,42 @@ $NPM_BIN ci
 $NPM_BIN run build
 cd ..
 
-echo "[deploy] restart services"
-# Под root sudo не нужен; под обычным юзером — sudo -n (NOPASSWD).
-if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
-  SUDO=""
-else
-  SUDO="sudo -n"
+# --- Marketplace one-time setup (idempotent) ---
+MARKETPLACE_DOMAIN="marketplace.looneymoon.ru"
+
+# Create .env.local if missing
+if [[ ! -f marketplace/.env.local ]]; then
+  echo "[deploy] creating marketplace/.env.local"
+  cat > marketplace/.env.local << EOF
+NEXT_PUBLIC_API_BASE_URL=http://37.220.80.62:8000
+NEXT_PUBLIC_APP_URL=https://$MARKETPLACE_DOMAIN
+NEXT_PUBLIC_MAIN_APP_URL=http://looneymoon.ru
+EOF
 fi
+
+# Install systemd unit if not present
+if [[ ! -f /etc/systemd/system/deltaproject-marketplace.service ]]; then
+  echo "[deploy] installing marketplace systemd unit"
+  $SUDO cp deploy/deltaproject-marketplace.service /etc/systemd/system/
+  $SUDO systemctl daemon-reload
+  $SUDO systemctl enable deltaproject-marketplace.service
+fi
+
+# Install nginx config if not present
+if [[ ! -f /etc/nginx/sites-available/marketplace ]]; then
+  echo "[deploy] installing marketplace nginx config"
+  $SUDO cp deploy/nginx-marketplace.conf /etc/nginx/sites-available/marketplace
+  $SUDO ln -sf /etc/nginx/sites-available/marketplace /etc/nginx/sites-enabled/marketplace
+  $SUDO nginx -t && $SUDO systemctl reload nginx
+fi
+
+# Issue SSL cert if not yet obtained
+if [[ ! -d /etc/letsencrypt/live/$MARKETPLACE_DOMAIN ]]; then
+  echo "[deploy] obtaining SSL certificate for $MARKETPLACE_DOMAIN"
+  $SUDO certbot --nginx -d "$MARKETPLACE_DOMAIN" --non-interactive --agree-tos --email admin@looneymoon.ru --redirect || echo "[deploy] certbot failed (DNS may not be ready yet)"
+fi
+
+echo "[deploy] restart services"
 $SUDO systemctl restart "$BACKEND_UNIT"
 $SUDO systemctl restart "$FRONTEND_UNIT"
 $SUDO systemctl restart "$MARKETPLACE_UNIT"
