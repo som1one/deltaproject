@@ -47,7 +47,7 @@ import {
 import styles from "@/components/admin/admin.module.css";
 import { PayoutCardInput } from "@/components/common/payout-card-input";
 
-type AdminSection = "overview" | "users" | "deals" | "ledger" | "schemes" | "finance" | "scripts";
+type AdminSection = "overview" | "users" | "deals" | "ledger" | "schemes" | "finance" | "scripts" | "telegram";
 
 type AdminModalState =
   | { kind: "delete-user"; user: AdminUserRead }
@@ -122,6 +122,11 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
     title: "Скрипты для воркеров",
     lead: "Шаблоны сообщений, которые видны воркерам в кабинете.",
   },
+  telegram: {
+    label: "Telegram",
+    title: "Подписка на Telegram-канал",
+    lead: "Обязательная подписка при регистрации. Статистика подписок, управление каналом.",
+  },
 };
 
 export const AdminDashboard = () => {
@@ -174,6 +179,18 @@ export const AdminDashboard = () => {
   const scriptsQuery = useQuery({
     queryKey: ["admin", "workerScripts"],
     queryFn: api.getAdminWorkerScripts,
+    enabled: Boolean(isAuthenticated),
+  });
+
+  // Telegram channel
+  const telegramConfigQuery = useQuery({
+    queryKey: ["admin", "telegramChannel"],
+    queryFn: api.getAdminTelegramChannel,
+    enabled: Boolean(isAuthenticated),
+  });
+  const telegramStatsQuery = useQuery({
+    queryKey: ["admin", "telegramChannelStats"],
+    queryFn: () => api.getAdminTelegramChannelStats(),
     enabled: Boolean(isAuthenticated),
   });
 
@@ -615,6 +632,36 @@ export const AdminDashboard = () => {
       setSelectedScriptId("");
       setScriptForm(emptyScriptForm);
       await invalidateAdmin(["admin", "workerScripts"]);
+    },
+    onError: (error) => setMessage({ tone: "error", text: error.message }),
+  });
+
+  // Telegram channel config
+  const [telegramForm, setTelegramForm] = useState({
+    channel_id: "",
+    channel_title: "",
+    channel_url: "",
+    is_enabled: true,
+  });
+  const [telegramFormLoaded, setTelegramFormLoaded] = useState(false);
+
+  // Sync form with loaded config
+  if (telegramConfigQuery.data && !telegramFormLoaded) {
+    setTelegramForm({
+      channel_id: telegramConfigQuery.data.channel_id,
+      channel_title: telegramConfigQuery.data.channel_title,
+      channel_url: telegramConfigQuery.data.channel_url,
+      is_enabled: telegramConfigQuery.data.is_enabled,
+    });
+    setTelegramFormLoaded(true);
+  }
+
+  const telegramConfigMutation = useMutation({
+    mutationFn: () => api.setAdminTelegramChannel(telegramForm),
+    onSuccess: async () => {
+      setMessage({ tone: "success", text: "Настройки Telegram-канала сохранены." });
+      await invalidateAdmin(["admin", "telegramChannel"]);
+      await invalidateAdmin(["admin", "telegramChannelStats"]);
     },
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
@@ -2375,10 +2422,68 @@ export const AdminDashboard = () => {
       );
     }
 
+    if (section === "telegram") {
+      const stats = telegramStatsQuery.data;
+      return (
+        <div>
+          <StatsGrid>
+            <StatCard label="Всего подписок" value={stats ? formatNumber(stats.total) : "—"} />
+            <StatCard label="Сегодня" value={stats ? formatNumber(stats.today) : "—"} />
+            <StatCard label="За неделю" value={stats ? formatNumber(stats.this_week) : "—"} />
+            <StatCard label="За месяц" value={stats ? formatNumber(stats.this_month) : "—"} />
+          </StatsGrid>
+
+          <SectionCard title="Настройки канала" style={{ marginTop: "1.2rem" }}>
+            <Stack>
+              <Field label="ID канала (напр. @channel или -100...)">
+                <TextInput
+                  value={telegramForm.channel_id}
+                  onChange={(e) => setTelegramForm((f) => ({ ...f, channel_id: e.target.value }))}
+                  placeholder="@my_channel"
+                />
+              </Field>
+              <Field label="Название канала">
+                <TextInput
+                  value={telegramForm.channel_title}
+                  onChange={(e) => setTelegramForm((f) => ({ ...f, channel_title: e.target.value }))}
+                  placeholder="Мой Telegram канал"
+                />
+              </Field>
+              <Field label="Ссылка на канал (t.me/...)">
+                <TextInput
+                  value={telegramForm.channel_url}
+                  onChange={(e) => setTelegramForm((f) => ({ ...f, channel_url: e.target.value }))}
+                  placeholder="https://t.me/my_channel"
+                />
+              </Field>
+              <Field label="Подписка обязательна">
+                <SelectInput
+                  value={telegramForm.is_enabled ? "yes" : "no"}
+                  onChange={(e) => setTelegramForm((f) => ({ ...f, is_enabled: e.target.value === "yes" }))}
+                >
+                  <option value="yes">Да — без подписки не зарегистрироваться</option>
+                  <option value="no">Нет — подписка не требуется</option>
+                </SelectInput>
+              </Field>
+              <div className={styles.actionRow}>
+                <Button
+                  type="button"
+                  onClick={() => telegramConfigMutation.mutate()}
+                  disabled={telegramConfigMutation.isPending}
+                >
+                  {telegramConfigMutation.isPending ? "Сохраняем…" : "Сохранить настройки"}
+                </Button>
+              </div>
+            </Stack>
+          </SectionCard>
+        </div>
+      );
+    }
+
     return null;
   };
 
-  const sections: AdminSection[] = ["overview", "users", "deals", "ledger", "schemes", "finance", "scripts"];
+  const sections: AdminSection[] = ["overview", "users", "deals", "ledger", "schemes", "finance", "scripts", "telegram"];
 
   return (
     <PageSurface>

@@ -353,3 +353,27 @@ export type AdminPaymentDetailsSet = {
   collection_card?: string | null;
   payment_link?: string | null;
 };
+
+// ─── Telegram Channel Subscription ─────────────────────────────────────────
+
+export type TelegramChannelConfigRead = {
+  channel_id: string;
+  channel_title: string;
+  channel_url: string;
+  is_enabled: boolean;
+};
+
+export type TelegramChannelConfigSet = {
+  channel_id: string;
+  channel_title: string;
+  channel_url: string;
+  is_enabled: boolean;
+};
+
+export type TelegramChannelStatsResponse = {
+  total: number;
+  today: number;
+  this_week: number;
+  this_month: number;
+  period_count: number | null;
+};

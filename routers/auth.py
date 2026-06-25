@@ -39,6 +39,11 @@ from services.telegram_oauth_store import (
     verify_signed_state,
 )
 from services.telegram_user_service import find_or_create_worker_by_telegram, find_or_create_client_by_telegram
+from services.telegram_channel_service import (
+    check_user_subscribed,
+    get_channel_config,
+    record_subscription,
+)
 from services.marketplace_referral_service import resolve_referral
 from utils.blogger_credentials import normalize_blogger_nickname
 from utils.request_ip import get_client_ip
@@ -195,6 +200,26 @@ async def telegram_oauth_callback(
         claims = await verify_id_token(id_token=id_token, expected_nonce=state_entry.nonce)
     except TelegramOAuthError as exc:
         return _frontend_redirect(error=str(exc))
+
+    # ─── Mandatory channel subscription check ───────────────────────────────
+    channel_config = await get_channel_config(db)
+    if channel_config is not None and channel_config.is_enabled:
+        subscribed = await check_user_subscribed(str(claims.sub), channel_config.channel_id)
+        if not subscribed:
+            # Redirect to frontend with error + channel info for UI
+            from urllib.parse import urlencode as _urlencode
+            target = _frontend_callback_url()
+            params = {
+                "error": "channel_not_subscribed",
+                "channel_url": channel_config.channel_url or "",
+                "channel_title": channel_config.channel_title or "",
+            }
+            target = f"{target}?{_urlencode(params)}"
+            return RedirectResponse(target, status_code=302)
+        # Record subscription for analytics
+        client_ip = state_entry.client_ip if hasattr(state_entry, "client_ip") else None
+        await record_subscription(db, str(claims.sub), channel_config.channel_id, client_ip)
+        await db.commit()
 
     linked_to_uuid: UUID | None = None
     if state_entry.linked_to and state_entry.role == "WORKER":

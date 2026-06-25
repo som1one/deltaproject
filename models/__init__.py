@@ -28,6 +28,7 @@ from models.settlement_account import SettlementAccount
 from models.question import Question
 from models.referral import ReferralLink
 from models.support_ticket import SupportTicket
+from models.telegram_channel_sub import TelegramChannelConfig, TelegramChannelSubscription
 from models.user import User
 from models.user_session import UserSession
 from models.worker_stat import WorkerStat
@@ -60,6 +61,8 @@ __all__ = [
     "SettlementAccount",
     "SupportTicket",
     "SupportTicketStatus",
+    "TelegramChannelConfig",
+    "TelegramChannelSubscription",
     "User",
     "UserRole",
     "UserSession",

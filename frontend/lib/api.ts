@@ -25,6 +25,9 @@ import type {
   QuestionResponse,
   ReferralRead,
   ReportingPeriod,
+  TelegramChannelConfigRead,
+  TelegramChannelConfigSet,
+  TelegramChannelStatsResponse,
   TelegramOAuthConfigResponse,
   UserMeRead,
   WorkerMessageScriptRead,
@@ -418,4 +421,21 @@ export const api = {
       method: "DELETE",
       auth: true,
     }),
+
+  // ─── Telegram Channel Subscription ──────────────────────────────────────
+  getAdminTelegramChannel: () =>
+    request<TelegramChannelConfigRead | null>("/admin/telegram-channel", { auth: true }),
+  setAdminTelegramChannel: (body: TelegramChannelConfigSet) =>
+    request<TelegramChannelConfigRead>("/admin/telegram-channel", {
+      method: "PUT",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  getAdminTelegramChannelStats: (query = "") =>
+    request<TelegramChannelStatsResponse>(`/admin/telegram-channel/stats${query}`, { auth: true }),
+  checkAdminTelegramSubscription: (telegramUserId: string) =>
+    request<{ subscribed: boolean; channel_id?: string; reason?: string }>(
+      `/admin/telegram-channel/check/${telegramUserId}`,
+      { auth: true },
+    ),
 };

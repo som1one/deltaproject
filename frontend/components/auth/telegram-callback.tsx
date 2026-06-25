@@ -42,6 +42,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   account_error: "Не удалось создать или найти аккаунт. Попробуйте ещё раз.",
   missing_code_or_state: "Telegram не вернул код авторизации. Попробуйте ещё раз.",
   server_misconfigured: "Сервер временно недоступен. Попробуйте позже.",
+  channel_not_subscribed: "Для регистрации необходимо подписаться на Telegram-канал.",
 };
 
 function humanizeError(raw: string): string {
@@ -55,11 +56,13 @@ export const TelegramCallback = () => {
 
   const ticket = params.get("exchange");
   const errorParam = params.get("error");
+  const channelUrl = params.get("channel_url");
+  const channelTitle = params.get("channel_title");
 
   const [error, setError] = useState<string>(errorParam ? humanizeError(errorParam) : "");
 
   useEffect(() => {
-    if (errorParam) {
+    if (errorParam && errorParam !== "channel_not_subscribed") {
       const timer = window.setTimeout(() => router.replace("/register"), 2500);
       return () => window.clearTimeout(timer);
     }
@@ -143,11 +146,57 @@ export const TelegramCallback = () => {
         <JourneyEyebrow>Telegram</JourneyEyebrow>
         <JourneyTitle>{error ? "Не получилось войти" : "Завершаем вход"}</JourneyTitle>
         <JourneyLead>
-          {error
-            ? "Сейчас вернём вас на страницу регистрации. Попробуйте ещё раз — если ошибка повторится, напишите в поддержку."
-            : "Обмениваем результат Telegram на сессию. Это занимает пару секунд."}
+          {errorParam === "channel_not_subscribed"
+            ? "Для регистрации необходимо подписаться на наш Telegram-канал. Подпишитесь и попробуйте снова."
+            : error
+              ? "Сейчас вернём вас на страницу регистрации. Попробуйте ещё раз — если ошибка повторится, напишите в поддержку."
+              : "Обмениваем результат Telegram на сессию. Это занимает пару секунд."}
         </JourneyLead>
-        {error ? (
+        {errorParam === "channel_not_subscribed" && channelUrl ? (
+          <>
+            <JourneyFeedback tone="error">
+              Подпишитесь на канал{channelTitle ? ` «${channelTitle}»` : ""} и нажмите кнопку ниже.
+            </JourneyFeedback>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginTop: "0.5rem" }}>
+              <a
+                href={channelUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                  padding: "0.7rem 1.4rem",
+                  borderRadius: "var(--radius-pill, 99px)",
+                  background: "#0088cc",
+                  color: "#fff",
+                  fontWeight: 600,
+                  fontSize: "0.92rem",
+                  textDecoration: "none",
+                }}
+              >
+                Перейти в канал
+              </a>
+              <button
+                type="button"
+                onClick={() => router.push("/register")}
+                style={{
+                  padding: "0.55rem 1.2rem",
+                  borderRadius: "var(--radius-pill, 99px)",
+                  border: "1px solid var(--border, #333)",
+                  background: "transparent",
+                  color: "var(--text-strong, #fff)",
+                  fontWeight: 500,
+                  fontSize: "0.88rem",
+                  cursor: "pointer",
+                }}
+              >
+                Я подписался — попробовать снова
+              </button>
+            </div>
+          </>
+        ) : error ? (
           <JourneyFeedback tone="error">{error}</JourneyFeedback>
         ) : (
           <JourneyFeedback tone="info">Подождите…</JourneyFeedback>
