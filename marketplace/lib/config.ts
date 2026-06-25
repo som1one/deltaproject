@@ -1,5 +1,9 @@
 const required = (value: string | undefined, name: string) => {
   if (!value) {
+    // During build/prerender, env vars may not be available — use placeholder
+    if (typeof window === "undefined" && process.env.NODE_ENV === "production") {
+      return `__${name}__`;
+    }
     throw new Error(`Missing required env var: ${name}`);
   }
   return value;
