@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
 import { categoryLabel } from "@/components/marketplace/stitch-marketplace";
-import { SiteFooter } from "@/components/common/site-footer";
+import { SiteFooter } from "@/components/site-footer/site-footer";
 import { appConfig } from "@/lib/config";
 import styles from "@/components/marketing/marketplace-landing.module.css";
 
@@ -46,7 +46,7 @@ const roles = [
   {
     title: "Рекламодателям",
     text: "Каталог проверенных блогеров с фильтрами по нишам, аудитории и цене. Быстрый бриф и прозрачная статистика.",
-    href: appConfig.marketplaceUrl,
+    href: "/",
     cta: "Открыть каталог",
   },
   {
@@ -70,7 +70,7 @@ export const LandingPage = () => {
             Прямой доступ к кураторской базе проверенных креаторов. Заказывайте нативные интеграции, согласовывайте брифы и проводите безопасные сделки в едином личном кабинете без скрытых комиссий.
           </p>
           <div className={styles.actions}>
-            <Link href={appConfig.marketplaceUrl} className={styles.primaryAction}>
+            <Link href="/" className={styles.primaryAction}>
               Попробовать <span aria-hidden="true" style={{ marginLeft: 8 }}>→</span>
             </Link>
           </div>
@@ -143,7 +143,7 @@ function FeaturedCreators() {
           </>
         ) : (
           featuredBloggers.map((blogger) => (
-            <Link href={`${appConfig.marketplaceUrl}?q=${blogger.name}`} key={blogger.id} className={styles.featuredCard}>
+            <Link href={`/?q=${blogger.name}`} key={blogger.id} className={styles.featuredCard}>
               <div className={styles.featuredImageWrapper}>
                 <img src={blogger.profile_image_url || "/images/placeholder-portrait.jpg"} alt={blogger.name} />
               </div>
@@ -157,7 +157,7 @@ function FeaturedCreators() {
       </div>
       
       <div className={styles.featuredFooter}>
-        <Link href={appConfig.marketplaceUrl} className={styles.secondaryAction}>
+        <Link href="/" className={styles.secondaryAction}>
           Перейти в каталог <span aria-hidden="true" style={{ marginLeft: 8 }}>→</span>
         </Link>
       </div>

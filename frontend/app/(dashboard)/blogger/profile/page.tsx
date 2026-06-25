@@ -43,7 +43,7 @@ export default function BloggerProfilePage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (isHydrated && !isAuthenticated) router.replace("/marketplace/auth/login?next=/blogger/profile");
+    if (isHydrated && !isAuthenticated) router.replace(`${appConfig.marketplaceUrl}/auth/login?next=/blogger/profile`);
   }, [isAuthenticated, isHydrated, router]);
 
   const { data: categoryOptions = DEFAULT_MARKETPLACE_CATEGORIES } = useQuery({

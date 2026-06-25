@@ -43,7 +43,7 @@ function SupportContent() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (isHydrated && !isAuthenticated) router.replace("/marketplace/auth/login?next=/marketplace/support");
+    if (isHydrated && !isAuthenticated) router.replace("/auth/login?next=/support");
   }, [isAuthenticated, isHydrated, router]);
 
   const { data: tickets, isLoading } = useQuery<TicketsResponse>({

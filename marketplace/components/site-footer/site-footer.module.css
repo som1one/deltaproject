@@ -1,0 +1,129 @@
+/* ---------- Shared Site Footer ---------- */
+
+.footer {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(3.5rem, 7vw, 5.5rem) clamp(1.2rem, 4vw, 2.4rem) clamp(2rem, 4vw, 3rem);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.footer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(255, 255, 255, 0.05), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 40%);
+}
+
+.glow {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.22),
+    transparent
+  );
+}
+
+.inner {
+  position: relative;
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: clamp(2.4rem, 5vw, 3.25rem);
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem 2rem;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: fit-content;
+  white-space: nowrap;
+  font-family: var(--font-serif);
+  font-size: clamp(2.6rem, 8vw, 4.5rem);
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: var(--text-strong);
+  text-shadow: 0 0 32px rgba(255, 255, 255, 0.14);
+}
+
+.bottom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  justify-content: center;
+  align-items: center;
+  padding-top: clamp(1.5rem, 3vw, 2rem);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-narrow);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.copy {
+  color: var(--text-soft);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.4rem;
+  font-family: var(--font-narrow);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.links a {
+  color: var(--text-muted);
+  transition: color var(--transition-base);
+}
+
+.links a:hover {
+  color: var(--text-strong);
+}
+
+@media (max-width: 560px) {
+  .top {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .logo {
+    font-size: clamp(1.7rem, 9vw, 2.4rem);
+  }
+
+  .links {
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    gap: 0.7rem;
+    font-size: 0.6rem;
+  }
+
+  .copy {
+    font-size: 0.66rem;
+    line-height: 1.5;
+  }
+}

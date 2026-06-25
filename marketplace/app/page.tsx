@@ -171,7 +171,7 @@ function MarketplaceCatalogContent() {
     mutationFn: async (blogger: BloggerCard) => {
       if (!isAuthenticated) {
         const ref = searchParams.get("ref");
-        router.push(`/marketplace/auth/register${ref ? `?ref=${encodeURIComponent(ref)}` : ""}`);
+        router.push(`/auth/register${ref ? `?ref=${encodeURIComponent(ref)}` : ""}`);
         return null;
       }
 

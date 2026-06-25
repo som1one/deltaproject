@@ -28,7 +28,7 @@ export default function MarketplaceOrdersPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (isHydrated && !isAuthenticated) router.replace("/marketplace/auth/login?next=/marketplace/orders");
+    if (isHydrated && !isAuthenticated) router.replace("/auth/login?next=/orders");
   }, [isAuthenticated, isHydrated, router]);
 
   const { data, isLoading, error } = useQuery<OrdersResponse>({
@@ -78,7 +78,7 @@ export default function MarketplaceOrdersPage() {
           <section className={styles.panel}>
             <h2 className={styles.sectionTitle}>Пока пусто</h2>
             <p className={styles.muted}>Выберите блогера в каталоге и отправьте первый проект.</p>
-            <Link className={styles.primaryButton} href="/marketplace">
+            <Link className={styles.primaryButton} href="/">
               Перейти в каталог
             </Link>
           </section>
@@ -99,7 +99,7 @@ export default function MarketplaceOrdersPage() {
                     Подтвердить
                   </button>
                 ) : (
-                  <Link className={styles.secondaryButton} href={`/marketplace/support?order=${order.id}`}>
+                  <Link className={styles.secondaryButton} href={`/support?order=${order.id}`}>
                     Поддержка
                   </Link>
                 )

@@ -45,7 +45,7 @@ export default function BloggerMarketplacePage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (isHydrated && !isAuthenticated) router.replace("/marketplace/auth/login?next=/blogger/marketplace");
+    if (isHydrated && !isAuthenticated) router.replace(`${appConfig.marketplaceUrl}/auth/login?next=/blogger/marketplace`);
   }, [isAuthenticated, isHydrated, router]);
 
   const headers = { Authorization: `Bearer ${accessToken}` };

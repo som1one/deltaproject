@@ -61,7 +61,7 @@ function RegisterForm() {
       if (typeof window !== "undefined") {
         window.localStorage.removeItem("marketplace_referral_code");
       }
-      router.push("/marketplace");
+      router.push("/");
     },
     onError: (err: Error) => {
       if (err instanceof ApiError && err.status === 409) {
@@ -130,7 +130,7 @@ function RegisterForm() {
         {registerMutation.isPending ? "Регистрируем..." : "Зарегистрироваться"}
       </button>
       <p className={styles.muted}>
-        Уже есть аккаунт? <Link href="/marketplace/auth/login">Войти</Link>
+        Уже есть аккаунт? <Link href="/auth/login">Войти</Link>
       </p>
     </form>
   );
@@ -143,10 +143,10 @@ export default function MarketplaceRegisterPage() {
       <main className={styles.authPanel}>
         <div className={styles.authCard}>
           <div className={styles.mobileBrand}>
-            <Link className={styles.brand} href="/marketplace">looney moon</Link>
+            <Link className={styles.brand} href="/">looney moon</Link>
           </div>
           <div className={styles.tabs}>
-            <Link className={styles.tab} href="/marketplace/auth/login">Вход</Link>
+            <Link className={styles.tab} href="/auth/login">Вход</Link>
             <span className={styles.tabActive}>Регистрация</span>
           </div>
           <Suspense fallback={null}>

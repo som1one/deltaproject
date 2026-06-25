@@ -41,6 +41,12 @@ frontend/.next/
 frontend/out/
 frontend/.turbo/
 
+# Marketplace
+marketplace/node_modules/
+marketplace/.next/
+marketplace/out/
+marketplace/.turbo/
+
 # Логи
 *.log
 

@@ -41,7 +41,7 @@ function LoginForm() {
     },
     onSuccess: (data) => {
       setSession(data.access_token, data.refresh_token);
-      router.push(searchParams.get("next") || "/marketplace");
+      router.push(searchParams.get("next") || "/");
     },
     onError: (err: Error) => {
       if (err instanceof ApiError && err.status === 401) {
@@ -92,7 +92,7 @@ function LoginForm() {
         {loginMutation.isPending ? "Входим..." : "Войти"}
       </button>
       <p className={styles.muted}>
-        Нет аккаунта? <Link href="/marketplace/auth/register">Зарегистрироваться</Link>
+        Нет аккаунта? <Link href="/auth/register">Зарегистрироваться</Link>
       </p>
     </form>
   );
@@ -105,11 +105,11 @@ export default function MarketplaceLoginPage() {
       <main className={styles.authPanel}>
         <div className={styles.authCard}>
           <div className={styles.mobileBrand}>
-            <Link className={styles.brand} href="/marketplace">looney moon</Link>
+            <Link className={styles.brand} href="/">looney moon</Link>
           </div>
           <div className={styles.tabs}>
             <span className={styles.tabActive}>Вход</span>
-            <Link className={styles.tab} href="/marketplace/auth/register">Регистрация</Link>
+            <Link className={styles.tab} href="/auth/register">Регистрация</Link>
           </div>
           <Suspense fallback={null}>
             <LoginForm />

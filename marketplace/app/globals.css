@@ -1,0 +1,219 @@
+/* =========================================================
+   Marketplace — Light Theme Design System
+   Warm cream background, dark text, quiet luxury.
+   ========================================================= */
+
+:root {
+  /* ---------- Surfaces ---------- */
+  --bg:             #faf9f7;
+  --surface-base:   #ffffff;
+  --surface-raised: #f4f3f1;
+  --surface-hover:  #efeeec;
+  --surface-elev:   #e9e8e6;
+  --surface-inset:  #ffffff;
+
+  /* ---------- Borders ---------- */
+  --border:        #e3e2e0;
+  --border-strong: #c4c7c7;
+  --border-faint:  #f4f3f1;
+
+  /* ---------- Text ---------- */
+  --text-strong: #000000;
+  --text:        #1a1c1b;
+  --text-muted:  #444748;
+  --text-soft:   #858383;
+  --text-faint:  #c8c6c6;
+
+  /* ---------- Accent ---------- */
+  --accent:      #000000;
+  --accent-deep: #474747;
+  --accent-ink:  #ffffff;
+
+  /* ---------- Status ---------- */
+  --status-active:  #000000;
+  --status-success: #2e7d32;
+  --status-warning: #f57c00;
+  --status-danger:  #c62828;
+
+  --status-success-soft: rgba(46, 125, 50, 0.08);
+  --status-success-edge: rgba(46, 125, 50, 0.22);
+  --status-danger-soft:  rgba(198, 40, 40, 0.08);
+  --status-danger-edge:  rgba(198, 40, 40, 0.22);
+  --status-warning-soft: rgba(245, 124, 0, 0.08);
+  --status-warning-edge: rgba(245, 124, 0, 0.22);
+
+  /* ---------- Typography ---------- */
+  --font-display: "EB Garamond", "Georgia", serif;
+  --font-body:    "Hanken Grotesk", "Manrope", system-ui, sans-serif;
+  --font-narrow:  "Hanken Grotesk", "Manrope", system-ui, sans-serif;
+  --font-serif:   "Cormorant Garamond", "Times New Roman", Georgia, serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+
+  /* ---------- Legacy ad-* tokens (marketplace-ui.module.css) ---------- */
+  --ad-on-surface-variant:       #444748;
+  --ad-surface-container-highest: #e3e2e0;
+  --ad-primary:                  #000000;
+  --ad-on-primary:               #ffffff;
+  --ad-surface-container-lowest:  #ffffff;
+  --font-marketplace-sans:       var(--font-body);
+  --font-marketplace-serif:      var(--font-serif);
+
+  /* ---------- Radii ---------- */
+  --radius-xs:   4px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   18px;
+  --radius-xl:   24px;
+  --radius-pill: 999px;
+  --radius-card: var(--radius-md);
+
+  /* ---------- Spacing ---------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  /* ---------- Motion ---------- */
+  --transition-base: 220ms cubic-bezier(.2,.6,.2,1);
+  --transition-slow: 480ms cubic-bezier(.2,.6,.2,1);
+  --easing:          cubic-bezier(.2,.6,.2,1);
+}
+
+/* ---------- Reset / base ---------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--bg);
+  color: var(--text-strong);
+  font-family: var(--font-body);
+  font-feature-settings: "ss01", "cv11", "cv02";
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.01em;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+::selection {
+  background: rgba(0, 0, 0, 0.12);
+  color: #000000;
+}
+
+::placeholder {
+  color: var(--text-soft);
+  opacity: 1;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 1px solid rgba(0, 0, 0, 0.45);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ---------- Scrollbars ---------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.10);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.20);
+  background-clip: padding-box;
+}
+
+/* ---------- Motion preferences ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Animations ---------- */
+
+@keyframes deltaFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes deltaFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.fadeIn {
+  animation: deltaFadeUp 700ms var(--easing) both;
+}

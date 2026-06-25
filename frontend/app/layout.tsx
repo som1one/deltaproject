@@ -1,9 +1,7 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { AppProviders } from "@/components/providers/app-providers";
-import { RefTracker } from "@/components/marketplace/ref-tracker";
 
 import "./globals.css";
 
@@ -46,9 +44,6 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         />
       </head>
       <body>
-        <Suspense fallback={null}>
-          <RefTracker />
-        </Suspense>
         <AppProviders>{children}</AppProviders>
       </body>
     </html>
