@@ -2433,7 +2433,8 @@ export const AdminDashboard = () => {
             <StatCard label="За месяц" value={stats ? formatNumber(stats.this_month) : "—"} />
           </StatsGrid>
 
-          <SectionCard title="Настройки канала" style={{ marginTop: "1.2rem" }}>
+          <div style={{ marginTop: "1.2rem" }}>
+          <SectionCard title="Настройки канала">
             <Stack>
               <Field label="ID канала (напр. @channel или -100...)">
                 <TextInput
@@ -2476,6 +2477,7 @@ export const AdminDashboard = () => {
               </div>
             </Stack>
           </SectionCard>
+          </div>
         </div>
       );
     }
