@@ -60,8 +60,8 @@ cd ..
 # --- Marketplace one-time infra setup (idempotent) ---
 
 # Install systemd unit if not present
-if [[ ! -f /etc/systemd/system/deltaproject-marketplace.service ]]; then
-  echo "[deploy] installing marketplace systemd unit"
+if ! $SUDO diff -q deploy/deltaproject-marketplace.service /etc/systemd/system/deltaproject-marketplace.service &>/dev/null 2>&1; then
+  echo "[deploy] installing/updating marketplace systemd unit"
   $SUDO cp deploy/deltaproject-marketplace.service /etc/systemd/system/
   $SUDO systemctl daemon-reload
   $SUDO systemctl enable deltaproject-marketplace.service
@@ -78,6 +78,12 @@ fi
 # Issue SSL cert if not yet obtained
 if [[ ! -d /etc/letsencrypt/live/$MARKETPLACE_DOMAIN ]]; then
   echo "[deploy] obtaining SSL certificate for $MARKETPLACE_DOMAIN"
+  # Install certbot if missing
+  if ! command -v certbot &>/dev/null; then
+    echo "[deploy] installing certbot..."
+    $SUDO apt-get update -qq
+    $SUDO apt-get install -y -qq certbot python3-certbot-nginx
+  fi
   $SUDO certbot --nginx -d "$MARKETPLACE_DOMAIN" --non-interactive --agree-tos --email admin@looneymoon.ru --redirect || echo "[deploy] certbot failed (DNS may not be ready yet)"
 fi
 

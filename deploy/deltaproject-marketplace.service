@@ -5,12 +5,12 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=/root/deltaproject/marketplace
-ExecStart=/usr/bin/npm run start -- --port 3001
+ExecStart=/usr/bin/env node node_modules/.bin/next start --port 3001
 Restart=on-failure
 RestartSec=5
 Environment=NODE_ENV=production
 Environment=PORT=3001
-EnvironmentFile=/root/deltaproject/marketplace/.env.local
+EnvironmentFile=-/root/deltaproject/marketplace/.env.local
 
 [Install]
 WantedBy=multi-user.target
