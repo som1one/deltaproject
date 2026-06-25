@@ -48,7 +48,7 @@ if [[ ! -f marketplace/.env.local ]]; then
   echo "[deploy] creating marketplace/.env.local"
   cat > marketplace/.env.local << EOF
 NEXT_PUBLIC_API_BASE_URL=http://37.220.80.62:8000
-NEXT_PUBLIC_APP_URL=https://$MARKETPLACE_DOMAIN
+NEXT_PUBLIC_APP_URL=http://$MARKETPLACE_DOMAIN
 NEXT_PUBLIC_MAIN_APP_URL=http://looneymoon.ru
 EOF
 fi

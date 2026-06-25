@@ -4,11 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/root/deltaproject/marketplace
+WorkingDirectory=/opt/deltaproject/marketplace
 Environment=NODE_ENV=production
 Environment=PORT=3001
-EnvironmentFile=-/root/deltaproject/marketplace/.env.local
-ExecStart=/usr/bin/node /root/deltaproject/marketplace/node_modules/.bin/next start --port 3001
+EnvironmentFile=-/opt/deltaproject/marketplace/.env.local
+ExecStart=/usr/bin/node /opt/deltaproject/marketplace/node_modules/.bin/next start --port 3001
 Restart=on-failure
 RestartSec=5
 
