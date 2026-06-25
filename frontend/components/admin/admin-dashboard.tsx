@@ -2486,43 +2486,76 @@ export const AdminDashboard = () => {
   };
 
   const sections: AdminSection[] = ["overview", "users", "deals", "ledger", "schemes", "finance", "scripts", "telegram"];
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
     <PageSurface>
       <TopNav brandSub="админ-панель">
+        <button
+          type="button"
+          className={styles.drawerToggle}
+          onClick={() => setDrawerOpen(true)}
+          aria-label="Открыть навигацию"
+        >
+          <span className={styles.drawerToggleIcon}>
+            <span />
+            <span />
+            <span />
+          </span>
+          {sectionMeta[section].label}
+        </button>
         <NavLink href="/">На главную</NavLink>
         <Button type="button" kind="ghost" onClick={() => void logout()}>
           Выйти
         </Button>
       </TopNav>
 
-      <div className={styles.shell}>
-        <aside className={styles.sidebar}>
-          <p className={styles.sidebarLabel}>Разделы</p>
-          {sections.map((key) => {
-            const meta = sectionMeta[key];
-            const badge = (() => {
-              if (key === "users") return overviewQuery.data ? formatNumber(overviewQuery.data.users_total) : null;
-              if (key === "deals") return overviewQuery.data ? formatNumber(overviewQuery.data.deals_total) : null;
-              if (key === "ledger") return ledgerQuery.data ? formatNumber(ledgerQuery.data.total) : null;
-              if (key === "schemes") return schemesQuery.data ? formatNumber(schemesQuery.data.total) : null;
-              if (key === "scripts") return scriptsQuery.data ? formatNumber(scriptsQuery.data.length) : null;
-              return null;
-            })();
-            return (
-              <button
-                key={key}
-                type="button"
-                className={`${styles.sidebarItem}${section === key ? ` ${styles.sidebarItemActive}` : ""}`}
-                onClick={() => setSection(key)}
-              >
-                <span>{meta.label}</span>
-                {badge ? <span className={styles.sidebarBadge}>{badge}</span> : null}
-              </button>
-            );
-          })}
-        </aside>
+      {/* Navigation drawer (top curtain) */}
+      <div
+        className={`${styles.drawer}${drawerOpen ? ` ${styles.drawerOpen}` : ""}`}
+        aria-hidden={!drawerOpen}
+      >
+        <div className={styles.drawerBackdrop} onClick={() => setDrawerOpen(false)} />
+        <div className={styles.drawerPanel}>
+          <div className={styles.drawerHeader}>
+            <p className={styles.drawerTitle}>Разделы</p>
+            <button
+              type="button"
+              className={styles.drawerClose}
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Закрыть навигацию"
+            >
+              ✕
+            </button>
+          </div>
+          <div className={styles.drawerGrid}>
+            {sections.map((key) => {
+              const meta = sectionMeta[key];
+              const badge = (() => {
+                if (key === "users") return overviewQuery.data ? formatNumber(overviewQuery.data.users_total) : null;
+                if (key === "deals") return overviewQuery.data ? formatNumber(overviewQuery.data.deals_total) : null;
+                if (key === "ledger") return ledgerQuery.data ? formatNumber(ledgerQuery.data.total) : null;
+                if (key === "schemes") return schemesQuery.data ? formatNumber(schemesQuery.data.total) : null;
+                if (key === "scripts") return scriptsQuery.data ? formatNumber(scriptsQuery.data.length) : null;
+                return null;
+              })();
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`${styles.drawerItem}${section === key ? ` ${styles.drawerItemActive}` : ""}`}
+                  onClick={() => { setSection(key); setDrawerOpen(false); }}
+                >
+                  <span>{meta.label}</span>
+                  {badge ? <span className={styles.drawerBadge}>{badge}</span> : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
+      <div className={styles.shell}>
         <div className={styles.workspace}>
           <header className={styles.heroBar}>
             <div>
