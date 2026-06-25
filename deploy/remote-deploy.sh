@@ -9,6 +9,7 @@ PYTHON_BIN="${PYTHON_BIN:-$REPO_DIR/.venv/bin/python}"
 NPM_BIN="${NPM_BIN:-npm}"
 BACKEND_UNIT="${BACKEND_UNIT:-deltaproject-backend.service}"
 FRONTEND_UNIT="${FRONTEND_UNIT:-deltaproject-frontend.service}"
+MARKETPLACE_UNIT="${MARKETPLACE_UNIT:-deltaproject-marketplace.service}"
 
 echo "[deploy] repo: $REPO_DIR"
 cd "$REPO_DIR"
@@ -33,6 +34,12 @@ $NPM_BIN ci
 $NPM_BIN run build
 cd ..
 
+echo "[deploy] marketplace build"
+cd marketplace
+$NPM_BIN ci
+$NPM_BIN run build
+cd ..
+
 echo "[deploy] restart services"
 # Под root sudo не нужен; под обычным юзером — sudo -n (NOPASSWD).
 if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
@@ -42,6 +49,7 @@ else
 fi
 $SUDO systemctl restart "$BACKEND_UNIT"
 $SUDO systemctl restart "$FRONTEND_UNIT"
+$SUDO systemctl restart "$MARKETPLACE_UNIT"
 
 echo "[deploy] health check"
 for i in 1 2 3 4 5; do
