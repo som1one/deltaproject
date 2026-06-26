@@ -2522,7 +2522,7 @@ export const AdminDashboard = () => {
         {/* Обзор — прямая ссылка */}
         <button
           type="button"
-          className={`${styles.headerSection}${section === "overview" ? ` ${styles.headerSectionActive}` : ""}`}
+          className={`${styles.headerSection}${section === "overview" ? ` ${styles.headerSectionPrimary}` : ""}`}
           onClick={() => { setSection("overview"); setActiveMenu(null); setDrawerOpen(false); }}
         >
           Обзор
@@ -2603,6 +2603,7 @@ export const AdminDashboard = () => {
           </button>
           {activeMenu === "deals" && (
             <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
+              <p className={styles.dropdownGroupTitle}>Операции</p>
               <button
                 type="button"
                 className={`${styles.dropdownItem}${section === "deals" ? ` ${styles.dropdownItemActive}` : ""}`}
@@ -2641,6 +2642,7 @@ export const AdminDashboard = () => {
           </button>
           {activeMenu === "finance" && (
             <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
+              <p className={styles.dropdownGroupTitle}>Финансы</p>
               <button
                 type="button"
                 className={`${styles.dropdownItem}${section === "schemes" ? ` ${styles.dropdownItemActive}` : ""}`}
@@ -2679,6 +2681,7 @@ export const AdminDashboard = () => {
           </button>
           {activeMenu === "tools" && (
             <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
+              <p className={styles.dropdownGroupTitle}>Инструменты</p>
               <button
                 type="button"
                 className={`${styles.dropdownItem}${section === "scripts" ? ` ${styles.dropdownItemActive}` : ""}`}

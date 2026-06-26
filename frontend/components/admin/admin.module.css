@@ -49,8 +49,23 @@
 
 .headerSectionActive {
   color: var(--text-strong);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid var(--border-strong);
+  font-weight: 600;
+}
+
+/* Обзор — более выраженная кнопка, белый фон + чёрный текст */
+.headerSectionPrimary {
+  color: #000;
+  background: #fff;
+  border: 1px solid #fff;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}
+
+.headerSectionPrimary:hover {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000;
 }
 
 .headerSectionHover {
