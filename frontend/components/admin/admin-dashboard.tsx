@@ -2486,10 +2486,10 @@ export const AdminDashboard = () => {
   };
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<"operations" | "settings" | null>(null);
+  const [activeMenu, setActiveMenu] = useState<"finance" | "tools" | null>(null);
   const hoverTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const openMenu = (menu: "operations" | "settings") => {
+  const openMenu = (menu: "finance" | "tools") => {
     if (hoverTimeout.current) { clearTimeout(hoverTimeout.current); hoverTimeout.current = null; }
     setActiveMenu(menu);
     setDrawerOpen(true);
@@ -2526,26 +2526,46 @@ export const AdminDashboard = () => {
         >
           Обзор
         </button>
+        <button
+          type="button"
+          className={`${styles.headerSection}${section === "users" ? ` ${styles.headerSectionActive}` : ""}`}
+          onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
+        >
+          Пользователи
+        </button>
+        <button
+          type="button"
+          className={`${styles.headerSection}${section === "deals" ? ` ${styles.headerSectionActive}` : ""}`}
+          onClick={() => { setSection("deals"); setActiveMenu(null); setDrawerOpen(false); }}
+        >
+          Сделки
+        </button>
+        <button
+          type="button"
+          className={`${styles.headerSection}${section === "ledger" ? ` ${styles.headerSectionActive}` : ""}`}
+          onClick={() => { setSection("ledger"); setActiveMenu(null); setDrawerOpen(false); }}
+        >
+          Леджер
+        </button>
         <div
           className={styles.headerDropdownWrap}
-          onMouseEnter={() => openMenu("operations")}
+          onMouseEnter={() => openMenu("finance")}
           onMouseLeave={closeMenu}
         >
           <button
             type="button"
-            className={`${styles.headerSection}${section === "users" || section === "deals" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "operations" ? ` ${styles.headerSectionHover}` : ""}`}
-            onClick={() => { activeMenu === "operations" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("operations"); }}
+            className={`${styles.headerSection}${section === "schemes" || section === "finance" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "finance" ? ` ${styles.headerSectionHover}` : ""}`}
+            onClick={() => { activeMenu === "finance" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("finance"); }}
           >
-            Операции
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className={activeMenu === "operations" ? styles.chevronOpen : undefined}>
+            Финансы
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className={activeMenu === "finance" ? styles.chevronOpen : undefined}>
               <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          {activeMenu === "operations" && (
+          {activeMenu === "finance" && (
             <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
-              {(["overview", "users", "deals", "ledger"] as AdminSection[]).map((key) => {
+              {(["schemes", "finance"] as AdminSection[]).map((key) => {
                 const meta = sectionMeta[key];
-                if (key === "overview") return null;
                 return (
                   <button
                     key={key}
@@ -2563,22 +2583,22 @@ export const AdminDashboard = () => {
         </div>
         <div
           className={styles.headerDropdownWrap}
-          onMouseEnter={() => openMenu("settings")}
+          onMouseEnter={() => openMenu("tools")}
           onMouseLeave={closeMenu}
         >
           <button
             type="button"
-            className={`${styles.headerSection}${section === "schemes" || section === "finance" || section === "scripts" || section === "telegram" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "settings" ? ` ${styles.headerSectionHover}` : ""}`}
-            onClick={() => { activeMenu === "settings" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("settings"); }}
+            className={`${styles.headerSection}${section === "scripts" || section === "telegram" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "tools" ? ` ${styles.headerSectionHover}` : ""}`}
+            onClick={() => { activeMenu === "tools" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("tools"); }}
           >
-            Настройки
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className={activeMenu === "settings" ? styles.chevronOpen : undefined}>
+            Инструменты
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className={activeMenu === "tools" ? styles.chevronOpen : undefined}>
               <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </button>
-          {activeMenu === "settings" && (
+          {activeMenu === "tools" && (
             <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
-              {(["schemes", "finance", "scripts", "telegram"] as AdminSection[]).map((key) => {
+              {(["scripts", "telegram"] as AdminSection[]).map((key) => {
                 const meta = sectionMeta[key];
                 return (
                   <button

@@ -42,9 +42,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 1.4rem;
-  max-width: 1440px;
+  width: 100%;
   margin: 0 auto;
-  padding: 0.6rem 3rem;
+  padding: 0.6rem clamp(1.5rem, 4vw, 4.5rem);
 }
 
 .brand {
