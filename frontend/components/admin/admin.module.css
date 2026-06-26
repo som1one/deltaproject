@@ -53,6 +53,101 @@
   border: 1px solid var(--border);
 }
 
+.headerSectionHover {
+  color: var(--text-strong);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ---------- Dropdown wrapper (relative anchor for absolute dropdown) ---------- */
+
+.headerDropdownWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ---------- Dropdown menu ---------- */
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 280px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 0.5rem;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.5),
+    0 4px 16px rgba(0, 0, 0, 0.25);
+  z-index: 200;
+  animation: dropdownIn 180ms ease both;
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.dropdownItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.dropdownItem:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+  border-color: var(--border);
+}
+
+.dropdownItemActive {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+  border-color: var(--border-strong);
+}
+
+.dropdownItemLabel {
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-strong);
+}
+
+.dropdownItemDesc {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.dropdownItemActive .dropdownItemDesc {
+  color: var(--text-soft);
+}
+
+/* Chevron rotation */
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
 /* ---------- Nav logout (matches NavLink style) ---------- */
 
 .navLogout {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
@@ -2486,6 +2486,25 @@ export const AdminDashboard = () => {
   };
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<"operations" | "settings" | null>(null);
+  const hoverTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openMenu = (menu: "operations" | "settings") => {
+    if (hoverTimeout.current) { clearTimeout(hoverTimeout.current); hoverTimeout.current = null; }
+    setActiveMenu(menu);
+    setDrawerOpen(true);
+  };
+
+  const closeMenu = () => {
+    hoverTimeout.current = setTimeout(() => {
+      setActiveMenu(null);
+      setDrawerOpen(false);
+    }, 200);
+  };
+
+  const cancelClose = () => {
+    if (hoverTimeout.current) { clearTimeout(hoverTimeout.current); hoverTimeout.current = null; }
+  };
 
   return (
     <PageSurface>
@@ -2503,111 +2522,82 @@ export const AdminDashboard = () => {
         <button
           type="button"
           className={`${styles.headerSection}${section === "overview" ? ` ${styles.headerSectionActive}` : ""}`}
-          onClick={() => { setSection("overview"); setDrawerOpen(false); }}
+          onClick={() => { setSection("overview"); setActiveMenu(null); setDrawerOpen(false); }}
         >
           Обзор
         </button>
-        <button
-          type="button"
-          className={`${styles.headerSection}${section === "users" || section === "deals" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}`}
-          onClick={() => setDrawerOpen((v) => !v)}
+        <div
+          className={styles.headerDropdownWrap}
+          onMouseEnter={() => openMenu("operations")}
+          onMouseLeave={closeMenu}
         >
-          Операции
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-            <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          className={`${styles.headerSection}${section === "schemes" || section === "finance" || section === "scripts" || section === "telegram" ? ` ${styles.headerSectionActive}` : ""}`}
-          onClick={() => setDrawerOpen((v) => !v)}
-        >
-          Настройки
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-            <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </TopNav>
-
-      {/* Navigation drawer (top curtain — Lago-style) */}
-      <div
-        className={`${styles.drawer}${drawerOpen ? ` ${styles.drawerOpen}` : ""}`}
-        aria-hidden={!drawerOpen}
-      >
-        <div className={styles.drawerBackdrop} onClick={() => setDrawerOpen(false)} />
-        <div className={styles.drawerPanel}>
-          <div className={styles.drawerHeader}>
-            <p className={styles.drawerTitle}>Панель управления</p>
-            <button
-              type="button"
-              className={styles.drawerClose}
-              onClick={() => setDrawerOpen(false)}
-              aria-label="Закрыть навигацию"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-            </button>
-          </div>
-          <div className={styles.drawerBody}>
-            <div className={styles.drawerColumn}>
-              <p className={styles.drawerColumnTitle}>Основное</p>
+          <button
+            type="button"
+            className={`${styles.headerSection}${section === "users" || section === "deals" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "operations" ? ` ${styles.headerSectionHover}` : ""}`}
+            onClick={() => { activeMenu === "operations" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("operations"); }}
+          >
+            Операции
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className={activeMenu === "operations" ? styles.chevronOpen : undefined}>
+              <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {activeMenu === "operations" && (
+            <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
               {(["overview", "users", "deals", "ledger"] as AdminSection[]).map((key) => {
                 const meta = sectionMeta[key];
-                const badge = (() => {
-                  if (key === "users") return overviewQuery.data ? formatNumber(overviewQuery.data.users_total) : null;
-                  if (key === "deals") return overviewQuery.data ? formatNumber(overviewQuery.data.deals_total) : null;
-                  if (key === "ledger") return ledgerQuery.data ? formatNumber(ledgerQuery.data.total) : null;
-                  return null;
-                })();
+                if (key === "overview") return null;
                 return (
                   <button
                     key={key}
                     type="button"
-                    className={`${styles.drawerItem}${section === key ? ` ${styles.drawerItemActive}` : ""}`}
-                    onClick={() => { setSection(key); setDrawerOpen(false); }}
+                    className={`${styles.dropdownItem}${section === key ? ` ${styles.dropdownItemActive}` : ""}`}
+                    onClick={() => { setSection(key); setActiveMenu(null); setDrawerOpen(false); }}
                   >
-                    <span className={styles.drawerItemContent}>
-                      <span className={styles.drawerItemLabel}>
-                        {meta.label}
-                        {badge ? <span className={styles.drawerBadge}>{badge}</span> : null}
-                      </span>
-                      <span className={styles.drawerItemDesc}>{meta.lead}</span>
-                    </span>
+                    <span className={styles.dropdownItemLabel}>{meta.label}</span>
+                    <span className={styles.dropdownItemDesc}>{meta.lead}</span>
                   </button>
                 );
               })}
             </div>
-            <div className={styles.drawerColumn}>
-              <p className={styles.drawerColumnTitle}>Настройки</p>
+          )}
+        </div>
+        <div
+          className={styles.headerDropdownWrap}
+          onMouseEnter={() => openMenu("settings")}
+          onMouseLeave={closeMenu}
+        >
+          <button
+            type="button"
+            className={`${styles.headerSection}${section === "schemes" || section === "finance" || section === "scripts" || section === "telegram" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "settings" ? ` ${styles.headerSectionHover}` : ""}`}
+            onClick={() => { activeMenu === "settings" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("settings"); }}
+          >
+            Настройки
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className={activeMenu === "settings" ? styles.chevronOpen : undefined}>
+              <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {activeMenu === "settings" && (
+            <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
               {(["schemes", "finance", "scripts", "telegram"] as AdminSection[]).map((key) => {
                 const meta = sectionMeta[key];
-                const badge = (() => {
-                  if (key === "schemes") return schemesQuery.data ? formatNumber(schemesQuery.data.total) : null;
-                  if (key === "scripts") return scriptsQuery.data ? formatNumber(scriptsQuery.data.length) : null;
-                  return null;
-                })();
                 return (
                   <button
                     key={key}
                     type="button"
-                    className={`${styles.drawerItem}${section === key ? ` ${styles.drawerItemActive}` : ""}`}
-                    onClick={() => { setSection(key); setDrawerOpen(false); }}
+                    className={`${styles.dropdownItem}${section === key ? ` ${styles.dropdownItemActive}` : ""}`}
+                    onClick={() => { setSection(key); setActiveMenu(null); setDrawerOpen(false); }}
                   >
-                    <span className={styles.drawerItemContent}>
-                      <span className={styles.drawerItemLabel}>
-                        {meta.label}
-                        {badge ? <span className={styles.drawerBadge}>{badge}</span> : null}
-                      </span>
-                      <span className={styles.drawerItemDesc}>{meta.lead}</span>
-                    </span>
+                    <span className={styles.dropdownItemLabel}>{meta.label}</span>
+                    <span className={styles.dropdownItemDesc}>{meta.lead}</span>
                   </button>
                 );
               })}
             </div>
-          </div>
+          )}
         </div>
-      </div>
+      </TopNav>
+
+      {/* Drawer removed — dropdown menus handle navigation now */}
 
       <div className={styles.shell}>
         <div className={styles.workspace}>

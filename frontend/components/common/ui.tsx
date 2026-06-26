@@ -30,18 +30,20 @@ export const TopNav = ({
   brandSub?: string;
 }) => (
   <nav className={styles.nav}>
-    <Link href="/" className={styles.brand}>
-      <span className={styles.brandMark}>looney moon</span>
-      <span className={styles.brandSub}>{brandSub}</span>
-    </Link>
-    {actions ? (
-      <>
-        <div className={styles.navCenter}>{children}</div>
-        <div className={styles.navLinks}>{actions}</div>
-      </>
-    ) : (
-      <div className={styles.navLinks}>{children}</div>
-    )}
+    <div className={styles.navInner}>
+      <Link href="/" className={styles.brand}>
+        <span className={styles.brandMark}>looney moon</span>
+        <span className={styles.brandSub}>{brandSub}</span>
+      </Link>
+      {actions ? (
+        <>
+          <div className={styles.navCenter}>{children}</div>
+          <div className={styles.navLinks}>{actions}</div>
+        </>
+      ) : (
+        <div className={styles.navLinks}>{children}</div>
+      )}
+    </div>
   </nav>
 );
 
