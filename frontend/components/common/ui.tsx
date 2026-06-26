@@ -22,9 +22,11 @@ export const PageSurface = ({ children }: { children: ReactNode }) => (
 
 export const TopNav = ({
   children,
+  actions,
   brandSub = "агентство блогеров",
 }: {
   children?: ReactNode;
+  actions?: ReactNode;
   brandSub?: string;
 }) => (
   <nav className={styles.nav}>
@@ -32,7 +34,14 @@ export const TopNav = ({
       <span className={styles.brandMark}>looney moon</span>
       <span className={styles.brandSub}>{brandSub}</span>
     </Link>
-    <div className={styles.navLinks}>{children}</div>
+    {actions ? (
+      <>
+        <div className={styles.navCenter}>{children}</div>
+        <div className={styles.navLinks}>{actions}</div>
+      </>
+    ) : (
+      <div className={styles.navLinks}>{children}</div>
+    )}
   </nav>
 );
 

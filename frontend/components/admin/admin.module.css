@@ -10,68 +10,47 @@
   align-items: start;
 }
 
-/* ---------- Drawer toggle button ---------- */
+/* ---------- Header section links (Lago-style inline nav) ---------- */
 
-.drawerToggle {
+.headerSection {
   appearance: none;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  color: var(--text-strong);
+  background: none;
+  border: none;
   cursor: pointer;
-  padding: 0.5rem 1rem 0.5rem 0.85rem;
   font: inherit;
   font-size: 0.82rem;
   font-weight: 500;
+  color: var(--text-muted);
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  letter-spacing: -0.005em;
+  gap: 0.3rem;
+  letter-spacing: 0;
+  position: relative;
   transition:
     color 180ms ease,
-    border-color 180ms ease,
-    background 180ms ease,
-    box-shadow 180ms ease;
+    background 180ms ease;
 }
 
-.drawerToggle:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--border-strong);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+.headerSection:hover {
+  color: var(--text-strong);
+  background: rgba(255, 255, 255, 0.06);
 }
 
-.drawerToggleIcon {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 3.5px;
-  width: 14px;
-}
-
-.drawerToggleIcon span {
-  display: block;
-  height: 1.5px;
-  background: currentColor;
-  border-radius: 1px;
-  transition: transform 200ms ease, opacity 200ms ease, width 200ms ease;
-}
-
-.drawerToggleIcon span:nth-child(2) {
-  width: 10px;
-}
-
-.drawerToggle:hover .drawerToggleIcon span:nth-child(2) {
-  width: 14px;
-}
-
-.drawerToggleChevron {
-  opacity: 0.5;
+.headerSection svg {
+  opacity: 0.55;
   transition: transform 200ms ease, opacity 200ms ease;
-  flex-shrink: 0;
 }
 
-.drawerToggle:hover .drawerToggleChevron {
+.headerSection:hover svg {
   opacity: 0.9;
-  transform: translateY(1px);
+}
+
+.headerSectionActive {
+  color: var(--text-strong);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
 }
 
 /* ---------- Nav logout (matches NavLink style) ---------- */

@@ -80,6 +80,13 @@
   align-items: center;
 }
 
+.navCenter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
 .navLink, .navButton {
   color: var(--text-muted);
   text-decoration: none;

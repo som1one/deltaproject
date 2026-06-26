@@ -2489,26 +2489,43 @@ export const AdminDashboard = () => {
 
   return (
     <PageSurface>
-      <TopNav brandSub="админ-панель">
+      <TopNav
+        brandSub="админ-панель"
+        actions={
+          <>
+            <NavLink href="/">На главную</NavLink>
+            <button type="button" className={styles.navLogout} onClick={() => void logout()}>
+              Выйти
+            </button>
+          </>
+        }
+      >
         <button
           type="button"
-          className={styles.drawerToggle}
-          onClick={() => setDrawerOpen(true)}
-          aria-label="Открыть навигацию"
+          className={`${styles.headerSection}${section === "overview" ? ` ${styles.headerSectionActive}` : ""}`}
+          onClick={() => { setSection("overview"); setDrawerOpen(false); }}
         >
-          <span className={styles.drawerToggleIcon}>
-            <span />
-            <span />
-            <span />
-          </span>
-          {sectionMeta[section].label}
-          <svg className={styles.drawerToggleChevron} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-            <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          Обзор
+        </button>
+        <button
+          type="button"
+          className={`${styles.headerSection}${section === "users" || section === "deals" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}`}
+          onClick={() => setDrawerOpen((v) => !v)}
+        >
+          Операции
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+            <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <NavLink href="/">На главную</NavLink>
-        <button type="button" className={styles.navLogout} onClick={() => void logout()}>
-          Выйти
+        <button
+          type="button"
+          className={`${styles.headerSection}${section === "schemes" || section === "finance" || section === "scripts" || section === "telegram" ? ` ${styles.headerSectionActive}` : ""}`}
+          onClick={() => setDrawerOpen((v) => !v)}
+        >
+          Настройки
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+            <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
       </TopNav>
 
