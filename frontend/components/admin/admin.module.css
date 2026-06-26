@@ -58,12 +58,12 @@
 .headerSectionActive::after {
   content: "";
   position: absolute;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: -2px;
+  left: 0.4rem;
+  right: 0.4rem;
+  bottom: 0;
   height: 2px;
   background: var(--text-strong);
-  border-radius: 1px;
+  border-radius: 0;
 }
 
 /* Обзор — более выраженная кнопка, outlined pill */
@@ -78,12 +78,12 @@
 .headerSectionPrimary::after {
   content: "";
   position: absolute;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: -2px;
-  height: 2.5px;
+  left: 0.4rem;
+  right: 0.4rem;
+  bottom: 0;
+  height: 2px;
   background: var(--text-strong);
-  border-radius: 1px;
+  border-radius: 0;
 }
 
 .headerSectionPrimary:hover {
