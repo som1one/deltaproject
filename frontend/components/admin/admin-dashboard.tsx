@@ -47,7 +47,7 @@ import {
 import styles from "@/components/admin/admin.module.css";
 import { PayoutCardInput } from "@/components/common/payout-card-input";
 
-type AdminSection = "overview" | "users" | "deals" | "ledger" | "schemes" | "finance" | "scripts" | "telegram";
+type AdminSection = "overview" | "users" | "deals" | "ledger" | "schemes" | "finance" | "scripts" | "telegram" | "create-blogger";
 
 type AdminModalState =
   | { kind: "delete-user"; user: AdminUserRead }
@@ -126,6 +126,11 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
     label: "Telegram",
     title: "Подписка на Telegram-канал",
     lead: "Обязательная подписка при регистрации. Статистика подписок, управление каналом.",
+  },
+  "create-blogger": {
+    label: "Создать блогера",
+    title: "Создание блогера",
+    lead: "Создаёт нового блогера. Пароль выдаётся автоматически — сохраните его сразу.",
   },
 };
 
@@ -1275,30 +1280,6 @@ export const AdminDashboard = () => {
             </SectionCard>
 
             <SectionCard
-              title="Партнёр"
-              lead="Текущие параметры партнёра: процент, карта, баланс и статус."
-            >
-              {userDetailQuery.data ? (
-                <PillRow>
-                  <Pill>Роль: {formatRole(userDetailQuery.data.role)}</Pill>
-                  <Pill>Процент: {userDetailQuery.data.percent}%</Pill>
-                  <Pill>Баланс: {formatMoney(userDetailQuery.data.balance)}</Pill>
-                  <Pill>
-                    Карта:{" "}
-                    {userDetailQuery.data.payout_card_last4
-                      ? `•••• ${userDetailQuery.data.payout_card_last4}`
-                      : "не привязана"}
-                  </Pill>
-                  <Pill tone={userDetailQuery.data.is_active ? "accent" : "default"}>
-                    {userDetailQuery.data.is_active ? "Активен" : "Отключён"}
-                  </Pill>
-                </PillRow>
-              ) : (
-                <Message>Выберите пользователя в таблице.</Message>
-              )}
-            </SectionCard>
-
-            <SectionCard
               title="Корректировка баланса"
               lead="Сумма в рублях (можно отрицательную). Создаётся запись в журнале с указанной причиной."
             >
@@ -1371,60 +1352,33 @@ export const AdminDashboard = () => {
                 <Message>Выберите пользователя в таблице.</Message>
               )}
             </SectionCard>
-
-            <SectionCard title="История изменений" lead="Аудит изменений процента и карты партнёра.">
-              {userAuditQuery.data ? (
-                userAuditQuery.data.items.length === 0 ? (
-                  <Message>Изменений пока не зафиксировано.</Message>
-                ) : (
-                  <TableWrap>
-                    <DataTable>
-                      <thead>
-                        <tr>
-                          <th>Дата</th>
-                          <th>Поле</th>
-                          <th>Было</th>
-                          <th>Стало</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {userAuditQuery.data.items.map((entry) => (
-                          <tr key={entry.id}>
-                            <td>{formatDateTime(entry.created_at)}</td>
-                            <td>{entry.field}</td>
-                            <td>{entry.old_value ?? "—"}</td>
-                            <td>{entry.new_value ?? "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </DataTable>
-                  </TableWrap>
-                )
-              ) : (
-                <Message>Выберите пользователя в таблице.</Message>
-              )}
-            </SectionCard>
-
-            <SectionCard title="Создать блогера" lead="Создаёт нового блогера. Пароль выдаётся автоматически — сохраните его сразу.">
-              <Stack>
-                <Field label="Никнейм">
-                  <TextInput value={bloggerForm.nickname} onChange={(event) => setBloggerForm((current) => ({ ...current, nickname: event.target.value }))} />
-                </Field>
-                <Field label="Имя">
-                  <TextInput value={bloggerForm.name} onChange={(event) => setBloggerForm((current) => ({ ...current, name: event.target.value }))} />
-                </Field>
-                <Field label="Telegram">
-                  <TextInput value={bloggerForm.telegram} onChange={(event) => setBloggerForm((current) => ({ ...current, telegram: event.target.value }))} />
-                </Field>
-                <div className={styles.actionRow}>
-                  <Button type="button" onClick={() => createBloggerMutation.mutate()} disabled={createBloggerMutation.isPending || !bloggerForm.nickname}>
-                    {createBloggerMutation.isPending ? "Создаём…" : "Создать блогера"}
-                  </Button>
-                </div>
-              </Stack>
-            </SectionCard>
           </Stack>
         </div>
+      );
+    }
+
+    if (section === "create-blogger") {
+      return (
+        <SectionCard title="Создать блогера" lead="Создаёт нового блогера. Пароль выдаётся автоматически — сохраните его сразу.">
+          <Stack>
+            <TwoColumn>
+              <Field label="Никнейм">
+                <TextInput value={bloggerForm.nickname} onChange={(event) => setBloggerForm((current) => ({ ...current, nickname: event.target.value }))} />
+              </Field>
+              <Field label="Имя">
+                <TextInput value={bloggerForm.name} onChange={(event) => setBloggerForm((current) => ({ ...current, name: event.target.value }))} />
+              </Field>
+            </TwoColumn>
+            <Field label="Telegram">
+              <TextInput value={bloggerForm.telegram} onChange={(event) => setBloggerForm((current) => ({ ...current, telegram: event.target.value }))} />
+            </Field>
+            <div className={styles.actionRow}>
+              <Button type="button" onClick={() => createBloggerMutation.mutate()} disabled={createBloggerMutation.isPending || !bloggerForm.nickname}>
+                {createBloggerMutation.isPending ? "Создаём…" : "Создать блогера"}
+              </Button>
+            </div>
+          </Stack>
+        </SectionCard>
       );
     }
 
@@ -2536,7 +2490,7 @@ export const AdminDashboard = () => {
         >
           <button
             type="button"
-            className={`${styles.headerSection}${section === "users" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "users" ? ` ${styles.headerSectionHover}` : ""}`}
+            className={`${styles.headerSection}${section === "users" || section === "create-blogger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "users" ? ` ${styles.headerSectionHover}` : ""}`}
             onClick={() => { activeMenu === "users" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("users"); }}
           >
             Пользователи
@@ -2553,33 +2507,17 @@ export const AdminDashboard = () => {
                 onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
               >
                 <span className={styles.dropdownItemLabel}>Все пользователи</span>
-                <span className={styles.dropdownItemDesc}>Воркеры, блогеры, администраторы — полный список.</span>
+                <span className={styles.dropdownItemDesc}>Таблица и редактор — роль, процент, статус.</span>
               </button>
               <div className={styles.dropdownDivider} />
-              <p className={styles.dropdownGroupTitle}>Быстрые фильтры</p>
+              <p className={styles.dropdownGroupTitle}>Действия</p>
               <button
                 type="button"
-                className={styles.dropdownItem}
-                onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
+                className={`${styles.dropdownItem}${section === "create-blogger" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("create-blogger"); setActiveMenu(null); setDrawerOpen(false); }}
               >
-                <span className={styles.dropdownItemLabel}>Воркеры</span>
-                <span className={styles.dropdownItemDesc}>Исполнители заказов и интеграций.</span>
-              </button>
-              <button
-                type="button"
-                className={styles.dropdownItem}
-                onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
-              >
-                <span className={styles.dropdownItemLabel}>Блогеры</span>
-                <span className={styles.dropdownItemDesc}>Площадки для размещения контента.</span>
-              </button>
-              <button
-                type="button"
-                className={styles.dropdownItem}
-                onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
-              >
-                <span className={styles.dropdownItemLabel}>Администраторы</span>
-                <span className={styles.dropdownItemDesc}>Техническое управление платформой.</span>
+                <span className={styles.dropdownItemLabel}>Создать блогера</span>
+                <span className={styles.dropdownItemDesc}>Новый аккаунт блогера с автоматическим паролем.</span>
               </button>
             </div>
           )}
