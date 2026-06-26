@@ -1150,7 +1150,7 @@
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 400;
-  color: var(--text-muted);
+  color: var(--text);
 }
 
 .aboutGrid {
