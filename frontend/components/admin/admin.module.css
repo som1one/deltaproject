@@ -21,7 +21,7 @@
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--text-muted);
-  padding: 0.28rem 0.6rem;
+  padding: 0.5rem 0.6rem;
   border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
@@ -58,12 +58,12 @@
 .headerSectionActive::after {
   content: "";
   position: absolute;
-  left: 0.4rem;
-  right: 0.4rem;
-  bottom: 0;
+  left: 0.6rem;
+  right: 0.6rem;
+  bottom: -0.1rem;
   height: 2px;
   background: var(--text-strong);
-  border-radius: 0;
+  border-radius: 1px;
 }
 
 /* Обзор — более выраженная кнопка, outlined pill */
@@ -78,12 +78,12 @@
 .headerSectionPrimary::after {
   content: "";
   position: absolute;
-  left: 0.4rem;
-  right: 0.4rem;
-  bottom: 0;
+  left: 0.6rem;
+  right: 0.6rem;
+  bottom: -0.1rem;
   height: 2px;
   background: var(--text-strong);
-  border-radius: 0;
+  border-radius: 1px;
 }
 
 .headerSectionPrimary:hover {
@@ -101,6 +101,7 @@
 .headerDropdownWrap {
   position: relative;
   display: inline-flex;
+  align-items: center;
 }
 
 /* ---------- Dropdown menu ---------- */
@@ -231,7 +232,7 @@
   position: absolute;
   left: 0.3rem;
   right: 0.3rem;
-  bottom: 0.15rem;
+  bottom: 0.1rem;
   height: 1px;
   background: var(--text-strong);
   transform: scaleX(0);
