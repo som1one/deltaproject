@@ -2485,7 +2485,6 @@ export const AdminDashboard = () => {
     return null;
   };
 
-  const sections: AdminSection[] = ["overview", "users", "deals", "ledger", "schemes", "finance", "scripts", "telegram"];
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
@@ -2510,7 +2509,7 @@ export const AdminDashboard = () => {
         </Button>
       </TopNav>
 
-      {/* Navigation drawer (top curtain) */}
+      {/* Navigation drawer (top curtain — Lago-style) */}
       <div
         className={`${styles.drawer}${drawerOpen ? ` ${styles.drawerOpen}` : ""}`}
         aria-hidden={!drawerOpen}
@@ -2518,39 +2517,74 @@ export const AdminDashboard = () => {
         <div className={styles.drawerBackdrop} onClick={() => setDrawerOpen(false)} />
         <div className={styles.drawerPanel}>
           <div className={styles.drawerHeader}>
-            <p className={styles.drawerTitle}>Разделы</p>
+            <p className={styles.drawerTitle}>Панель управления</p>
             <button
               type="button"
               className={styles.drawerClose}
               onClick={() => setDrawerOpen(false)}
               aria-label="Закрыть навигацию"
             >
-              ✕
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
             </button>
           </div>
-          <div className={styles.drawerGrid}>
-            {sections.map((key) => {
-              const meta = sectionMeta[key];
-              const badge = (() => {
-                if (key === "users") return overviewQuery.data ? formatNumber(overviewQuery.data.users_total) : null;
-                if (key === "deals") return overviewQuery.data ? formatNumber(overviewQuery.data.deals_total) : null;
-                if (key === "ledger") return ledgerQuery.data ? formatNumber(ledgerQuery.data.total) : null;
-                if (key === "schemes") return schemesQuery.data ? formatNumber(schemesQuery.data.total) : null;
-                if (key === "scripts") return scriptsQuery.data ? formatNumber(scriptsQuery.data.length) : null;
-                return null;
-              })();
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className={`${styles.drawerItem}${section === key ? ` ${styles.drawerItemActive}` : ""}`}
-                  onClick={() => { setSection(key); setDrawerOpen(false); }}
-                >
-                  <span>{meta.label}</span>
-                  {badge ? <span className={styles.drawerBadge}>{badge}</span> : null}
-                </button>
-              );
-            })}
+          <div className={styles.drawerBody}>
+            <div className={styles.drawerColumn}>
+              <p className={styles.drawerColumnTitle}>Основное</p>
+              {(["overview", "users", "deals", "ledger"] as AdminSection[]).map((key) => {
+                const meta = sectionMeta[key];
+                const badge = (() => {
+                  if (key === "users") return overviewQuery.data ? formatNumber(overviewQuery.data.users_total) : null;
+                  if (key === "deals") return overviewQuery.data ? formatNumber(overviewQuery.data.deals_total) : null;
+                  if (key === "ledger") return ledgerQuery.data ? formatNumber(ledgerQuery.data.total) : null;
+                  return null;
+                })();
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`${styles.drawerItem}${section === key ? ` ${styles.drawerItemActive}` : ""}`}
+                    onClick={() => { setSection(key); setDrawerOpen(false); }}
+                  >
+                    <span className={styles.drawerItemContent}>
+                      <span className={styles.drawerItemLabel}>
+                        {meta.label}
+                        {badge ? <span className={styles.drawerBadge}>{badge}</span> : null}
+                      </span>
+                      <span className={styles.drawerItemDesc}>{meta.lead}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className={styles.drawerColumn}>
+              <p className={styles.drawerColumnTitle}>Настройки</p>
+              {(["schemes", "finance", "scripts", "telegram"] as AdminSection[]).map((key) => {
+                const meta = sectionMeta[key];
+                const badge = (() => {
+                  if (key === "schemes") return schemesQuery.data ? formatNumber(schemesQuery.data.total) : null;
+                  if (key === "scripts") return scriptsQuery.data ? formatNumber(scriptsQuery.data.length) : null;
+                  return null;
+                })();
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`${styles.drawerItem}${section === key ? ` ${styles.drawerItemActive}` : ""}`}
+                    onClick={() => { setSection(key); setDrawerOpen(false); }}
+                  >
+                    <span className={styles.drawerItemContent}>
+                      <span className={styles.drawerItemLabel}>
+                        {meta.label}
+                        {badge ? <span className={styles.drawerBadge}>{badge}</span> : null}
+                      </span>
+                      <span className={styles.drawerItemDesc}>{meta.lead}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
