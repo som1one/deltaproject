@@ -47,7 +47,7 @@ import {
 import styles from "@/components/admin/admin.module.css";
 import { PayoutCardInput } from "@/components/common/payout-card-input";
 
-type AdminSection = "overview" | "users" | "deals" | "ledger" | "schemes" | "finance" | "scripts" | "telegram" | "create-blogger";
+type AdminSection = "overview" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "deals" | "ledger" | "schemes" | "finance" | "scripts" | "telegram";
 
 type AdminModalState =
   | { kind: "delete-user"; user: AdminUserRead }
@@ -131,6 +131,21 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
     label: "Создать блогера",
     title: "Создание блогера",
     lead: "Создаёт нового блогера. Пароль выдаётся автоматически — сохраните его сразу.",
+  },
+  "user-ledger": {
+    label: "Леджер пользователя",
+    title: "Леджер пользователя",
+    lead: "Начисления и списания выбранного пользователя.",
+  },
+  "user-balance": {
+    label: "Корректировка баланса",
+    title: "Корректировка баланса",
+    lead: "Сумма в рублях (можно отрицательную). Создаётся запись в журнале с указанной причиной.",
+  },
+  "user-card": {
+    label: "Карта партнёра",
+    title: "Карта партнёра",
+    lead: "Номер карты (13–19 цифр). Сохраняются только последние 4 цифры.",
   },
 };
 
@@ -1107,252 +1122,361 @@ export const AdminDashboard = () => {
     if (section === "users") {
       return (
         <div className={styles.sideLayout}>
-          <Stack>
-            <SectionCard title="Список пользователей" lead="Кликните по строке, чтобы открыть редактор.">
-              {usersQuery.data ? (
+          <SectionCard title="Список пользователей" lead="Кликните по строке, чтобы открыть редактор.">
+            {usersQuery.data ? (
+              <TableWrap>
+                <DataTable>
+                  <thead>
+                    <tr>
+                      <th>Email / ник</th>
+                      <th>Роль</th>
+                      <th>Баланс</th>
+                      <th>Статус</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersQuery.data.items.map((user) => (
+                      <tr
+                        key={user.id}
+                        className={`${styles.selectable}${selectedUserId === user.id ? ` ${styles.selected}` : ""}`}
+                        onClick={() => setSelectedUserId(user.id)}
+                      >
+                        <td>
+                          <strong>{user.nickname || user.email}</strong>
+                          <br />
+                          <span style={{ opacity: 0.6, fontSize: "0.85rem" }}>{user.email}</span>
+                        </td>
+                        <td>{formatRole(user.role)}</td>
+                        <td>{formatMoney(user.balance)}</td>
+                        <td>{user.is_active ? "Активен" : "Отключён"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </DataTable>
+              </TableWrap>
+            ) : (
+              <Message>Загружаем пользователей…</Message>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            title="Редактор пользователя"
+            lead={userDetailQuery.data ? `${userDetailQuery.data.email}` : "Выберите пользователя слева."}
+            actions={
+              userDetailQuery.data && currentUserIsOwner ? (
+                <Button type="button" kind="ghost" onClick={() => setModal({ kind: "delete-user", user: userDetailQuery.data })}>
+                  Удалить
+                </Button>
+              ) : null
+            }
+          >
+            {userDetailQuery.data ? (
+              <Stack>
+                <TwoColumn>
+                  <Field label="Имя">
+                    <TextInput value={userForm.name} onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))} />
+                  </Field>
+                  <Field label="Email" help={userForm.role === "Bloger" ? "У блогера задаётся ником, менять нельзя." : undefined}>
+                    <TextInput
+                      value={userForm.email}
+                      onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))}
+                      readOnly={userForm.role === "Bloger"}
+                      disabled={userForm.role === "Bloger"}
+                    />
+                  </Field>
+                  <Field label="Telegram">
+                    <TextInput value={userForm.telegram} onChange={(event) => setUserForm((current) => ({ ...current, telegram: event.target.value }))} />
+                  </Field>
+                  <Field label="Никнейм" help="Только для блогера. Email пересоберётся под ник.">
+                    <TextInput value={userForm.nickname} onChange={(event) => setUserForm((current) => ({ ...current, nickname: event.target.value }))} />
+                  </Field>
+                  <Field label="Процент">
+                    <TextInput value={userForm.percent} onChange={(event) => setUserForm((current) => ({ ...current, percent: event.target.value }))} />
+                  </Field>
+                  <Field
+                    label="Роль"
+                    help={
+                      !currentUserIsOwner &&
+                      (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
+                        ? "Смена роли административного аккаунта доступна только владельцу."
+                        : undefined
+                    }
+                  >
+                    <SelectInput
+                      value={userForm.role}
+                      disabled={
+                        !currentUserIsOwner &&
+                        (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
+                      }
+                      onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}
+                    >
+                      <option value="Worker">Работник</option>
+                      <option value="Bloger">Блогер</option>
+                      <option value="Admin">Администратор</option>
+                      <option value="Tech_Admin">Тех-админ</option>
+                    </SelectInput>
+                  </Field>
+                  <Field label="PIN кабинета блогера" help="Оставьте пустым, чтобы не менять. Пустая строка сбрасывает PIN.">
+                    <TextInput
+                      value={userForm.blogger_cabinet_pin}
+                      onChange={(event) => setUserForm((current) => ({ ...current, blogger_cabinet_pin: event.target.value }))}
+                    />
+                  </Field>
+                  <Field
+                    label="Статус"
+                    help={
+                      !currentUserIsOwner &&
+                      (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
+                        ? "Деактивация административного аккаунта доступна только владельцу."
+                        : undefined
+                    }
+                  >
+                    <SelectInput
+                      value={userForm.is_active ? "active" : "inactive"}
+                      disabled={
+                        !currentUserIsOwner &&
+                        (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
+                      }
+                      onChange={(event) => setUserForm((current) => ({ ...current, is_active: event.target.value === "active" }))}
+                    >
+                      <option value="active">Активен</option>
+                      <option value="inactive">Отключён</option>
+                    </SelectInput>
+                  </Field>
+                </TwoColumn>
+                <div className={styles.actionRow}>
+                  <Button type="button" onClick={() => patchUserMutation.mutate()} disabled={patchUserMutation.isPending}>
+                    {patchUserMutation.isPending ? "Сохраняем…" : "Сохранить пользователя"}
+                  </Button>
+                </div>
+                {userStatsQuery.data ? (
+                  <PillRow>
+                    <Pill>Сделок: {formatNumber(userStatsQuery.data.deals)}</Pill>
+                    <Pill>Доход: {formatMoney(userStatsQuery.data.earn)}</Pill>
+                    <Pill>Ожидает: {formatMoney(userStatsQuery.data.balance_pending_confirmation_kopeks)}</Pill>
+                  </PillRow>
+                ) : null}
+              </Stack>
+            ) : (
+              <Message>Выберите пользователя в таблице.</Message>
+            )}
+          </SectionCard>
+        </div>
+      );
+    }
+
+    if (section === "user-ledger") {
+      return (
+        <div className={styles.sideLayout}>
+          <SectionCard title="Список пользователей" lead="Выберите пользователя, чтобы увидеть леджер.">
+            {usersQuery.data ? (
+              <TableWrap>
+                <DataTable>
+                  <thead>
+                    <tr>
+                      <th>Email / ник</th>
+                      <th>Роль</th>
+                      <th>Баланс</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersQuery.data.items.map((user) => (
+                      <tr
+                        key={user.id}
+                        className={`${styles.selectable}${selectedUserId === user.id ? ` ${styles.selected}` : ""}`}
+                        onClick={() => setSelectedUserId(user.id)}
+                      >
+                        <td><strong>{user.nickname || user.email}</strong></td>
+                        <td>{formatRole(user.role)}</td>
+                        <td>{formatMoney(user.balance)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </DataTable>
+              </TableWrap>
+            ) : (
+              <Message>Загружаем пользователей…</Message>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Леджер выбранного пользователя" lead={userDetailQuery.data ? userDetailQuery.data.email : "Выберите пользователя слева."}>
+            {userLedgerQuery.data ? (
+              userLedgerQuery.data.items.length === 0 ? (
+                <Message>У пользователя пока нет начислений.</Message>
+              ) : (
                 <TableWrap>
                   <DataTable>
                     <thead>
                       <tr>
-                        <th>Email / ник</th>
-                        <th>Роль</th>
-                        <th>Баланс</th>
+                        <th>Дата</th>
+                        <th>Сумма</th>
                         <th>Статус</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {usersQuery.data.items.map((user) => (
-                        <tr
-                          key={user.id}
-                          className={`${styles.selectable}${selectedUserId === user.id ? ` ${styles.selected}` : ""}`}
-                          onClick={() => setSelectedUserId(user.id)}
-                        >
-                          <td>
-                            <strong>{user.nickname || user.email}</strong>
-                            <br />
-                            <span style={{ opacity: 0.6, fontSize: "0.85rem" }}>{user.email}</span>
-                          </td>
-                          <td>{formatRole(user.role)}</td>
-                          <td>{formatMoney(user.balance)}</td>
-                          <td>{user.is_active ? "Активен" : "Отключён"}</td>
+                      {userLedgerQuery.data.items.map((entry) => (
+                        <tr key={entry.id}>
+                          <td>{formatDateTime(entry.created_at)}</td>
+                          <td>{formatMoney(entry.amount_kopeks)}</td>
+                          <td>{formatLedgerStatus(entry.status)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </DataTable>
                 </TableWrap>
-              ) : (
-                <Message>Загружаем пользователей…</Message>
-              )}
-            </SectionCard>
+              )
+            ) : (
+              <Message>Выберите пользователя в таблице.</Message>
+            )}
+          </SectionCard>
+        </div>
+      );
+    }
 
-            {userLedgerQuery.data ? (
-              <SectionCard title="Леджер выбранного пользователя">
-                {userLedgerQuery.data.items.length === 0 ? (
-                  <Message>У пользователя пока нет начислений.</Message>
-                ) : (
-                  <TableWrap>
-                    <DataTable>
-                      <thead>
-                        <tr>
-                          <th>Дата</th>
-                          <th>Сумма</th>
-                          <th>Статус</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {userLedgerQuery.data.items.map((entry) => (
-                          <tr key={entry.id}>
-                            <td>{formatDateTime(entry.created_at)}</td>
-                            <td>{formatMoney(entry.amount_kopeks)}</td>
-                            <td>{formatLedgerStatus(entry.status)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </DataTable>
-                  </TableWrap>
-                )}
-              </SectionCard>
-            ) : null}
-          </Stack>
-
-          <Stack>
-            <SectionCard
-              title="Редактор пользователя"
-              lead={userDetailQuery.data ? `${userDetailQuery.data.email}` : "Выберите пользователя слева."}
-              actions={
-                userDetailQuery.data && currentUserIsOwner ? (
-                  <Button type="button" kind="ghost" onClick={() => setModal({ kind: "delete-user", user: userDetailQuery.data })}>
-                    Удалить
-                  </Button>
-                ) : null
-              }
-            >
-              {userDetailQuery.data ? (
-                <Stack>
-                  <TwoColumn>
-                    <Field label="Имя">
-                      <TextInput value={userForm.name} onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))} />
-                    </Field>
-                    <Field label="Email" help={userForm.role === "Bloger" ? "У блогера задаётся ником, менять нельзя." : undefined}>
-                      <TextInput
-                        value={userForm.email}
-                        onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))}
-                        readOnly={userForm.role === "Bloger"}
-                        disabled={userForm.role === "Bloger"}
-                      />
-                    </Field>
-                    <Field label="Telegram">
-                      <TextInput value={userForm.telegram} onChange={(event) => setUserForm((current) => ({ ...current, telegram: event.target.value }))} />
-                    </Field>
-                    <Field label="Никнейм" help="Только для блогера. Email пересоберётся под ник.">
-                      <TextInput value={userForm.nickname} onChange={(event) => setUserForm((current) => ({ ...current, nickname: event.target.value }))} />
-                    </Field>
-                    <Field label="Процент">
-                      <TextInput value={userForm.percent} onChange={(event) => setUserForm((current) => ({ ...current, percent: event.target.value }))} />
-                    </Field>
-                    <Field
-                      label="Роль"
-                      help={
-                        !currentUserIsOwner &&
-                        (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
-                          ? "Смена роли административного аккаунта доступна только владельцу."
-                          : undefined
-                      }
-                    >
-                      <SelectInput
-                        value={userForm.role}
-                        disabled={
-                          !currentUserIsOwner &&
-                          (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
-                        }
-                        onChange={(event) => setUserForm((current) => ({ ...current, role: event.target.value }))}
+    if (section === "user-balance") {
+      return (
+        <div className={styles.sideLayout}>
+          <SectionCard title="Список пользователей" lead="Выберите пользователя для корректировки баланса.">
+            {usersQuery.data ? (
+              <TableWrap>
+                <DataTable>
+                  <thead>
+                    <tr>
+                      <th>Email / ник</th>
+                      <th>Роль</th>
+                      <th>Баланс</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersQuery.data.items.map((user) => (
+                      <tr
+                        key={user.id}
+                        className={`${styles.selectable}${selectedUserId === user.id ? ` ${styles.selected}` : ""}`}
+                        onClick={() => setSelectedUserId(user.id)}
                       >
-                        <option value="Worker">Работник</option>
-                        <option value="Bloger">Блогер</option>
-                        <option value="Admin">Администратор</option>
-                        <option value="Tech_Admin">Тех-админ</option>
-                      </SelectInput>
-                    </Field>
-                    <Field label="PIN кабинета блогера" help="Оставьте пустым, чтобы не менять. Пустая строка сбрасывает PIN.">
-                      <TextInput
-                        value={userForm.blogger_cabinet_pin}
-                        onChange={(event) => setUserForm((current) => ({ ...current, blogger_cabinet_pin: event.target.value }))}
-                      />
-                    </Field>
-                    <Field
-                      label="Статус"
-                      help={
-                        !currentUserIsOwner &&
-                        (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
-                          ? "Деактивация административного аккаунта доступна только владельцу."
-                          : undefined
-                      }
-                    >
-                      <SelectInput
-                        value={userForm.is_active ? "active" : "inactive"}
-                        disabled={
-                          !currentUserIsOwner &&
-                          (userDetailQuery.data.role === "Admin" || userDetailQuery.data.role === "Tech_Admin")
-                        }
-                        onChange={(event) => setUserForm((current) => ({ ...current, is_active: event.target.value === "active" }))}
-                      >
-                        <option value="active">Активен</option>
-                        <option value="inactive">Отключён</option>
-                      </SelectInput>
-                    </Field>
-                  </TwoColumn>
-                  <div className={styles.actionRow}>
-                    <Button type="button" onClick={() => patchUserMutation.mutate()} disabled={patchUserMutation.isPending}>
-                      {patchUserMutation.isPending ? "Сохраняем…" : "Сохранить пользователя"}
-                    </Button>
-                  </div>
-                  {userStatsQuery.data ? (
-                    <PillRow>
-                      <Pill>Сделок: {formatNumber(userStatsQuery.data.deals)}</Pill>
-                      <Pill>Доход: {formatMoney(userStatsQuery.data.earn)}</Pill>
-                      <Pill>Ожидает: {formatMoney(userStatsQuery.data.balance_pending_confirmation_kopeks)}</Pill>
-                    </PillRow>
-                  ) : null}
-                </Stack>
-              ) : (
-                <Message>Выберите пользователя в таблице.</Message>
-              )}
-            </SectionCard>
+                        <td><strong>{user.nickname || user.email}</strong></td>
+                        <td>{formatRole(user.role)}</td>
+                        <td>{formatMoney(user.balance)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </DataTable>
+              </TableWrap>
+            ) : (
+              <Message>Загружаем пользователей…</Message>
+            )}
+          </SectionCard>
 
-            <SectionCard
-              title="Корректировка баланса"
-              lead="Сумма в рублях (можно отрицательную). Создаётся запись в журнале с указанной причиной."
-            >
-              {userDetailQuery.data ? (
-                <Stack>
-                  <TwoColumn>
-                    <Field label="Сумма, ₽" help="Положительная — начисление, отрицательная — списание.">
-                      <TextInput
-                        value={balanceAdjustForm.amountRub}
-                        inputMode="decimal"
-                        onChange={(event) =>
-                          setBalanceAdjustForm((current) => ({ ...current, amountRub: event.target.value }))
-                        }
-                      />
-                    </Field>
-                  </TwoColumn>
-                  <Field label="Причина">
-                    <TextArea
-                      value={balanceAdjustForm.reason}
-                      onChange={(event) =>
-                        setBalanceAdjustForm((current) => ({ ...current, reason: event.target.value }))
-                      }
-                    />
-                  </Field>
-                  <div className={styles.actionRow}>
-                    <Button
-                      type="button"
-                      onClick={() => balanceAdjustMutation.mutate()}
-                      disabled={
-                        balanceAdjustMutation.isPending ||
-                        balanceAdjustForm.reason.trim().length === 0 ||
-                        balanceAdjustForm.amountRub.trim().length === 0 ||
-                        !Number.isFinite(Number(balanceAdjustForm.amountRub)) ||
-                        Math.round(Number(balanceAdjustForm.amountRub) * 100) === 0
-                      }
-                    >
-                      {balanceAdjustMutation.isPending ? "Применяем…" : "Скорректировать баланс"}
-                    </Button>
-                  </div>
-                </Stack>
-              ) : (
-                <Message>Выберите пользователя в таблице.</Message>
-              )}
-            </SectionCard>
-
-            <SectionCard
-              title="Карта партнёра"
-              lead="Номер карты (13–19 цифр). Сохраняются только последние 4 цифры."
-            >
-              {userDetailQuery.data ? (
-                <Stack>
-                  <Field label="Номер карты">
+          <SectionCard
+            title="Корректировка баланса"
+            lead={userDetailQuery.data ? `${userDetailQuery.data.email} — баланс ${formatMoney(userDetailQuery.data.balance)}` : "Выберите пользователя слева."}
+          >
+            {userDetailQuery.data ? (
+              <Stack>
+                <TwoColumn>
+                  <Field label="Сумма, ₽" help="Положительная — начисление, отрицательная — списание.">
                     <TextInput
-                      value={partnerCardForm}
-                      inputMode="numeric"
-                      onChange={(event) => setPartnerCardForm(event.target.value)}
+                      value={balanceAdjustForm.amountRub}
+                      inputMode="decimal"
+                      onChange={(event) =>
+                        setBalanceAdjustForm((current) => ({ ...current, amountRub: event.target.value }))
+                      }
                     />
                   </Field>
-                  <div className={styles.actionRow}>
-                    <Button
-                      type="button"
-                      onClick={() => partnerCardMutation.mutate()}
-                      disabled={partnerCardMutation.isPending || partnerCardForm.trim().length === 0}
-                    >
-                      {partnerCardMutation.isPending ? "Сохраняем…" : "Сохранить карту"}
-                    </Button>
-                  </div>
-                </Stack>
-              ) : (
-                <Message>Выберите пользователя в таблице.</Message>
-              )}
-            </SectionCard>
-          </Stack>
+                </TwoColumn>
+                <Field label="Причина">
+                  <TextArea
+                    value={balanceAdjustForm.reason}
+                    onChange={(event) =>
+                      setBalanceAdjustForm((current) => ({ ...current, reason: event.target.value }))
+                    }
+                  />
+                </Field>
+                <div className={styles.actionRow}>
+                  <Button
+                    type="button"
+                    onClick={() => balanceAdjustMutation.mutate()}
+                    disabled={
+                      balanceAdjustMutation.isPending ||
+                      balanceAdjustForm.reason.trim().length === 0 ||
+                      balanceAdjustForm.amountRub.trim().length === 0 ||
+                      !Number.isFinite(Number(balanceAdjustForm.amountRub)) ||
+                      Math.round(Number(balanceAdjustForm.amountRub) * 100) === 0
+                    }
+                  >
+                    {balanceAdjustMutation.isPending ? "Применяем…" : "Скорректировать баланс"}
+                  </Button>
+                </div>
+              </Stack>
+            ) : (
+              <Message>Выберите пользователя в таблице.</Message>
+            )}
+          </SectionCard>
+        </div>
+      );
+    }
+
+    if (section === "user-card") {
+      return (
+        <div className={styles.sideLayout}>
+          <SectionCard title="Список пользователей" lead="Выберите пользователя для привязки карты.">
+            {usersQuery.data ? (
+              <TableWrap>
+                <DataTable>
+                  <thead>
+                    <tr>
+                      <th>Email / ник</th>
+                      <th>Роль</th>
+                      <th>Карта</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {usersQuery.data.items.map((user) => (
+                      <tr
+                        key={user.id}
+                        className={`${styles.selectable}${selectedUserId === user.id ? ` ${styles.selected}` : ""}`}
+                        onClick={() => setSelectedUserId(user.id)}
+                      >
+                        <td><strong>{user.nickname || user.email}</strong></td>
+                        <td>{formatRole(user.role)}</td>
+                        <td>{user.payout_card_last4 ? `•••• ${user.payout_card_last4}` : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </DataTable>
+              </TableWrap>
+            ) : (
+              <Message>Загружаем пользователей…</Message>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            title="Карта партнёра"
+            lead={userDetailQuery.data ? `${userDetailQuery.data.email}` : "Выберите пользователя слева."}
+          >
+            {userDetailQuery.data ? (
+              <Stack>
+                <Field label="Номер карты" help="13–19 цифр. Сохраняются только последние 4.">
+                  <TextInput
+                    value={partnerCardForm}
+                    inputMode="numeric"
+                    onChange={(event) => setPartnerCardForm(event.target.value)}
+                  />
+                </Field>
+                <div className={styles.actionRow}>
+                  <Button
+                    type="button"
+                    onClick={() => partnerCardMutation.mutate()}
+                    disabled={partnerCardMutation.isPending || partnerCardForm.trim().length === 0}
+                  >
+                    {partnerCardMutation.isPending ? "Сохраняем…" : "Сохранить карту"}
+                  </Button>
+                </div>
+              </Stack>
+            ) : (
+              <Message>Выберите пользователя в таблице.</Message>
+            )}
+          </SectionCard>
         </div>
       );
     }
@@ -2490,7 +2614,7 @@ export const AdminDashboard = () => {
         >
           <button
             type="button"
-            className={`${styles.headerSection}${section === "users" || section === "create-blogger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "users" ? ` ${styles.headerSectionHover}` : ""}`}
+            className={`${styles.headerSection}${section === "users" || section === "create-blogger" || section === "user-ledger" || section === "user-balance" || section === "user-card" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "users" ? ` ${styles.headerSectionHover}` : ""}`}
             onClick={() => { activeMenu === "users" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("users"); }}
           >
             Пользователи
@@ -2508,6 +2632,32 @@ export const AdminDashboard = () => {
               >
                 <span className={styles.dropdownItemLabel}>Все пользователи</span>
                 <span className={styles.dropdownItemDesc}>Таблица и редактор — роль, процент, статус.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "user-ledger" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("user-ledger"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Леджер пользователя</span>
+                <span className={styles.dropdownItemDesc}>Начисления и списания выбранного партнёра.</span>
+              </button>
+              <div className={styles.dropdownDivider} />
+              <p className={styles.dropdownGroupTitle}>Финансы партнёра</p>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "user-balance" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("user-balance"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Корректировка баланса</span>
+                <span className={styles.dropdownItemDesc}>Начисление или списание с указанием причины.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "user-card" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("user-card"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Карта партнёра</span>
+                <span className={styles.dropdownItemDesc}>Привязка карты для выплат.</span>
               </button>
               <div className={styles.dropdownDivider} />
               <p className={styles.dropdownGroupTitle}>Действия</p>
