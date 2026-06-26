@@ -2486,10 +2486,10 @@ export const AdminDashboard = () => {
   };
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<"finance" | "tools" | null>(null);
+  const [activeMenu, setActiveMenu] = useState<"users" | "deals" | "finance" | "tools" | null>(null);
   const hoverTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const openMenu = (menu: "finance" | "tools") => {
+  const openMenu = (menu: "users" | "deals" | "finance" | "tools") => {
     if (hoverTimeout.current) { clearTimeout(hoverTimeout.current); hoverTimeout.current = null; }
     setActiveMenu(menu);
     setDrawerOpen(true);
@@ -2519,6 +2519,7 @@ export const AdminDashboard = () => {
           </>
         }
       >
+        {/* Обзор — прямая ссылка */}
         <button
           type="button"
           className={`${styles.headerSection}${section === "overview" ? ` ${styles.headerSectionActive}` : ""}`}
@@ -2526,27 +2527,103 @@ export const AdminDashboard = () => {
         >
           Обзор
         </button>
-        <button
-          type="button"
-          className={`${styles.headerSection}${section === "users" ? ` ${styles.headerSectionActive}` : ""}`}
-          onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
+
+        {/* Пользователи — dropdown */}
+        <div
+          className={styles.headerDropdownWrap}
+          onMouseEnter={() => openMenu("users")}
+          onMouseLeave={closeMenu}
         >
-          Пользователи
-        </button>
-        <button
-          type="button"
-          className={`${styles.headerSection}${section === "deals" ? ` ${styles.headerSectionActive}` : ""}`}
-          onClick={() => { setSection("deals"); setActiveMenu(null); setDrawerOpen(false); }}
+          <button
+            type="button"
+            className={`${styles.headerSection}${section === "users" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "users" ? ` ${styles.headerSectionHover}` : ""}`}
+            onClick={() => { activeMenu === "users" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("users"); }}
+          >
+            Пользователи
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className={activeMenu === "users" ? styles.chevronOpen : undefined}>
+              <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {activeMenu === "users" && (
+            <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
+              <p className={styles.dropdownGroupTitle}>Управление</p>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "users" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Все пользователи</span>
+                <span className={styles.dropdownItemDesc}>Воркеры, блогеры, администраторы — полный список.</span>
+              </button>
+              <div className={styles.dropdownDivider} />
+              <p className={styles.dropdownGroupTitle}>Быстрые фильтры</p>
+              <button
+                type="button"
+                className={styles.dropdownItem}
+                onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Воркеры</span>
+                <span className={styles.dropdownItemDesc}>Исполнители заказов и интеграций.</span>
+              </button>
+              <button
+                type="button"
+                className={styles.dropdownItem}
+                onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Блогеры</span>
+                <span className={styles.dropdownItemDesc}>Площадки для размещения контента.</span>
+              </button>
+              <button
+                type="button"
+                className={styles.dropdownItem}
+                onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Администраторы</span>
+                <span className={styles.dropdownItemDesc}>Техническое управление платформой.</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Сделки — dropdown */}
+        <div
+          className={styles.headerDropdownWrap}
+          onMouseEnter={() => openMenu("deals")}
+          onMouseLeave={closeMenu}
         >
-          Сделки
-        </button>
-        <button
-          type="button"
-          className={`${styles.headerSection}${section === "ledger" ? ` ${styles.headerSectionActive}` : ""}`}
-          onClick={() => { setSection("ledger"); setActiveMenu(null); setDrawerOpen(false); }}
-        >
-          Леджер
-        </button>
+          <button
+            type="button"
+            className={`${styles.headerSection}${section === "deals" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "deals" ? ` ${styles.headerSectionHover}` : ""}`}
+            onClick={() => { activeMenu === "deals" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("deals"); }}
+          >
+            Сделки
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className={activeMenu === "deals" ? styles.chevronOpen : undefined}>
+              <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {activeMenu === "deals" && (
+            <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "deals" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("deals"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Все сделки</span>
+                <span className={styles.dropdownItemDesc}>Подтверждение, оплата, завершение и отклонение.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "ledger" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("ledger"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Леджер и выплаты</span>
+                <span className={styles.dropdownItemDesc}>Начисления, запросы на выплаты, подтверждения.</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Финансы — dropdown */}
         <div
           className={styles.headerDropdownWrap}
           onMouseEnter={() => openMenu("finance")}
@@ -2564,23 +2641,27 @@ export const AdminDashboard = () => {
           </button>
           {activeMenu === "finance" && (
             <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
-              {(["schemes", "finance"] as AdminSection[]).map((key) => {
-                const meta = sectionMeta[key];
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`${styles.dropdownItem}${section === key ? ` ${styles.dropdownItemActive}` : ""}`}
-                    onClick={() => { setSection(key); setActiveMenu(null); setDrawerOpen(false); }}
-                  >
-                    <span className={styles.dropdownItemLabel}>{meta.label}</span>
-                    <span className={styles.dropdownItemDesc}>{meta.lead}</span>
-                  </button>
-                );
-              })}
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "schemes" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("schemes"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Финансовые схемы</span>
+                <span className={styles.dropdownItemDesc}>Веса распределения долей по каждому блогеру.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "finance" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("finance"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Сводка платформы</span>
+                <span className={styles.dropdownItemDesc}>Баланс, прибыль, оборот, выплаты за период.</span>
+              </button>
             </div>
           )}
         </div>
+
+        {/* Инструменты — dropdown */}
         <div
           className={styles.headerDropdownWrap}
           onMouseEnter={() => openMenu("tools")}
@@ -2598,20 +2679,22 @@ export const AdminDashboard = () => {
           </button>
           {activeMenu === "tools" && (
             <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
-              {(["scripts", "telegram"] as AdminSection[]).map((key) => {
-                const meta = sectionMeta[key];
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`${styles.dropdownItem}${section === key ? ` ${styles.dropdownItemActive}` : ""}`}
-                    onClick={() => { setSection(key); setActiveMenu(null); setDrawerOpen(false); }}
-                  >
-                    <span className={styles.dropdownItemLabel}>{meta.label}</span>
-                    <span className={styles.dropdownItemDesc}>{meta.lead}</span>
-                  </button>
-                );
-              })}
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "scripts" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("scripts"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Скрипты для воркеров</span>
+                <span className={styles.dropdownItemDesc}>Шаблоны сообщений для кабинета воркера.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "telegram" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("telegram"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Telegram-канал</span>
+                <span className={styles.dropdownItemDesc}>Обязательная подписка, статистика, управление.</span>
+              </button>
             </div>
           )}
         </div>

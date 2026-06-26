@@ -143,6 +143,29 @@
   color: var(--text-soft);
 }
 
+/* Dropdown group title */
+.dropdownGroupTitle {
+  margin: 0;
+  padding: 0.45rem 0.85rem 0.25rem;
+  font-family: var(--font-narrow);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.dropdownGroupTitle:not(:first-child) {
+  margin-top: 0.2rem;
+}
+
+/* Dropdown divider */
+.dropdownDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.4rem 0.85rem;
+}
+
 /* Chevron rotation */
 .chevronOpen {
   transform: rotate(180deg);
