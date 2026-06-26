@@ -18,15 +18,15 @@
   border: none;
   cursor: pointer;
   font: inherit;
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 0.88rem;
+  font-weight: 600;
   color: var(--text-muted);
-  padding: 0.22rem 0.5rem;
+  padding: 0.28rem 0.6rem;
   border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   position: relative;
   transition:
     color 180ms ease,
@@ -49,22 +49,45 @@
 
 .headerSectionActive {
   color: var(--text-strong);
-  background: rgba(255, 255, 255, 0.10);
-  border: 1px solid var(--border-strong);
-  font-weight: 600;
+  background: transparent;
+  border: none;
+  font-weight: 700;
+  position: relative;
+}
+
+.headerSectionActive::after {
+  content: "";
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: -2px;
+  height: 2px;
+  background: var(--text-strong);
+  border-radius: 1px;
 }
 
 /* Обзор — более выраженная кнопка, outlined pill */
 .headerSectionPrimary {
   color: var(--text-strong);
   background: transparent;
-  border: 1.5px solid var(--border-strong);
-  font-weight: 600;
-  border-radius: var(--radius-sm);
+  border: none;
+  font-weight: 700;
+  position: relative;
+}
+
+.headerSectionPrimary::after {
+  content: "";
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: -2px;
+  height: 2.5px;
+  background: var(--text-strong);
+  border-radius: 1px;
 }
 
 .headerSectionPrimary:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
   color: var(--text-strong);
 }
 
