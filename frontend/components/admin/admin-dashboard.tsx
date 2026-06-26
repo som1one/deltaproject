@@ -2593,7 +2593,7 @@ export const AdminDashboard = () => {
         >
           <button
             type="button"
-            className={`${styles.headerSection}${section === "deals" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "deals" ? ` ${styles.headerSectionHover}` : ""}`}
+            className={`${styles.headerSection}${section === "deals" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "deals" ? ` ${styles.headerSectionHover}` : ""}`}
             onClick={() => { activeMenu === "deals" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("deals"); }}
           >
             Сделки
@@ -2612,14 +2612,6 @@ export const AdminDashboard = () => {
                 <span className={styles.dropdownItemLabel}>Все сделки</span>
                 <span className={styles.dropdownItemDesc}>Подтверждение, оплата, завершение и отклонение.</span>
               </button>
-              <button
-                type="button"
-                className={`${styles.dropdownItem}${section === "ledger" ? ` ${styles.dropdownItemActive}` : ""}`}
-                onClick={() => { setSection("ledger"); setActiveMenu(null); setDrawerOpen(false); }}
-              >
-                <span className={styles.dropdownItemLabel}>Леджер и выплаты</span>
-                <span className={styles.dropdownItemDesc}>Начисления, запросы на выплаты, подтверждения.</span>
-              </button>
             </div>
           )}
         </div>
@@ -2632,7 +2624,7 @@ export const AdminDashboard = () => {
         >
           <button
             type="button"
-            className={`${styles.headerSection}${section === "schemes" || section === "finance" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "finance" ? ` ${styles.headerSectionHover}` : ""}`}
+            className={`${styles.headerSection}${section === "schemes" || section === "finance" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "finance" ? ` ${styles.headerSectionHover}` : ""}`}
             onClick={() => { activeMenu === "finance" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("finance"); }}
           >
             Финансы
@@ -2645,19 +2637,37 @@ export const AdminDashboard = () => {
               <p className={styles.dropdownGroupTitle}>Финансы</p>
               <button
                 type="button"
+                className={`${styles.dropdownItem}${section === "finance" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("finance"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Сводка платформы</span>
+                <span className={styles.dropdownItemDesc}>Баланс, прибыль, оборот, выплаты за период.</span>
+              </button>
+              <button
+                type="button"
                 className={`${styles.dropdownItem}${section === "schemes" ? ` ${styles.dropdownItemActive}` : ""}`}
                 onClick={() => { setSection("schemes"); setActiveMenu(null); setDrawerOpen(false); }}
               >
                 <span className={styles.dropdownItemLabel}>Финансовые схемы</span>
                 <span className={styles.dropdownItemDesc}>Веса распределения долей по каждому блогеру.</span>
               </button>
+              <div className={styles.dropdownDivider} />
+              <p className={styles.dropdownGroupTitle}>Партнёры</p>
               <button
                 type="button"
-                className={`${styles.dropdownItem}${section === "finance" ? ` ${styles.dropdownItemActive}` : ""}`}
-                onClick={() => { setSection("finance"); setActiveMenu(null); setDrawerOpen(false); }}
+                className={`${styles.dropdownItem}${section === "users" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
               >
-                <span className={styles.dropdownItemLabel}>Сводка платформы</span>
-                <span className={styles.dropdownItemDesc}>Баланс, прибыль, оборот, выплаты за период.</span>
+                <span className={styles.dropdownItemLabel}>Балансы и карты</span>
+                <span className={styles.dropdownItemDesc}>Процент, баланс, карта и статус каждого партнёра.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "ledger" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("ledger"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Леджер и выплаты</span>
+                <span className={styles.dropdownItemDesc}>Начисления, запросы на выплаты, подтверждения.</span>
               </button>
             </div>
           )}
