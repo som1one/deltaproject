@@ -47,7 +47,7 @@ import {
 import styles from "@/components/admin/admin.module.css";
 import { PayoutCardInput } from "@/components/common/payout-card-input";
 
-type AdminSection = "overview" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "deals" | "ledger" | "schemes" | "finance" | "scripts" | "telegram";
+type AdminSection = "overview" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "deals" | "ledger" | "schemes" | "finance" | "finance-requisites" | "finance-analytics" | "scripts" | "telegram";
 
 type AdminModalState =
   | { kind: "delete-user"; user: AdminUserRead }
@@ -114,8 +114,18 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
   },
   finance: {
     label: "Финансы платформы",
-    title: "Финансы платформы",
-    lead: "Сводная финансовая статистика платформы: баланс, прибыль, оборот, выплаты.",
+    title: "Сводка платформы",
+    lead: "Прибыль, баланс, обязательства и оборот за выбранный период.",
+  },
+  "finance-requisites": {
+    label: "Реквизиты приёма",
+    title: "Реквизиты приёма платежей",
+    lead: "Карта приёма и платёжная ссылка для плательщиков.",
+  },
+  "finance-analytics": {
+    label: "Аналитика",
+    title: "Финансовая аналитика",
+    lead: "Обороты по статусам, заработок по ролям, динамика и топы.",
   },
   scripts: {
     label: "Скрипты",
@@ -1973,21 +1983,15 @@ export const AdminDashboard = () => {
       );
     }
 
-    if (section === "finance") {
+    if (section === "finance" || section === "finance-analytics") {
       const dash = financeDashboardQuery.data;
       const participantLabel = (key: string): string => {
         switch (key.toLowerCase()) {
-          case "worker":
-            return "Воркер";
-          case "bloger":
-          case "blogger":
-            return "Блогер";
-          case "upline":
-            return "Аплайн";
-          case "platform":
-            return "Платформа";
-          default:
-            return key;
+          case "worker": return "Воркер";
+          case "bloger": case "blogger": return "Блогер";
+          case "upline": return "Аплайн";
+          case "platform": return "Платформа";
+          default: return key;
         }
       };
       const periodOptions: { value: ReportingPeriod; label: string }[] = [
@@ -2012,6 +2016,7 @@ export const AdminDashboard = () => {
       const maxSeriesShare = dash
         ? Math.max(1, ...dash.time_series.map((point) => point.accrued_platform_share_kopeks))
         : 1;
+      if (section === "finance") {
       return (
         <Stack>
           <SectionCard
@@ -2032,91 +2037,105 @@ export const AdminDashboard = () => {
             </PillRow>
           </SectionCard>
 
-          <SectionCard
-            title="Реквизиты приёма платежей"
-            lead="Карта приёма и/или платёжная ссылка, которые предъявляются плательщику по подтверждённой сделке."
-          >
-            <Stack>
-              <div className={styles.requisitesBox}>
-                <div className={styles.requisitesRow}>
-                  <div className={styles.requisitesField}>
-                    <span className={styles.requisitesLabel}>Карта приёма</span>
-                    <code className={styles.requisitesValue}>
-                      {paymentDetailsQuery.data?.collection_card_last4
-                        ? `•••• ${paymentDetailsQuery.data.collection_card_last4}`
-                        : "не настроена"}
-                    </code>
+          {financeDashboardQuery.isLoading ? <Message>Загружаем финансовую сводку…</Message> : null}
+          {financeDashboardQuery.isError ? (
+            <Message tone="error">Не удалось загрузить финансовую сводку.</Message>
+          ) : null}
+
+          {dash ? (
+            <>
+              <div className={styles.financeHero}>
+                <div className={styles.financeHeroMain}>
+                  <p className={styles.financeHeroLabel}>Чистая прибыль</p>
+                  <p className={styles.financeHeroValue}>{formatMoney(dash.net_profit_kopeks)}</p>
+                  <p className={styles.financeHeroHint}>
+                    Накоплено {formatMoney(dash.accrued_platform_share_kopeks)} · выведено{" "}
+                    {formatMoney(dash.platform_withdrawn_kopeks)}
+                  </p>
+                </div>
+                <div className={styles.financeHeroAside}>
+                  <div className={styles.financeHeroStat}>
+                    <span className={styles.financeMiniLabel}>Баланс платформы</span>
+                    <span className={styles.financeMiniValue}>{formatMoney(dash.platform_balance_kopeks)}</span>
                   </div>
-                  <div className={styles.requisitesField}>
-                    <span className={styles.requisitesLabel}>Платёжная ссылка</span>
-                    <code className={styles.requisitesValue}>
-                      {paymentDetailsQuery.data?.payment_link || "не настроена"}
-                    </code>
+                  <div className={styles.financeHeroStat}>
+                    <span className={styles.financeMiniLabel}>Свободные средства</span>
+                    <span className={styles.financeMiniValue}>{formatMoney(dash.net_free_funds_kopeks)}</span>
                   </div>
                 </div>
               </div>
 
-              {paymentDetailsQuery.isLoading ? <Message>Загружаем реквизиты…</Message> : null}
-              {paymentDetailsQuery.isError ? (
-                <Message tone="error">Не удалось загрузить реквизиты приёма.</Message>
-              ) : null}
+              <div className={styles.metricGroups}>
+                <section className={styles.metricGroup}>
+                  <h3 className={styles.metricGroupTitle}>Резерв и обязательства</h3>
+                  <div className={styles.metricRow}>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Обязательства</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.platform_liabilities_kopeks)}</span>
+                    </div>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>В ожидании</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.platform_pending_funds_kopeks)}</span>
+                    </div>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Доступно к выводу</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.available_for_payout_kopeks)}</span>
+                    </div>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Выплачено всем</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.total_completed_payouts_kopeks)}</span>
+                    </div>
+                  </div>
+                </section>
 
-              <Field
-                label="Платёжная ссылка"
-                help="Абсолютный HTTPS-URL. Пустое поле очистит сохранённую ссылку."
-              >
-                <TextInput
-                  value={paymentLinkForm}
-                  inputMode="url"
-                  placeholder="https://"
-                  onChange={(event) => setPaymentLinkForm(event.target.value)}
-                />
-              </Field>
-
-              <Field
-                label="Карта приёма"
-                help={
-                  collectionCardDraft !== null
-                    ? "Новый номер будет сохранён при нажатии «Сохранить реквизиты»."
-                    : "Введите номер, чтобы заменить карту. Без ввода прежняя карта сохраняется."
-                }
-              >
-                {/* PayoutCardInput форматирует номер и проверяет Luhn (13–19 цифр).
-                    onSubmit отдаёт сырые цифры — кладём их в черновик, чтобы
-                    включить collection_card в payload только при реальном вводе. */}
-                <PayoutCardInput
-                  savedLast4={paymentDetailsQuery.data?.collection_card_last4 ?? null}
-                  pending={paymentDetailsMutation.isPending}
-                  onSubmit={(rawDigits, holder, brand) => {
-                    setCollectionCardDraft(rawDigits);
-                    setCollectionCardBrand(brand);
-                    setCollectionCardHolder(holder);
-                    setMessage({
-                      tone: "success",
-                      text: "Карта готова к сохранению — нажмите «Сохранить реквизиты».",
-                    });
-                  }}
-                />
-              </Field>
-
-              <div className={styles.actionRow}>
-                <Button
-                  type="button"
-                  onClick={() => paymentDetailsMutation.mutate()}
-                  disabled={paymentDetailsMutation.isPending}
-                >
-                  {paymentDetailsMutation.isPending ? "Сохраняем…" : "Сохранить реквизиты"}
-                </Button>
-                {collectionCardDraft !== null ? (
-                  <Pill tone="accent">Новая карта •••• {collectionCardDraft.slice(-4)}</Pill>
-                ) : null}
+                <section className={styles.metricGroup}>
+                  <h3 className={styles.metricGroupTitle}>Оборот</h3>
+                  <div className={styles.metricRow}>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Оборот</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.turnover_total_kopeks)}</span>
+                    </div>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Средний чек</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.average_order_value_kopeks)}</span>
+                    </div>
+                    <div className={styles.metric}>
+                      <span className={styles.metricLabel}>Средняя комиссия</span>
+                      <span className={styles.metricValue}>{formatMoney(dash.average_platform_commission_kopeks)}</span>
+                    </div>
+                  </div>
+                </section>
               </div>
-            </Stack>
+            </>
+          ) : null}
+        </Stack>
+      );
+      }
+
+      /* section === "finance-analytics" */
+      return (
+        <Stack>
+          <SectionCard
+            title="Период"
+            lead="Фильтрация аналитики по выбранному периоду."
+          >
+            <PillRow>
+              {periodOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  kind={financePeriod === option.value ? "primary" : "ghost"}
+                  onClick={() => setFinancePeriod(option.value)}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </PillRow>
           </SectionCard>
 
-          {financeDashboardQuery.isLoading ? <Message>Загружаем финансовую сводку…</Message> : null}
+          {financeDashboardQuery.isLoading ? <Message>Загружаем аналитику…</Message> : null}
           {financeDashboardQuery.isError ? (
-            <Message tone="error">Не удалось загрузить финансовую сводку.</Message>
+            <Message tone="error">Не удалось загрузить аналитику.</Message>
           ) : null}
 
           {dash ? (
@@ -2430,6 +2449,39 @@ export const AdminDashboard = () => {
       );
     }
 
+    if (section === "finance-requisites") {
+      return (
+        <SectionCard title="Реквизиты приёма платежей" lead="Карта приёма и платёжная ссылка для плательщиков.">
+          <Stack>
+            <div className={styles.requisitesBox}>
+              <div className={styles.requisitesRow}>
+                <div className={styles.requisitesField}>
+                  <span className={styles.requisitesLabel}>Карта приёма</span>
+                  <code className={styles.requisitesValue}>{paymentDetailsQuery.data?.collection_card_last4 ? `•••• ${paymentDetailsQuery.data.collection_card_last4}` : "не настроена"}</code>
+                </div>
+                <div className={styles.requisitesField}>
+                  <span className={styles.requisitesLabel}>Платёжная ссылка</span>
+                  <code className={styles.requisitesValue}>{paymentDetailsQuery.data?.payment_link || "не настроена"}</code>
+                </div>
+              </div>
+            </div>
+            {paymentDetailsQuery.isLoading ? <Message>Загружаем реквизиты…</Message> : null}
+            {paymentDetailsQuery.isError ? <Message tone="error">Не удалось загрузить реквизиты.</Message> : null}
+            <Field label="Платёжная ссылка" help="Абсолютный HTTPS-URL. Пустое поле очистит сохранённую ссылку.">
+              <TextInput value={paymentLinkForm} inputMode="url" placeholder="https://" onChange={(event) => setPaymentLinkForm(event.target.value)} />
+            </Field>
+            <Field label="Карта приёма" help={collectionCardDraft !== null ? "Новый номер будет сохранён при нажатии «Сохранить реквизиты»." : "Введите номер, чтобы заменить карту."}>
+              <PayoutCardInput savedLast4={paymentDetailsQuery.data?.collection_card_last4 ?? null} pending={paymentDetailsMutation.isPending} onSubmit={(rawDigits, holder, brand) => { setCollectionCardDraft(rawDigits); setCollectionCardBrand(brand); setCollectionCardHolder(holder); setMessage({ tone: "success", text: "Карта готова — нажмите «Сохранить реквизиты»." }); }} />
+            </Field>
+            <div className={styles.actionRow}>
+              <Button type="button" onClick={() => paymentDetailsMutation.mutate()} disabled={paymentDetailsMutation.isPending}>{paymentDetailsMutation.isPending ? "Сохраняем…" : "Сохранить реквизиты"}</Button>
+              {collectionCardDraft !== null ? <Pill tone="accent">Новая карта •••• {collectionCardDraft.slice(-4)}</Pill> : null}
+            </div>
+          </Stack>
+        </SectionCard>
+      );
+    }
+
     if (section === "scripts") {
       return (
         <div className={styles.sideLayout}>
@@ -2712,7 +2764,7 @@ export const AdminDashboard = () => {
         >
           <button
             type="button"
-            className={`${styles.headerSection}${section === "schemes" || section === "finance" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "finance" ? ` ${styles.headerSectionHover}` : ""}`}
+            className={`${styles.headerSection}${section === "schemes" || section === "finance" || section === "finance-requisites" || section === "finance-analytics" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "finance" ? ` ${styles.headerSectionHover}` : ""}`}
             onClick={() => { activeMenu === "finance" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("finance"); }}
           >
             Финансы
@@ -2722,15 +2774,33 @@ export const AdminDashboard = () => {
           </button>
           {activeMenu === "finance" && (
             <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
-              <p className={styles.dropdownGroupTitle}>Финансы</p>
+              <p className={styles.dropdownGroupTitle}>Платформа</p>
               <button
                 type="button"
                 className={`${styles.dropdownItem}${section === "finance" ? ` ${styles.dropdownItemActive}` : ""}`}
                 onClick={() => { setSection("finance"); setActiveMenu(null); setDrawerOpen(false); }}
               >
                 <span className={styles.dropdownItemLabel}>Сводка платформы</span>
-                <span className={styles.dropdownItemDesc}>Баланс, прибыль, оборот, выплаты за период.</span>
+                <span className={styles.dropdownItemDesc}>Прибыль, баланс, обязательства, оборот.</span>
               </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "finance-requisites" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("finance-requisites"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Реквизиты приёма</span>
+                <span className={styles.dropdownItemDesc}>Карта и платёжная ссылка для плательщиков.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "finance-analytics" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("finance-analytics"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Аналитика</span>
+                <span className={styles.dropdownItemDesc}>Обороты, заработок по ролям, динамика, топы.</span>
+              </button>
+              <div className={styles.dropdownDivider} />
+              <p className={styles.dropdownGroupTitle}>Схемы и выплаты</p>
               <button
                 type="button"
                 className={`${styles.dropdownItem}${section === "schemes" ? ` ${styles.dropdownItemActive}` : ""}`}
@@ -2738,16 +2808,6 @@ export const AdminDashboard = () => {
               >
                 <span className={styles.dropdownItemLabel}>Финансовые схемы</span>
                 <span className={styles.dropdownItemDesc}>Веса распределения долей по каждому блогеру.</span>
-              </button>
-              <div className={styles.dropdownDivider} />
-              <p className={styles.dropdownGroupTitle}>Партнёры</p>
-              <button
-                type="button"
-                className={`${styles.dropdownItem}${section === "users" ? ` ${styles.dropdownItemActive}` : ""}`}
-                onClick={() => { setSection("users"); setActiveMenu(null); setDrawerOpen(false); }}
-              >
-                <span className={styles.dropdownItemLabel}>Балансы и карты</span>
-                <span className={styles.dropdownItemDesc}>Процент, баланс, карта и статус каждого партнёра.</span>
               </button>
               <button
                 type="button"
