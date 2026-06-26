@@ -86,8 +86,9 @@
 
 .links {
   display: flex;
-  flex-wrap: wrap;
-  gap: 1.4rem;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.7rem;
   font-family: var(--font-narrow);
   font-size: 0.7rem;
   letter-spacing: 0.18em;
@@ -115,10 +116,7 @@
   }
 
   .links {
-    flex-direction: column;
-    align-items: flex-end;
     text-align: right;
-    gap: 0.7rem;
     font-size: 0.6rem;
   }
 
