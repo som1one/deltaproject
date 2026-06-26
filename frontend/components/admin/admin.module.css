@@ -14,34 +14,36 @@
 
 .drawerToggle {
   appearance: none;
-  background: none;
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-muted);
+  border-radius: var(--radius-pill);
+  color: var(--text-strong);
   cursor: pointer;
-  padding: 0.35rem 0.85rem;
+  padding: 0.5rem 1rem 0.5rem 0.85rem;
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 500;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.55rem;
+  letter-spacing: -0.005em;
   transition:
-    color var(--transition-base),
-    border-color var(--transition-base),
-    background var(--transition-base);
+    color 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .drawerToggle:hover {
-  color: var(--text-strong);
+  background: rgba(255, 255, 255, 0.08);
   border-color: var(--border-strong);
-  background: var(--surface-hover);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
 }
 
 .drawerToggleIcon {
   display: inline-flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 3.5px;
   width: 14px;
 }
 
@@ -50,7 +52,64 @@
   height: 1.5px;
   background: currentColor;
   border-radius: 1px;
-  transition: transform var(--transition-base), opacity var(--transition-base);
+  transition: transform 200ms ease, opacity 200ms ease, width 200ms ease;
+}
+
+.drawerToggleIcon span:nth-child(2) {
+  width: 10px;
+}
+
+.drawerToggle:hover .drawerToggleIcon span:nth-child(2) {
+  width: 14px;
+}
+
+.drawerToggleChevron {
+  opacity: 0.5;
+  transition: transform 200ms ease, opacity 200ms ease;
+  flex-shrink: 0;
+}
+
+.drawerToggle:hover .drawerToggleChevron {
+  opacity: 0.9;
+  transform: translateY(1px);
+}
+
+/* ---------- Nav logout (matches NavLink style) ---------- */
+
+.navLogout {
+  appearance: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.3rem;
+  position: relative;
+  letter-spacing: 0.01em;
+  transition: color 180ms ease;
+}
+
+.navLogout::after {
+  content: "";
+  position: absolute;
+  left: 0.3rem;
+  right: 0.3rem;
+  bottom: 0.15rem;
+  height: 1px;
+  background: var(--text-strong);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 280ms ease;
+}
+
+.navLogout:hover {
+  color: var(--text-strong);
+}
+
+.navLogout:hover::after {
+  transform: scaleX(1);
 }
 
 /* ---------- Navigation drawer (top curtain — Lago-style) ---------- */

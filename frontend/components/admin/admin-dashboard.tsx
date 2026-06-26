@@ -2502,11 +2502,14 @@ export const AdminDashboard = () => {
             <span />
           </span>
           {sectionMeta[section].label}
+          <svg className={styles.drawerToggleChevron} width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+            <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
         <NavLink href="/">На главную</NavLink>
-        <Button type="button" kind="ghost" onClick={() => void logout()}>
+        <button type="button" className={styles.navLogout} onClick={() => void logout()}>
           Выйти
-        </Button>
+        </button>
       </TopNav>
 
       {/* Navigation drawer (top curtain — Lago-style) */}
