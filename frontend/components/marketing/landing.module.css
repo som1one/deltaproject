@@ -1492,6 +1492,16 @@
   .processGrid {
     grid-template-columns: 1fr;
   }
+
+  .processHeader {
+    text-align: center;
+  }
+
+  .processTitle {
+    max-width: none;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 .processCard {
