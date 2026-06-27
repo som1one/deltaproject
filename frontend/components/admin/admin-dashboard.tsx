@@ -45,6 +45,7 @@ import {
   TwoColumn,
 } from "@/components/common/ui";
 import styles from "@/components/admin/admin.module.css";
+import { CopyButton } from "@/components/common/copy-button";
 import { PayoutCardInput } from "@/components/common/payout-card-input";
 
 type AdminSection = "overview" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "deals" | "ledger" | "schemes" | "finance" | "finance-requisites" | "finance-analytics" | "scripts" | "telegram";
@@ -72,6 +73,7 @@ const emptyUserForm = {
   role: "Worker",
   is_active: true,
   blogger_cabinet_pin: "",
+  new_password: "",
 };
 
 const emptyBloggerForm = {
@@ -334,6 +336,7 @@ export const AdminDashboard = () => {
         role: userDetailQuery.data.role,
         is_active: userDetailQuery.data.is_active,
         blogger_cabinet_pin: "",
+        new_password: "",
       });
     }
   }, [userDetailQuery.data]);
@@ -393,6 +396,9 @@ export const AdminDashboard = () => {
         is_active: userForm.is_active,
         blogger_cabinet_pin: userForm.blogger_cabinet_pin || undefined,
       };
+      if (userForm.new_password.trim()) {
+        payload.new_password = userForm.new_password.trim();
+      }
       if (isBlogger) {
         payload.nickname = userForm.nickname || null;
       } else if (userForm.email.trim()) {
@@ -1053,15 +1059,12 @@ export const AdminDashboard = () => {
             onClose={() => setModal(null)}
             actions={
               <>
-                <Button
-                  type="button"
+                <CopyButton
+                  value={`Nick: ${modal.nickname}\nPassword: ${modal.password}`}
+                  label="Скопировать ник и пароль"
+                  toastText="Ник и пароль скопированы"
                   kind="secondary"
-                  onClick={() => {
-                    void navigator.clipboard.writeText(`Логин: ${modal.nickname}\nПароль: ${modal.password}`);
-                  }}
-                >
-                  Скопировать ник и пароль
-                </Button>
+                />
                 <Button type="button" onClick={() => setModal(null)}>
                   Готово
                 </Button>
@@ -1252,6 +1255,15 @@ export const AdminDashboard = () => {
                       <option value="active">Активен</option>
                       <option value="inactive">Отключён</option>
                     </SelectInput>
+                  </Field>
+                  <Field label="Новый пароль" help="Оставьте пустым, чтобы не менять. Минимум 8 символов.">
+                    <TextInput
+                      type="password"
+                      value={userForm.new_password}
+                      onChange={(event) => setUserForm((current) => ({ ...current, new_password: event.target.value }))}
+                      placeholder="Введите новый пароль"
+                      autoComplete="new-password"
+                    />
                   </Field>
                 </TwoColumn>
                 <div className={styles.actionRow}>

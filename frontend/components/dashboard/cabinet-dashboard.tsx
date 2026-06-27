@@ -954,6 +954,27 @@ const ProfileSection = ({
             </Field>
           ) : null}
 
+          <TwoColumn>
+            <Field label="Текущий пароль" help="Оставьте пустым, если не меняете пароль.">
+              <TextInput
+                type="password"
+                value={profileForm.currentPassword}
+                onChange={(event) => setProfileForm({ ...profileForm, currentPassword: event.target.value })}
+                placeholder="Текущий пароль"
+                autoComplete="current-password"
+              />
+            </Field>
+            <Field label="Новый пароль" help="Минимум 8 символов.">
+              <TextInput
+                type="password"
+                value={profileForm.password}
+                onChange={(event) => setProfileForm({ ...profileForm, password: event.target.value })}
+                placeholder="Новый пароль"
+                autoComplete="new-password"
+              />
+            </Field>
+          </TwoColumn>
+
           <div className={styles.actionRow}>
             <Button onClick={() => onSave(profileForm)} disabled={mutationPending}>
               {mutationPending ? "Сохраняем…" : "Сохранить профиль"}

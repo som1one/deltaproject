@@ -54,6 +54,10 @@ class AdminUserPatch(BaseModel):
         str | None,
         Field(None, max_length=64, description="Только для блогера; пустая строка сбрасывает PIN"),
     ] = None
+    new_password: Annotated[
+        str | None,
+        Field(None, min_length=8, max_length=100, description="Новый пароль пользователя"),
+    ] = None
 
 
 class AdminBalanceAdjustmentRequest(BaseModel):

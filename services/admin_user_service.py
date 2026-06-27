@@ -257,6 +257,9 @@ async def admin_patch_user(
             user.blogger_cabinet_pin_hash = hash_password(body.blogger_cabinet_pin)
             user.blogger_cabinet_pin_set_at = datetime.now(UTC)
 
+    if body.new_password is not None:
+        user.hash_pass = hash_password(body.new_password)
+
     await db.commit()
     await db.refresh(user)
     return user
