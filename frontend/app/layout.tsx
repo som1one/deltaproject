@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 import { AppProviders } from "@/components/providers/app-providers";
@@ -30,6 +30,12 @@ export const metadata: Metadata = {
     description: "Блогеры получают интеграции, работники закрывают сделки, платформа считает выплаты.",
   },
   robots: { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
