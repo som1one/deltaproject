@@ -243,7 +243,7 @@ class Settings(BaseSettings):
     )
 
     marketplace_frontend_url: str = Field(
-        default="http://localhost:3000",
+        default="https://marketplace.looneymoon.com",
         validation_alias="MARKETPLACE_FRONTEND_URL",
         description="Базовый URL фронтенда маркетплейса для генерации реферальных ссылок",
     )
