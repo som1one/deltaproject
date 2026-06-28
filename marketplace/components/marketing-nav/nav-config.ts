@@ -7,7 +7,12 @@ export const NAV_ITEMS: MarketingNavItem[] = [
 
 export const NAV_CTA: MarketingNavItem = {
   href: "/auth/login",
-  label: "Личный кабинет",
+  label: "Войти",
+};
+
+export const NAV_CTA_REGISTER: MarketingNavItem = {
+  href: "/auth/register",
+  label: "Регистрация",
 };
 
 /**

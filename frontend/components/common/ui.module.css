@@ -688,6 +688,12 @@
   color: var(--status-success);
 }
 
+.statusCompleted {
+  background: var(--status-completed-soft);
+  border-color: var(--status-completed-edge);
+  color: var(--status-completed);
+}
+
 .statusDanger {
   background: var(--status-danger-soft);
   border-color: var(--status-danger-edge);

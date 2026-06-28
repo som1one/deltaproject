@@ -73,7 +73,7 @@ export const formatDealStatus = (status: string) => {
 
 export const dealStatusTone = (
   status: string,
-): "active" | "success" | "muted" | "danger" | "default" => {
+): "active" | "success" | "muted" | "danger" | "default" | "completed" => {
   switch (status) {
     case "NEW":
     case "REVIEW":
@@ -83,7 +83,7 @@ export const dealStatusTone = (
     case "PAID":
       return "success";
     case "COMPLETED":
-      return "muted";
+      return "completed";
     case "REJECTED":
     case "REFUNDED":
       return "danger";

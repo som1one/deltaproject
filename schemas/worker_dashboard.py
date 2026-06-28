@@ -53,3 +53,9 @@ class WorkerMarketplaceStats(BaseModel):
     total_earnings_kopeks: int
     balance_kopeks: int
     referral_count: int
+
+
+class ReferralLinkResponse(BaseModel):
+    """Реферальная ссылка воркера для привлечения заказчиков."""
+
+    referral_url: str

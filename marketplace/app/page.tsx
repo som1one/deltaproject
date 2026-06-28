@@ -133,6 +133,10 @@ function MarketplaceCatalogContent() {
     const ref = searchParams.get("ref");
     if (ref && !isAuthenticated) {
       setNotice("Вы пришли по реферальной ссылке. Зарегистрируйтесь, чтобы закрепить приглашение и оформить заказ.");
+      // Persist referral code so it survives navigation to /auth/register
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("marketplace_referral_code", ref);
+      }
     }
   }, [isAuthenticated, searchParams]);
 

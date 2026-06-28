@@ -12,5 +12,5 @@ const required = (value: string | undefined, name: string) => {
 export const appConfig = {
   apiBaseUrl: required(process.env.NEXT_PUBLIC_API_BASE_URL, "NEXT_PUBLIC_API_BASE_URL"),
   appUrl: required(process.env.NEXT_PUBLIC_APP_URL, "NEXT_PUBLIC_APP_URL"),
-  mainAppUrl: process.env.NEXT_PUBLIC_MAIN_APP_URL ?? "",
+  mainAppUrl: process.env.NEXT_PUBLIC_MAIN_APP_URL ?? "https://looneymoon.com",
 };

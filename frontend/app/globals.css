@@ -53,11 +53,14 @@
   /* ---------- Status (muted, no neon) ---------- */
   --status-active:  #FFFFFF;
   --status-success: #BFC8B5;
+  --status-completed: #22c55e;
   --status-warning: #C9B689;
   --status-danger:  #C97B7B;
 
   --status-success-soft: rgba(191, 200, 181, 0.08);
   --status-success-edge: rgba(191, 200, 181, 0.22);
+  --status-completed-soft: rgba(34, 197, 94, 0.10);
+  --status-completed-edge: rgba(34, 197, 94, 0.25);
   --status-danger-soft:  rgba(201, 123, 123, 0.08);
   --status-danger-edge:  rgba(201, 123, 123, 0.22);
   --status-warning-soft: rgba(201, 182, 137, 0.08);

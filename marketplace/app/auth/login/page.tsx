@@ -17,10 +17,13 @@ type TokenResponse = {
   user_id: string;
 };
 
+type LoginRole = "client" | "blogger";
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { setSession } = useAuth();
+  const [role, setRole] = useState<LoginRole>("client");
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
 
@@ -52,49 +55,98 @@ function LoginForm() {
     },
   });
 
+  const handleBloggerLogin = () => {
+    // Redirect to main platform Telegram OAuth with role=BLOGGER
+    // The main platform handles the OAuth flow and redirects to its own cabinet
+    const mainUrl = appConfig.mainAppUrl;
+    window.location.href = `${mainUrl}/auth/login`;
+  };
+
   return (
-    <form
-      className={styles.form}
-      onSubmit={(event) => {
-        event.preventDefault();
-        setError("");
-        loginMutation.mutate();
-      }}
-    >
-      <div>
-        <h2 className={styles.authTitle}>С возвращением</h2>
-        <p className={styles.muted}>Введите ваши данные для доступа к платформе.</p>
+    <div className={styles.form}>
+      {/* Role selector */}
+      <div className={styles.roleSelector}>
+        <button
+          type="button"
+          className={role === "client" ? styles.roleBtnActive : styles.roleBtn}
+          onClick={() => { setRole("client"); setError(""); }}
+        >
+          Заказчик
+        </button>
+        <button
+          type="button"
+          className={role === "blogger" ? styles.roleBtnActive : styles.roleBtn}
+          onClick={() => { setRole("blogger"); setError(""); }}
+        >
+          Блогер
+        </button>
       </div>
-      {error && <p className={styles.errorText}>{error}</p>}
-      <label className={styles.field}>
-        <span className={styles.fieldLabel}>Электронная почта</span>
-        <input
-          autoComplete="email"
-          className={styles.lineInput}
-          required
-          type="email"
-          value={form.email}
-          onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-        />
-      </label>
-      <label className={styles.field}>
-        <span className={styles.fieldLabel}>Пароль</span>
-        <input
-          autoComplete="current-password"
-          className={styles.lineInput}
-          required
-          type="password"
-          value={form.password}
-          onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
-        />
-      </label>
-      <button className={styles.primaryButton} disabled={loginMutation.isPending} type="submit">
-        {loginMutation.isPending ? "Входим..." : "Войти"}
-      </button>
-      <p className={styles.muted}>
-        Нет аккаунта? <Link href="/auth/register">Зарегистрироваться</Link>
-      </p>
-    </form>
+
+      {role === "client" ? (
+        <form
+          className={styles.form}
+          onSubmit={(event) => {
+            event.preventDefault();
+            setError("");
+            loginMutation.mutate();
+          }}
+        >
+          <div>
+            <h2 className={styles.authTitle}>Вход для заказчика</h2>
+            <p className={styles.muted}>Введите ваши данные для доступа к маркетплейсу.</p>
+          </div>
+          {error && <p className={styles.errorText}>{error}</p>}
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>Электронная почта</span>
+            <input
+              autoComplete="email"
+              className={styles.lineInput}
+              required
+              type="email"
+              value={form.email}
+              onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+            />
+          </label>
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>Пароль</span>
+            <input
+              autoComplete="current-password"
+              className={styles.lineInput}
+              required
+              type="password"
+              value={form.password}
+              onChange={(event) => setForm((prev) => ({ ...prev, password: event.target.value }))}
+            />
+          </label>
+          <button className={styles.primaryButton} disabled={loginMutation.isPending} type="submit">
+            {loginMutation.isPending ? "Входим..." : "Войти"}
+          </button>
+          <p className={styles.muted}>
+            Нет аккаунта? <Link href="/auth/register">Зарегистрироваться</Link>
+          </p>
+        </form>
+      ) : (
+        <div>
+          <div>
+            <h2 className={styles.authTitle}>Вход для блогера</h2>
+            <p className={styles.muted}>
+              Блогеры входят через основную платформу Looney Moon. После авторизации вы попадёте в свой кабинет.
+            </p>
+          </div>
+          <button
+            className={styles.primaryButton}
+            onClick={handleBloggerLogin}
+            type="button"
+            style={{ marginTop: "24px" }}
+          >
+            Перейти на платформу для входа
+          </button>
+          <p className={styles.muted} style={{ marginTop: "16px" }}>
+            Вы будете перенаправлены на {appConfig.mainAppUrl}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 

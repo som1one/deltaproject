@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { appConfig } from "@/lib/config";
 import { useAuth } from "@/lib/auth-context";
 import { MarketingNav } from "@/components/marketing-nav/marketing-nav";
 import { NAV_ITEMS } from "@/components/marketing-nav/nav-config";
@@ -48,15 +49,22 @@ export type BloggerCard = BloggerProfile & {
 
 export function AdMarketplaceShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isBlogger } = useAuth();
-  const accountHref = isAuthenticated ? (isBlogger ? "/blogger/cabinet" : "/cabinet") : "/marketplace/auth/login";
-  const accountLabel = isAuthenticated ? "Личный кабинет" : "Войти";
-  
+
+  // Blogger goes to the main platform cabinet; client stays on marketplace
+  const cabinetHref = isBlogger
+    ? `${appConfig.mainAppUrl}/cabinet`
+    : "/home";
+
+  const navCta = isAuthenticated
+    ? { href: cabinetHref, label: "Личный кабинет" }
+    : { href: "/auth/login", label: "Войти" };
+
   return (
     <div className={styles.root}>
       <MarketingNav
         brandSub="агентство · каталог"
         items={NAV_ITEMS}
-        cta={{ href: accountHref, label: accountLabel }}
+        cta={navCta}
       />
       <nav className={styles.nav}>
         <Link className={styles.brand} href="/">
@@ -64,27 +72,28 @@ export function AdMarketplaceShell({ children }: { children: React.ReactNode }) 
           <span className={styles.brandSub}>АГЕНТСТВО</span>
         </Link>
         <div className={styles.navLinks}>
-          <Link className={styles.navActive} href="/marketplace">
+          <Link className={styles.navActive} href="/">
             Каталог
           </Link>
-          <Link className={styles.navLink} href="/cases">
-            Кейсы
-          </Link>
-          <Link className={styles.navLink} href="/about">
-            О нас
+          <Link className={styles.navLink} href="/support">
+            Поддержка
           </Link>
         </div>
         <div className={styles.navLinks}>
           {isAuthenticated ? (
-            <Link className={styles.navLink} href={isBlogger ? "/blogger/cabinet" : "/cabinet"}>
+            <Link
+              className={styles.navLink}
+              href={cabinetHref}
+              {...(isBlogger ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            >
               Личный кабинет
             </Link>
           ) : (
             <>
-              <Link className={styles.navLink} href="/login">
+              <Link className={styles.navLink} href="/auth/login">
                 Вход
               </Link>
-              <Link className={styles.navAction} href="/register">
+              <Link className={styles.navAction} href="/auth/register">
                 Регистрация
               </Link>
             </>

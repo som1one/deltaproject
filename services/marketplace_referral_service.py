@@ -278,4 +278,4 @@ async def get_commission_history(
 def _build_referral_url(ref_code: str) -> str:
     """Build the full referral URL from a ref_code."""
     base_url = settings.marketplace_frontend_url.rstrip("/")
-    return f"{base_url}/marketplace/auth/register?ref={ref_code}"
+    return f"{base_url}/auth/register?ref={ref_code}"

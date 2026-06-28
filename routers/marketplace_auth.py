@@ -115,6 +115,12 @@ async def login_client(
             detail="Аккаунт деактивирован",
         )
 
+    if user.role != UserRole.CLIENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Этот вход доступен только для заказчиков. Блогеры входят через основную платформу.",
+        )
+
     # Generate tokens
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)

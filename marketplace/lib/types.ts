@@ -1,4 +1,4 @@
-export type UserRole = "Worker" | "Bloger" | "Admin" | "Tech_Admin";
+export type UserRole = "Worker" | "Bloger" | "Admin" | "Tech_Admin" | "Client";
 
 export type AuthTokensResponse = {
   message: string;

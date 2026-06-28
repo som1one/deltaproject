@@ -175,7 +175,7 @@ export const TableWrap = ({ children }: { children: ReactNode }) => <div classNa
 
 export const DataTable = ({ children }: { children: ReactNode }) => <table className={styles.table}>{children}</table>;
 
-export type StatusTone = "default" | "active" | "success" | "muted" | "danger";
+export type StatusTone = "default" | "active" | "success" | "muted" | "danger" | "completed";
 
 const statusToneClass: Record<StatusTone, string> = {
   default: "",
@@ -183,6 +183,7 @@ const statusToneClass: Record<StatusTone, string> = {
   success: ` ${styles.statusSuccess}`,
   muted: ` ${styles.statusMuted}`,
   danger: ` ${styles.statusDanger}`,
+  completed: ` ${styles.statusCompleted}`,
 };
 
 export const StatusPill = ({

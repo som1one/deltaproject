@@ -17,12 +17,30 @@ from enums.user import UserRole
 from models.user import User
 from schemas.worker_dashboard import (
     CommissionListResponse,
+    ReferralLinkResponse,
     ReferralListResponse,
     WorkerMarketplaceStats,
 )
 from services import worker_dashboard_service
+from services.marketplace_referral_service import generate_referral_link
 
 router = APIRouter(prefix="/marketplace/worker", tags=["marketplace-worker-dashboard"])
+
+
+@router.get("/referral-link", response_model=ReferralLinkResponse)
+async def get_referral_link(
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ReferralLinkResponse:
+    """Получить или создать реферальную ссылку воркера для привлечения заказчиков."""
+    if user.role != UserRole.WORKER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Доступно только воркерам",
+        )
+
+    url = await generate_referral_link(user.id, db)
+    return ReferralLinkResponse(referral_url=url)
 
 
 @router.get("/referrals", response_model=ReferralListResponse)

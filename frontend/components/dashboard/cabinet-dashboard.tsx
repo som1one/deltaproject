@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { appConfig } from "@/lib/config";
 import { useAuth } from "@/lib/auth-context";
+import { tokenStorage } from "@/lib/storage";
 import {
   dealStatusTone,
   formatDateTime,
@@ -1002,41 +1003,35 @@ const ProfileSection = ({
    Worker cabinet
    ========================================================= */
 
-type WorkerTab = "overview" | "deals" | "create" | "scripts" | "finance" | "profile";
+type WorkerTab = "overview" | "scripts" | "finance" | "profile";
 
 const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
   const queryClient = useQueryClient();
   const { toast: pushToast } = useToast();
   const [tab, setTab] = useState<WorkerTab>("overview");
   const [toast, setToast] = useState<Toast>(null);
-  const [dealForm, setDealForm] = useState({
-    shop_link: "",
-    item_name: "",
-    seller_tg: "",
-    seller_number: "",
-    price: "",
-    bloger_id: me.linked_to || "",
-  });
-  const [statusFilter, setStatusFilter] = useState<DealStatus | "ALL">("ALL");
   const [ledgerStatusFilter, setLedgerStatusFilter] = useState<LedgerEntryStatus | "ALL">("ALL");
-  const [activeDealId, setActiveDealId] = useState<string | null>(null);
   const [activeLedgerId, setActiveLedgerId] = useState<string | null>(null);
   const [payoutForm, setPayoutForm] = useState({ amount_rub: "" });
   const [payoutError, setPayoutError] = useState<string | null>(null);
+  const [referralCopied, setReferralCopied] = useState(false);
 
   const statsQuery = useQuery({ queryKey: ["me", "stats"], queryFn: api.getMeStats });
-  const dealsQuery = useQuery({ queryKey: ["me", "deals"], queryFn: api.getMyDeals });
-  const bloggersQuery = useQuery({ queryKey: ["me", "bloggers"], queryFn: api.getAvailableBloggers });
   const scriptsQuery = useQuery({ queryKey: ["me", "scripts"], queryFn: api.getWorkerScripts });
   const ledgerQuery = useQuery({ queryKey: ["me", "ledger"], queryFn: () => api.getLedger() });
   const payoutWidgetQuery = useQuery({ queryKey: ["me", "payout-widget"], queryFn: api.getPayoutWidgetConfig });
 
-  useEffect(() => {
-    if (!dealForm.bloger_id && bloggersQuery.data && bloggersQuery.data.length > 0) {
-      setDealForm((prev) => ({ ...prev, bloger_id: me.linked_to || bloggersQuery.data![0].id }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bloggersQuery.data, me.linked_to]);
+  // Marketplace referral link
+  const referralQuery = useQuery({
+    queryKey: ["marketplace", "worker", "referral-link"],
+    queryFn: async () => {
+      const res = await fetch(`${appConfig.apiBaseUrl}/marketplace/worker/referral-link`, {
+        headers: { Authorization: `Bearer ${tokenStorage.readAccessToken()}` },
+      });
+      if (!res.ok) return null;
+      return res.json() as Promise<{ referral_url: string }>;
+    },
+  });
 
   const profileMutation = useMutation({
     mutationFn: (form: { name: string; telegram: string; email: string; password: string; currentPassword: string }) => {
@@ -1082,53 +1077,18 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
     onError: (error: Error) => setPayoutError(error.message),
   });
 
-  const dealMutation = useMutation({
-    mutationFn: () =>
-      api.createDeal({
-        shop_link: dealForm.shop_link,
-        item_name: dealForm.item_name,
-        seller_tg: dealForm.seller_tg,
-        seller_number: dealForm.seller_number,
-        price: Math.round(Number(dealForm.price) * 100),
-        bloger_id: dealForm.bloger_id,
-      }),
-    onSuccess: () => {
-      setToast({ tone: "success", text: "Сделка создана и отправлена блогеру." });
-      setDealForm({
-        shop_link: "",
-        item_name: "",
-        seller_tg: "",
-        seller_number: "",
-        price: "",
-        bloger_id: me.linked_to || dealForm.bloger_id,
-      });
-      queryClient.invalidateQueries({ queryKey: ["me", "deals"] });
-      queryClient.invalidateQueries({ queryKey: ["me", "stats"] });
-      setTab("deals");
-    },
-    onError: (error: Error) => setToast({ tone: "error", text: error.message }),
-  });
-
-  const deals = dealsQuery.data?.deals || [];
-  const filteredDeals = useMemo(
-    () => (statusFilter === "ALL" ? deals : deals.filter((d) => d.status === statusFilter)),
-    [deals, statusFilter],
-  );
   const ledger = ledgerQuery.data?.items || [];
   const filteredLedger = useMemo(
     () => (ledgerStatusFilter === "ALL" ? ledger : ledger.filter((entry) => entry.status === ledgerStatusFilter)),
     [ledger, ledgerStatusFilter],
   );
+
   const tabs: TabDef[] = [
     { id: "overview", label: "Обзор", iconPath: ICONS.overview },
-    { id: "deals", label: "Сделки", iconPath: ICONS.deals, badge: deals.length || null },
-    { id: "create", label: "Новая сделка", iconPath: ICONS.referral },
     { id: "scripts", label: "Скрипты", iconPath: ICONS.scripts, badge: scriptsQuery.data?.length || null },
     { id: "finance", label: "Финансы", iconPath: ICONS.finance },
     { id: "profile", label: "Профиль", iconPath: ICONS.profile },
   ];
-
-  const linkedBlogger = bloggersQuery.data?.find((b) => b.id === me.linked_to);
 
   return (
     <>
@@ -1153,7 +1113,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
         <div className={styles.balanceTile}>
           <p className={styles.balanceTileLabel}>Привязка</p>
           <p className={styles.balanceTileValue} style={{ fontSize: "1.05rem", lineHeight: 1.3 }}>
-            {linkedBlogger ? linkedBlogger.name : me.linked_to ? "Активна" : "Свободный"}
+            {me.linked_to ? "Активна" : "Свободный"}
           </p>
           <p className={styles.balanceTileNote}>
             {me.linked_to ? "Сделки идут вашему блогеру." : "Перейдите по реф-ссылке блогера."}
@@ -1168,209 +1128,44 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
           tabs={tabs}
           active={tab}
           onSelect={(id) => setTab(id as WorkerTab)}
-          helpText="Создавайте сделки, копируйте скрипты, отслеживайте выплаты."
+          helpText="Копируйте скрипты, отслеживайте выплаты, приглашайте заказчиков."
         />
 
         <div className={styles.workspace}>
           {tab === "overview" ? (
             <Stack>
-              {dealsQuery.isLoading ? (
-                <SkeletonTable rows={3} />
-              ) : (
-                <OverviewCharts deals={deals} />
-              )}
-            </Stack>
-          ) : null}
-
-          {tab === "create" ? (
-            <SectionCard
-              title="Новая сделка"
-              lead="Заполните данные продавца, выберите блогера — заявка уйдёт ему на принятие."
-            >
-              <Stack>
-                <TwoColumn>
-                  <Field label="Ссылка на магазин">
+              <SectionCard
+                title="Реферальная ссылка маркетплейса"
+                lead="Приглашайте заказчиков на маркетплейс — получайте комиссию с каждого оплаченного заказа."
+              >
+                <div className={styles.payoutRow}>
+                  <Field label="Ваша ссылка">
                     <TextInput
-                      value={dealForm.shop_link}
-                      onChange={(event) => setDealForm({ ...dealForm, shop_link: event.target.value })}
-                      placeholder="https://www.wildberries.ru/seller/..."
+                      readOnly
+                      value={referralQuery.data?.referral_url ?? "Загрузка..."}
                     />
                   </Field>
-                  <Field label="Название товара">
-                    <TextInput
-                      value={dealForm.item_name}
-                      onChange={(event) => setDealForm({ ...dealForm, item_name: event.target.value })}
-                      placeholder="Кроссовки модель X"
-                    />
-                  </Field>
-                </TwoColumn>
-                <TwoColumn>
-                  <Field label="Telegram продавца">
-                    <TextInput
-                      value={dealForm.seller_tg}
-                      onChange={(event) => setDealForm({ ...dealForm, seller_tg: event.target.value })}
-                      placeholder="@seller"
-                    />
-                  </Field>
-                  <Field label="Телефон продавца">
-                    <TextInput
-                      value={dealForm.seller_number}
-                      onChange={(event) => setDealForm({ ...dealForm, seller_number: event.target.value })}
-                      placeholder="+7 999 000-00-00"
-                    />
-                  </Field>
-                </TwoColumn>
-                <TwoColumn>
-                  <Field label="Цена интеграции, ₽">
-                    <TextInput
-                      inputMode="decimal"
-                      value={dealForm.price}
-                      onChange={(event) => setDealForm({ ...dealForm, price: event.target.value })}
-                      placeholder="15000"
-                    />
-                  </Field>
-                  <Field label="Блогер" help={me.linked_to ? "Привязанный блогер выбран по умолчанию" : "Выберите блогера из списка"}>
-                    <SelectInput
-                      value={dealForm.bloger_id}
-                      onChange={(event) => setDealForm({ ...dealForm, bloger_id: event.target.value })}
+                  <div className={styles.payoutActions}>
+                    <Button
+                      kind="secondary"
+                      onClick={async () => {
+                        if (!referralQuery.data?.referral_url) return;
+                        await navigator.clipboard.writeText(referralQuery.data.referral_url);
+                        setReferralCopied(true);
+                        setTimeout(() => setReferralCopied(false), 1600);
+                        pushToast("Ссылка скопирована", "success");
+                      }}
+                      disabled={!referralQuery.data?.referral_url}
                     >
-                      <option value="">Выберите блогера</option>
-                      {(bloggersQuery.data || []).map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                          {b.telegram ? ` · ${b.telegram}` : ""}
-                        </option>
-                      ))}
-                    </SelectInput>
-                  </Field>
-                </TwoColumn>
-                <div className={styles.actionRow}>
-                  <Button
-                    onClick={() => dealMutation.mutate()}
-                    disabled={
-                      dealMutation.isPending ||
-                      !dealForm.shop_link.trim() ||
-                      !dealForm.item_name.trim() ||
-                      !dealForm.seller_tg.trim() ||
-                      !dealForm.seller_number.trim() ||
-                      !dealForm.bloger_id ||
-                      !dealForm.price
-                    }
-                  >
-                    {dealMutation.isPending ? "Отправляем…" : "Создать сделку"}
-                  </Button>
-                  <Button kind="ghost" onClick={() => setTab("overview")}>Отмена</Button>
-                </div>
-              </Stack>
-            </SectionCard>
-          ) : null}
-
-          {tab === "deals" ? (
-            <SectionCard
-              title="Мои сделки"
-              lead="Полная история заявок. Статусы обновляются автоматически."
-              actions={<Button onClick={() => setTab("create")}>+ Новая сделка</Button>}
-            >
-              <div className={styles.toolbarRow}>
-                <div className={styles.toolbarFilters}>
-                  <SelectInput
-                    value={statusFilter}
-                    onChange={(event) => setStatusFilter(event.target.value as DealStatus | "ALL")}
-                  >
-                    <option value="ALL">Все статусы ({deals.length})</option>
-                    <option value="NEW">Новые</option>
-                    <option value="REVIEW">На проверке</option>
-                    <option value="CONFIRMED">Подтверждены</option>
-                    <option value="ESCROW_HELD">Эскроу</option>
-                    <option value="PAID">Оплачены</option>
-                    <option value="COMPLETED">Выполнены</option>
-                    <option value="REJECTED">Отклонены</option>
-                    <option value="REFUNDED">Возврат</option>
-                  </SelectInput>
-                </div>
-              </div>
-              {dealsQuery.isLoading ? (
-                <SkeletonTable rows={5} />
-              ) : filteredDeals.length === 0 ? (
-                <EmptyState
-                  icon={<Icon d={ICONS.deals} />}
-                  title={statusFilter === "ALL" ? "Сделок пока нет" : "Нет сделок в этом статусе"}
-                  text={statusFilter === "ALL" ? "Создайте первую заявку — кнопка справа сверху." : "Попробуйте сменить фильтр."}
-                  action={statusFilter === "ALL" ? <Button onClick={() => setTab("create")}>Создать сделку</Button> : null}
-                />
-              ) : (
-                <>
-                  <ul className={styles.dealsMobileList}>
-                    {filteredDeals.map((deal) => (
-                      <DealMobileCard
-                        key={`m-${deal.id}`}
-                        deal={deal}
-                        onOpen={() => setActiveDealId(deal.id)}
-                      />
-                    ))}
-                  </ul>
-                  <div className={styles.dealsDesktopTable}>
-                    <TableWrap>
-                      <DataTable>
-                        <thead>
-                          <tr>
-                            <th>Товар</th>
-                            <th>Статус</th>
-                            <th>Цена</th>
-                            <th>Контакт</th>
-                            <th>Создано</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredDeals.map((deal) => (
-                            <tr
-                              key={deal.id}
-                              className={styles.dealRowClickable}
-                              tabIndex={0}
-                              role="button"
-                              aria-label={`Открыть сделку ${deal.item_name}`}
-                              onClick={() => setActiveDealId(deal.id)}
-                              onKeyDown={(event) => {
-                                if (event.key === "Enter" || event.key === " ") {
-                                  event.preventDefault();
-                                  setActiveDealId(deal.id);
-                                }
-                              }}
-                            >
-                              <td>
-                                <span className={styles.itemTitle}>{deal.item_name}</span>
-                                <a
-                                  href={deal.shop_link}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className={styles.shopLink}
-                                  onClick={(event) => event.stopPropagation()}
-                                >
-                                  {deal.shop_link}
-                                </a>
-                              </td>
-                              <td><StatusCell deal={deal} /></td>
-                              <td>{formatMoney(deal.effective_price_kopeks || deal.price)}</td>
-                              <td>
-                                {deal.sensitive_masked ? (
-                                  <Masked />
-                                ) : (
-                                  <div className={styles.contactCell}>
-                                    <code>{deal.seller_tg}</code>
-                                    <code style={{ color: "var(--text-soft)" }}>{deal.seller_number}</code>
-                                  </div>
-                                )}
-                              </td>
-                              <td>{formatDateTime(deal.created_at)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </DataTable>
-                    </TableWrap>
+                      {referralCopied ? "Скопировано ✓" : "Копировать"}
+                    </Button>
                   </div>
-                </>
-              )}
-            </SectionCard>
+                </div>
+                <Message tone="default">
+                  Когда заказчик регистрируется по вашей ссылке, он навсегда закрепляется за вами. Вы будете получать комиссию с его заказов.
+                </Message>
+              </SectionCard>
+            </Stack>
           ) : null}
 
           {tab === "scripts" ? (
@@ -1530,20 +1325,6 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
           ) : null}
         </div>
       </div>
-
-      {activeDealId
-        ? (() => {
-            const activeDeal = deals.find((d) => d.id === activeDealId);
-            if (!activeDeal) return null;
-            return (
-              <DealDetailsModal
-                deal={activeDeal}
-                onClose={() => setActiveDealId(null)}
-                editable={activeDeal.status === "NEW"}
-              />
-            );
-          })()
-        : null}
 
       {activeLedgerId
         ? (() => {

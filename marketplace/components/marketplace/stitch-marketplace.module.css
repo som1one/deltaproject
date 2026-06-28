@@ -1153,3 +1153,44 @@
     justify-content: space-between;
   }
 }
+
+/* ============================================================
+   Role Selector (Login page: client / blogger switch)
+   ============================================================ */
+
+.roleSelector {
+  display: flex;
+  gap: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.roleBtn,
+.roleBtnActive {
+  flex: 1;
+  padding: 12px 16px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-base);
+  text-align: center;
+}
+
+.roleBtn {
+  background: var(--surface-base);
+  color: var(--text-muted);
+}
+
+.roleBtn:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.roleBtnActive {
+  background: var(--text-strong);
+  color: var(--surface-base);
+}
