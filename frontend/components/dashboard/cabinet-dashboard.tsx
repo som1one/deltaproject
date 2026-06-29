@@ -1033,6 +1033,22 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
     },
   });
 
+  // Marketplace worker stats (referral earnings & count)
+  const marketplaceStatsQuery = useQuery({
+    queryKey: ["marketplace", "worker", "stats"],
+    queryFn: async () => {
+      const res = await fetch(`${appConfig.apiBaseUrl}/marketplace/worker/stats`, {
+        headers: { Authorization: `Bearer ${tokenStorage.readAccessToken()}` },
+      });
+      if (!res.ok) return null;
+      return res.json() as Promise<{
+        total_earnings_kopeks: number;
+        balance_kopeks: number;
+        referral_count: number;
+      }>;
+    },
+  });
+
   const profileMutation = useMutation({
     mutationFn: (form: { name: string; telegram: string; email: string; password: string; currentPassword: string }) => {
       const payload: Record<string, string> = {
@@ -1134,6 +1150,37 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
         <div className={styles.workspace}>
           {tab === "overview" ? (
             <Stack>
+              {/* Marketplace stats tiles */}
+              <div className={styles.balanceTiles}>
+                <div className={`${styles.balanceTile} ${styles.accent}`}>
+                  <p className={styles.balanceTileLabel}>Баланс маркетплейса</p>
+                  <p className={styles.balanceTileValue}>
+                    {marketplaceStatsQuery.data
+                      ? formatMoney(marketplaceStatsQuery.data.balance_kopeks)
+                      : "—"}
+                  </p>
+                  <p className={styles.balanceTileNote}>Комиссия с заказов рефералов.</p>
+                </div>
+                <div className={styles.balanceTile}>
+                  <p className={styles.balanceTileLabel}>Заработано всего</p>
+                  <p className={styles.balanceTileValue}>
+                    {marketplaceStatsQuery.data
+                      ? formatMoney(marketplaceStatsQuery.data.total_earnings_kopeks)
+                      : "—"}
+                  </p>
+                  <p className={styles.balanceTileNote}>За всё время работы.</p>
+                </div>
+                <div className={styles.balanceTile}>
+                  <p className={styles.balanceTileLabel}>Приведено заказчиков</p>
+                  <p className={styles.balanceTileValue}>
+                    {marketplaceStatsQuery.data
+                      ? formatNumber(marketplaceStatsQuery.data.referral_count)
+                      : "—"}
+                  </p>
+                  <p className={styles.balanceTileNote}>Зарегистрировались по вашей ссылке.</p>
+                </div>
+              </div>
+
               <SectionCard
                 title="Реферальная ссылка маркетплейса"
                 lead="Приглашайте заказчиков на маркетплейс — получайте комиссию с каждого оплаченного заказа."
