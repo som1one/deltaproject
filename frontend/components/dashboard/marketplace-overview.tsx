@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { appConfig } from "@/lib/config";
@@ -145,19 +145,32 @@ const EarningsChart = ({ data }: { data: { date: string; amount: number }[] }) =
         {yTicks.map((tick, i) => {
           const y = PADDING_Y + CHART_H - (tick / maxAmount) * CHART_H;
           return (
-            <line key={i} x1={PADDING_X} y1={y} x2={WIDTH - PADDING_X} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="1" strokeDasharray="4 4" />
+            <line key={i} x1={PADDING_X} y1={y} x2={WIDTH - PADDING_X} y2={y} stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="4 4" />
           );
         })}
         <defs>
           <linearGradient id="mkAreaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.10)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+            <stop offset="0%" stopColor="rgba(125, 167, 255, 0.18)" />
+            <stop offset="60%" stopColor="rgba(167, 139, 255, 0.06)" />
+            <stop offset="100%" stopColor="rgba(125, 167, 255, 0)" />
           </linearGradient>
+          <linearGradient id="mkLineGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="rgba(125, 167, 255, 0.8)" />
+            <stop offset="50%" stopColor="rgba(167, 139, 255, 0.75)" />
+            <stop offset="100%" stopColor="rgba(127, 212, 168, 0.7)" />
+          </linearGradient>
+          <filter id="mkGlow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
         </defs>
         <path d={areaPath} fill="url(#mkAreaGrad)" />
-        <path d={linePath} fill="none" stroke="rgba(255,255,255,0.65)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={linePath} fill="none" stroke="url(#mkLineGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" filter="url(#mkGlow)" />
         {points.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="var(--text-strong)" stroke="rgba(0,0,0,0.4)" strokeWidth="1">
+          <circle key={i} cx={p.x} cy={p.y} r="3" fill="var(--text-strong)" stroke="rgba(125, 167, 255, 0.5)" strokeWidth="1.5">
             <title>{formatChartDate(p.date)}: {formatMoney(p.amount)}</title>
           </circle>
         ))}
@@ -238,26 +251,35 @@ export const MarketplaceOverview = ({
     }
   }, [referralUrl, pushToast]);
 
+  /* Track mouse position for radial glow on stat cards */
+  const handleCardMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    e.currentTarget.style.setProperty("--mouse-x", `${x}%`);
+    e.currentTarget.style.setProperty("--mouse-y", `${y}%`);
+  }, []);
+
   return (
     <div className={styles.root}>
       {/* ---- Unified stats grid ---- */}
       <div className={styles.statsGrid}>
-        <div className={`${styles.statCard} ${styles.statCardPrimary}`}>
+        <div className={`${styles.statCard} ${styles.statCardPrimary}`} onMouseMove={handleCardMouseMove}>
           <p className={styles.statLabel}>Доступно к выводу</p>
           <p className={styles.statValue}>{formatMoney(me.balance)}</p>
           <p className={styles.statNote}>Запросите выплату в «Финансах».</p>
         </div>
-        <div className={styles.statCard}>
+        <div className={styles.statCard} onMouseMove={handleCardMouseMove}>
           <p className={styles.statLabel}>В обработке</p>
           <p className={styles.statValue}>{formatMoney(me.balance_pending_confirmation_kopeks)}</p>
           <p className={styles.statNote}>Ожидает подтверждения.</p>
         </div>
-        <div className={styles.statCard}>
+        <div className={styles.statCard} onMouseMove={handleCardMouseMove}>
           <p className={styles.statLabel}>Ваша ставка</p>
           <p className={styles.statValue}>{me.percent}%</p>
           <p className={styles.statNote}>Доля от каждой сделки.</p>
         </div>
-        <div className={styles.statCard}>
+        <div className={styles.statCard} onMouseMove={handleCardMouseMove}>
           <p className={styles.statLabel}>Привязка</p>
           <p className={`${styles.statValue} ${styles.statValueSmall}`}>
             {me.linked_to ? "Активна" : "Свободный"}
@@ -266,17 +288,17 @@ export const MarketplaceOverview = ({
             {me.linked_to ? "Сделки идут блогеру." : "Перейдите по реф-ссылке."}
           </p>
         </div>
-        <div className={`${styles.statCard} ${styles.statCardAccent}`}>
+        <div className={`${styles.statCard} ${styles.statCardAccent}`} onMouseMove={handleCardMouseMove}>
           <p className={styles.statLabel}>Баланс маркетплейса</p>
           <p className={styles.statValue}>{stats ? formatMoney(stats.balance_kopeks) : "—"}</p>
           <p className={styles.statNote}>Комиссия с заказов рефералов.</p>
         </div>
-        <div className={styles.statCard}>
+        <div className={styles.statCard} onMouseMove={handleCardMouseMove}>
           <p className={styles.statLabel}>Заработано всего</p>
           <p className={styles.statValue}>{stats ? formatMoney(stats.total_earnings_kopeks) : "—"}</p>
           <p className={styles.statNote}>За всё время работы.</p>
         </div>
-        <div className={styles.statCard}>
+        <div className={styles.statCard} onMouseMove={handleCardMouseMove}>
           <p className={styles.statLabel}>Приведено заказчиков</p>
           <p className={styles.statValue}>{stats ? formatNumber(stats.referral_count) : "—"}</p>
           <p className={styles.statNote}>Зарегистрировались по ссылке.</p>
