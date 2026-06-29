@@ -403,6 +403,41 @@ export const MarketplaceOverview = ({
           </ul>
         )}
       </section>
+
+      {/* ---- Как это работает ---- */}
+      <section className={styles.howItWorks}>
+        <h3 className={styles.howTitle}>Как работает платформа</h3>
+        <ol className={styles.howSteps}>
+          <li className={styles.howStep}>
+            <span className={styles.howStepNum}>1</span>
+            <div className={styles.howStepBody}>
+              <span className={styles.howStepTitle}>Скопируйте ссылку</span>
+              <span className={styles.howStepDesc}>Отправьте реферальную ссылку потенциальному заказчику</span>
+            </div>
+          </li>
+          <li className={styles.howStep}>
+            <span className={styles.howStepNum}>2</span>
+            <div className={styles.howStepBody}>
+              <span className={styles.howStepTitle}>Заказчик регистрируется</span>
+              <span className={styles.howStepDesc}>Он навсегда привязывается к вам — все его заказы ваши</span>
+            </div>
+          </li>
+          <li className={styles.howStep}>
+            <span className={styles.howStepNum}>3</span>
+            <div className={styles.howStepBody}>
+              <span className={styles.howStepTitle}>Сделка оплачивается</span>
+              <span className={styles.howStepDesc}>Администратор подтверждает оплату по факту</span>
+            </div>
+          </li>
+          <li className={styles.howStep}>
+            <span className={styles.howStepNum}>4</span>
+            <div className={styles.howStepBody}>
+              <span className={styles.howStepTitle}>Получите комиссию</span>
+              <span className={styles.howStepDesc}>Деньги на балансе — выводите на карту в любое время</span>
+            </div>
+          </li>
+        </ol>
+      </section>
     </div>
   );
 };
