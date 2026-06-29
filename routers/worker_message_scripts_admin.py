@@ -13,6 +13,7 @@ from schemas.worker_message_script import (
     WorkerMessageScriptCreate,
     WorkerMessageScriptPatch,
     WorkerMessageScriptRead,
+    WorkerScriptCategoriesResponse,
 )
 from services.worker_message_script_service import (
     admin_create_worker_script,
@@ -20,6 +21,7 @@ from services.worker_message_script_service import (
     admin_get_worker_script,
     admin_list_worker_scripts,
     admin_patch_worker_script,
+    list_worker_script_categories,
 )
 
 router = APIRouter(prefix="/admin", tags=["admin", "worker-message-scripts"])
@@ -32,6 +34,15 @@ async def get_admin_worker_message_scripts(
 ) -> list[WorkerMessageScriptRead]:
     rows = await admin_list_worker_scripts(db)
     return [WorkerMessageScriptRead.model_validate(r) for r in rows]
+
+
+@router.get("/worker-message-scripts/categories", response_model=WorkerScriptCategoriesResponse)
+async def get_admin_worker_script_categories(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin)],
+) -> WorkerScriptCategoriesResponse:
+    categories = await list_worker_script_categories(db)
+    return WorkerScriptCategoriesResponse(categories=categories)
 
 
 @router.post("/worker-message-scripts", response_model=WorkerMessageScriptRead)

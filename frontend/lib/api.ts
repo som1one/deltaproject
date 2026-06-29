@@ -31,6 +31,7 @@ import type {
   TelegramOAuthConfigResponse,
   UserMeRead,
   WorkerMessageScriptRead,
+  WorkerScriptCategoriesResponse,
 } from "@/lib/types";
 
 type RequestInitWithAuth = RequestInit & {
@@ -217,8 +218,18 @@ export const api = {
     request<BloggerOptionRead[]>("/me/available-bloggers", {
       auth: true,
     }),
-  getWorkerScripts: () =>
-    request<WorkerMessageScriptRead[]>("/me/worker-message-scripts", {
+  getWorkerScripts: (params?: { category?: string; keyword?: string; search?: string }) => {
+    const query = new URLSearchParams();
+    if (params?.category) query.set("category", params.category);
+    if (params?.keyword) query.set("keyword", params.keyword);
+    if (params?.search) query.set("search", params.search);
+    const qs = query.toString();
+    return request<WorkerMessageScriptRead[]>(`/me/worker-message-scripts${qs ? `?${qs}` : ""}`, {
+      auth: true,
+    });
+  },
+  getWorkerScriptCategories: () =>
+    request<WorkerScriptCategoriesResponse>("/me/worker-message-scripts/categories", {
       auth: true,
     }),
   getLedger: (query = "") =>
@@ -404,13 +415,15 @@ export const api = {
       { auth: true },
     ),
   getAdminWorkerScripts: () => request<WorkerMessageScriptRead[]>("/admin/worker-message-scripts", { auth: true }),
-  createAdminWorkerScript: (body: { title: string; body: string; sort_order: number }) =>
+  getAdminWorkerScriptCategories: () =>
+    request<WorkerScriptCategoriesResponse>("/admin/worker-message-scripts/categories", { auth: true }),
+  createAdminWorkerScript: (body: { title: string; body: string; category: string; keywords: string[]; sort_order: number }) =>
     request<WorkerMessageScriptRead>("/admin/worker-message-scripts", {
       method: "POST",
       auth: true,
       body: JSON.stringify(body),
     }),
-  patchAdminWorkerScript: (id: string, body: { title?: string; body?: string; sort_order?: number }) =>
+  patchAdminWorkerScript: (id: string, body: { title?: string; body?: string; category?: string; keywords?: string[]; sort_order?: number }) =>
     request<WorkerMessageScriptRead>(`/admin/worker-message-scripts/${id}`, {
       method: "PATCH",
       auth: true,

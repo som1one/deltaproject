@@ -30,7 +30,7 @@ from schemas.me import (
     UserMeRead,
     WorkerMeStatsRead,
 )
-from schemas.worker_message_script import WorkerMessageScriptRead
+from schemas.worker_message_script import WorkerMessageScriptRead, WorkerScriptCategoriesResponse
 from services.deal_service import deal_to_read, list_deals_for_user
 from services.ledger_service import create_payout_request, list_ledger_for_user
 from services.me_service import (
@@ -41,7 +41,7 @@ from services.me_service import (
     set_me_payout_card,
     user_to_me_read,
 )
-from services.worker_message_script_service import list_worker_scripts_public
+from services.worker_message_script_service import list_worker_script_categories, list_worker_scripts_public
 from sqlalchemy import select
 from utils.blogger_cabinet_unlock import BLOGGER_CABINET_COOKIE_NAME, create_blogger_cabinet_unlock_token
 from utils.security import verify_password
@@ -213,11 +213,28 @@ async def get_available_bloggers_for_worker(
 async def get_worker_message_scripts_for_cabinet(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    category: str | None = Query(None, description="Фильтр по категории"),
+    keyword: str | None = Query(None, description="Фильтр по ключевому слову"),
+    search: str | None = Query(None, description="Поиск по заголовку/тексту"),
 ) -> list[WorkerMessageScriptRead]:
     if user.role != UserRole.WORKER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Скрипты доступны только работнику",
         )
-    items = await list_worker_scripts_public(db)
+    items = await list_worker_scripts_public(db, category=category, keyword=keyword, search=search)
     return [WorkerMessageScriptRead.model_validate(s) for s in items]
+
+
+@router.get("/worker-message-scripts/categories", response_model=WorkerScriptCategoriesResponse)
+async def get_worker_script_categories(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> WorkerScriptCategoriesResponse:
+    if user.role != UserRole.WORKER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Скрипты доступны только работнику",
+        )
+    categories = await list_worker_script_categories(db)
+    return WorkerScriptCategoriesResponse(categories=categories)

@@ -107,8 +107,14 @@ export type WorkerMessageScriptRead = {
   id: string;
   title: string;
   body: string;
+  category: string;
+  keywords: string[];
   sort_order: number;
   created_at: string;
+};
+
+export type WorkerScriptCategoriesResponse = {
+  categories: string[];
 };
 
 export type LedgerEntryRead = {

@@ -85,6 +85,8 @@ const emptyBloggerForm = {
 const emptyScriptForm = {
   title: "",
   body: "",
+  category: "Общие",
+  keywords: "",
   sort_order: "0",
 };
 
@@ -353,6 +355,8 @@ export const AdminDashboard = () => {
       setScriptForm({
         title: activeScript.title,
         body: activeScript.body,
+        category: activeScript.category,
+        keywords: activeScript.keywords.join(", "),
         sort_order: String(activeScript.sort_order),
       });
     }
@@ -636,6 +640,8 @@ export const AdminDashboard = () => {
       api.createAdminWorkerScript({
         title: scriptForm.title,
         body: scriptForm.body,
+        category: scriptForm.category,
+        keywords: scriptForm.keywords.split(",").map((k) => k.trim()).filter(Boolean),
         sort_order: Number(scriptForm.sort_order),
       }),
     onSuccess: async () => {
@@ -651,6 +657,8 @@ export const AdminDashboard = () => {
       api.patchAdminWorkerScript(selectedScriptId, {
         title: scriptForm.title,
         body: scriptForm.body,
+        category: scriptForm.category,
+        keywords: scriptForm.keywords.split(",").map((k) => k.trim()).filter(Boolean),
         sort_order: Number(scriptForm.sort_order),
       }),
     onSuccess: async () => {
@@ -2507,6 +2515,7 @@ export const AdminDashboard = () => {
                     onClick={() => setSelectedScriptId(script.id)}
                   >
                     <h3>{script.title}</h3>
+                    <span style={{ fontSize: "0.7rem", opacity: 0.6 }}>{script.category}{script.keywords.length > 0 ? ` · ${script.keywords.join(", ")}` : ""}</span>
                     <p>{script.body}</p>
                   </article>
                 ))}
@@ -2533,6 +2542,12 @@ export const AdminDashboard = () => {
             <Stack>
               <Field label="Заголовок">
                 <TextInput value={scriptForm.title} onChange={(event) => setScriptForm((current) => ({ ...current, title: event.target.value }))} />
+              </Field>
+              <Field label="Категория">
+                <TextInput value={scriptForm.category} onChange={(event) => setScriptForm((current) => ({ ...current, category: event.target.value }))} placeholder="Общие" />
+              </Field>
+              <Field label="Ключевые слова" help="Через запятую, напр.: продажа, первый контакт, follow-up">
+                <TextInput value={scriptForm.keywords} onChange={(event) => setScriptForm((current) => ({ ...current, keywords: event.target.value }))} placeholder="слово1, слово2, слово3" />
               </Field>
               <Field label="Текст скрипта">
                 <TextArea value={scriptForm.body} onChange={(event) => setScriptForm((current) => ({ ...current, body: event.target.value }))} />
