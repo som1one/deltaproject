@@ -824,9 +824,6 @@ const IdentityHeader = ({
 }) => {
   const role = formatRole(me.role);
   const showSub = Boolean(subtitle && subtitle.toLowerCase() !== role.toLowerCase());
-  const initials = me.name
-    ? me.name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("")
-    : "?";
   return (
     <header className={styles.identityCard}>
       <div className={styles.identityMain}>
@@ -834,10 +831,7 @@ const IdentityHeader = ({
           {role}
           {showSub ? <> · {subtitle}</> : null}
         </span>
-        <div className={styles.identityNameRow}>
-          <span className={styles.identityAvatar} aria-hidden="true">{initials}</span>
-          <h1 className={styles.identityName}>{me.name}</h1>
-        </div>
+        <h1 className={styles.identityName}>{me.name}</h1>
         <div className={styles.identityMetaRow}>
           {me.nickname ? (
             <span className={styles.identityMeta}>

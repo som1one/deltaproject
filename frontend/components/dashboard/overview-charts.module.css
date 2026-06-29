@@ -29,27 +29,6 @@
   border: 1px solid var(--border);
   position: relative;
   overflow: hidden;
-  transition: border-color 320ms ease, box-shadow 320ms ease;
-  animation: chartFrameIn 550ms var(--easing) both;
-}
-
-.charts > .chartFrame:nth-child(1) { animation-delay: 80ms; }
-.charts > .chartFrame:nth-child(2) { animation-delay: 200ms; }
-
-@keyframes chartFrameIn {
-  from {
-    opacity: 0;
-    transform: translateY(14px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.chartFrame:hover {
-  border-color: var(--border-strong);
-  box-shadow: 0 6px 24px -6px rgba(0, 0, 0, 0.3);
 }
 
 .chartFrame::before {
@@ -57,9 +36,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    radial-gradient(520px 200px at 90% 0%, rgba(125, 167, 255, 0.03), transparent 65%),
-    radial-gradient(300px 150px at 10% 100%, rgba(167, 139, 255, 0.02), transparent 60%);
+  background: radial-gradient(520px 200px at 90% 0%, rgba(255, 255, 255, 0.025), transparent 65%);
   border-radius: inherit;
 }
 
@@ -199,8 +176,9 @@
   left: 0;
   top: 0;
   bottom: 0;
+  background: rgba(255, 255, 255, 0.78);
   border-radius: 0;
-  transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: width var(--transition-base);
 }
 
 .funnelMetric {
@@ -309,18 +287,6 @@
   width: 156px;
   height: 156px;
   flex-shrink: 0;
-  animation: donutSpin 800ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes donutSpin {
-  from {
-    opacity: 0;
-    transform: rotate(-90deg) scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: rotate(0deg) scale(1);
-  }
 }
 
 .donutTotalNumber {
@@ -361,12 +327,6 @@
   background: var(--surface-inset);
   border: 1px solid var(--border-faint);
   overflow: hidden;
-  transition: border-color 280ms ease, transform 200ms ease;
-}
-
-.legendItem:hover {
-  border-color: var(--border-strong);
-  transform: translateX(2px);
 }
 
 .legendBar {
