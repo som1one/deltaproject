@@ -1106,33 +1106,6 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
     <>
       <IdentityHeader me={me} />
 
-      <div className={styles.balanceTiles}>
-        <div className={`${styles.balanceTile} ${styles.accent}`}>
-          <p className={styles.balanceTileLabel}>Доступно к выводу</p>
-          <p className={styles.balanceTileValue}>{formatMoney(me.balance)}</p>
-          <p className={styles.balanceTileNote}>Запросите выплату в разделе «Финансы».</p>
-        </div>
-        <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>В обработке</p>
-          <p className={styles.balanceTileValue}>{formatMoney(me.balance_pending_confirmation_kopeks)}</p>
-          <p className={styles.balanceTileNote}>Средства, ожидающие подтверждения.</p>
-        </div>
-        <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>Ваша ставка</p>
-          <p className={styles.balanceTileValue}>{me.percent}%</p>
-          <p className={styles.balanceTileNote}>Доля от каждой сделки.</p>
-        </div>
-        <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>Привязка</p>
-          <p className={styles.balanceTileValue} style={{ fontSize: "1.05rem", lineHeight: 1.3 }}>
-            {me.linked_to ? "Активна" : "Свободный"}
-          </p>
-          <p className={styles.balanceTileNote}>
-            {me.linked_to ? "Сделки идут вашему блогеру." : "Перейдите по реф-ссылке блогера."}
-          </p>
-        </div>
-      </div>
-
       {toast ? <Message tone={toast.tone === "info" ? "default" : toast.tone}>{toast.text}</Message> : null}
 
       <div className={styles.shell}>
@@ -1146,6 +1119,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
         <div className={styles.workspace}>
           {tab === "overview" ? (
             <MarketplaceOverview
+              me={me}
               referralUrl={referralQuery.data?.referral_url ?? null}
               referralLoading={referralQuery.isLoading}
             />

@@ -7,6 +7,7 @@ import { appConfig } from "@/lib/config";
 import { formatMoney, formatNumber } from "@/lib/format";
 import { tokenStorage } from "@/lib/storage";
 import { useToast } from "@/components/common/toast";
+import type { UserMeRead } from "@/lib/types";
 
 import styles from "./marketplace-overview.module.css";
 
@@ -42,7 +43,6 @@ type ChartPeriod = "week" | "month" | "all";
    Helpers
    ========================================================= */
 
-/** Group commissions by day and aggregate totals for the chart. */
 const aggregateByDay = (
   items: CommissionEntry[],
   period: ChartPeriod,
@@ -65,19 +65,15 @@ const aggregateByDay = (
   const grouped = new Map<string, number>();
 
   for (const item of filtered) {
-    const day = item.date.slice(0, 10); // YYYY-MM-DD
+    const day = item.date.slice(0, 10);
     grouped.set(day, (grouped.get(day) || 0) + item.commission_amount_kopeks);
   }
 
-  // Sort by date ascending
-  const sorted = [...grouped.entries()]
+  return [...grouped.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, amount]) => ({ date, amount }));
-
-  return sorted;
 };
 
-/** Format date for chart axis label. */
 const formatChartDate = (dateStr: string): string => {
   const d = new Date(dateStr);
   return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
@@ -87,11 +83,7 @@ const formatChartDate = (dateStr: string): string => {
    Area Chart (SVG)
    ========================================================= */
 
-const EarningsChart = ({
-  data,
-}: {
-  data: { date: string; amount: number }[];
-}) => {
+const EarningsChart = ({ data }: { data: { date: string; amount: number }[] }) => {
   if (data.length === 0) {
     return (
       <p className={styles.chartEmpty}>
@@ -115,12 +107,8 @@ const EarningsChart = ({
     return { x, y, ...d };
   });
 
-  // Build smooth path using cardinal spline approximation
   const buildPath = (): string => {
-    if (points.length === 1) {
-      return `M${points[0].x},${points[0].y}`;
-    }
-
+    if (points.length === 1) return `M${points[0].x},${points[0].y}`;
     let path = `M${points[0].x},${points[0].y}`;
     for (let i = 1; i < points.length; i++) {
       const prev = points[i - 1];
@@ -132,14 +120,9 @@ const EarningsChart = ({
   };
 
   const linePath = buildPath();
-
-  // Fill area path (same line + close at bottom)
   const areaPath = `${linePath} L${points[points.length - 1].x},${PADDING_Y + CHART_H} L${points[0].x},${PADDING_Y + CHART_H} Z`;
-
-  // Y-axis labels (3 ticks)
   const yTicks = [0, maxAmount / 2, maxAmount];
 
-  // X-axis labels (first, middle, last)
   const xLabels: { x: number; label: string }[] = [];
   if (points.length >= 1) xLabels.push({ x: points[0].x, label: formatChartDate(points[0].date) });
   if (points.length >= 3) {
@@ -147,10 +130,7 @@ const EarningsChart = ({
     xLabels.push({ x: points[mid].x, label: formatChartDate(points[mid].date) });
   }
   if (points.length >= 2) {
-    xLabels.push({
-      x: points[points.length - 1].x,
-      label: formatChartDate(points[points.length - 1].date),
-    });
+    xLabels.push({ x: points[points.length - 1].x, label: formatChartDate(points[points.length - 1].date) });
   }
 
   return (
@@ -162,90 +142,35 @@ const EarningsChart = ({
         role="img"
         aria-label="График комиссий за период"
       >
-        {/* Grid lines */}
         {yTicks.map((tick, i) => {
           const y = PADDING_Y + CHART_H - (tick / maxAmount) * CHART_H;
           return (
-            <line
-              key={i}
-              x1={PADDING_X}
-              y1={y}
-              x2={WIDTH - PADDING_X}
-              y2={y}
-              stroke="rgba(255,255,255,0.05)"
-              strokeWidth="1"
-              strokeDasharray="4 4"
-            />
+            <line key={i} x1={PADDING_X} y1={y} x2={WIDTH - PADDING_X} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="1" strokeDasharray="4 4" />
           );
         })}
-
-        {/* Gradient fill */}
         <defs>
-          <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.12)" />
+          <linearGradient id="mkAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.10)" />
             <stop offset="100%" stopColor="rgba(255,255,255,0)" />
           </linearGradient>
         </defs>
-
-        {/* Area */}
-        <path d={areaPath} fill="url(#areaGradient)" />
-
-        {/* Line */}
-        <path
-          d={linePath}
-          fill="none"
-          stroke="rgba(255,255,255,0.7)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {/* Data points */}
+        <path d={areaPath} fill="url(#mkAreaGrad)" />
+        <path d={linePath} fill="none" stroke="rgba(255,255,255,0.65)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         {points.map((p, i) => (
-          <circle
-            key={i}
-            cx={p.x}
-            cy={p.y}
-            r="3"
-            fill="var(--text-strong)"
-            stroke="rgba(0,0,0,0.5)"
-            strokeWidth="1"
-          >
-            <title>
-              {formatChartDate(p.date)}: {formatMoney(p.amount)}
-            </title>
+          <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="var(--text-strong)" stroke="rgba(0,0,0,0.4)" strokeWidth="1">
+            <title>{formatChartDate(p.date)}: {formatMoney(p.amount)}</title>
           </circle>
         ))}
-
-        {/* Y-axis labels */}
         {yTicks.map((tick, i) => {
           const y = PADDING_Y + CHART_H - (tick / maxAmount) * CHART_H;
           return (
-            <text
-              key={i}
-              x={PADDING_X - 8}
-              y={y + 3}
-              textAnchor="end"
-              fill="rgba(255,255,255,0.35)"
-              fontSize="9"
-              fontFamily="var(--font-mono)"
-            >
+            <text key={i} x={PADDING_X - 8} y={y + 3} textAnchor="end" fill="rgba(255,255,255,0.3)" fontSize="9" fontFamily="var(--font-mono)">
               {tick === 0 ? "0" : `${Math.round(tick / 100)}`}
             </text>
           );
         })}
-
-        {/* X-axis labels */}
         {xLabels.map((label, i) => (
-          <text
-            key={i}
-            x={label.x}
-            y={HEIGHT - 4}
-            textAnchor="middle"
-            fill="rgba(255,255,255,0.35)"
-            fontSize="9"
-            fontFamily="var(--font-narrow)"
-          >
+          <text key={i} x={label.x} y={HEIGHT - 4} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="9" fontFamily="var(--font-narrow)">
             {label.label}
           </text>
         ))}
@@ -259,9 +184,11 @@ const EarningsChart = ({
    ========================================================= */
 
 export const MarketplaceOverview = ({
+  me,
   referralUrl,
   referralLoading,
 }: {
+  me: UserMeRead;
   referralUrl: string | null;
   referralLoading?: boolean;
 }) => {
@@ -269,7 +196,6 @@ export const MarketplaceOverview = ({
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("month");
   const [copied, setCopied] = useState(false);
 
-  // Marketplace stats
   const statsQuery = useQuery({
     queryKey: ["marketplace", "worker", "stats"],
     queryFn: async (): Promise<MarketplaceStats | null> => {
@@ -281,15 +207,12 @@ export const MarketplaceOverview = ({
     },
   });
 
-  // Commission history for chart (fetch more items for a richer chart)
   const commissionsQuery = useQuery({
     queryKey: ["marketplace", "worker", "commissions-chart"],
     queryFn: async (): Promise<CommissionListResponse | null> => {
       const res = await fetch(
         `${appConfig.apiBaseUrl}/marketplace/worker/commissions?page=1&page_size=50`,
-        {
-          headers: { Authorization: `Bearer ${tokenStorage.readAccessToken()}` },
-        },
+        { headers: { Authorization: `Bearer ${tokenStorage.readAccessToken()}` } },
       );
       if (!res.ok) return null;
       return res.json();
@@ -316,29 +239,47 @@ export const MarketplaceOverview = ({
   }, [referralUrl, pushToast]);
 
   return (
-    <div>
-      {/* ---- Stat cards ---- */}
+    <div className={styles.root}>
+      {/* ---- Unified stats grid ---- */}
       <div className={styles.statsGrid}>
+        <div className={`${styles.statCard} ${styles.statCardPrimary}`}>
+          <p className={styles.statLabel}>Доступно к выводу</p>
+          <p className={styles.statValue}>{formatMoney(me.balance)}</p>
+          <p className={styles.statNote}>Запросите выплату в «Финансах».</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>В обработке</p>
+          <p className={styles.statValue}>{formatMoney(me.balance_pending_confirmation_kopeks)}</p>
+          <p className={styles.statNote}>Ожидает подтверждения.</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Ваша ставка</p>
+          <p className={styles.statValue}>{me.percent}%</p>
+          <p className={styles.statNote}>Доля от каждой сделки.</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>Привязка</p>
+          <p className={`${styles.statValue} ${styles.statValueSmall}`}>
+            {me.linked_to ? "Активна" : "Свободный"}
+          </p>
+          <p className={styles.statNote}>
+            {me.linked_to ? "Сделки идут блогеру." : "Перейдите по реф-ссылке."}
+          </p>
+        </div>
         <div className={`${styles.statCard} ${styles.statCardAccent}`}>
           <p className={styles.statLabel}>Баланс маркетплейса</p>
-          <p className={styles.statValue}>
-            {stats ? formatMoney(stats.balance_kopeks) : "—"}
-          </p>
+          <p className={styles.statValue}>{stats ? formatMoney(stats.balance_kopeks) : "—"}</p>
           <p className={styles.statNote}>Комиссия с заказов рефералов.</p>
         </div>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Заработано всего</p>
-          <p className={styles.statValue}>
-            {stats ? formatMoney(stats.total_earnings_kopeks) : "—"}
-          </p>
+          <p className={styles.statValue}>{stats ? formatMoney(stats.total_earnings_kopeks) : "—"}</p>
           <p className={styles.statNote}>За всё время работы.</p>
         </div>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>Приведено заказчиков</p>
-          <p className={styles.statValue}>
-            {stats ? formatNumber(stats.referral_count) : "—"}
-          </p>
-          <p className={styles.statNote}>Зарегистрировались по вашей ссылке.</p>
+          <p className={styles.statValue}>{stats ? formatNumber(stats.referral_count) : "—"}</p>
+          <p className={styles.statNote}>Зарегистрировались по ссылке.</p>
         </div>
       </div>
 
@@ -350,13 +291,11 @@ export const MarketplaceOverview = ({
             <h3 className={styles.chartTitle}>Комиссии за период</h3>
           </div>
           <div className={styles.chartPeriod}>
-            {(
-              [
-                { id: "week", label: "7 дн" },
-                { id: "month", label: "30 дн" },
-                { id: "all", label: "Всё" },
-              ] as const
-            ).map(({ id, label }) => (
+            {([
+              { id: "week", label: "7 дн" },
+              { id: "month", label: "30 дн" },
+              { id: "all", label: "Всё" },
+            ] as const).map(({ id, label }) => (
               <button
                 key={id}
                 type="button"
@@ -368,29 +307,21 @@ export const MarketplaceOverview = ({
             ))}
           </div>
         </div>
-
         <EarningsChart data={chartData} />
-
         <div className={styles.chartLegend}>
           <span className={styles.chartLegendItem}>
-            <span className={styles.chartLegendDot} style={{ background: "rgba(255,255,255,0.7)" }} />
+            <span className={styles.chartLegendDot} style={{ background: "rgba(255,255,255,0.65)" }} />
             Комиссии, ₽
           </span>
-          {chartData.length > 0 && (
-            <span className={styles.chartLegendItem}>
-              <span className={styles.chartLegendDot} style={{ background: "rgba(255,255,255,0.2)" }} />
-              {chartData.length} {chartData.length === 1 ? "день" : chartData.length < 5 ? "дня" : "дней"}
-            </span>
-          )}
         </div>
       </div>
 
       {/* ---- Referral link ---- */}
       <div className={styles.referralSection}>
         <div className={styles.referralHeader}>
-          <h3 className={styles.referralTitle}>Реферальная ссылка маркетплейса</h3>
+          <h3 className={styles.referralTitle}>Реферальная ссылка</h3>
           <p className={styles.referralDesc}>
-            Приглашайте заказчиков на маркетплейс — получайте комиссию с каждого оплаченного заказа.
+            Приглашайте заказчиков — получайте комиссию с каждого оплаченного заказа.
           </p>
         </div>
 
@@ -411,7 +342,7 @@ export const MarketplaceOverview = ({
               disabled={!referralUrl}
               aria-label="Копировать ссылку"
             >
-              {copied ? "Скопировано ✓" : "Копировать"}
+              {copied ? "✓" : "Копировать"}
             </button>
           </div>
         </div>
@@ -422,8 +353,7 @@ export const MarketplaceOverview = ({
             <path d="M12 16v-4M12 8h.01" />
           </svg>
           <span>
-            Когда заказчик регистрируется по вашей ссылке, он навсегда закрепляется за вами.
-            Вы будете получать комиссию с его заказов.
+            Когда заказчик регистрируется по вашей ссылке, он навсегда закрепляется за вами. Вы будете получать комиссию с его заказов.
           </span>
         </div>
       </div>
