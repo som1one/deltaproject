@@ -99,6 +99,13 @@ export const WorkerOnboarding = ({ username }: { username?: string }) => {
           <TelegramButton linkedTo={referralQuery.data?.user_id || null} />
         </JourneyActions>
 
+        <p style={{ margin: 0, fontSize: "0.74rem", color: "var(--text-soft)", textAlign: "center", lineHeight: 1.5 }}>
+          Регистрируясь, вы соглашаетесь с{" "}
+          <a href="/terms" style={{ color: "var(--text-muted)", textDecoration: "underline", textUnderlineOffset: "2px" }}>
+            правилами платформы
+          </a>.
+        </p>
+
         {username && referralQuery.isError ? (
           <JourneyFeedback tone="error">{referralQuery.error.message}</JourneyFeedback>
         ) : null}
