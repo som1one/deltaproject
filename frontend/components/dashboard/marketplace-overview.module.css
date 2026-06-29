@@ -1,323 +1,76 @@
 /* =========================================================
-   Marketplace Overview — Worker cabinet unified overview.
-   Single stat grid + chart + referral link.
-   Matches cabinet.module.css premium monochrome language.
+   Marketplace Overview — action-oriented worker dashboard.
+   Hero balance → compact metrics → referral → activity feed.
    ========================================================= */
 
 .root {
   display: grid;
-  gap: 1.4rem;
+  gap: 1.6rem;
 }
 
-/* ---------- Unified stats grid (7 cards, 4-col layout) ---------- */
+/* ---------- Hero: balance + CTA ---------- */
 
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.7rem;
-}
-
-.statCard {
-  display: grid;
-  gap: 0.4rem;
-  padding: 1.3rem 1.4rem;
-  border-radius: var(--radius-md);
-  background: var(--surface-inset);
-  border: 1px solid var(--border-faint);
-  position: relative;
-  overflow: hidden;
-}
-
-.statCardPrimary {
-  border-color: var(--border-strong);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 60%),
-    var(--surface-inset);
-}
-
-.statCardAccent {
-  border-color: var(--border-strong);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.03), transparent 50%),
-    var(--surface-inset);
-}
-
-.statLabel {
-  margin: 0;
-  font-family: var(--font-narrow);
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--text-soft);
-}
-
-.statValue {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1.5rem;
-  letter-spacing: -0.03em;
-  color: var(--text-strong);
-  line-height: 1.1;
-}
-
-.statValueSmall {
-  font-size: 1.05rem;
-  line-height: 1.3;
-}
-
-.statNote {
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--text-soft);
-  line-height: 1.4;
-}
-
-/* ---------- Chart section ---------- */
-
-.chartSection {
-  display: grid;
-  gap: 1.1rem;
-  padding: 1.4rem 1.5rem;
-  border-radius: var(--radius-lg);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 55%),
-    var(--surface-raised);
-  border: 1px solid var(--border);
-  position: relative;
-  overflow: hidden;
-}
-
-.chartSection::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(460px 180px at 85% 0%, rgba(255, 255, 255, 0.018), transparent 60%);
-  border-radius: inherit;
-}
-
-.chartHeader {
+.hero {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-  position: relative;
-  z-index: 1;
-}
-
-.chartHeaderLeft {
-  display: grid;
-  gap: 0.25rem;
-}
-
-.chartEyebrow {
-  margin: 0;
-  font-family: var(--font-narrow);
-  font-size: 0.58rem;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--text-soft);
-}
-
-.chartTitle {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: -0.018em;
-  color: var(--text-strong);
-}
-
-.chartPeriod {
-  display: inline-flex;
-  gap: 0.2rem;
-  position: relative;
-  z-index: 1;
-}
-
-.chartPeriodBtn {
-  appearance: none;
-  border: 1px solid var(--border-faint);
-  background: transparent;
-  color: var(--text-soft);
-  font: inherit;
-  font-family: var(--font-narrow);
-  font-size: 0.6rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-weight: 600;
-  padding: 0.35rem 0.6rem;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition:
-    background var(--transition-base),
-    color var(--transition-base),
-    border-color var(--transition-base);
-}
-
-.chartPeriodBtn:hover {
-  background: var(--surface-hover);
-  color: var(--text);
-}
-
-.chartPeriodBtnActive {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-strong);
-  border-color: var(--border-strong);
-}
-
-.chartArea {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: 150px;
-}
-
-.chartSvg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.chartEmpty {
-  margin: 0;
-  font-size: 0.84rem;
-  color: var(--text-soft);
-  text-align: center;
-  padding: 2.2rem 0;
-  position: relative;
-  z-index: 1;
-}
-
-.chartLegend {
-  display: flex;
-  gap: 1.2rem;
-  position: relative;
-  z-index: 1;
-}
-
-.chartLegendItem {
-  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  font-family: var(--font-narrow);
-  font-size: 0.58rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-}
-
-.chartLegendDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-/* ---------- Referral link card ---------- */
-
-.referralSection {
-  display: grid;
-  gap: 1rem;
-  padding: 1.5rem 1.6rem;
+  justify-content: space-between;
+  gap: 1.4rem;
+  padding: 1.8rem 2rem;
   border-radius: var(--radius-lg);
-  background:
-    radial-gradient(360px 140px at 8% 0%, rgba(255, 255, 255, 0.04), transparent 55%),
-    var(--surface-raised);
-  border: 1px solid var(--border-strong);
-  position: relative;
-  overflow: hidden;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
 }
 
-.referralSection::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 30%);
-  border-radius: inherit;
-}
-
-.referralSection > * {
-  position: relative;
-  z-index: 1;
-}
-
-.referralHeader {
+.heroMain {
   display: grid;
   gap: 0.3rem;
 }
 
-.referralTitle {
+.heroLabel {
   margin: 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1rem;
-  letter-spacing: -0.018em;
-  color: var(--text-strong);
-}
-
-.referralDesc {
-  margin: 0;
-  font-size: 0.84rem;
-  color: var(--text-muted);
-  line-height: 1.5;
-}
-
-.referralLinkRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.6rem;
-  align-items: center;
-}
-
-.referralLinkLabel {
-  margin: 0 0 0.35rem;
   font-family: var(--font-narrow);
-  font-size: 0.56rem;
+  font-size: 0.64rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   font-weight: 600;
   color: var(--text-soft);
 }
 
-.referralLinkInput {
-  appearance: none;
-  width: 100%;
-  padding: 0.65rem 0.9rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  letter-spacing: -0.005em;
-  outline: none;
-  cursor: text;
-  transition: border-color var(--transition-base);
-}
-
-.referralLinkInput:focus {
-  border-color: var(--border-strong);
-}
-
-.referralCopyBtn {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.65rem 1.2rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-strong);
+.heroValue {
+  margin: 0;
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 0.8rem;
-  letter-spacing: 0.01em;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  letter-spacing: -0.04em;
+  color: var(--text-strong);
+  line-height: 1.05;
+}
+
+.heroPending {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.heroBtn {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-strong);
+  font: inherit;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.86rem;
+  padding: 0.7rem 1.4rem;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -326,85 +79,335 @@
     transform var(--transition-base);
 }
 
-.referralCopyBtn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+.heroBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
   transform: translateY(-1px);
 }
 
-.referralCopyBtn:active {
-  transform: translateY(0);
+.heroBtnSecondary {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
 }
 
-.referralCopied {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.22);
+.heroHint {
+  font-size: 0.82rem;
+  color: var(--text-soft);
+  max-width: 18ch;
+  text-align: right;
+  line-height: 1.4;
 }
 
-.referralNote {
+/* ---------- Compact metrics row ---------- */
+
+.metrics {
   display: flex;
-  align-items: flex-start;
-  gap: 0.55rem;
-  padding: 0.7rem 0.9rem;
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.02);
+  align-items: center;
+  gap: 0;
+  padding: 1rem 1.4rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
   border: 1px solid var(--border-faint);
+  overflow-x: auto;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+}
+
+.metricValue {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+.metricLabel {
+  font-family: var(--font-narrow);
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+
+.metricDivider {
+  width: 1px;
+  height: 2rem;
+  background: var(--border-faint);
+  flex-shrink: 0;
+}
+
+/* ---------- Referral row (compact) ---------- */
+
+.refRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.3rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+}
+
+.refInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.refLabel {
+  font-family: var(--font-narrow);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.refUrl {
+  font-family: var(--font-mono);
   font-size: 0.78rem;
   color: var(--text-muted);
-  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.referralNoteIcon {
-  width: 14px;
-  height: 14px;
+.refCopyBtn {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-strong);
+  font: inherit;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
   flex-shrink: 0;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.refCopyBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.refCopyBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.refCopied {
+  border-color: rgba(127, 212, 168, 0.4);
+  color: rgba(127, 212, 168, 0.9);
+}
+
+/* ---------- Activity feed ---------- */
+
+.activity {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.activityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.activityTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+  color: var(--text-strong);
+}
+
+.activityLink {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--transition-base);
+}
+
+.activityLink:hover {
+  color: var(--text-strong);
+}
+
+/* Empty state */
+
+.activityEmpty {
+  padding: 2.2rem 1.6rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  border: 1px dashed var(--border);
+  text-align: center;
+}
+
+.activityEmptyTitle {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--text-strong);
+}
+
+.activityEmptyText {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  max-width: 42ch;
+  margin-inline: auto;
+}
+
+/* Commission list */
+
+.activityList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.activityItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.activityItem:last-child {
+  border-bottom: none;
+}
+
+.activityItemMain {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.activityItemName {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.activityItemOrder {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.activityItemRight {
+  display: grid;
+  gap: 0.1rem;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.activityItemAmount {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.activityItemDate {
+  font-family: var(--font-narrow);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--text-soft);
-  margin-top: 1px;
 }
 
 /* ---------- Responsive ---------- */
 
-@media (max-width: 1080px) {
-  .statsGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
 @media (max-width: 720px) {
-  .statsGrid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
+  .hero {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1.4rem 1.3rem;
+    gap: 1rem;
   }
-  .statCard {
-    padding: 0.9rem 1rem;
-    gap: 0.25rem;
+  .heroActions {
+    justify-content: stretch;
   }
-  .statValue {
-    font-size: 1.2rem;
+  .heroBtn {
+    flex: 1;
+    text-align: center;
   }
-  .statValueSmall {
+  .heroHint {
+    text-align: center;
+    max-width: none;
+  }
+  .metrics {
+    padding: 0.8rem 0.9rem;
+  }
+  .metric {
+    padding: 0.2rem 0.3rem;
+  }
+  .metricValue {
     font-size: 0.95rem;
   }
-  .statNote {
-    font-size: 0.72rem;
+  .refRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+    padding: 0.9rem 1rem;
   }
-  .chartSection {
-    padding: 1.1rem 1.2rem;
+  .refInfo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
   }
-  .chartArea {
-    height: 120px;
-  }
-  .referralSection {
-    padding: 1.2rem 1.3rem;
-  }
-  .referralLinkRow {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+  .refCopyBtn {
+    width: 100%;
+    text-align: center;
   }
 }
 
 @media (max-width: 480px) {
-  .statsGrid {
-    grid-template-columns: 1fr;
+  .metrics {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .metricDivider {
+    display: none;
+  }
+  .metric {
+    flex: 1 1 40%;
   }
 }

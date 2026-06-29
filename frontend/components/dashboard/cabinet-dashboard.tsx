@@ -1122,6 +1122,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
               me={me}
               referralUrl={referralQuery.data?.referral_url ?? null}
               referralLoading={referralQuery.isLoading}
+              onNavigate={(target) => setTab(target as WorkerTab)}
             />
           ) : null}
 
