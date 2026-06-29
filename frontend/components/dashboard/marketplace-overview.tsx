@@ -334,9 +334,9 @@ export const MarketplaceOverview = ({
         <div className={styles.metricDivider} />
         <div className={styles.metric}>
           <span className={styles.metricValue}>
-            {me.linked_to ? "Да" : "Нет"}
+            {commissionsQuery.data ? formatNumber(commissionsQuery.data.total) : "0"}
           </span>
-          <span className={styles.metricLabel}>привязка</span>
+          <span className={styles.metricLabel}>сделок</span>
         </div>
       </section>
 
