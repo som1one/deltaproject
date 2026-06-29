@@ -454,9 +454,9 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
 }
 
 .howStep {
@@ -468,6 +468,23 @@
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-faint);
   position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.howArrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2rem;
+  color: var(--text-soft);
+  opacity: 0.5;
+}
+
+.howArrow svg {
+  width: 20px;
+  height: 10px;
 }
 
 .howStepNum {
@@ -601,12 +618,17 @@
     gap: 0.7rem;
   }
   .howSteps {
-    grid-template-columns: 1fr;
-    gap: 0.4rem;
+    flex-direction: column;
+    gap: 0;
   }
   .howStep {
     padding: 0.55rem 0.7rem;
     gap: 0.5rem;
+  }
+  .howArrow {
+    width: auto;
+    height: 1.4rem;
+    transform: rotate(90deg);
   }
   .howStepNum {
     width: 1.3rem;

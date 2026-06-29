@@ -415,6 +415,11 @@ export const MarketplaceOverview = ({
               <span className={styles.howStepDesc}>Отправьте реферальную ссылку потенциальному заказчику</span>
             </div>
           </li>
+          <li className={styles.howArrow} aria-hidden="true">
+            <svg viewBox="0 0 24 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M0 6h20M17 2l4 4-4 4" />
+            </svg>
+          </li>
           <li className={styles.howStep}>
             <span className={styles.howStepNum}>2</span>
             <div className={styles.howStepBody}>
@@ -422,12 +427,22 @@ export const MarketplaceOverview = ({
               <span className={styles.howStepDesc}>Он навсегда привязывается к вам — все его заказы ваши</span>
             </div>
           </li>
+          <li className={styles.howArrow} aria-hidden="true">
+            <svg viewBox="0 0 24 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M0 6h20M17 2l4 4-4 4" />
+            </svg>
+          </li>
           <li className={styles.howStep}>
             <span className={styles.howStepNum}>3</span>
             <div className={styles.howStepBody}>
               <span className={styles.howStepTitle}>Сделка оплачивается</span>
               <span className={styles.howStepDesc}>Администратор подтверждает оплату по факту</span>
             </div>
+          </li>
+          <li className={styles.howArrow} aria-hidden="true">
+            <svg viewBox="0 0 24 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M0 6h20M17 2l4 4-4 4" />
+            </svg>
           </li>
           <li className={styles.howStep}>
             <span className={styles.howStepNum}>4</span>
