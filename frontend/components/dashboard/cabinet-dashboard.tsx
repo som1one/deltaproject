@@ -48,6 +48,7 @@ import { CopyButton } from "@/components/common/copy-button";
 import { PayoutCardInput } from "@/components/common/payout-card-input";
 import { useToast } from "@/components/common/toast";
 import { OverviewCharts } from "@/components/dashboard/overview-charts";
+import { MarketplaceOverview } from "@/components/dashboard/marketplace-overview";
 import styles from "@/components/dashboard/cabinet.module.css";
 
 /* =========================================================
@@ -1014,10 +1015,21 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
   const [activeLedgerId, setActiveLedgerId] = useState<string | null>(null);
   const [payoutForm, setPayoutForm] = useState({ amount_rub: "" });
   const [payoutError, setPayoutError] = useState<string | null>(null);
-  const [referralCopied, setReferralCopied] = useState(false);
+  const [scriptCategory, setScriptCategory] = useState<string>("");
+  const [scriptSearch, setScriptSearch] = useState("");
 
   const statsQuery = useQuery({ queryKey: ["me", "stats"], queryFn: api.getMeStats });
-  const scriptsQuery = useQuery({ queryKey: ["me", "scripts"], queryFn: api.getWorkerScripts });
+  const scriptsQuery = useQuery({
+    queryKey: ["me", "scripts", scriptCategory, scriptSearch],
+    queryFn: () => api.getWorkerScripts({
+      category: scriptCategory || undefined,
+      search: scriptSearch || undefined,
+    }),
+  });
+  const scriptCategoriesQuery = useQuery({
+    queryKey: ["me", "script-categories"],
+    queryFn: api.getWorkerScriptCategories,
+  });
   const ledgerQuery = useQuery({ queryKey: ["me", "ledger"], queryFn: () => api.getLedger() });
   const payoutWidgetQuery = useQuery({ queryKey: ["me", "payout-widget"], queryFn: api.getPayoutWidgetConfig });
 
@@ -1030,22 +1042,6 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
       });
       if (!res.ok) return null;
       return res.json() as Promise<{ referral_url: string }>;
-    },
-  });
-
-  // Marketplace worker stats (referral earnings & count)
-  const marketplaceStatsQuery = useQuery({
-    queryKey: ["marketplace", "worker", "stats"],
-    queryFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/marketplace/worker/stats`, {
-        headers: { Authorization: `Bearer ${tokenStorage.readAccessToken()}` },
-      });
-      if (!res.ok) return null;
-      return res.json() as Promise<{
-        total_earnings_kopeks: number;
-        balance_kopeks: number;
-        referral_count: number;
-      }>;
     },
   });
 
@@ -1149,70 +1145,10 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
 
         <div className={styles.workspace}>
           {tab === "overview" ? (
-            <Stack>
-              {/* Marketplace stats tiles */}
-              <div className={styles.balanceTiles}>
-                <div className={`${styles.balanceTile} ${styles.accent}`}>
-                  <p className={styles.balanceTileLabel}>Баланс маркетплейса</p>
-                  <p className={styles.balanceTileValue}>
-                    {marketplaceStatsQuery.data
-                      ? formatMoney(marketplaceStatsQuery.data.balance_kopeks)
-                      : "—"}
-                  </p>
-                  <p className={styles.balanceTileNote}>Комиссия с заказов рефералов.</p>
-                </div>
-                <div className={styles.balanceTile}>
-                  <p className={styles.balanceTileLabel}>Заработано всего</p>
-                  <p className={styles.balanceTileValue}>
-                    {marketplaceStatsQuery.data
-                      ? formatMoney(marketplaceStatsQuery.data.total_earnings_kopeks)
-                      : "—"}
-                  </p>
-                  <p className={styles.balanceTileNote}>За всё время работы.</p>
-                </div>
-                <div className={styles.balanceTile}>
-                  <p className={styles.balanceTileLabel}>Приведено заказчиков</p>
-                  <p className={styles.balanceTileValue}>
-                    {marketplaceStatsQuery.data
-                      ? formatNumber(marketplaceStatsQuery.data.referral_count)
-                      : "—"}
-                  </p>
-                  <p className={styles.balanceTileNote}>Зарегистрировались по вашей ссылке.</p>
-                </div>
-              </div>
-
-              <SectionCard
-                title="Реферальная ссылка маркетплейса"
-                lead="Приглашайте заказчиков на маркетплейс — получайте комиссию с каждого оплаченного заказа."
-              >
-                <div className={styles.payoutRow}>
-                  <Field label="Ваша ссылка">
-                    <TextInput
-                      readOnly
-                      value={referralQuery.data?.referral_url ?? "Загрузка..."}
-                    />
-                  </Field>
-                  <div className={styles.payoutActions}>
-                    <Button
-                      kind="secondary"
-                      onClick={async () => {
-                        if (!referralQuery.data?.referral_url) return;
-                        await navigator.clipboard.writeText(referralQuery.data.referral_url);
-                        setReferralCopied(true);
-                        setTimeout(() => setReferralCopied(false), 1600);
-                        pushToast("Ссылка скопирована", "success");
-                      }}
-                      disabled={!referralQuery.data?.referral_url}
-                    >
-                      {referralCopied ? "Скопировано ✓" : "Копировать"}
-                    </Button>
-                  </div>
-                </div>
-                <Message tone="default">
-                  Когда заказчик регистрируется по вашей ссылке, он навсегда закрепляется за вами. Вы будете получать комиссию с его заказов.
-                </Message>
-              </SectionCard>
-            </Stack>
+            <MarketplaceOverview
+              referralUrl={referralQuery.data?.referral_url ?? null}
+              referralLoading={referralQuery.isLoading}
+            />
           ) : null}
 
           {tab === "scripts" ? (
@@ -1220,19 +1156,54 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
               title="Скрипты сообщений"
               lead="Готовые шаблоны для переписки. Нажмите «Скопировать» — текст уйдёт в буфер."
             >
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1rem" }}>
+                <TextInput
+                  value={scriptSearch}
+                  onChange={(e) => setScriptSearch(e.target.value)}
+                  placeholder="Поиск по скриптам..."
+                />
+                {scriptCategoriesQuery.data && scriptCategoriesQuery.data.categories.length > 1 ? (
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <Button
+                      kind={scriptCategory === "" ? "primary" : "ghost"}
+                      onClick={() => setScriptCategory("")}
+                      type="button"
+                    >
+                      Все
+                    </Button>
+                    {scriptCategoriesQuery.data.categories.map((cat) => (
+                      <Button
+                        key={cat}
+                        kind={scriptCategory === cat ? "primary" : "ghost"}
+                        onClick={() => setScriptCategory(cat)}
+                        type="button"
+                      >
+                        {cat}
+                      </Button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
               {scriptsQuery.isLoading ? (
                 <SkeletonTable rows={3} />
               ) : !scriptsQuery.data || scriptsQuery.data.length === 0 ? (
                 <EmptyState
                   icon={<Icon d={ICONS.scripts} />}
                   title="Скриптов пока нет"
-                  text="Скрипты появятся здесь, когда администратор их добавит."
+                  text={scriptSearch || scriptCategory ? "Попробуйте изменить фильтры." : "Скрипты появятся здесь, когда администратор их добавит."}
                 />
               ) : (
                 <div className={styles.scriptGrid}>
                   {scriptsQuery.data.map((script) => (
                     <article className={styles.scriptCard} key={script.id}>
                       <h3>{script.title}</h3>
+                      {script.keywords.length > 0 ? (
+                        <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+                          {script.keywords.map((kw) => (
+                            <span key={kw} style={{ fontSize: "0.7rem", padding: "0.1rem 0.4rem", borderRadius: "4px", background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)" }}>{kw}</span>
+                          ))}
+                        </div>
+                      ) : null}
                       <p>{script.body}</p>
                       <div className={styles.scriptActions}>
                         <CopyButton

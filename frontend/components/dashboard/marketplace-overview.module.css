@@ -1,0 +1,422 @@
+/* =========================================================
+   Marketplace Overview — Worker cabinet overview section.
+   Clean stat cards + earnings chart + referral link.
+   Premium monochrome design language.
+   ========================================================= */
+
+/* ---------- Stats row (3-col, collapses to 1 on mobile) ---------- */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.6rem;
+}
+
+.statCard {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1.5rem 1.6rem;
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 60%),
+    var(--surface-raised);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--transition-base), transform var(--transition-base);
+}
+
+.statCard:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.statCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(300px 120px at 12% 0%, rgba(255, 255, 255, 0.03), transparent 60%);
+  border-radius: inherit;
+}
+
+.statCardAccent {
+  border-color: var(--border-strong);
+  background:
+    radial-gradient(400px 160px at 10% 0%, rgba(255, 255, 255, 0.045), transparent 60%),
+    linear-gradient(135deg, #0a0a0a, #111);
+}
+
+.statLabel {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+  position: relative;
+  z-index: 1;
+}
+
+.statValue {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.4rem, 2.2vw, 1.8rem);
+  letter-spacing: -0.035em;
+  color: var(--text-strong);
+  line-height: 1.1;
+  position: relative;
+  z-index: 1;
+}
+
+.statNote {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  line-height: 1.45;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Chart section ---------- */
+
+.chartSection {
+  display: grid;
+  gap: 1.3rem;
+  padding: 1.6rem 1.7rem;
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent 55%),
+    var(--surface-raised);
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.6rem;
+}
+
+.chartSection::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(520px 200px at 90% 0%, rgba(255, 255, 255, 0.02), transparent 65%);
+  border-radius: inherit;
+}
+
+.chartHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.chartHeaderLeft {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.chartEyebrow {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.6rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.chartTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
+}
+
+.chartPeriod {
+  display: inline-flex;
+  gap: 0.3rem;
+  position: relative;
+  z-index: 1;
+}
+
+.chartPeriodBtn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-soft);
+  font: inherit;
+  font-family: var(--font-narrow);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    color var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.chartPeriodBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.chartPeriodBtnActive {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-strong);
+  border-color: var(--border-strong);
+}
+
+/* SVG chart area */
+
+.chartArea {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.chartSvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.chartEmpty {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-soft);
+  text-align: center;
+  padding: 2rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* Mini legend below chart */
+
+.chartLegend {
+  display: flex;
+  gap: 1.6rem;
+  position: relative;
+  z-index: 1;
+}
+
+.chartLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-narrow);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.chartLegendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---------- Referral link card ---------- */
+
+.referralSection {
+  display: grid;
+  gap: 1.2rem;
+  padding: 1.7rem 1.9rem;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(420px 180px at 12% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
+    radial-gradient(420px 180px at 100% 100%, rgba(255, 255, 255, 0.025), transparent 60%),
+    linear-gradient(135deg, #0a0a0a, #131313);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-soft);
+  position: relative;
+  overflow: hidden;
+}
+
+.referralSection::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 32%);
+  border-radius: inherit;
+}
+
+.referralSection > * {
+  position: relative;
+  z-index: 1;
+}
+
+.referralHeader {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.referralTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
+}
+
+.referralDesc {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  max-width: 60ch;
+}
+
+/* Link + copy row */
+
+.referralLinkRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.referralLinkLabel {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-narrow);
+  font-size: 0.58rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.referralLinkInput {
+  appearance: none;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-strong);
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  letter-spacing: -0.005em;
+  outline: none;
+  cursor: text;
+  transition: border-color var(--transition-base);
+}
+
+.referralLinkInput:focus {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.referralCopyBtn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.84rem;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    transform var(--transition-base);
+}
+
+.referralCopyBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.referralCopyBtn:active {
+  transform: translateY(0);
+}
+
+.referralCopied {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Info note */
+
+.referralNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.referralNoteIcon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--text-soft);
+  margin-top: 1px;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 800px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+  .statCard {
+    padding: 1.1rem 1.2rem;
+    gap: 0.35rem;
+  }
+  .statValue {
+    font-size: 1.35rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .statsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .statsGrid > :first-child {
+    grid-column: 1 / -1;
+  }
+  .chartSection {
+    padding: 1.2rem 1.3rem;
+  }
+  .chartArea {
+    height: 140px;
+  }
+  .referralSection {
+    padding: 1.3rem 1.4rem;
+  }
+  .referralLinkRow {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+}
