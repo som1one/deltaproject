@@ -38,18 +38,37 @@ async def check_user_subscribed(telegram_user_id: str, channel_id: str) -> bool:
     """Call Telegram Bot API getChatMember to verify subscription.
 
     Returns True if the user is a member/admin/creator of the channel.
+    Returns False on network errors (fail-closed) to enforce subscription.
     """
     bot_token = settings.telegram_oauth_bot_token.strip()
     if not bot_token:
         logger.warning("TELEGRAM_OAUTH_BOT_TOKEN not set, skipping subscription check")
         return True  # Fail-open if bot token not configured
 
-    url = f"https://api.telegram.org/bot{bot_token}/getChatMember"
+    # Use proxy if configured (needed for servers where api.telegram.org is blocked)
+    proxy_url = settings.telegram_oauth_proxy.strip() or None
+    is_reverse_proxy = proxy_url and proxy_url.startswith("https://")
+
+    if is_reverse_proxy:
+        # Cloudflare Worker reverse-proxy: rewrite the base URL
+        url = f"{proxy_url.rstrip('/')}/bot{bot_token}/getChatMember"
+        transport = None
+    else:
+        url = f"https://api.telegram.org/bot{bot_token}/getChatMember"
+        transport = httpx.AsyncHTTPTransport(proxy=proxy_url) if proxy_url else None
+
     params = {"chat_id": channel_id, "user_id": telegram_user_id}
 
+    headers: dict[str, str] = {}
+    proxy_secret = settings.telegram_oauth_proxy_secret.strip()
+    if proxy_secret:
+        headers["X-Proxy-Secret"] = proxy_secret
+
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(url, params=params)
+        async with httpx.AsyncClient(
+            timeout=15.0, transport=transport, trust_env=False,
+        ) as client:
+            resp = await client.get(url, params=params, headers=headers)
             data = resp.json()
 
         if not data.get("ok"):
@@ -64,9 +83,12 @@ async def check_user_subscribed(telegram_user_id: str, channel_id: str) -> bool:
         return status in _MEMBER_STATUSES
 
     except Exception:
-        logger.exception("Error checking Telegram channel subscription")
-        # Fail-open on network errors to not block registration
-        return True
+        logger.exception(
+            "Error checking Telegram channel subscription for user=%s channel=%s",
+            telegram_user_id, channel_id,
+        )
+        # Fail-CLOSED: if we can't verify, deny access to enforce subscription
+        return False
 
 
 async def record_subscription(

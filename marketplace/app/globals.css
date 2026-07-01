@@ -81,6 +81,22 @@
   --transition-base: 220ms cubic-bezier(.2,.6,.2,1);
   --transition-slow: 480ms cubic-bezier(.2,.6,.2,1);
   --easing:          cubic-bezier(.2,.6,.2,1);
+
+  /* ---------- Brand Accents ---------- */
+  --brand-violet:       #6c47ff;
+  --brand-violet-soft:  rgba(108, 71, 255, 0.08);
+  --brand-violet-edge:  rgba(108, 71, 255, 0.18);
+  --brand-violet-glow:  rgba(108, 71, 255, 0.25);
+  --brand-indigo:       #4f46e5;
+  --brand-rose:         #e11d68;
+  --brand-rose-soft:    rgba(225, 29, 104, 0.07);
+  --brand-amber:        #d97706;
+  --brand-amber-soft:   rgba(217, 119, 6, 0.08);
+
+  /* ---------- Hero gradient ---------- */
+  --hero-grad-1: rgba(108, 71, 255, 0.06);
+  --hero-grad-2: rgba(79, 70, 229, 0.04);
+  --hero-grad-3: rgba(225, 29, 104, 0.04);
 }
 
 /* ---------- Reset / base ---------- */
@@ -134,7 +150,7 @@ video {
 }
 
 ::selection {
-  background: rgba(0, 0, 0, 0.12);
+  background: rgba(108, 71, 255, 0.15);
   color: #000000;
 }
 
@@ -148,7 +164,7 @@ video {
 }
 
 :focus-visible {
-  outline: 1px solid rgba(0, 0, 0, 0.45);
+  outline: 1px solid rgba(108, 71, 255, 0.5);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -214,6 +230,59 @@ video {
   to   { opacity: 1; }
 }
 
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes floatY {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-18px); }
+}
+
+@keyframes floatX {
+  0%, 100% { transform: translateX(0px); }
+  50%       { transform: translateX(12px); }
+}
+
+@keyframes pulseRing {
+  0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(108, 71, 255, 0.35); }
+  70%  { transform: scale(1);    box-shadow: 0 0 0 12px rgba(108, 71, 255, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(108, 71, 255, 0); }
+}
+
+@keyframes counterUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
 .fadeIn {
   animation: deltaFadeUp 700ms var(--easing) both;
+}
+
+.shimmerBlock {
+  background: linear-gradient(
+    90deg,
+    var(--surface-raised) 25%,
+    var(--surface-hover) 37%,
+    var(--surface-raised) 63%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease infinite;
 }

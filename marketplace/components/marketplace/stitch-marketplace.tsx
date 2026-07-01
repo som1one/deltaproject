@@ -107,7 +107,7 @@ export function AdMarketplaceShell({ children }: { children: React.ReactNode }) 
 }
 
 // ============================================================
-// Header
+// Header — Premium Hero
 // ============================================================
 
 interface PageHeaderProps {
@@ -116,15 +116,52 @@ interface PageHeaderProps {
   lead?: string;
   display?: boolean;
   stats?: Array<{ label: string; value: string | number }>;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
 }
 
-export function PageHeader({ eyebrow, title, lead, display, stats }: PageHeaderProps) {
+export function PageHeader({ eyebrow, title, lead, display, stats, searchValue, onSearchChange }: PageHeaderProps) {
+  // Generate decorative dots
+  const dots = Array.from({ length: 42 }, (_, i) => i);
+
   return (
     <header className={styles.pageHeader}>
+      {/* Decorative dots grid */}
+      <div className={styles.heroDecor} aria-hidden="true">
+        {dots.map((i) => (
+          <div key={i} className={styles.heroDecorDot} />
+        ))}
+      </div>
+
       {eyebrow && <span className={styles.eyebrow}>{eyebrow}</span>}
-      <h1 className={display ? styles.displayTitle : styles.title}>{title}</h1>
+      <h1 className={display ? styles.displayTitle : styles.title}>
+        {title}
+      </h1>
       {lead && <p className={styles.lead}>{lead}</p>}
-      
+
+      {/* Inline hero search */}
+      {onSearchChange !== undefined && (
+        <div className={styles.heroSearch}>
+          <span className={styles.heroSearchIcon} aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
+          <input
+            className={styles.heroSearchInput}
+            placeholder="Поиск по имени или нише..."
+            aria-label="Поиск блогеров"
+            value={searchValue ?? ""}
+            onChange={(e) => onSearchChange(e.target.value)}
+            id="hero-search"
+          />
+          <button className={styles.heroSearchBtn} type="button" aria-label="Искать">
+            Найти
+          </button>
+        </div>
+      )}
+
       {stats && stats.length > 0 && (
         <div className={styles.heroStats}>
           {stats.map((stat, i) => (
@@ -176,11 +213,13 @@ export function BloggerCardView({
 
   const formatAudience = (val?: number) => {
     if (val == null) return "—";
+    if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
+    if (val >= 1_000) return `${Math.round(val / 1_000)}K`;
     return new Intl.NumberFormat("ru-RU").format(val);
   };
 
   const imageSrc = blogger.profile_image_url || "/images/placeholder-portrait.jpg";
-  const trustScore = blogger.rating ? blogger.rating.toFixed(1) : "9.5"; // Mock score for design
+  const trustScore = blogger.rating ? blogger.rating.toFixed(1) : "9.5";
 
   return (
     <motion.article
@@ -194,12 +233,23 @@ export function BloggerCardView({
         <img src={imageSrc} alt={`Portrait of ${blogger.name}`} loading="lazy" />
         <div className={styles.tags}>
           <span className={styles.tag}>{categoryLabel(blogger.category)}</span>
+          {blogger.gender && (
+            <span className={styles.tag}>{genderLabel(blogger.gender)}</span>
+          )}
         </div>
         <button className={styles.saveButton} aria-label="Сохранить">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
           </svg>
         </button>
+        {blogger.orders_count != null && blogger.orders_count > 0 && (
+          <div className={styles.verifiedBadge}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+            </svg>
+            Проверен
+          </div>
+        )}
       </div>
 
       <div className={styles.cardBody}>
@@ -212,26 +262,28 @@ export function BloggerCardView({
           </div>
           <div className={styles.trustScore}>
             <div className={styles.trustScoreValue}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
               </svg>
               <span>{trustScore}</span>
             </div>
-            <span className={styles.trustScoreLabel}>Trust Score</span>
+            <span className={styles.trustScoreLabel}>Trust</span>
           </div>
         </div>
 
         <p className={styles.description}>
-          {blogger.description || "Блогер не добавил описание, но вы можете запросить у него статистику и условия."}
+          {blogger.description || "Профессиональный блогер, открыт к рекламным коллаборациям."}
         </p>
 
         <div className={styles.cardMetrics}>
-          <div>
+          <div className={styles.metricItem}>
             <div className={styles.propertyLabel}>Аудитория</div>
-            <div className={styles.metricValue}>{blogger.audience_size ? formatAudience(blogger.audience_size) : "Не указана"}</div>
+            <div className={styles.metricValue}>
+              {blogger.audience_size ? formatAudience(blogger.audience_size) : "—"}
+            </div>
           </div>
-          <div>
-            <div className={styles.propertyLabel}>CPV (~)</div>
+          <div className={styles.metricItem}>
+            <div className={styles.propertyLabel}>CPV</div>
             <div className={styles.metricValue}>{formatMoney(blogger.price_per_post)}</div>
           </div>
         </div>
@@ -240,6 +292,7 @@ export function BloggerCardView({
           className={styles.orderButton}
           onClick={() => onOrder?.(blogger)}
           type="button"
+          id={`order-btn-${blogger.id}`}
         >
           Предложить проект
         </button>
@@ -254,17 +307,18 @@ export function BloggerCardSkeleton() {
       <div className={styles.skeletonPortrait} />
       <div className={styles.cardBody}>
         <div className={styles.cardHeader}>
-          <div style={{ width: "60%" }}>
-            <div style={{ height: 28, background: "var(--surface-raised)", borderRadius: 4, marginBottom: 8 }} />
-            <div style={{ height: 16, background: "var(--surface-raised)", borderRadius: 4, width: "50%" }} />
+          <div style={{ width: "65%", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className={styles.skeletonLine} style={{ height: 22, width: "80%" }} />
+            <div className={styles.skeletonLine} style={{ height: 14, width: "50%" }} />
           </div>
+          <div className={styles.skeletonLine} style={{ height: 32, width: 40, borderRadius: 4 }} />
         </div>
-        <div style={{ height: 48, background: "var(--surface-raised)", borderRadius: 4, marginBottom: 24 }} />
+        <div className={styles.skeletonLine} style={{ height: 40, marginBottom: 18 }} />
         <div className={styles.cardMetrics}>
-          <div style={{ height: 32, background: "var(--surface-raised)", borderRadius: 4 }} />
-          <div style={{ height: 32, background: "var(--surface-raised)", borderRadius: 4 }} />
+          <div className={styles.skeletonLine} style={{ height: 36 }} />
+          <div className={styles.skeletonLine} style={{ height: 36 }} />
         </div>
-        <div style={{ height: 44, background: "var(--surface-raised)", borderRadius: 4 }} />
+        <div className={styles.skeletonLine} style={{ height: 42 }} />
       </div>
     </div>
   );
