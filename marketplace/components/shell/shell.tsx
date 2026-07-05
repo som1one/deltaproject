@@ -1,31 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { LogOut, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { useAuth } from "@/lib/auth-context";
-import { useTheme } from "@/lib/theme-context";
 import { appConfig } from "@/lib/config";
 
 import styles from "./shell.module.css";
-
-export const ThemeToggle = () => {
-  const { theme, toggleTheme } = useTheme();
-  return (
-    <button
-      type="button"
-      className={styles.themeToggle}
-      onClick={toggleTheme}
-      aria-label={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-      title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
-    >
-      {theme === "dark" ? <Sun size={16} strokeWidth={1.6} /> : <Moon size={16} strokeWidth={1.6} />}
-    </button>
-  );
-};
 
 type NavItem = { href: string; label: string };
 
@@ -35,7 +18,15 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
   const reduceMotion = useReducedMotion() ?? false;
   const { isHydrated, isAuthenticated, isBlogger, isClient, userName, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -60,11 +51,11 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
     { href: "/#how", label: "Как это работает" },
   ];
   if (isHydrated && isAuthenticated && isClient) {
-    navItems.push({ href: "/orders", label: "Мои заказы" });
+    navItems.push({ href: "/orders", label: "Мои сделки" });
     navItems.push({ href: "/support", label: "Поддержка" });
   }
   if (isHydrated && isAuthenticated && isBlogger) {
-    navItems.push({ href: "/blogger", label: "Заказы блогера" });
+    navItems.push({ href: "/blogger", label: "Входящие" });
   }
 
   const handleLogout = async () => {
@@ -76,7 +67,7 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className={styles.shell}>
-      <header className={styles.header}>
+      <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}>
         <div className={styles.headerRow}>
           <Link href="/" className={styles.brand} onClick={closeMenu}>
             <span className={styles.brandMark}>looney moon</span>
@@ -95,28 +86,17 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
             ))}
           </nav>
 
-          <div className={styles.spacer} />
-
           <div className={styles.actions}>
-            <ThemeToggle />
             {authed ? (
               <span className={styles.userChip}>
-                <span>
-                  <span className={styles.userRole}>{isBlogger ? "блогер" : "заказчик"}</span>{" "}
-                  <span className={styles.userName}>{userName ?? "Аккаунт"}</span>
-                </span>
-                <button
-                  type="button"
-                  className={styles.logoutBtn}
-                  onClick={handleLogout}
-                  aria-label="Выйти"
-                  title="Выйти"
-                >
-                  <LogOut size={14} strokeWidth={1.8} />
+                <span className={styles.userRole}>{isBlogger ? "автор" : "заказчик"}</span>
+                <span className={styles.userName}>{userName ?? "Аккаунт"}</span>
+                <button type="button" className={styles.logoutBtn} onClick={handleLogout}>
+                  Выйти
                 </button>
               </span>
             ) : (
-              <Link href="/auth/login" className={`${styles.cta} ${styles.ctaDesktop}`}>
+              <Link href="/auth/login" className={styles.ctaDesktop}>
                 Войти
               </Link>
             )}
@@ -128,7 +108,6 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen((v) => !v)}
             >
-              <span className={styles.burgerLine} />
               <span className={styles.burgerLine} />
               <span className={styles.burgerLine} />
             </button>
@@ -143,7 +122,7 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
               initial={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
               animate={reduceMotion ? { opacity: 1 } : { opacity: 1, height: "auto" }}
               exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: [0.2, 0.6, 0.2, 1] }}
+              transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
             >
               <ul className={styles.mobileList}>
                 {navItems.map(({ href, label }) => (
@@ -155,7 +134,7 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
                 ))}
                 {!authed && (
                   <li>
-                    <Link href="/auth/login" className={styles.mobileCta} onClick={closeMenu}>
+                    <Link href="/auth/login" className={styles.mobileLink} onClick={closeMenu}>
                       Войти
                     </Link>
                   </li>
@@ -170,37 +149,46 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <div className={styles.footerBrandBlock}>
-            <Link href="/" className={styles.brand}>
-              <span className={styles.brandMark}>looney moon</span>
-              <span className={styles.brandSub}>market</span>
-            </Link>
-            <p className={styles.footerText}>
-              Кураторский маркетплейс рекламных интеграций. Избранные авторы,
-              безопасная сделка, деньги под защитой платформы до подтверждения результата.
-            </p>
+          <div className={styles.footerTop}>
+            <div className={styles.footerBrandBlock}>
+              <Link href="/" className={styles.footerBrand}>
+                <span className={styles.footerBrandMark}>looney moon</span>
+                <span className={styles.footerBrandSub}>market</span>
+              </Link>
+              <p className={styles.footerText}>
+                Кураторский реестр рекламных размещений. Ручной отбор авторов,
+                безопасная сделка: оплата удерживается платформой до подтверждения публикации.
+              </p>
+            </div>
+            <div className={styles.footerCols}>
+              <div className={styles.footerCol}>
+                <span className={styles.footerColTitle}>Маркет</span>
+                <Link href="/catalog" className={styles.footerLink}>Каталог авторов</Link>
+                <Link href="/#how" className={styles.footerLink}>Как проходит сделка</Link>
+                <Link href="/orders" className={styles.footerLink}>Мои сделки</Link>
+                <Link href="/support" className={styles.footerLink}>Поддержка</Link>
+              </div>
+              <div className={styles.footerCol}>
+                <span className={styles.footerColTitle}>Авторам</span>
+                <Link href="/auth/login?role=blogger" className={styles.footerLink}>Вход для авторов</Link>
+                <a href={appConfig.mainAppUrl} className={styles.footerLink} target="_blank" rel="noreferrer">
+                  Платформа looney moon
+                </a>
+                <a
+                  href={`${appConfig.mainAppUrl}/blogger/profile`}
+                  className={styles.footerLink}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Управление профилем
+                </a>
+              </div>
+            </div>
           </div>
-          <div className={styles.footerCol}>
-            <span className={styles.footerColTitle}>Маркет</span>
-            <Link href="/catalog" className={styles.footerLink}>Каталог блогеров</Link>
-            <Link href="/#how" className={styles.footerLink}>Как это работает</Link>
-            <Link href="/orders" className={styles.footerLink}>Мои заказы</Link>
-            <Link href="/support" className={styles.footerLink}>Поддержка</Link>
+          <div className={styles.footerBottom}>
+            <span className={styles.footerFine}>© {new Date().getFullYear()} looney moon · сделки под защитой платформы</span>
+            <span className={styles.footerFine}>marketplace.looneymoon.ru</span>
           </div>
-          <div className={styles.footerCol}>
-            <span className={styles.footerColTitle}>Блогерам</span>
-            <Link href="/auth/login?role=blogger" className={styles.footerLink}>Вход для блогеров</Link>
-            <a href={appConfig.mainAppUrl} className={styles.footerLink} target="_blank" rel="noreferrer">
-              Платформа looney moon
-            </a>
-            <a href={`${appConfig.mainAppUrl}/blogger/profile`} className={styles.footerLink} target="_blank" rel="noreferrer">
-              Управление профилем
-            </a>
-          </div>
-        </div>
-        <div className={styles.footerBottom}>
-          <span className={styles.footerFine}>© {new Date().getFullYear()} looney moon. Все права защищены.</span>
-          <span className={styles.footerFine}>Оплата проходит через защищённую сделку платформы</span>
         </div>
       </footer>
     </div>

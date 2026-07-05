@@ -1,372 +1,621 @@
-/* ── Landing — quiet luxury ──────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   Лендинг — «Реестр»
+   ═══════════════════════════════════════════════════════════ */
+
+.section {
+  padding-top: var(--section);
+}
+
+.sectionHead {
+  max-width: 640px;
+  margin-bottom: clamp(36px, 5vw, 56px);
+}
+
+.sectionTitle {
+  margin-top: 16px;
+}
+
+/* ── Hero (7/5) ───────────────────────────────────────────── */
 
 .hero {
-  position: relative;
-  padding: clamp(64px, 11vw, 140px) 0 clamp(48px, 8vw, 96px);
-  overflow: hidden;
+  padding: clamp(52px, 8vw, 104px) 0 0;
 }
 
-.heroGlow {
-  position: absolute;
-  inset: -40% -20% auto;
-  height: 130%;
-  background:
-    radial-gradient(42% 55% at 22% 30%, var(--bronze-soft), transparent 70%),
-    radial-gradient(36% 48% at 78% 18%, var(--status-info-soft), transparent 72%);
-  pointer-events: none;
-  filter: blur(8px);
-}
-
-.heroInner {
-  position: relative;
+.heroGrid {
   display: grid;
-  grid-template-columns: 1.25fr 0.75fr;
-  gap: clamp(32px, 6vw, 80px);
+  grid-template-columns: 7fr 5fr;
+  gap: clamp(40px, 6vw, 88px);
   align-items: center;
+}
+
+.heroTitle {
+  margin: 22px 0 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(40px, 5.6vw, 66px);
+  line-height: 1.08;
+  letter-spacing: -0.008em;
+  color: var(--ink);
+}
+
+.line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.04em;
+}
+
+.lineInner {
+  display: inline-block;
+  animation: maskRise 0.72s var(--ease) both;
+}
+
+.heroLead {
+  margin: 26px 0 0;
+  max-width: 46ch;
+  font-size: clamp(16px, 1.7vw, 18px);
+  line-height: 1.62;
+  color: var(--ink-70);
 }
 
 .heroActions {
+  display: flex;
+  align-items: center;
+  gap: 26px;
   margin-top: 36px;
+}
+
+/* Живая карточка сделки из «Реестра» */
+.dealCard {
+  border: 1px solid var(--hairline-strong);
+  border-top: 2px solid var(--brass);
+  border-radius: var(--r);
+  padding: 26px 26px 24px;
+  background: color-mix(in srgb, var(--bone) 55%, #fff);
+}
+
+.dealCardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dealCardNo {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.dealCardTag {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--brass-ink);
+}
+
+.dealCardRule {
+  border: none;
+  border-top: 1px solid var(--hairline);
+  margin: 20px 0;
+}
+
+.dealCardBody {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.dealAuthor {
   display: flex;
   align-items: center;
   gap: 14px;
-  flex-wrap: wrap;
 }
 
-.heroStats {
-  margin-top: clamp(40px, 6vw, 64px);
-  display: flex;
-  gap: clamp(28px, 5vw, 64px);
-  flex-wrap: wrap;
-}
-
-.heroAside {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.heroCard {
-  background: var(--surface-base);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 24px 26px;
-  box-shadow: var(--shadow-card);
+.dealMono {
+  width: 46px;
+  height: 46px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  transition: transform var(--transition-base), border-color var(--transition-base),
-    box-shadow var(--transition-base);
+  justify-content: center;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r);
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--brass);
+  background: var(--stone);
 }
 
-.heroCard:hover {
-  transform: translateY(-3px);
-  border-color: rgba(150, 121, 77, 0.22);
-  box-shadow: var(--shadow-hover);
+.dealName {
+  font-family: var(--font-display);
+  font-size: 19px;
+  line-height: 1.2;
+  color: var(--ink);
 }
 
-/* Hero visual (image panel) */
+.dealNiche {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+}
 
-.heroVisual {
+.dealSumLabel {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+  text-align: right;
+}
+
+.dealSum {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.dealStamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.dealFine {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--hairline);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-55);
+}
+
+/* ── Строка фактов ────────────────────────────────────────── */
+
+.facts {
+  margin-top: clamp(56px, 8vw, 96px);
+  padding: 22px 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.factsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--ink-70);
+}
+
+.factsRow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.factsRow span:not(:last-child)::after {
+  content: "·";
+  color: var(--ink-40);
+}
+
+.factStrong {
+  color: var(--ink);
+}
+
+/* ── Указатель ниш ────────────────────────────────────────── */
+
+.indexGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 clamp(40px, 6vw, 88px);
+}
+
+.indexItem {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--ink);
+  transition: color var(--dur) var(--ease);
+}
+
+.indexItem:hover {
+  color: var(--loden);
+}
+
+.indexNum {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--brass);
+  min-width: 22px;
+}
+
+.indexLabel {
+  font-family: var(--font-display);
+  font-size: 21px;
+}
+
+.indexLeader {
+  flex: 1;
+  align-self: center;
+  border-bottom: 1px dotted var(--hairline-strong);
+  height: 1px;
+  margin: 0 2px;
+}
+
+.indexArrow {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--ink-40);
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.indexItem:hover .indexArrow {
+  color: var(--loden);
+  transform: translateX(3px);
+}
+
+/* ── Подборка недели ──────────────────────────────────────── */
+
+.featuredList {
+  border-top: 1px solid var(--hairline);
+}
+
+.record {
   position: relative;
-  aspect-ratio: 3 / 4;
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-panel);
+  display: grid;
+  grid-template-columns: 60px 1fr auto auto 28px;
+  align-items: center;
+  gap: 24px;
+  padding: 22px 12px;
+  border-bottom: 1px solid var(--hairline);
+  transition: background-color var(--dur) var(--ease);
 }
 
-.heroImg {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+.record:hover {
+  background: var(--stone);
 }
 
-.heroVisualScrim {
+.recordLeft {
+  position: relative;
+  width: 52px;
+  height: 64px;
+}
+
+.recordNum {
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(70% 40% at 50% 0%, rgba(150, 121, 77, 0.22), transparent 70%),
-    linear-gradient(180deg, rgba(23, 20, 16, 0) 42%, rgba(23, 20, 16, 0.58) 100%);
-}
-
-.heroSeal {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 13px 15px;
-  border-radius: var(--radius-lg);
-  background: var(--surface-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-card);
-}
-
-.heroSealIcon {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  background: var(--bronze-soft);
-  border: 1px solid rgba(150, 121, 77, 0.22);
-  color: var(--bronze-deep);
-}
-
-.heroSealTitle {
-  display: block;
+  font-family: var(--font-mono);
   font-size: 14px;
-  font-weight: 600;
-  color: var(--text-strong);
+  color: var(--brass);
+  transition: opacity var(--dur) var(--ease);
 }
 
-.heroSealText {
-  display: block;
-  margin-top: 2px;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--text-muted);
+.recordPortrait {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 
-/* Trust row */
-
-.trustSection {
-  padding-top: clamp(28px, 5vw, 52px);
+.record:hover .recordNum {
+  opacity: 0;
 }
 
-.trustRow {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+.record:hover .recordPortrait {
+  opacity: 1;
+  transform: translateX(0);
 }
 
-.heroCardIcon {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(150, 121, 77, 0.20);
-  background: var(--bronze-soft);
-  color: var(--bronze-deep);
-}
-
-.heroCardTitle {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-strong);
-}
-
-.heroCardText {
-  margin: 3px 0 0;
-  font-size: 13px;
-  line-height: 1.55;
-  color: var(--text-muted);
-}
-
-/* Categories strip */
-
-.stripSection {
-  padding-top: clamp(24px, 4vw, 40px);
-}
-
-.strip {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-/* Featured bloggers */
-
-.bloggersGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
-}
-
-/* How it works */
-
-.howGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 20px;
-  counter-reset: how;
-}
-
-.howCard {
-  position: relative;
-  background: var(--surface-base);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 26px 24px 24px;
-  counter-increment: how;
-  transition: border-color var(--transition-base), transform var(--transition-base);
-}
-
-.howCard:hover {
-  border-color: rgba(150, 121, 77, 0.22);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-card);
-}
-
-.howNum {
+.recordName {
   font-family: var(--font-display);
-  font-size: 44px;
-  font-weight: 500;
-  line-height: 1;
-  color: var(--bronze);
-  opacity: 0.85;
+  font-size: clamp(22px, 2.6vw, 28px);
+  line-height: 1.15;
+  color: var(--ink);
 }
 
-.howNum::before {
-  content: "0" counter(how);
-}
-
-.howTitle {
-  margin: 16px 0 0;
-  font-size: 16px;
+.recordNiche {
+  margin-top: 4px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--text-strong);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-55);
 }
 
-.howText {
-  margin: 8px 0 0;
-  font-size: 13.5px;
-  line-height: 1.62;
-  color: var(--text-muted);
+.recordReach {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--ink-70);
+  text-align: right;
 }
 
-/* Guarantee band */
-
-.band {
-  margin-top: clamp(56px, 9vw, 110px);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--border);
-  background:
-    radial-gradient(60% 120% at 15% 0%, var(--bronze-soft), transparent 60%),
-    var(--surface-base);
-  padding: clamp(28px, 4vw, 48px);
-  display: grid;
-  grid-template-columns: 0.85fr 1.15fr;
-  gap: clamp(28px, 4vw, 48px);
-  align-items: stretch;
-  box-shadow: var(--shadow-panel);
-}
-
-.bandVisual {
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-card);
-  min-height: 280px;
-}
-
-.bandImg {
-  width: 100%;
-  height: 100%;
-  min-height: 280px;
-  object-fit: cover;
+.recordReach span {
   display: block;
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+  margin-top: 2px;
 }
 
-.bandBody {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.recordPrice {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--ink);
+  white-space: nowrap;
+  text-align: right;
 }
 
-.bandList {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin: clamp(24px, 3vw, 32px) 0 0;
-  padding: 0;
-  list-style: none;
+.recordPrice span {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+  margin-top: 2px;
 }
 
-.bandItem {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
+.recordArrow {
+  font-family: var(--font-mono);
+  color: var(--ink-40);
+  text-align: right;
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.record:hover .recordArrow {
+  color: var(--loden);
+  transform: translateX(3px);
+}
+
+.featuredFoot {
+  margin-top: 28px;
+}
+
+/* ── Процесс (документальная лента) ───────────────────────── */
+
+.processGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.step {
+  padding: 32px 28px 0 0;
+  border-right: 1px solid var(--hairline);
+}
+
+.step:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+.stepNum {
+  font-family: var(--font-display);
+  font-size: 40px;
+  line-height: 1;
+  color: var(--brass);
+}
+
+.stepTitle {
+  margin: 20px 0 10px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.stepText {
   font-size: 14.5px;
-  line-height: 1.6;
-  color: var(--text);
+  line-height: 1.55;
+  color: var(--ink-70);
 }
 
-.bandCheck {
-  flex-shrink: 0;
-  margin-top: 3px;
-  width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--bronze-soft);
-  color: var(--bronze-deep);
+/* ── Условия сделки (тёмная секция) ───────────────────────── */
+
+.terms {
+  margin-top: var(--section);
+  background: var(--ink);
+  color: var(--on-ink);
+  padding: clamp(64px, 9vw, 120px) 0;
 }
 
-/* CTA final */
-
-.finalCta {
-  margin-top: clamp(56px, 9vw, 110px);
-  text-align: center;
-  padding-bottom: 10px;
+.termsBrow {
+  color: var(--brass);
 }
 
-.finalActions {
-  margin-top: 30px;
+.termsGrid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: clamp(40px, 6vw, 80px);
+  align-items: start;
+  margin-top: 26px;
+}
+
+.termsTitle {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.6vw, 42px);
+  line-height: 1.14;
+  color: var(--on-ink);
+  max-width: 18ch;
+}
+
+.termsLead {
+  margin-top: 22px;
+  max-width: 52ch;
+  font-size: 16px;
+  line-height: 1.62;
+  color: var(--on-ink-70);
+}
+
+.clauseList {
+  margin-top: 8px;
+}
+
+.clause {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 12px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--on-ink-line);
+}
+
+.clause:first-child {
+  border-top: 1px solid var(--on-ink-line);
+}
+
+.clauseNo {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--brass);
+}
+
+.clauseText {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--on-ink-70);
+}
+
+.termsAside {
   display: flex;
-  justify-content: center;
-  gap: 14px;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding-top: 8px;
+}
+
+.sealNote {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--on-ink-45);
+  text-align: center;
+  max-width: 22ch;
+}
+
+/* ── Финальный CTA ────────────────────────────────────────── */
+
+.cta {
+  margin-top: var(--section);
+}
+
+.ctaRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
   flex-wrap: wrap;
+  padding-bottom: 6px;
 }
 
-/* Responsive */
+.ctaTitle {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3.6vw, 44px);
+  line-height: 1.12;
+  color: var(--ink);
+  max-width: 16ch;
+}
 
-@media (max-width: 1020px) {
-  .bloggersGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .heroGrid {
+    grid-template-columns: 1fr;
+    gap: 44px;
   }
 
-  .howGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .processGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .step {
+    padding: 28px 24px 28px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .step:nth-child(2n) {
+    border-right: none;
+    padding-right: 0;
+  }
+
+  .termsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .termsAside {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .sealNote {
+    text-align: left;
   }
 }
 
-@media (max-width: 860px) {
-  .heroInner {
+@media (max-width: 640px) {
+  .indexGrid {
     grid-template-columns: 1fr;
   }
 
-  .heroVisual {
-    aspect-ratio: 4 / 3;
+  .record {
+    grid-template-columns: 44px 1fr auto;
+    gap: 14px;
+    padding: 18px 4px;
   }
 
-  .trustRow {
+  .recordLeft {
+    width: 40px;
+    height: 40px;
+  }
+
+  .recordPortrait {
+    display: none;
+  }
+
+  .recordReach,
+  .recordArrow {
+    display: none;
+  }
+
+  .processGrid {
     grid-template-columns: 1fr;
   }
 
-  .band {
-    grid-template-columns: 1fr;
+  .step,
+  .step:nth-child(2n) {
+    border-right: none;
+    padding: 26px 0;
   }
 }
 
-@media (max-width: 560px) {
-  .bloggersGrid,
-  .howGrid {
-    grid-template-columns: 1fr;
+@media (max-width: 400px) {
+  .dealCardBody {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .dealSumLabel,
+  .dealSum {
+    text-align: left;
   }
 }

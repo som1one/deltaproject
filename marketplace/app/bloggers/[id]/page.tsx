@@ -6,11 +6,12 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { MarketShell } from "@/components/shell/shell";
-import { Avatar } from "@/components/ui/bits";
+import { Portrait } from "@/components/ui/bits";
 import { categoryLabel } from "@/components/catalog/blogger-card";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { formatAudience, formatMoney } from "@/lib/format";
+import { formatAudience, formatDate, formatMoney } from "@/lib/format";
+import { provisionalDealNo, recordNo } from "@/lib/registry";
 import type { BloggerProfileFull, Order } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
@@ -18,17 +19,25 @@ import ui from "@/components/ui/ui.module.css";
 import styles from "./blogger.module.css";
 
 const ShieldIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
   </svg>
 );
 
-const DEFAULT_BRIEF = "Здравствуйте! Хотим обсудить рекламную интеграцию. Расскажу о продукте и пожеланиях к формату.";
+const genderLabel = (value: string | null): string => {
+  if (value === "female") return "Женская";
+  if (value === "male") return "Мужская";
+  if (value === "other") return "Смешанная";
+  return "Не указана";
+};
+
+const DEFAULT_BRIEF =
+  "Здравствуйте! Хотим обсудить рекламную интеграцию: расскажу о продукте и пожеланиях к формату.";
 
 export default function BloggerProfilePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { isHydrated, isAuthenticated, isClient, isBlogger } = useAuth();
+  const { isHydrated, isAuthenticated, isBlogger } = useAuth();
 
   const bloggerUserId = params.id;
 
@@ -53,7 +62,7 @@ export default function BloggerProfilePage() {
     mutationFn: async (): Promise<Order> => {
       const rub = Number(amountRub.replace(/\s/g, "").replace(",", "."));
       if (!Number.isFinite(rub) || rub < 1) {
-        throw new Error("Укажите корректную сумму заказа");
+        throw new Error("Укажите корректную сумму сделки");
       }
       return api.createOrder({
         blogger_id: bloggerUserId,
@@ -69,7 +78,7 @@ export default function BloggerProfilePage() {
         router.push(`/auth/login?next=/bloggers/${bloggerUserId}`);
         return;
       }
-      setFormError(err.message || "Не удалось создать заказ");
+      setFormError(err.message || "Не удалось создать сделку");
     },
   });
 
@@ -88,166 +97,178 @@ export default function BloggerProfilePage() {
       <div className={shell.pageContainer}>
         <div className={styles.wrap}>
           <Link href="/catalog" className={styles.backLink}>
-            ← В каталог
+            ← В указатель авторов
           </Link>
 
           {isLoading ? (
             <div className={styles.layout}>
-              <div>
-                <div className={ui.skeleton} style={{ height: 120, borderRadius: 20 }} />
-                <div className={ui.skeleton} style={{ height: 260, borderRadius: 20, marginTop: 26 }} />
-              </div>
-              <div className={ui.skeleton} style={{ height: 420, borderRadius: 28 }} />
+              <div className={ui.skeleton} style={{ aspectRatio: "4 / 5", maxWidth: 460 }} />
+              <div className={ui.skeleton} style={{ height: 440 }} />
             </div>
           ) : error || !blogger ? (
             <div className={ui.empty}>
-              <h3 className={ui.emptyTitle}>Профиль не найден</h3>
-              <p className={ui.muted}>Возможно, автор скрыл свою страницу или ссылка устарела.</p>
-              <Link href="/catalog" className={ui.btnSecondary} style={{ marginTop: 18 }}>
+              <h3 className={ui.emptyTitle}>Досье не найдено</h3>
+              <p className={ui.emptyText}>Возможно, автор скрыл страницу или ссылка устарела.</p>
+              <Link href="/catalog" className={ui.btnLine}>
                 Вернуться в каталог
               </Link>
             </div>
           ) : (
-            <div className={styles.layout}>
-              <article>
-                <header className={styles.profileHead}>
-                  <Avatar name={blogger.name} photoUrl={blogger.photo_url} size={92} />
-                  <div className={styles.headMeta}>
-                    <div className={styles.tagRow}>
-                      <span className={ui.badgeBronze}>{categoryLabel(blogger.category)}</span>
-                      {blogger.orders_enabled ? (
-                        <span className={ui.badgeSuccess}>Принимает заказы</span>
-                      ) : (
-                        <span className={ui.badge}>Заказы приостановлены</span>
-                      )}
-                    </div>
-                    <h1 className={styles.name}>{blogger.name}</h1>
-                  </div>
-                </header>
+            <>
+              <header className={styles.header}>
+                <span className={ui.brow}>Досье автора</span>
+                <h1 className={styles.name}>{blogger.name}</h1>
+                <div className={styles.tagRow}>
+                  <span className={styles.nicheTag}>{categoryLabel(blogger.category)}</span>
+                  {blogger.orders_enabled ? (
+                    <span className={ui.stampActive}>Принимает сделки</span>
+                  ) : (
+                    <span className={ui.stampMuted}>Сделки приостановлены</span>
+                  )}
+                </div>
+              </header>
 
-                <div className={styles.statsRow}>
-                  <div className={styles.statCard}>
-                    <div className={styles.statCardValue}>{formatAudience(blogger.subscriber_count)}</div>
-                    <div className={styles.statCardLabel}>подписчиков</div>
-                  </div>
-                  <div className={styles.statCard}>
-                    <div className={styles.statCardValue}>{formatMoney(blogger.average_price_kopeks)}</div>
-                    <div className={styles.statCardLabel}>средняя цена</div>
-                  </div>
-                  <div className={styles.statCard}>
-                    <div className={styles.statCardValue}>{categoryLabel(blogger.category)}</div>
-                    <div className={styles.statCardLabel}>ниша</div>
-                  </div>
+              <div className={styles.layout}>
+                {/* Левая колонка — портрет и нарратив */}
+                <div>
+                  <Portrait
+                    name={blogger.name}
+                    photoUrl={blogger.photo_url}
+                    className={styles.portrait}
+                    monoSize={88}
+                  />
+
+                  {blogger.description && (
+                    <section className={styles.block}>
+                      <h2 className={styles.blockTitle}>Об авторе</h2>
+                      <p className={styles.description}>{blogger.description}</p>
+                    </section>
+                  )}
+
+                  {blogger.social_links.length > 0 && (
+                    <section className={styles.block}>
+                      <h2 className={styles.blockTitle}>Площадки</h2>
+                      <div className={styles.linkList}>
+                        {blogger.social_links.map((link, i) => (
+                          <a key={link} href={link} target="_blank" rel="noreferrer" className={styles.linkItem}>
+                            <span className={styles.linkNum}>{recordNo(i)}</span>
+                            <span className={styles.linkUrl}>{link.replace(/^https?:\/\//, "")}</span>
+                            <span className={styles.linkArrow}>↗</span>
+                          </a>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {blogger.portfolio_links.length > 0 && (
+                    <section className={styles.block}>
+                      <h2 className={styles.blockTitle}>Портфолио публикаций</h2>
+                      <div className={styles.linkList}>
+                        {blogger.portfolio_links.map((link, i) => (
+                          <a key={link} href={link} target="_blank" rel="noreferrer" className={styles.linkItem}>
+                            <span className={styles.linkNum}>{recordNo(i)}</span>
+                            <span className={styles.linkUrl}>{link.replace(/^https?:\/\//, "")}</span>
+                            <span className={styles.linkArrow}>↗</span>
+                          </a>
+                        ))}
+                      </div>
+                    </section>
+                  )}
                 </div>
 
-                {blogger.description && (
-                  <>
-                    <h2 className={styles.blockTitle}>Об авторе</h2>
-                    <p className={styles.description}>{blogger.description}</p>
-                  </>
-                )}
-
-                {blogger.social_links.length > 0 && (
-                  <>
-                    <h2 className={styles.blockTitle}>Площадки</h2>
-                    <div className={styles.linkList}>
-                      {blogger.social_links.map((link) => (
-                        <a key={link} href={link} target="_blank" rel="noreferrer" className={styles.linkItem}>
-                          {link}
-                        </a>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {blogger.portfolio_links.length > 0 && (
-                  <>
-                    <h2 className={styles.blockTitle}>Портфолио</h2>
-                    <div className={styles.linkList}>
-                      {blogger.portfolio_links.map((link) => (
-                        <a key={link} href={link} target="_blank" rel="noreferrer" className={styles.linkItem}>
-                          {link}
-                        </a>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </article>
-
-              <aside className={styles.orderPanel}>
-                <span className={ui.eyebrow}>Новый заказ</span>
-                <div className={styles.orderPrice}>
-                  <span className={styles.orderPriceValue}>{formatMoney(blogger.average_price_kopeks)}</span>
-                  <span className={styles.orderPriceHint}>ориентир за интеграцию</span>
-                </div>
-
-                {isHydrated && isBlogger ? (
-                  <div className={ui.notice}>
-                    Вы вошли как блогер. Заказы могут оформлять только заказчики —
-                    ваши входящие заказы находятся в разделе «Заказы блогера».
+                {/* Правая колонка — факты и сделка */}
+                <aside className={styles.orderCard}>
+                  <div className={styles.orderHead}>
+                    <span className={styles.orderBrow}>Новая сделка</span>
+                    <span className={styles.orderDealNo}>№&nbsp;{provisionalDealNo(bloggerUserId)}</span>
                   </div>
-                ) : !blogger.orders_enabled ? (
-                  <div className={ui.notice}>
-                    Автор временно не принимает новые заказы. Загляните позже или выберите другого автора в каталоге.
+
+                  <div className={styles.orderPrice}>
+                    <span className={styles.orderPriceValue}>{formatMoney(blogger.average_price_kopeks)}</span>
+                    <span className={styles.orderPriceHint}>Ориентир за интеграцию</span>
                   </div>
-                ) : (
-                  <form className={ui.form} onSubmit={handleSubmit}>
-                    <label className={ui.field}>
-                      <span className={ui.fieldLabel}>Бюджет интеграции</span>
-                      <span className={styles.amountRow}>
-                        <input
-                          className={ui.input}
-                          inputMode="numeric"
+
+                  <div className={`${ui.defList} ${styles.facts}`}>
+                    <div className={ui.defRow}>
+                      <span className={ui.defKey}>Охват</span>
+                      <span className={`${ui.defValue} ${ui.mono}`}>{formatAudience(blogger.subscriber_count)}</span>
+                    </div>
+                    <div className={ui.defRow}>
+                      <span className={ui.defKey}>Ниша</span>
+                      <span className={ui.defValue}>{categoryLabel(blogger.category)}</span>
+                    </div>
+                    <div className={ui.defRow}>
+                      <span className={ui.defKey}>Аудитория</span>
+                      <span className={ui.defValue}>{genderLabel(blogger.gender)}</span>
+                    </div>
+                    <div className={ui.defRow}>
+                      <span className={ui.defKey}>В реестре с</span>
+                      <span className={`${ui.defValue} ${ui.mono}`}>{formatDate(blogger.created_at)}</span>
+                    </div>
+                  </div>
+
+                  {isHydrated && isBlogger ? (
+                    <div className={ui.notice}>
+                      Вы вошли как автор. Сделки оформляют заказчики — ваши входящие
+                      находятся в разделе «Входящие».
+                    </div>
+                  ) : !blogger.orders_enabled ? (
+                    <div className={ui.notice}>
+                      Автор временно не принимает сделки. Загляните позже или выберите другого в указателе.
+                    </div>
+                  ) : (
+                    <form className={ui.form} onSubmit={handleSubmit}>
+                      <label className={ui.field}>
+                        <span className={ui.fieldLabel}>Бюджет интеграции</span>
+                        <span className={styles.amountRow}>
+                          <input
+                            className={`${ui.input} ${ui.mono}`}
+                            inputMode="numeric"
+                            required
+                            value={amountRub}
+                            onChange={(e) => setAmountRub(e.target.value.replace(/[^\d\s.,]/g, ""))}
+                            aria-label="Сумма в рублях"
+                          />
+                          <span className={styles.amountSuffix}>₽</span>
+                        </span>
+                      </label>
+                      <label className={ui.field}>
+                        <span className={ui.fieldLabel}>Бриф для автора</span>
+                        <textarea
+                          className={ui.textarea}
+                          maxLength={1000}
+                          minLength={1}
                           required
-                          value={amountRub}
-                          onChange={(e) => setAmountRub(e.target.value.replace(/[^\d\s.,]/g, ""))}
-                          aria-label="Сумма в рублях"
+                          value={brief}
+                          onChange={(e) => setBrief(e.target.value)}
                         />
-                        <span className={styles.amountSuffix}>₽</span>
-                      </span>
-                    </label>
-                    <label className={ui.field}>
-                      <span className={ui.fieldLabel}>Бриф для автора</span>
-                      <textarea
-                        className={ui.textarea}
-                        maxLength={1000}
-                        minLength={1}
-                        required
-                        value={brief}
-                        onChange={(e) => setBrief(e.target.value)}
-                      />
-                    </label>
-                    {formError && <div className={ui.noticeDanger}>{formError}</div>}
-                    <button className={ui.btnPrimary} type="submit" disabled={orderMutation.isPending}>
-                      {orderMutation.isPending
-                        ? "Создаём заказ…"
-                        : isAuthenticated
-                          ? "Оформить заказ"
-                          : "Войти и оформить заказ"}
-                    </button>
-                    {isHydrated && !isAuthenticated && (
-                      <p className={ui.fine} style={{ textAlign: "center" }}>
-                        Нужен аккаунт заказчика —{" "}
-                        <Link href={`/auth/register?next=/bloggers/${bloggerUserId}`} style={{ color: "var(--bronze-deep)", fontWeight: 600 }}>
-                          создать за минуту
-                        </Link>
+                      </label>
+                      {formError && <div className={ui.noticeDanger}>{formError}</div>}
+                      <button className={`${ui.btnPrimary} ${ui.btnBlock}`} type="submit" disabled={orderMutation.isPending}>
+                        {orderMutation.isPending
+                          ? "Создаём сделку…"
+                          : isAuthenticated
+                            ? "Создать заказ"
+                            : "Войти и создать заказ"}
+                      </button>
+                      {isHydrated && !isAuthenticated && (
+                        <p className={ui.fine} style={{ textAlign: "center" }}>
+                          Нужен аккаунт заказчика —{" "}
+                          <Link href={`/auth/register?next=/bloggers/${bloggerUserId}`} className={ui.link}>
+                            создать за минуту
+                          </Link>
+                        </p>
+                      )}
+                      <p className={styles.secureNote}>
+                        <ShieldIcon />
+                        Оплата удерживается на счёте платформы и переходит автору только
+                        после того, как вы подтвердите публикацию.
                       </p>
-                    )}
-                    <p className={styles.secureNote}>
-                      <ShieldIcon />
-                      Оплата уходит на счёт платформы и передаётся автору только после того,
-                      как вы подтвердите результат.
-                    </p>
-                  </form>
-                )}
-
-                {isHydrated && isClient && (
-                  <p className={ui.fine} style={{ marginTop: 14 }}>
-                    После оформления вы получите реквизиты для оплаты в карточке заказа.
-                  </p>
-                )}
-              </aside>
-            </div>
+                    </form>
+                  )}
+                </aside>
+              </div>
+            </>
           )}
         </div>
       </div>

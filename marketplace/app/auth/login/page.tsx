@@ -154,7 +154,7 @@ function LoginForm() {
             </button>
             <p className={ui.fine} style={{ textAlign: "center" }}>
               Ещё не сотрудничаете с looney moon?{" "}
-              <a href={appConfig.mainAppUrl} target="_blank" rel="noreferrer" style={{ color: "var(--bronze-deep)", fontWeight: 600 }}>
+              <a href={appConfig.mainAppUrl} target="_blank" rel="noreferrer" className={ui.link}>
                 Узнать об условиях
               </a>
             </p>

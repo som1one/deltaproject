@@ -57,19 +57,17 @@ function SupportContent() {
       <div className={shell.pageContainer}>
         <header className={styles.head}>
           <div>
-            <span className={ui.eyebrow}>Служба заботы</span>
-            <h1 className={ui.displayTitle} style={{ fontSize: "clamp(32px, 5vw, 48px)" }}>
-              Поддержка
-            </h1>
+            <span className={ui.brow}>Служба поддержки</span>
+            <h1 className={styles.headTitle}>Спор по сделке</h1>
           </div>
         </header>
 
-        <div className={ui.grid2} style={{ alignItems: "start", paddingBottom: 20 }}>
-          <section className={ui.panel}>
-            <h2 className={styles.panelTitle}>Открыть спор по заказу</h2>
-            <p className={ui.muted} style={{ margin: "0 0 20px" }}>
-              Спор можно открыть по оплаченному заказу. Мы изучим детали и решим,
-              вернуть деньги или передать гонорар автору.
+        <div className={ui.grid2} style={{ alignItems: "start" }}>
+          <section className={styles.panel}>
+            <h2 className={styles.panelTitle}>Открыть спор</h2>
+            <p className={ui.muted} style={{ margin: "0 0 20px", fontSize: 14.5 }}>
+              Спор открывается по оплаченной сделке. Мы изучим детали и решим — вернуть
+              средства заказчику или передать гонорар автору.
             </p>
             {notice && (
               <div
@@ -88,13 +86,13 @@ function SupportContent() {
               }}
             >
               <label className={ui.field}>
-                <span className={ui.fieldLabel}>ID заказа</span>
+                <span className={ui.fieldLabel}>Идентификатор сделки</span>
                 <input
                   className={`${ui.input} ${ui.mono}`}
                   required
                   value={orderId}
                   onChange={(e) => setOrderId(e.target.value)}
-                  placeholder="например, 3f1c9b2e-…"
+                  placeholder="3f1c9b2e-…"
                 />
               </label>
               <label className={ui.field}>
@@ -105,21 +103,21 @@ function SupportContent() {
                   required
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Что пошло не так и какого решения вы ожидаете"
+                  placeholder="Что произошло и какого решения вы ожидаете"
                 />
               </label>
-              <button className={ui.btnPrimary} type="submit" disabled={createMutation.isPending}>
+              <button className={`${ui.btnPrimary} ${ui.btnBlock}`} type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending ? "Отправляем…" : "Отправить обращение"}
               </button>
             </form>
           </section>
 
-          <section className={ui.panel}>
+          <section className={styles.panel}>
             <h2 className={styles.panelTitle}>Мои обращения</h2>
             {isLoading ? (
-              <div className={ui.skeleton} style={{ height: 140, borderRadius: 16 }} />
+              <div className={ui.skeleton} style={{ height: 140 }} />
             ) : !tickets || tickets.items.length === 0 ? (
-              <p className={ui.muted} style={{ margin: 0 }}>
+              <p className={ui.muted} style={{ margin: 0, fontSize: 14.5 }}>
                 Обращений пока нет — надеемся, так и останется.
               </p>
             ) : (
@@ -127,19 +125,15 @@ function SupportContent() {
                 {tickets.items.map((ticket) => (
                   <div key={ticket.id} className={ui.defRow} style={{ alignItems: "flex-start" }}>
                     <span style={{ minWidth: 0 }}>
-                      <Link
-                        href={`/orders/${ticket.order_id}`}
-                        className={ui.mono}
-                        style={{ fontSize: 13, color: "var(--bronze-deep)", fontWeight: 600 }}
-                      >
-                        Заказ {ticket.order_id.slice(0, 8)}
+                      <Link href={`/orders/${ticket.order_id}`} className={`${ui.mono} ${ui.link}`} style={{ fontSize: 13 }}>
+                        Сделка {ticket.order_id.slice(0, 8)}
                       </Link>
                       <p className={ui.muted} style={{ margin: "6px 0 0", fontSize: 13.5 }}>
                         {ticket.message}
                       </p>
                       <span className={ui.fine}>{formatDateTime(ticket.created_at)}</span>
                     </span>
-                    <span className={ticket.status === "open" ? ui.badgeWarning : ui.badgeSuccess}>
+                    <span className={ticket.status === "open" ? ui.stampActive : ui.stampDone}>
                       {ticket.status === "open" ? "Открыт" : "Решён"}
                     </span>
                   </div>

@@ -6,10 +6,11 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { MarketShell } from "@/components/shell/shell";
-import { StatusBadge } from "@/components/ui/bits";
+import { StampBadge } from "@/components/ui/bits";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { formatDateTime, formatMoney } from "@/lib/format";
+import { dealNo } from "@/lib/registry";
 import type { OrdersResponse } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
@@ -39,14 +40,12 @@ export default function OrdersPage() {
       <div className={shell.pageContainer}>
         <header className={styles.head}>
           <div>
-            <span className={ui.eyebrow}>{isBlogger ? "Кабинет блогера" : "Кабинет заказчика"}</span>
-            <h1 className={ui.displayTitle} style={{ fontSize: "clamp(32px, 5vw, 48px)" }}>
-              Мои заказы
-            </h1>
+            <span className={ui.brow}>{isBlogger ? "Кабинет автора" : "Кабинет заказчика"}</span>
+            <h1 className={styles.headTitle}>Реестр сделок</h1>
           </div>
           {!isBlogger && (
-            <Link href="/catalog" className={ui.btnSecondary}>
-              + Новый заказ
+            <Link href="/catalog" className={ui.btnLine}>
+              Новая сделка
             </Link>
           )}
         </header>
@@ -54,21 +53,27 @@ export default function OrdersPage() {
         {isLoading ? (
           <div className={styles.list}>
             {Array.from({ length: 4 }, (_, i) => (
-              <div key={i} className={ui.skeleton} style={{ height: 84, borderRadius: 20 }} />
+              <div key={i} className={styles.orderRow} aria-hidden="true">
+                <span className={ui.skeleton} style={{ height: 16, width: 110 }} />
+                <span className={ui.skeleton} style={{ height: 20, width: "50%" }} />
+                <span />
+                <span className={ui.skeleton} style={{ height: 16, width: 90 }} />
+                <span className={ui.skeleton} style={{ height: 26, width: 120 }} />
+              </div>
             ))}
           </div>
         ) : error ? (
-          <div className={ui.noticeDanger}>Не удалось загрузить заказы. Обновите страницу.</div>
+          <div className={ui.noticeDanger}>Не удалось загрузить сделки. Обновите страницу.</div>
         ) : orders.length === 0 ? (
           <div className={ui.empty}>
-            <h3 className={ui.emptyTitle}>Пока пусто</h3>
-            <p className={ui.muted}>
+            <h3 className={ui.emptyTitle}>{isBlogger ? "Входящих сделок пока нет" : "Реестр пока пуст"}</h3>
+            <p className={ui.emptyText}>
               {isBlogger
-                ? "Новые заказы появятся здесь после оплаты заказчиком."
-                : "Выберите автора в каталоге и оформите первый заказ."}
+                ? "Новые сделки появятся здесь после того, как заказчик оплатит заказ."
+                : "Выберите автора в указателе и оформите первую сделку."}
             </p>
             {!isBlogger && (
-              <Link href="/catalog" className={ui.btnPrimary} style={{ marginTop: 18 }}>
+              <Link href="/catalog" className={ui.btnPrimary}>
                 Открыть каталог
               </Link>
             )}
@@ -77,6 +82,7 @@ export default function OrdersPage() {
           <div className={styles.list}>
             {orders.map((order) => (
               <Link key={order.id} href={`/orders/${order.id}`} className={styles.orderRow}>
+                <span className={styles.orderNum}>№&nbsp;{dealNo(order.id, order.created_at)}</span>
                 <span className={styles.orderWho}>
                   <span className={styles.orderName}>
                     {isBlogger ? order.client_name ?? "Заказчик" : order.blogger_name ?? "Автор"}
@@ -85,7 +91,9 @@ export default function OrdersPage() {
                 </span>
                 <span className={styles.orderDate}>{formatDateTime(order.created_at)}</span>
                 <span className={styles.orderAmount}>{formatMoney(order.amount_kopeks)}</span>
-                <StatusBadge status={order.status} />
+                <span className={styles.orderStampCell}>
+                  <StampBadge status={order.status} />
+                </span>
               </Link>
             ))}
           </div>

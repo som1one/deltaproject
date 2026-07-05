@@ -2,42 +2,52 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, Crown, Handshake, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { MarketShell } from "@/components/shell/shell";
-import { BloggerCardSkeleton, BloggerCardView } from "@/components/catalog/blogger-card";
+import { Portrait, Seal } from "@/components/ui/bits";
+import { categoryLabel } from "@/components/catalog/blogger-card";
 import { api } from "@/lib/api";
 import { DEFAULT_MARKETPLACE_CATEGORIES, fetchMarketplaceCategories } from "@/lib/marketplace-categories";
+import { formatAudience, formatMoney } from "@/lib/format";
+import { recordNo } from "@/lib/registry";
 import type { CatalogResponse } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
 import styles from "@/components/landing/landing.module.css";
 
-const fadeUp = {
-  initial: { opacity: 0, y: 22 },
+const rise = {
+  initial: { opacity: 0, y: 16 },
   whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-60px" },
-  transition: { duration: 0.65, ease: [0.2, 0.6, 0.2, 1] as const },
+  viewport: { once: true, margin: "-80px" },
+  transition: { duration: 0.5, ease: [0.2, 0, 0, 1] as const },
 };
 
-const TRUST_CARDS = [
+const PROCESS = [
   {
-    icon: <ShieldCheck size={20} strokeWidth={1.6} />,
-    title: "Безопасная сделка",
-    text: "Оплата хранится на счёте платформы до подтверждения публикации.",
+    title: "Бриф",
+    text: "Выбираете автора в указателе, описываете задачу и бюджет. Сделке присваивается номер.",
   },
   {
-    icon: <Crown size={20} strokeWidth={1.6} />,
-    title: "Только избранные",
-    text: "Каждый профиль проходит ручную модерацию перед публикацией.",
+    title: "Оплата",
+    text: "Переводите оплату по реквизитам платформы. Деньги удерживаются на счёте.",
   },
   {
-    icon: <Handshake size={20} strokeWidth={1.6} />,
-    title: "Прямой диалог",
-    text: "Бриф, сроки и детали — напрямую с автором внутри заказа.",
+    title: "Публикация",
+    text: "Автор согласует и публикует интеграцию, отмечает выполнение в сделке.",
   },
+  {
+    title: "Подтверждение",
+    text: "Проверяете публикацию и подтверждаете. Гонорар переводится автору.",
+  },
+];
+
+const CLAUSES = [
+  "Оплата удерживается на счёте платформы и не переходит автору до подтверждения публикации.",
+  "Если публикация не вышла, оплата возвращается заказчику в полном объёме.",
+  "Спорную ситуацию разбирает служба поддержки и принимает решение по сделке.",
+  "История сделки и переписка с автором сохраняются на всём её протяжении.",
 ];
 
 export default function MarketplaceHomePage() {
@@ -58,222 +68,243 @@ export default function MarketplaceHomePage() {
 
   return (
     <MarketShell>
-      {/* ── Hero ── */}
+      {/* ── Hero (7/5) ── */}
       <section className={styles.hero}>
-        <div className={styles.heroGlow} aria-hidden="true" />
         <div className={shell.pageContainer}>
-          <div className={styles.heroInner}>
+          <div className={styles.heroGrid}>
             <div>
-              <motion.span className={ui.eyebrow} {...fadeUp}>
-                Кураторский маркетплейс
-              </motion.span>
-              <motion.h1 className={ui.displayTitle} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.06 }}>
-                Реклама у блогеров, <em>достойная</em> вашего бренда
-              </motion.h1>
-              <motion.p className={ui.lead} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.12 }}>
-                Избранные авторы, проверенная аудитория и безопасная сделка:
-                деньги остаются под защитой платформы, пока вы не подтвердите результат.
-              </motion.p>
-              <motion.div className={styles.heroActions} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.18 }}>
+              <span className={ui.brow}>Реестр рекламных размещений</span>
+              <h1 className={styles.heroTitle}>
+                <span className={styles.line}>
+                  <span className={styles.lineInner} style={{ animationDelay: "0.05s" }}>
+                    Реклама
+                  </span>
+                </span>
+                <span className={styles.line}>
+                  <span className={styles.lineInner} style={{ animationDelay: "0.11s" }}>
+                    у блогеров, <em className={ui.displayEm}>достойная</em>
+                  </span>
+                </span>
+                <span className={styles.line}>
+                  <span className={styles.lineInner} style={{ animationDelay: "0.17s" }}>
+                    вашего бренда
+                  </span>
+                </span>
+              </h1>
+              <p className={styles.heroLead}>
+                Кураторский каталог авторов и безопасная сделка. Оплата удерживается
+                платформой до тех пор, пока вы не подтвердите публикацию.
+              </p>
+              <div className={styles.heroActions}>
                 <Link href="/catalog" className={ui.btnPrimary}>
                   Открыть каталог
                 </Link>
-                <Link href="/auth/register" className={ui.btnSecondary}>
-                  Стать заказчиком
+                <Link href="/#how" className={ui.btnUnderline}>
+                  Как это работает
                 </Link>
-              </motion.div>
-              <motion.div className={styles.heroStats} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.24 }}>
-                <div>
-                  <div className={ui.statValue}>{total != null ? `${total}` : "—"}</div>
-                  <div className={ui.statLabel}>авторов в каталоге</div>
-                </div>
-                <div>
-                  <div className={ui.statValue}>{categories.length}</div>
-                  <div className={ui.statLabel}>ниш и категорий</div>
-                </div>
-                <div>
-                  <div className={ui.statValue}>100%</div>
-                  <div className={ui.statLabel}>сделок под защитой</div>
-                </div>
-              </motion.div>
+              </div>
             </div>
 
             <motion.div
-              className={styles.heroAside}
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.85, delay: 0.15, ease: [0.2, 0.6, 0.2, 1] }}
+              className={styles.dealCard}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2, ease: [0.2, 0, 0, 1] }}
             >
-              <div className={styles.heroVisual}>
-                <img
-                  src="/img/hero-interior.jpg"
-                  alt="Премиальный интерьер"
-                  className={styles.heroImg}
-                  fetchPriority="high"
-                />
-                <div className={styles.heroVisualScrim} aria-hidden="true" />
-                <div className={styles.heroSeal}>
-                  <span className={styles.heroSealIcon}>
-                    <ShieldCheck size={18} strokeWidth={1.6} />
+              <div className={styles.dealCardHead}>
+                <span className={styles.dealCardNo}>№&nbsp;LM-2026-0147</span>
+                <span className={styles.dealCardTag}>Реестр сделок</span>
+              </div>
+              <hr className={styles.dealCardRule} />
+              <div className={styles.dealCardBody}>
+                <div className={styles.dealAuthor}>
+                  <span className={styles.dealMono} aria-hidden="true">
+                    И
                   </span>
                   <span>
-                    <span className={styles.heroSealTitle}>Сделка под защитой</span>
-                    <span className={styles.heroSealText}>
-                      Оплата хранится на платформе до результата
-                    </span>
+                    <span className={styles.dealName}>Ирина Вологда</span>
+                    <span className={styles.dealNiche}>Тех-обзоры</span>
                   </span>
                 </div>
+                <div>
+                  <div className={styles.dealSumLabel}>Сумма сделки</div>
+                  <div className={styles.dealSum}>420 000 ₽</div>
+                </div>
               </div>
+              <div className={styles.dealStamps}>
+                <span className={ui.stampDone}>Бриф принят</span>
+                <span className={ui.stampActive}>Оплата на счёте</span>
+                <span className={ui.stampMuted}>Опубликовано</span>
+                <span className={ui.stampMuted}>Подтверждено</span>
+              </div>
+              <p className={styles.dealFine}>
+                Деньги на счёте платформы до подтверждения публикации заказчиком.
+              </p>
             </motion.div>
           </div>
-        </div>
-      </section>
 
-      {/* ── Trust row ── */}
-      <section className={styles.trustSection}>
-        <div className={shell.pageContainer}>
-          <div className={styles.trustRow}>
-            {TRUST_CARDS.map((card, i) => (
-              <motion.div
-                key={card.title}
-                className={styles.heroCard}
-                initial={{ opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-40px" }}
-                transition={{ duration: 0.6, delay: i * 0.1, ease: [0.2, 0.6, 0.2, 1] }}
-              >
-                <span className={styles.heroCardIcon}>{card.icon}</span>
+          {/* ── Строка фактов ── */}
+          <div className={styles.facts}>
+            <div className={styles.factsRow}>
+              {total != null && (
                 <span>
-                  <p className={styles.heroCardTitle}>{card.title}</p>
-                  <p className={styles.heroCardText}>{card.text}</p>
+                  <b className={styles.factStrong}>{total}</b> авторов в каталоге
                 </span>
-              </motion.div>
-            ))}
+              )}
+              <span>
+                <b className={styles.factStrong}>{categories.length}</b> ниш
+              </span>
+              <span>
+                <b className={styles.factStrong}>100%</b> сделок под защитой
+              </span>
+              <span>ручная модерация</span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Categories strip ── */}
-      <section className={styles.stripSection}>
+      {/* ── Указатель ниш ── */}
+      <section className={styles.section}>
         <div className={shell.pageContainer}>
-          <motion.div className={styles.strip} {...fadeUp}>
-            {categories.map((cat) => (
-              <Link key={cat.value} href={`/catalog?category=${encodeURIComponent(cat.value)}`} className={ui.chip}>
-                {cat.label}
+          <motion.div className={styles.sectionHead} {...rise}>
+            <span className={ui.brow}>Указатель</span>
+            <h2 className={`${ui.h2} ${styles.sectionTitle}`}>Ниши и категории авторов</h2>
+          </motion.div>
+          <motion.div className={styles.indexGrid} {...rise}>
+            {categories.map((cat, i) => (
+              <Link
+                key={cat.value}
+                href={`/catalog?category=${encodeURIComponent(cat.value)}`}
+                className={styles.indexItem}
+              >
+                <span className={styles.indexNum}>{recordNo(i)}</span>
+                <span className={styles.indexLabel}>{cat.label}</span>
+                <span className={styles.indexLeader} aria-hidden="true" />
+                <span className={styles.indexArrow}>→</span>
               </Link>
             ))}
           </motion.div>
         </div>
       </section>
 
-      {/* ── Featured bloggers ── */}
-      <section className={ui.section}>
+      {/* ── Подборка недели ── */}
+      <section className={styles.section}>
         <div className={shell.pageContainer}>
-          <div className={ui.sectionHead}>
-            <div>
-              <span className={ui.eyebrow}>Подборка недели</span>
-              <h2 className={ui.sectionTitle}>Голоса, которым доверяют</h2>
-            </div>
-            <Link href="/catalog" className={ui.btnGhost}>
-              Смотреть всех →
+          <motion.div className={styles.sectionHead} {...rise}>
+            <span className={ui.brow}>Подборка недели</span>
+            <h2 className={`${ui.h2} ${styles.sectionTitle}`}>Авторы, которым доверяют</h2>
+          </motion.div>
+
+          <div className={styles.featuredList}>
+            {featured.length > 0
+              ? featured.map((blogger, i) => (
+                  <Link
+                    key={blogger.id}
+                    href={`/bloggers/${blogger.user_id}`}
+                    className={styles.record}
+                  >
+                    <span className={styles.recordLeft}>
+                      <span className={styles.recordNum}>{recordNo(i)}</span>
+                      <Portrait
+                        name={blogger.name}
+                        photoUrl={blogger.photo_url}
+                        record={recordNo(i)}
+                        className={styles.recordPortrait}
+                        monoSize={18}
+                      />
+                    </span>
+                    <span>
+                      <span className={styles.recordName}>{blogger.name}</span>
+                      <span className={styles.recordNiche}>{categoryLabel(blogger.category)}</span>
+                    </span>
+                    <span className={styles.recordReach}>
+                      {formatAudience(blogger.subscriber_count)}
+                      <span>охват</span>
+                    </span>
+                    <span className={styles.recordPrice}>
+                      {formatMoney(blogger.average_price_kopeks)}
+                      <span>интеграция от</span>
+                    </span>
+                    <span className={styles.recordArrow}>→</span>
+                  </Link>
+                ))
+              : Array.from({ length: 4 }, (_, i) => (
+                  <div key={i} className={styles.record} aria-hidden="true">
+                    <span className={styles.recordLeft}>
+                      <span className={styles.recordNum}>{recordNo(i)}</span>
+                    </span>
+                    <span className={ui.skeleton} style={{ height: 28, width: "60%" }} />
+                    <span />
+                    <span className={ui.skeleton} style={{ height: 18, width: 90 }} />
+                    <span />
+                  </div>
+                ))}
+          </div>
+
+          <div className={styles.featuredFoot}>
+            <Link href="/catalog" className={ui.btnUnderline}>
+              Весь указатель авторов →
             </Link>
           </div>
-          <div className={styles.bloggersGrid}>
-            {featured.length > 0
-              ? featured.map((blogger, index) => (
-                  <BloggerCardView key={blogger.id} blogger={blogger} index={index} />
-                ))
-              : Array.from({ length: 4 }, (_, i) => <BloggerCardSkeleton key={i} />)}
+        </div>
+      </section>
+
+      {/* ── Процесс ── */}
+      <section className={styles.section} id="how">
+        <div className={shell.pageContainer}>
+          <motion.div className={styles.sectionHead} {...rise}>
+            <span className={ui.brow}>Как проходит сделка</span>
+            <h2 className={`${ui.h2} ${styles.sectionTitle}`}>Четыре шага, зафиксированных в реестре</h2>
+          </motion.div>
+          <div className={styles.processGrid}>
+            {PROCESS.map((step, i) => (
+              <motion.div key={step.title} className={styles.step} {...rise} transition={{ ...rise.transition, delay: i * 0.05 }}>
+                <div className={styles.stepNum}>{recordNo(i)}</div>
+                <h3 className={styles.stepTitle}>{step.title}</h3>
+                <p className={styles.stepText}>{step.text}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── How it works ── */}
-      <section className={ui.section} id="how">
+      {/* ── Условия сделки (тёмная секция) ── */}
+      <section className={styles.terms}>
         <div className={shell.pageContainer}>
-          <div className={ui.sectionHead}>
+          <span className={`${ui.brow} ${styles.termsBrow}`}>Выдержка из договора</span>
+          <div className={styles.termsGrid}>
             <div>
-              <span className={ui.eyebrow}>Процесс</span>
-              <h2 className={ui.sectionTitle}>Четыре шага до публикации</h2>
-            </div>
-          </div>
-          <div className={styles.howGrid}>
-            {[
-              {
-                title: "Выберите автора",
-                text: "Фильтры по нише, охвату и бюджету. Портфолио и статистика — в каждом профиле.",
-              },
-              {
-                title: "Опишите задачу",
-                text: "Создайте заказ с брифом и суммой. Блогер увидит его сразу после оплаты.",
-              },
-              {
-                title: "Оплатите безопасно",
-                text: "Переводом по реквизитам платформы. Деньги заморожены до результата.",
-              },
-              {
-                title: "Подтвердите результат",
-                text: "Публикация вышла — вы подтверждаете, автор получает гонорар.",
-              },
-            ].map((step) => (
-              <motion.div key={step.title} className={styles.howCard} {...fadeUp}>
-                <div className={styles.howNum} aria-hidden="true" />
-                <h3 className={styles.howTitle}>{step.title}</h3>
-                <p className={styles.howText}>{step.text}</p>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* ── Guarantee band ── */}
-          <motion.div className={styles.band} {...fadeUp}>
-            <div className={styles.bandVisual}>
-              <img
-                src="/img/luxury-suite.jpg"
-                alt="Премиальный интерьер"
-                className={styles.bandImg}
-                loading="lazy"
-              />
-            </div>
-            <div className={styles.bandBody}>
-              <span className={ui.eyebrow}>Гарантии</span>
-              <h2 className={ui.sectionTitle}>Сделка под защитой платформы</h2>
-              <p className={ui.lead}>
-                Мы удерживаем оплату на стороне платформы и переводим её автору
-                только после вашего подтверждения. Спорные ситуации решает служба поддержки.
+              <h2 className={styles.termsTitle}>Условия сделки</h2>
+              <p className={styles.termsLead}>
+                Пункты, по которым проходит каждое размещение. Ими обеспечивается
+                безопасность обеих сторон — заказчика и автора.
               </p>
-              <ul className={styles.bandList}>
-                {[
-                  "Деньги не уходят блогеру до подтверждения результата",
-                  "Возврат средств, если публикация не состоялась",
-                  "Арбитраж поддержки в спорных ситуациях",
-                  "История заказа и переписки сохраняется",
-                ].map((item) => (
-                  <li key={item} className={styles.bandItem}>
-                    <span className={styles.bandCheck}>
-                      <Check size={12} strokeWidth={2.5} />
-                    </span>
-                    {item}
-                  </li>
+              <div className={styles.clauseList}>
+                {CLAUSES.map((text, i) => (
+                  <div key={text} className={styles.clause}>
+                    <span className={styles.clauseNo}>1.{i + 1}</span>
+                    <span className={styles.clauseText}>{text}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
-          </motion.div>
+            <div className={styles.termsAside}>
+              <Seal size={150} />
+              <p className={styles.sealNote}>Сделка под защитой платформы looney moon</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-          {/* ── Final CTA ── */}
-          <motion.div className={styles.finalCta} {...fadeUp}>
-            <span className={ui.eyebrow} style={{ justifyContent: "center" }}>
-              Начните сегодня
-            </span>
-            <h2 className={ui.sectionTitle}>Первый заказ — за пару минут</h2>
-            <div className={styles.finalActions}>
-              <Link href="/catalog" className={ui.btnPrimary}>
-                Выбрать блогера
-              </Link>
-              <Link href="/auth/login?role=blogger" className={ui.btnSecondary}>
-                Я блогер — войти
-              </Link>
-            </div>
-          </motion.div>
+      {/* ── Финальный CTA ── */}
+      <section className={styles.cta}>
+        <div className={shell.pageContainer}>
+          <div className={styles.ctaRow}>
+            <h2 className={styles.ctaTitle}>Первая сделка занимает пару минут.</h2>
+            <Link href="/catalog" className={ui.btnPrimary}>
+              Открыть каталог
+            </Link>
+          </div>
         </div>
       </section>
     </MarketShell>

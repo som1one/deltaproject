@@ -3,8 +3,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { ThemeToggle } from "@/components/shell/shell";
-
 import styles from "@/app/auth/auth.module.css";
 
 export const AuthShell = ({ children }: { children: ReactNode }) => (
@@ -14,18 +12,18 @@ export const AuthShell = ({ children }: { children: ReactNode }) => (
         <span className={styles.asideBrandMark}>looney moon</span>
         <span className={styles.asideBrandSub}>market</span>
       </Link>
-      <div className={styles.asideQuote}>
-        <span className={styles.asideQuoteMark} aria-hidden="true">
-          “
-        </span>
-        <p className={styles.asideQuoteText}>
-          Хорошая реклама начинается с правильного голоса.
+      <div className={styles.asideBody}>
+        <p className={styles.asideQuote}>
+          Хорошая реклама начинается с правильного голоса — и с честной сделки.
+        </p>
+        <p className={styles.asideFine}>
+          Кураторский каталог авторов и безопасная сделка: оплата удерживается на счёте
+          платформы, пока публикация не подтверждена.
         </p>
       </div>
-      <p className={styles.asideFine}>
-        Кураторский каталог авторов и безопасная сделка: оплата хранится на счёте
-        платформы, пока результат не подтверждён.
-      </p>
+      <div className={styles.asideMark} aria-hidden="true">
+        № LM-2026
+      </div>
     </aside>
     <main className={styles.main}>
       <div className={styles.card}>
@@ -33,7 +31,6 @@ export const AuthShell = ({ children }: { children: ReactNode }) => (
           <Link href="/" className={styles.backLink}>
             ← На главную
           </Link>
-          <ThemeToggle />
         </div>
         {children}
       </div>

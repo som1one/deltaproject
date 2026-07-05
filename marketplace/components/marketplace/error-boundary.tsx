@@ -72,9 +72,6 @@ export function ErrorDisplay({
 }: ErrorDisplayProps) {
   return (
     <div className={styles.errorContainer} role="alert">
-      <div className={styles.errorIcon} aria-hidden="true">
-        ⚠
-      </div>
       <h2 className={styles.errorTitle}>{title}</h2>
       <p className={styles.errorMessage}>{message}</p>
       {onRetry && (

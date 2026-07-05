@@ -6,10 +6,12 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { MarketShell } from "@/components/shell/shell";
-import { CopyButton, StatusBadge } from "@/components/ui/bits";
+import { CopyButton, StampBadge } from "@/components/ui/bits";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { formatCardNumber, formatDateTime, formatMoney } from "@/lib/format";
+import { orderMoneyLocation } from "@/lib/order-status";
+import { dealNo } from "@/lib/registry";
 import type { OrderDetail } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
@@ -17,74 +19,60 @@ import ui from "@/components/ui/ui.module.css";
 import styles from "@/app/orders/orders.module.css";
 
 const CardIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
     <line x1="1" y1="10" x2="23" y2="10" />
   </svg>
 );
 
 const BankIcon = () => (
-  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3" />
   </svg>
 );
 
-type TimelineStep = {
-  key: string;
-  label: string;
-  hint: string;
-  state: "done" | "active" | "todo";
-};
+type StepState = "done" | "active" | "todo" | "alert";
 
-const buildTimeline = (order: OrderDetail): TimelineStep[] => {
-  const terminalNegative = ["CANCELLED", "REFUNDED", "PAYMENT_FAILED"].includes(order.status);
+const STEP_NAMES = ["Бриф", "Оплата", "Публикация", "Подтверждение", "Выплата"];
+
+const buildSteps = (order: OrderDetail): { name: string; state: StepState; hint: string }[] => {
+  const negative = ["CANCELLED", "REFUNDED", "PAYMENT_FAILED"].includes(order.status);
   const stageIndex: Record<string, number> = {
-    PENDING_PAYMENT: 0,
-    ESCROW_HELD: 1,
-    BLOGGER_CONFIRMED: 2,
-    COMPLETED: 3,
+    PENDING_PAYMENT: 1,
+    ESCROW_HELD: 2,
+    BLOGGER_CONFIRMED: 3,
+    COMPLETED: 5,
   };
   const current = stageIndex[order.status] ?? 0;
 
-  const steps = [
-    {
-      key: "created",
-      label: "Заказ создан",
-      hint: formatDateTime(order.created_at),
-    },
-    {
-      key: "paid",
-      label: "Оплата получена",
-      hint:
-        order.paid_at != null
-          ? formatDateTime(order.paid_at)
-          : order.payment_reported_at != null
-            ? "Вы сообщили об оплате — ждём подтверждения платформы"
-            : "Переведите оплату по реквизитам",
-    },
-    {
-      key: "work",
-      label: "Автор выполняет заказ",
-      hint: order.blogger_confirmed_at != null ? "Автор отметил выполнение" : "Интеграция готовится и публикуется",
-    },
-    {
-      key: "done",
-      label: "Заказ завершён",
-      hint: order.completed_at != null ? formatDateTime(order.completed_at) : "Вы подтверждаете результат — автор получает гонорар",
-    },
+  const hints = [
+    formatDateTime(order.created_at),
+    order.paid_at != null
+      ? formatDateTime(order.paid_at)
+      : order.payment_reported_at != null
+        ? "Ждём подтверждения"
+        : "По реквизитам ниже",
+    order.blogger_confirmed_at != null ? "Отмечено автором" : "Готовится",
+    order.completed_at != null ? formatDateTime(order.completed_at) : "Ждёт подтверждения",
+    order.completed_at != null ? "Гонорар передан" : "—",
   ];
 
-  return steps.map((step, index) => ({
-    ...step,
-    state:
-      terminalNegative && index > current
-        ? "todo"
-        : index < current || order.status === "COMPLETED"
-          ? "done"
-          : index === current
-            ? "active"
-            : "todo",
-  })) as TimelineStep[];
+  return STEP_NAMES.map((name, i) => {
+    let state: StepState;
+    if (negative) {
+      state = i === 0 ? "done" : i === 1 && order.status === "PAYMENT_FAILED" ? "alert" : "todo";
+    } else {
+      state = i < current ? "done" : i === current ? "active" : "todo";
+    }
+    return { name, state, hint: hints[i] };
+  });
+};
+
+const stepClass = (state: StepState): string => {
+  if (state === "done") return styles.stepDone;
+  if (state === "active") return styles.stepActive;
+  if (state === "alert") return styles.stepAlert;
+  return styles.stepTodo;
 };
 
 export default function OrderDetailPage() {
@@ -118,7 +106,7 @@ export default function OrderDetailPage() {
   const markPaidMutation = useMutation({
     mutationFn: () => api.markOrderPaid(orderId),
     onSuccess: () => {
-      setNotice({ tone: "success", text: "Спасибо! Мы уведомили платформу — оплату подтвердят в ближайшее время." });
+      setNotice({ tone: "success", text: "Мы уведомили платформу — оплату подтвердят в ближайшее время." });
       invalidate();
     },
     onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
@@ -127,7 +115,7 @@ export default function OrderDetailPage() {
   const confirmMutation = useMutation({
     mutationFn: () => api.confirmOrder(orderId),
     onSuccess: () => {
-      setNotice({ tone: "success", text: "Заказ завершён. Гонорар передан автору — спасибо за сделку!" });
+      setNotice({ tone: "success", text: "Сделка завершена. Гонорар передан автору." });
       invalidate();
     },
     onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
@@ -136,7 +124,7 @@ export default function OrderDetailPage() {
   const cancelMutation = useMutation({
     mutationFn: () => api.cancelOrder(orderId),
     onSuccess: () => {
-      setNotice({ tone: "success", text: "Заказ отменён." });
+      setNotice({ tone: "success", text: "Сделка отменена." });
       invalidate();
     },
     onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
@@ -145,7 +133,7 @@ export default function OrderDetailPage() {
   const completeMutation = useMutation({
     mutationFn: () => api.completeOrder(orderId),
     onSuccess: () => {
-      setNotice({ tone: "success", text: "Отмечено! Заказчик получил уведомление и подтвердит результат." });
+      setNotice({ tone: "success", text: "Отмечено. Заказчик получил уведомление и подтвердит публикацию." });
       invalidate();
     },
     onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
@@ -171,40 +159,69 @@ export default function OrderDetailPage() {
     !isBlogger &&
     (order.card_requisites != null || order.settlement_account != null || order.yookassa_available);
 
+  const negative = order != null && ["CANCELLED", "REFUNDED", "PAYMENT_FAILED"].includes(order.status);
+
   return (
     <MarketShell>
       <div className={shell.pageContainer}>
         <div className={styles.detailWrap}>
           <Link href={isBlogger ? "/blogger" : "/orders"} className={styles.backLink}>
-            ← Ко всем заказам
+            ← Ко всем сделкам
           </Link>
 
           {isLoading || !isHydrated ? (
-            <div className={styles.detailLayout}>
-              <div className={ui.skeleton} style={{ height: 380, borderRadius: 28 }} />
-              <div className={ui.skeleton} style={{ height: 300, borderRadius: 28 }} />
-            </div>
+            <>
+              <div className={ui.skeleton} style={{ height: 260, marginBottom: 22 }} />
+              <div className={styles.detailLayout}>
+                <div className={ui.skeleton} style={{ height: 300 }} />
+                <div className={ui.skeleton} style={{ height: 240 }} />
+              </div>
+            </>
           ) : error || !order ? (
             <div className={ui.empty}>
-              <h3 className={ui.emptyTitle}>Заказ не найден</h3>
-              <p className={ui.muted}>Проверьте ссылку или вернитесь к списку заказов.</p>
+              <h3 className={ui.emptyTitle}>Сделка не найдена</h3>
+              <p className={ui.emptyText}>Проверьте ссылку или вернитесь к реестру сделок.</p>
+              <Link href="/orders" className={ui.btnLine}>
+                К реестру сделок
+              </Link>
             </div>
           ) : (
             <>
-              <header className={styles.detailHead}>
-                <div>
-                  <StatusBadge status={order.status} />
-                  <h1 className={styles.detailTitle}>
-                    {isBlogger
-                      ? `Заказ от ${order.client_name ?? "заказчика"}`
-                      : `Интеграция у ${order.blogger_name ?? "автора"}`}
-                  </h1>
+              {/* ── Постоянная панель статуса ── */}
+              <section className={styles.statusPanel}>
+                <div className={styles.statusTop}>
+                  <div>
+                    <div className={styles.statusDealNo}>№&nbsp;{dealNo(order.id, order.created_at)}</div>
+                    <h1 className={styles.statusParty}>
+                      {isBlogger
+                        ? `Заказчик · ${order.client_name ?? "—"}`
+                        : `Автор · ${order.blogger_name ?? "—"}`}
+                    </h1>
+                    <div style={{ marginTop: 14 }}>
+                      <StampBadge status={order.status} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className={styles.statusAmountLabel}>Сумма сделки</div>
+                    <div className={styles.statusAmountValue}>{formatMoney(order.amount_kopeks)}</div>
+                  </div>
                 </div>
-                <div className={styles.detailAmount}>
-                  <span className={ui.statLabel}>Сумма сделки</span>
-                  <div className={styles.detailAmountValue}>{formatMoney(order.amount_kopeks)}</div>
+
+                <div className={styles.money}>
+                  <span className={styles.moneyLabel}>Деньги</span>
+                  <span className={styles.moneyValue}>{orderMoneyLocation(order.status)}</span>
                 </div>
-              </header>
+
+                <div className={styles.steps}>
+                  {buildSteps(order).map((step, i) => (
+                    <div key={step.name} className={`${styles.step} ${stepClass(step.state)}`}>
+                      <span className={styles.stepNo}>{String(i + 1).padStart(2, "0")}</span>
+                      <span className={styles.stepName}>{step.name}</span>
+                      <span className={styles.stepHint}>{step.hint}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
 
               {notice && (
                 <div
@@ -215,19 +232,28 @@ export default function OrderDetailPage() {
                 </div>
               )}
 
+              {negative && (
+                <div className={ui.noticeDanger} style={{ marginBottom: 22 }}>
+                  {order.status === "CANCELLED" && "Сделка отменена."}
+                  {order.status === "REFUNDED" && "По сделке оформлен возврат средств заказчику."}
+                  {order.status === "PAYMENT_FAILED" &&
+                    "Оплата не прошла. Создайте сделку заново или обратитесь в поддержку."}
+                </div>
+              )}
+
               {order.payment_reported_at && order.status === "PENDING_PAYMENT" && (
                 <div className={ui.noticeWarning} style={{ marginBottom: 22 }}>
                   Вы сообщили об оплате {formatDateTime(order.payment_reported_at)}. Платформа проверит
-                  поступление и переведёт заказ в работу.
+                  поступление и переведёт сделку в работу.
                 </div>
               )}
 
               <div className={styles.detailLayout}>
                 <div className={styles.mainCol}>
-                  {/* ── Payment ── */}
+                  {/* ── Оплата ── */}
                   {showPayment && (
-                    <section className={ui.panel}>
-                      <h2 className={styles.panelTitle}>Оплата заказа</h2>
+                    <section className={styles.panel}>
+                      <h2 className={styles.panelTitle}>Оплата по реквизитам</h2>
                       <div className={styles.payAmountLine}>
                         <span className={styles.payAmountLabel}>Сумма к переводу</span>
                         <span className={styles.payAmountValue}>{formatMoney(order.amount_kopeks)}</span>
@@ -261,7 +287,7 @@ export default function OrderDetailPage() {
                             )}
                             {order.card_requisites.sbp_phone && (
                               <div className={ui.defRow}>
-                                <span className={ui.defKey}>СБП / телефон</span>
+                                <span className={ui.defKey}>СБП · телефон</span>
                                 <span className={`${ui.defValue} ${ui.mono}`}>
                                   {order.card_requisites.sbp_phone}{" "}
                                   <CopyButton value={order.card_requisites.sbp_phone} />
@@ -312,7 +338,7 @@ export default function OrderDetailPage() {
                         {order.yookassa_available && (
                           <button
                             type="button"
-                            className={ui.btnBronze}
+                            className={ui.btnLine}
                             onClick={() => payOnlineMutation.mutate()}
                             disabled={payOnlineMutation.isPending}
                           >
@@ -326,30 +352,30 @@ export default function OrderDetailPage() {
                             onClick={() => markPaidMutation.mutate()}
                             disabled={markPaidMutation.isPending}
                           >
-                            {markPaidMutation.isPending ? "Отправляем…" : "Я перевёл(а) оплату"}
+                            {markPaidMutation.isPending ? "Отправляем…" : "Я перевёл оплату"}
                           </button>
                         )}
                         <p className={ui.fine}>
-                          После перевода нажмите «Я перевёл(а) оплату» — платформа проверит поступление
-                          и переведёт заказ в работу. Деньги остаются под защитой до подтверждения результата.
+                          После перевода нажмите «Я перевёл оплату» — платформа проверит поступление
+                          и переведёт сделку в работу. Деньги удерживаются до подтверждения публикации.
                         </p>
                       </div>
                     </section>
                   )}
 
-                  {/* ── Brief ── */}
-                  <section className={ui.panel}>
+                  {/* ── Бриф ── */}
+                  <section className={styles.panel}>
                     <h2 className={styles.panelTitle}>Бриф</h2>
                     <p className={styles.brief}>{order.message}</p>
-                    <hr className={ui.divider} />
+                    <hr className={ui.hr} style={{ margin: "22px 0" }} />
                     <div className={styles.metaGrid}>
                       <div className={ui.defRow}>
-                        <span className={ui.defKey}>Создан</span>
-                        <span className={ui.defValue}>{formatDateTime(order.created_at)}</span>
+                        <span className={ui.defKey}>Создана</span>
+                        <span className={`${ui.defValue} ${ui.mono}`}>{formatDateTime(order.created_at)}</span>
                       </div>
                       <div className={ui.defRow}>
-                        <span className={ui.defKey}>Номер заказа</span>
-                        <span className={`${ui.defValue} ${ui.mono}`}>{order.id.slice(0, 8)}</span>
+                        <span className={ui.defKey}>№ сделки</span>
+                        <span className={`${ui.defValue} ${ui.mono}`}>{dealNo(order.id, order.created_at)}</span>
                       </div>
                       <div className={ui.defRow}>
                         <span className={ui.defKey}>{isBlogger ? "Заказчик" : "Автор"}</span>
@@ -358,50 +384,17 @@ export default function OrderDetailPage() {
                         </span>
                       </div>
                       <div className={ui.defRow}>
-                        <span className={ui.defKey}>Оплачен</span>
-                        <span className={ui.defValue}>{formatDateTime(order.paid_at)}</span>
+                        <span className={ui.defKey}>Оплачена</span>
+                        <span className={`${ui.defValue} ${ui.mono}`}>{formatDateTime(order.paid_at)}</span>
                       </div>
                     </div>
                   </section>
                 </div>
 
                 <aside className={styles.sideCol}>
-                  {/* ── Timeline ── */}
-                  <section className={ui.panel}>
-                    <h2 className={styles.panelTitle}>Ход сделки</h2>
-                    {["CANCELLED", "REFUNDED", "PAYMENT_FAILED"].includes(order.status) ? (
-                      <div className={ui.noticeDanger}>
-                        {order.status === "CANCELLED" && "Заказ отменён."}
-                        {order.status === "REFUNDED" && "По заказу оформлен возврат средств."}
-                        {order.status === "PAYMENT_FAILED" && "Оплата не прошла. Создайте заказ заново или обратитесь в поддержку."}
-                      </div>
-                    ) : (
-                      <div className={ui.timeline}>
-                        {buildTimeline(order).map((step) => (
-                          <div key={step.key} className={ui.timelineItem}>
-                            <span
-                              className={
-                                step.state === "done"
-                                  ? ui.timelineDotDone
-                                  : step.state === "active"
-                                    ? ui.timelineDotActive
-                                    : ui.timelineDot
-                              }
-                            />
-                            <div>
-                              <div className={ui.timelineLabel}>{step.label}</div>
-                              <div className={ui.timelineHint}>{step.hint}</div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-
-                  {/* ── Actions ── */}
                   {(canConfirm || canCancel || canComplete) && (
-                    <section className={ui.panel}>
-                      <h2 className={styles.panelTitle}>Действия</h2>
+                    <section className={styles.panel}>
+                      <h2 className={styles.panelTitle}>Действия по сделке</h2>
                       <div className={styles.actionsCol}>
                         {canComplete && (
                           <>
@@ -411,10 +404,10 @@ export default function OrderDetailPage() {
                               onClick={() => completeMutation.mutate()}
                               disabled={completeMutation.isPending}
                             >
-                              {completeMutation.isPending ? "Сохраняем…" : "Работа выполнена"}
+                              {completeMutation.isPending ? "Сохраняем…" : "Отметить публикацию"}
                             </button>
                             <p className={ui.fine}>
-                              Отмечайте после публикации интеграции — заказчик получит уведомление.
+                              Отмечайте после выхода интеграции — заказчик получит уведомление.
                             </p>
                           </>
                         )}
@@ -426,7 +419,7 @@ export default function OrderDetailPage() {
                               onClick={() => confirmMutation.mutate()}
                               disabled={confirmMutation.isPending}
                             >
-                              {confirmMutation.isPending ? "Подтверждаем…" : "Подтвердить результат"}
+                              {confirmMutation.isPending ? "Подтверждаем…" : "Подтвердить публикацию"}
                             </button>
                             <p className={ui.fine}>
                               Подтверждение завершает сделку и передаёт гонорар автору.
@@ -438,27 +431,27 @@ export default function OrderDetailPage() {
                             type="button"
                             className={ui.btnDanger}
                             onClick={() => {
-                              if (window.confirm("Отменить заказ? Действие необратимо.")) {
+                              if (window.confirm("Отменить сделку? Действие необратимо.")) {
                                 cancelMutation.mutate();
                               }
                             }}
                             disabled={cancelMutation.isPending}
                           >
-                            {cancelMutation.isPending ? "Отменяем…" : "Отменить заказ"}
+                            {cancelMutation.isPending ? "Отменяем…" : "Отменить сделку"}
                           </button>
                         )}
                       </div>
                     </section>
                   )}
 
-                  {/* ── Support ── */}
                   {["ESCROW_HELD", "BLOGGER_CONFIRMED"].includes(order.status) && (
-                    <section className={ui.panel}>
-                      <h2 className={styles.panelTitle}>Возникла проблема?</h2>
-                      <p className={ui.muted} style={{ margin: "0 0 16px" }}>
-                        Служба поддержки разберёт спорную ситуацию и примет решение по сделке.
+                    <section className={styles.panel}>
+                      <h2 className={styles.panelTitle}>Спорная ситуация</h2>
+                      <p className={ui.muted} style={{ margin: "0 0 16px", fontSize: 14 }}>
+                        Служба поддержки разберёт спор и примет решение по сделке — вернуть
+                        средства или передать гонорар.
                       </p>
-                      <Link href={`/support?order=${order.id}`} className={ui.btnSecondary} style={{ width: "100%" }}>
+                      <Link href={`/support?order=${order.id}`} className={`${ui.btnLine} ${ui.btnBlock}`}>
                         Открыть спор
                       </Link>
                     </section>

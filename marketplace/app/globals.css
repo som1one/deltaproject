@@ -1,119 +1,56 @@
 /* =========================================================
-   Looney Moon Market — Quiet Luxury Design System
-   Две темы: Ivory (light, default) и Noir (dark).
-   Переключение через html[data-theme="dark"].
+   Looney Moon Market — «Реестр»
+   Частный реестр сделок: воздух, типографика, волосяные линии.
+   Единая дисциплинированная палитра, тёмные секции внутри неё.
    ========================================================= */
 
 :root {
-  /* ---------- Surfaces (Ivory) ---------- */
-  --bg:             #f6f4ef;
-  --surface-base:   #fffefb;
-  --surface-raised: #f0ede6;
-  --surface-hover:  #eae6dd;
-  --surface-elev:   #ffffff;
-  --surface-inset:  #fbfaf7;
-  --surface-glass:  rgba(255, 254, 251, 0.78);
+  /* ---------- Палитра (использовать только эти) ---------- */
+  --ink:        #23211c; /* тёплый почти-чёрный: текст, тёмные секции */
+  --bone:       #efece5; /* основной фон, «бумага» */
+  --stone:      #ddd9cf; /* вторичные подложки, ховеры строк */
+  --loden:      #46523e; /* тёмно-зелёный акцент: кнопки, активное, ссылки-ховер */
+  --loden-deep: #38412f; /* нажатие / ховер кнопки */
+  --brass:      #96784a; /* латунь: крупные цифры, печати, декор */
+  --brass-ink:  #7d6238; /* латунь для мелкого текста — затемнена под WCAG AA */
+  --oxblood:    #6b3a34; /* только «спор/отклонено» */
 
-  /* ---------- Borders ---------- */
-  --border:        rgba(28, 25, 18, 0.10);
-  --border-strong: rgba(28, 25, 18, 0.15);
-  --border-faint:  rgba(28, 25, 18, 0.05);
+  /* ---------- Волосяные линии (вместо теней) ---------- */
+  --hairline:        rgba(35, 33, 28, 0.16);
+  --hairline-soft:   rgba(35, 33, 28, 0.09);
+  --hairline-strong: rgba(35, 33, 28, 0.28);
 
-  /* ---------- Text ---------- */
-  --text-strong: #171410;
-  --text:        #26221b;
-  --text-muted:  rgba(28, 25, 18, 0.62);
-  --text-soft:   rgba(28, 25, 18, 0.42);
-  --text-faint:  rgba(28, 25, 18, 0.26);
+  /* ---------- Производные тона текста на бумаге ----------
+     Значения выверены под WCAG AA на фоне --bone:
+     ink-70 и ink-55 проходят 4.5:1 для мелкого текста;
+     ink-40 — только для декоративных штрихов (стрелки, точки, лидеры). */
+  --ink-70: rgba(35, 33, 28, 0.74);
+  --ink-55: rgba(35, 33, 28, 0.66);
+  --ink-40: rgba(35, 33, 28, 0.42);
 
-  /* ---------- Accent: ink + bronze ---------- */
-  --accent:       #201c15;
-  --accent-ink:   #fffefb;
-  --accent-hover: #312b22;
-  --bronze:       #96794d;
-  --bronze-deep:  #7c6440;
-  --bronze-soft:  rgba(150, 121, 77, 0.10);
-  --bronze-edge:  rgba(150, 121, 77, 0.32);
+  /* ---------- Тёмная секция (--ink фон) ---------- */
+  --on-ink:      #efece5;
+  --on-ink-70:   rgba(239, 236, 229, 0.74);
+  --on-ink-45:   rgba(239, 236, 229, 0.62);
+  --on-ink-line: rgba(239, 236, 229, 0.18);
 
-  /* ---------- Status ---------- */
-  --status-success: #4c6b4f;
-  --status-warning: #9a7b3c;
-  --status-danger:  #a04b43;
-  --status-info:    #4c5d6b;
-  --status-success-soft: rgba(76, 107, 79, 0.10);
-  --status-warning-soft: rgba(154, 123, 60, 0.12);
-  --status-danger-soft:  rgba(160, 75, 67, 0.10);
-  --status-info-soft:    rgba(76, 93, 107, 0.10);
+  /* ---------- Типографика ---------- */
+  --font-display: "Prata", "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --font-body:    "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono:    "JetBrains Mono", "PT Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  /* ---------- Shadows ---------- */
-  --shadow-card:  0 1px 2px rgba(28, 25, 18, 0.03), 0 12px 34px -16px rgba(28, 25, 18, 0.09);
-  --shadow-hover: 0 2px 4px rgba(28, 25, 18, 0.04), 0 26px 56px -20px rgba(28, 25, 18, 0.12);
-  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.55) inset, 0 24px 64px -28px rgba(28, 25, 18, 0.14);
+  /* ---------- Форма ---------- */
+  --r: 2px; /* формы документа, не приложения */
 
-  /* ---------- Typography ---------- */
-  --font-display: "Playfair Display", "EB Garamond", Georgia, serif;
-  --font-body:    "Manrope", "Hanken Grotesk", system-ui, sans-serif;
-  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+  /* ---------- Сетка ---------- */
+  --page-max: 1320px;
+  --page-pad: 24px;
+  --section:  clamp(84px, 12vw, 160px); /* вертикальный ритм — воздух */
+  --nav-h:    76px;
 
-  /* ---------- Radii ---------- */
-  --radius-xs:   8px;
-  --radius-sm:   12px;
-  --radius-md:   16px;
-  --radius-lg:   24px;
-  --radius-xl:   32px;
-  --radius-pill: 999px;
-
-  /* ---------- Motion ---------- */
-  --easing:          cubic-bezier(.2,.6,.2,1);
-  --transition-base: 220ms var(--easing);
-  --transition-slow: 480ms var(--easing);
-
-  /* ---------- Layout ---------- */
-  --page-max: 1200px;
-  --page-pad: clamp(20px, 4vw, 44px);
-  --nav-h: 72px;
-}
-
-html[data-theme="dark"] {
-  /* ---------- Surfaces (Noir) ---------- */
-  --bg:             #0e0d0b;
-  --surface-base:   #151310;
-  --surface-raised: #1c1a16;
-  --surface-hover:  #23201b;
-  --surface-elev:   #191713;
-  --surface-inset:  #12100e;
-  --surface-glass:  rgba(21, 19, 16, 0.72);
-
-  --border:        rgba(243, 238, 227, 0.10);
-  --border-strong: rgba(243, 238, 227, 0.15);
-  --border-faint:  rgba(243, 238, 227, 0.05);
-
-  --text-strong: #f5f1e8;
-  --text:        #e8e3d8;
-  --text-muted:  rgba(240, 235, 223, 0.62);
-  --text-soft:   rgba(240, 235, 223, 0.42);
-  --text-faint:  rgba(240, 235, 223, 0.24);
-
-  --accent:       #f5f1e8;
-  --accent-ink:   #171410;
-  --accent-hover: #ffffff;
-  --bronze:       #c8ab77;
-  --bronze-deep:  #dbc297;
-  --bronze-soft:  rgba(200, 171, 119, 0.12);
-  --bronze-edge:  rgba(200, 171, 119, 0.36);
-
-  --status-success: #9db89a;
-  --status-warning: #cdb082;
-  --status-danger:  #cd8d84;
-  --status-info:    #93a7b5;
-  --status-success-soft: rgba(157, 184, 154, 0.12);
-  --status-warning-soft: rgba(205, 176, 130, 0.12);
-  --status-danger-soft:  rgba(205, 141, 132, 0.12);
-  --status-info-soft:    rgba(147, 167, 181, 0.12);
-
-  --shadow-card:  0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 16px 40px -16px rgba(0, 0, 0, 0.5);
-  --shadow-hover: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 30px 68px -24px rgba(0, 0, 0, 0.55);
-  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 26px 76px -30px rgba(0, 0, 0, 0.6);
+  /* ---------- Движение ---------- */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur:  280ms;
 }
 
 /* ---------- Reset / base ---------- */
@@ -126,29 +63,28 @@ html[data-theme="dark"] {
 
 html {
   color-scheme: light;
-  scroll-behavior: smooth;
-  background: var(--bg);
-}
-
-html[data-theme="dark"] {
-  color-scheme: dark;
+  background: var(--bone);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   min-width: 320px;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--bone);
+  color: var(--ink);
   font-family: var(--font-body);
-  font-feature-settings: "ss01", "cv11";
+  font-size: 17px;
+  line-height: 1.65;
+  font-weight: 400;
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  letter-spacing: -0.01em;
-  line-height: 1.6;
   overflow-x: hidden;
-  transition: background-color 320ms ease, color 320ms ease;
+}
+
+h1, h2, h3, h4, p, figure, blockquote {
+  margin: 0;
 }
 
 a {
@@ -166,6 +102,8 @@ select {
 
 button {
   cursor: pointer;
+  background: none;
+  border: none;
 }
 
 img,
@@ -175,13 +113,19 @@ video {
   max-width: 100%;
 }
 
+ul, ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 ::selection {
-  background: var(--bronze-soft);
-  color: var(--text-strong);
+  background: var(--stone);
+  color: var(--ink);
 }
 
 ::placeholder {
-  color: var(--text-soft);
+  color: var(--ink-40);
   opacity: 1;
 }
 
@@ -190,21 +134,20 @@ video {
 }
 
 :focus-visible {
-  outline: 1.5px solid var(--bronze);
-  outline-offset: 3px;
-  border-radius: 8px;
+  outline: 2px solid var(--loden);
+  outline-offset: 2px;
 }
 
 /* ---------- Scrollbars ---------- */
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: var(--hairline) transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
 }
 
 *::-webkit-scrollbar-track {
@@ -212,13 +155,39 @@ video {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 999px;
-  border: 2px solid transparent;
+  background: var(--hairline);
+  border: 3px solid transparent;
   background-clip: padding-box;
 }
 
-/* ---------- Motion preferences ---------- */
+/* ---------- Numeric tabular defaults for mono ---------- */
+
+.tnum,
+[data-mono] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Один оркестрованный момент: маски строк h1 ---------- */
+
+@keyframes maskRise {
+  from {
+    opacity: 0;
+    transform: translateY(0.9em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes quietFade {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* строка каталога / фото / подчёркивание оформляются локально в модулях */
+
+/* ---------- prefers-reduced-motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -229,38 +198,4 @@ video {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-/* ---------- Animations ---------- */
-
-@keyframes luxFadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes luxFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
-
-.shimmerBlock {
-  background: linear-gradient(
-    90deg,
-    var(--surface-raised) 20%,
-    var(--surface-hover) 50%,
-    var(--surface-raised) 80%
-  );
-  background-size: 800px 100%;
-  animation: shimmer 1.8s var(--easing) infinite;
 }
