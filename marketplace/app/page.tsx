@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { Check, Crown, Handshake, ShieldCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { MarketShell } from "@/components/shell/shell";
@@ -21,30 +22,23 @@ const fadeUp = {
   transition: { duration: 0.65, ease: [0.2, 0.6, 0.2, 1] as const },
 };
 
-const ShieldIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-  </svg>
-);
-
-const SparkIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 3v3M12 18v3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M3 12h3M18 12h3M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
-  </svg>
-);
-
-const HandshakeIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 7 12 3 4 7v10l8 4 8-4V7z" />
-    <path d="M12 12 4 7M12 12l8-5M12 12v9" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
+const TRUST_CARDS = [
+  {
+    icon: <ShieldCheck size={20} strokeWidth={1.6} />,
+    title: "Безопасная сделка",
+    text: "Оплата хранится на счёте платформы до подтверждения публикации.",
+  },
+  {
+    icon: <Crown size={20} strokeWidth={1.6} />,
+    title: "Только избранные",
+    text: "Каждый профиль проходит ручную модерацию перед публикацией.",
+  },
+  {
+    icon: <Handshake size={20} strokeWidth={1.6} />,
+    title: "Прямой диалог",
+    text: "Бриф, сроки и детали — напрямую с автором внутри заказа.",
+  },
+];
 
 export default function MarketplaceHomePage() {
   const { data: catalog } = useQuery<CatalogResponse>({
@@ -104,39 +98,57 @@ export default function MarketplaceHomePage() {
               </motion.div>
             </div>
 
-            <div className={styles.heroAside}>
-              {[
-                {
-                  icon: <ShieldIcon />,
-                  title: "Безопасная сделка",
-                  text: "Оплата хранится на счёте платформы до подтверждения публикации.",
-                },
-                {
-                  icon: <SparkIcon />,
-                  title: "Только избранные",
-                  text: "Каждый профиль проходит ручную модерацию перед публикацией.",
-                },
-                {
-                  icon: <HandshakeIcon />,
-                  title: "Прямой диалог",
-                  text: "Бриф, сроки и детали — напрямую с автором внутри заказа.",
-                },
-              ].map((card, i) => (
-                <motion.div
-                  key={card.title}
-                  className={styles.heroCard}
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.7, delay: 0.25 + i * 0.12, ease: [0.2, 0.6, 0.2, 1] }}
-                >
-                  <span className={styles.heroCardIcon}>{card.icon}</span>
-                  <span>
-                    <p className={styles.heroCardTitle}>{card.title}</p>
-                    <p className={styles.heroCardText}>{card.text}</p>
+            <motion.div
+              className={styles.heroAside}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.85, delay: 0.15, ease: [0.2, 0.6, 0.2, 1] }}
+            >
+              <div className={styles.heroVisual}>
+                <img
+                  src="/img/hero-interior.jpg"
+                  alt="Премиальный интерьер"
+                  className={styles.heroImg}
+                  fetchPriority="high"
+                />
+                <div className={styles.heroVisualScrim} aria-hidden="true" />
+                <div className={styles.heroSeal}>
+                  <span className={styles.heroSealIcon}>
+                    <ShieldCheck size={18} strokeWidth={1.6} />
                   </span>
-                </motion.div>
-              ))}
-            </div>
+                  <span>
+                    <span className={styles.heroSealTitle}>Сделка под защитой</span>
+                    <span className={styles.heroSealText}>
+                      Оплата хранится на платформе до результата
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Trust row ── */}
+      <section className={styles.trustSection}>
+        <div className={shell.pageContainer}>
+          <div className={styles.trustRow}>
+            {TRUST_CARDS.map((card, i) => (
+              <motion.div
+                key={card.title}
+                className={styles.heroCard}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.6, delay: i * 0.1, ease: [0.2, 0.6, 0.2, 1] }}
+              >
+                <span className={styles.heroCardIcon}>{card.icon}</span>
+                <span>
+                  <p className={styles.heroCardTitle}>{card.title}</p>
+                  <p className={styles.heroCardText}>{card.text}</p>
+                </span>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -214,29 +226,37 @@ export default function MarketplaceHomePage() {
 
           {/* ── Guarantee band ── */}
           <motion.div className={styles.band} {...fadeUp}>
-            <div>
+            <div className={styles.bandVisual}>
+              <img
+                src="/img/luxury-suite.jpg"
+                alt="Премиальный интерьер"
+                className={styles.bandImg}
+                loading="lazy"
+              />
+            </div>
+            <div className={styles.bandBody}>
               <span className={ui.eyebrow}>Гарантии</span>
               <h2 className={ui.sectionTitle}>Сделка под защитой платформы</h2>
               <p className={ui.lead}>
                 Мы удерживаем оплату на стороне платформы и переводим её автору
                 только после вашего подтверждения. Спорные ситуации решает служба поддержки.
               </p>
+              <ul className={styles.bandList}>
+                {[
+                  "Деньги не уходят блогеру до подтверждения результата",
+                  "Возврат средств, если публикация не состоялась",
+                  "Арбитраж поддержки в спорных ситуациях",
+                  "История заказа и переписки сохраняется",
+                ].map((item) => (
+                  <li key={item} className={styles.bandItem}>
+                    <span className={styles.bandCheck}>
+                      <Check size={12} strokeWidth={2.5} />
+                    </span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </div>
-            <ul className={styles.bandList}>
-              {[
-                "Деньги не уходят блогеру до подтверждения результата",
-                "Возврат средств, если публикация не состоялась",
-                "Арбитраж поддержки в спорных ситуациях",
-                "История заказа и переписки сохраняется",
-              ].map((item) => (
-                <li key={item} className={styles.bandItem}>
-                  <span className={styles.bandCheck}>
-                    <CheckIcon />
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
           </motion.div>
 
           {/* ── Final CTA ── */}

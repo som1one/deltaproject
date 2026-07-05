@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { LogOut, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -10,27 +11,6 @@ import { useTheme } from "@/lib/theme-context";
 import { appConfig } from "@/lib/config";
 
 import styles from "./shell.module.css";
-
-const SunIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-    <circle cx="12" cy="12" r="4.2" />
-    <path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5 5l1.7 1.7M17.3 17.3 19 19M19 5l-1.7 1.7M6.7 17.3 5 19" />
-  </svg>
-);
-
-const MoonIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20.4 14.2A8.4 8.4 0 0 1 9.8 3.6a8.4 8.4 0 1 0 10.6 10.6Z" />
-  </svg>
-);
-
-const LogoutIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line x1="21" y1="12" x2="9" y2="12" />
-  </svg>
-);
 
 export const ThemeToggle = () => {
   const { theme, toggleTheme } = useTheme();
@@ -42,7 +22,7 @@ export const ThemeToggle = () => {
       aria-label={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
       title={theme === "dark" ? "Светлая тема" : "Тёмная тема"}
     >
-      {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+      {theme === "dark" ? <Sun size={16} strokeWidth={1.6} /> : <Moon size={16} strokeWidth={1.6} />}
     </button>
   );
 };
@@ -132,7 +112,7 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
                   aria-label="Выйти"
                   title="Выйти"
                 >
-                  <LogoutIcon />
+                  <LogOut size={14} strokeWidth={1.8} />
                 </button>
               </span>
             ) : (

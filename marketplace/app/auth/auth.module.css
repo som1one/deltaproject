@@ -37,8 +37,8 @@
 
 .asideBrandSub {
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.34em;
+  font-weight: 600;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--bronze);
 }
@@ -177,7 +177,7 @@
   gap: 12px;
   align-items: flex-start;
   padding: 16px 18px;
-  border: 1px solid var(--bronze-edge);
+  border: 1px solid rgba(150, 121, 77, 0.16);
   border-radius: var(--radius-md);
   background: var(--bronze-soft);
   font-size: 13.5px;

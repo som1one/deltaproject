@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { Users } from "lucide-react";
 import { useState } from "react";
 
 import { formatAudience, formatMoney } from "@/lib/format";
@@ -17,13 +18,11 @@ export const categoryLabel = (value: string | null | undefined): string => {
   return found?.label ?? value;
 };
 
-const UsersIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
+// Премиальные золотые текстуры-заглушки, когда у автора нет фото
+const FALLBACK_TEXTURES = [
+  "linear-gradient(160deg, rgba(23,20,16,0.12), rgba(23,20,16,0.44)), url(/img/marble-gold-1.jpg)",
+  "linear-gradient(160deg, rgba(23,20,16,0.12), rgba(23,20,16,0.44)), url(/img/gold-texture.jpg)",
+];
 
 export const BloggerCardView = ({
   blogger,
@@ -53,7 +52,12 @@ export const BloggerCardView = ({
               onError={() => setImgFailed(true)}
             />
           ) : (
-            <span className={styles.mediaFallback}>{initial}</span>
+            <span
+              className={styles.mediaFallback}
+              style={{ backgroundImage: FALLBACK_TEXTURES[index % FALLBACK_TEXTURES.length] }}
+            >
+              {initial}
+            </span>
           )}
           <span className={styles.categoryTag}>{categoryLabel(blogger.category)}</span>
         </div>
@@ -61,7 +65,7 @@ export const BloggerCardView = ({
           <h3 className={styles.name}>{blogger.name}</h3>
           <div className={styles.metaRow}>
             <span className={styles.metaItem}>
-              <UsersIcon />
+              <Users size={14} strokeWidth={1.8} />
               {formatAudience(blogger.subscriber_count)} подписчиков
             </span>
           </div>

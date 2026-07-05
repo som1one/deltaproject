@@ -154,9 +154,9 @@
 
 .userRole {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   color: var(--bronze);
 }
 
@@ -233,7 +233,7 @@
 .mobileLink {
   display: block;
   padding: 12px 14px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-size: 16px;
   font-weight: 500;
   color: var(--text);
@@ -303,7 +303,7 @@
 
 .footerColTitle {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--text-soft);

@@ -14,7 +14,7 @@
     radial-gradient(42% 55% at 22% 30%, var(--bronze-soft), transparent 70%),
     radial-gradient(36% 48% at 78% 18%, var(--status-info-soft), transparent 72%);
   pointer-events: none;
-  filter: blur(2px);
+  filter: blur(8px);
 }
 
 .heroInner {
@@ -52,19 +52,102 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   padding: 24px 26px;
-  box-shadow: var(--shadow-panel);
+  box-shadow: var(--shadow-card);
   display: flex;
   align-items: center;
   gap: 16px;
+  transition: transform var(--transition-base), border-color var(--transition-base),
+    box-shadow var(--transition-base);
 }
 
-.heroCard:nth-child(2) {
-  margin-left: 10%;
+.heroCard:hover {
+  transform: translateY(-3px);
+  border-color: rgba(150, 121, 77, 0.22);
+  box-shadow: var(--shadow-hover);
 }
 
-.heroCard:nth-child(3) {
-  margin-left: -6%;
-  margin-right: 8%;
+/* Hero visual (image panel) */
+
+.heroVisual {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-panel);
+}
+
+.heroImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.heroVisualScrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(70% 40% at 50% 0%, rgba(150, 121, 77, 0.22), transparent 70%),
+    linear-gradient(180deg, rgba(23, 20, 16, 0) 42%, rgba(23, 20, 16, 0.58) 100%);
+}
+
+.heroSeal {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: var(--radius-lg);
+  background: var(--surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+}
+
+.heroSealIcon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-pill);
+  background: var(--bronze-soft);
+  border: 1px solid rgba(150, 121, 77, 0.22);
+  color: var(--bronze-deep);
+}
+
+.heroSealTitle {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.heroSealText {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* Trust row */
+
+.trustSection {
+  padding-top: clamp(28px, 5vw, 52px);
+}
+
+.trustRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
 }
 
 .heroCardIcon {
@@ -75,7 +158,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--bronze-edge);
+  border: 1px solid rgba(150, 121, 77, 0.20);
   background: var(--bronze-soft);
   color: var(--bronze-deep);
 }
@@ -83,7 +166,7 @@
 .heroCardTitle {
   margin: 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-strong);
 }
 
@@ -134,8 +217,9 @@
 }
 
 .howCard:hover {
-  border-color: var(--bronze-edge);
-  transform: translateY(-3px);
+  border-color: rgba(150, 121, 77, 0.22);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
 }
 
 .howNum {
@@ -154,7 +238,7 @@
 .howTitle {
   margin: 16px 0 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-strong);
 }
 
@@ -174,19 +258,40 @@
   background:
     radial-gradient(60% 120% at 15% 0%, var(--bronze-soft), transparent 60%),
     var(--surface-base);
-  padding: clamp(36px, 6vw, 64px);
+  padding: clamp(28px, 4vw, 48px);
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 40px;
-  align-items: center;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: clamp(28px, 4vw, 48px);
+  align-items: stretch;
   box-shadow: var(--shadow-panel);
+}
+
+.bandVisual {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  min-height: 280px;
+}
+
+.bandImg {
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+  object-fit: cover;
+  display: block;
+}
+
+.bandBody {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .bandList {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin: 0;
+  margin: clamp(24px, 3vw, 32px) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -246,8 +351,12 @@
     grid-template-columns: 1fr;
   }
 
-  .heroAside {
-    display: none;
+  .heroVisual {
+    aspect-ratio: 4 / 3;
+  }
+
+  .trustRow {
+    grid-template-columns: 1fr;
   }
 
   .band {

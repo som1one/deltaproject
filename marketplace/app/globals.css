@@ -16,7 +16,7 @@
 
   /* ---------- Borders ---------- */
   --border:        rgba(28, 25, 18, 0.10);
-  --border-strong: rgba(28, 25, 18, 0.20);
+  --border-strong: rgba(28, 25, 18, 0.15);
   --border-faint:  rgba(28, 25, 18, 0.05);
 
   /* ---------- Text ---------- */
@@ -27,9 +27,9 @@
   --text-faint:  rgba(28, 25, 18, 0.26);
 
   /* ---------- Accent: ink + bronze ---------- */
-  --accent:       #171410;
+  --accent:       #201c15;
   --accent-ink:   #fffefb;
-  --accent-hover: #2c2820;
+  --accent-hover: #312b22;
   --bronze:       #96794d;
   --bronze-deep:  #7c6440;
   --bronze-soft:  rgba(150, 121, 77, 0.10);
@@ -46,21 +46,21 @@
   --status-info-soft:    rgba(76, 93, 107, 0.10);
 
   /* ---------- Shadows ---------- */
-  --shadow-card:  0 1px 2px rgba(28, 25, 18, 0.04), 0 10px 30px -12px rgba(28, 25, 18, 0.10);
-  --shadow-hover: 0 2px 4px rgba(28, 25, 18, 0.05), 0 24px 48px -16px rgba(28, 25, 18, 0.16);
-  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 20px 60px -24px rgba(28, 25, 18, 0.18);
+  --shadow-card:  0 1px 2px rgba(28, 25, 18, 0.03), 0 12px 34px -16px rgba(28, 25, 18, 0.09);
+  --shadow-hover: 0 2px 4px rgba(28, 25, 18, 0.04), 0 26px 56px -20px rgba(28, 25, 18, 0.12);
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.55) inset, 0 24px 64px -28px rgba(28, 25, 18, 0.14);
 
   /* ---------- Typography ---------- */
-  --font-display: "Cormorant Garamond", "EB Garamond", Georgia, serif;
+  --font-display: "Playfair Display", "EB Garamond", Georgia, serif;
   --font-body:    "Manrope", "Hanken Grotesk", system-ui, sans-serif;
   --font-mono:    "JetBrains Mono", ui-monospace, monospace;
 
   /* ---------- Radii ---------- */
-  --radius-xs:   6px;
-  --radius-sm:   10px;
-  --radius-md:   14px;
-  --radius-lg:   20px;
-  --radius-xl:   28px;
+  --radius-xs:   8px;
+  --radius-sm:   12px;
+  --radius-md:   16px;
+  --radius-lg:   24px;
+  --radius-xl:   32px;
   --radius-pill: 999px;
 
   /* ---------- Motion ---------- */
@@ -85,7 +85,7 @@ html[data-theme="dark"] {
   --surface-glass:  rgba(21, 19, 16, 0.72);
 
   --border:        rgba(243, 238, 227, 0.10);
-  --border-strong: rgba(243, 238, 227, 0.20);
+  --border-strong: rgba(243, 238, 227, 0.15);
   --border-faint:  rgba(243, 238, 227, 0.05);
 
   --text-strong: #f5f1e8;
@@ -111,9 +111,9 @@ html[data-theme="dark"] {
   --status-danger-soft:  rgba(205, 141, 132, 0.12);
   --status-info-soft:    rgba(147, 167, 181, 0.12);
 
-  --shadow-card:  0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 16px 40px -16px rgba(0, 0, 0, 0.6);
-  --shadow-hover: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 28px 60px -20px rgba(0, 0, 0, 0.75);
-  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 24px 70px -28px rgba(0, 0, 0, 0.8);
+  --shadow-card:  0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 16px 40px -16px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 30px 68px -24px rgba(0, 0, 0, 0.55);
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 26px 76px -30px rgba(0, 0, 0, 0.6);
 }
 
 /* ---------- Reset / base ---------- */
@@ -192,14 +192,14 @@ video {
 :focus-visible {
   outline: 1.5px solid var(--bronze);
   outline-offset: 3px;
-  border-radius: 4px;
+  border-radius: 8px;
 }
 
 /* ---------- Scrollbars ---------- */
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-color: var(--border) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -212,7 +212,7 @@ video {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+  background: var(--border);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
@@ -257,10 +257,10 @@ video {
 .shimmerBlock {
   background: linear-gradient(
     90deg,
-    var(--surface-raised) 25%,
-    var(--surface-hover) 37%,
-    var(--surface-raised) 63%
+    var(--surface-raised) 20%,
+    var(--surface-hover) 50%,
+    var(--surface-raised) 80%
   );
   background-size: 800px 100%;
-  animation: shimmer 1.4s ease infinite;
+  animation: shimmer 1.8s var(--easing) infinite;
 }
