@@ -160,29 +160,27 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
                 безопасная сделка: оплата удерживается платформой до подтверждения публикации.
               </p>
             </div>
-            <div className={styles.footerCols}>
-              <div className={styles.footerCol}>
-                <span className={styles.footerColTitle}>Маркет</span>
-                <Link href="/catalog" className={styles.footerLink}>Каталог авторов</Link>
-                <Link href="/#how" className={styles.footerLink}>Как проходит сделка</Link>
-                <Link href="/orders" className={styles.footerLink}>Мои сделки</Link>
-                <Link href="/support" className={styles.footerLink}>Поддержка</Link>
-              </div>
-              <div className={styles.footerCol}>
-                <span className={styles.footerColTitle}>Авторам</span>
-                <Link href="/auth/login?role=blogger" className={styles.footerLink}>Вход для авторов</Link>
-                <a href={appConfig.mainAppUrl} className={styles.footerLink} target="_blank" rel="noreferrer">
-                  Платформа looney moon
-                </a>
-                <a
-                  href={`${appConfig.mainAppUrl}/blogger/profile`}
-                  className={styles.footerLink}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Управление профилем
-                </a>
-              </div>
+            <div className={styles.footerCol}>
+              <span className={styles.footerColTitle}>Маркет</span>
+              <Link href="/catalog" className={styles.footerLink}>Каталог авторов</Link>
+              <Link href="/#how" className={styles.footerLink}>Как проходит сделка</Link>
+              <Link href="/orders" className={styles.footerLink}>Мои сделки</Link>
+              <Link href="/support" className={styles.footerLink}>Поддержка</Link>
+            </div>
+            <div className={styles.footerCol}>
+              <span className={styles.footerColTitle}>Авторам</span>
+              <Link href="/auth/login?role=blogger" className={styles.footerLink}>Вход для авторов</Link>
+              <a href={appConfig.mainAppUrl} className={styles.footerLink} target="_blank" rel="noreferrer">
+                Платформа looney moon
+              </a>
+              <a
+                href={`${appConfig.mainAppUrl}/blogger/profile`}
+                className={styles.footerLink}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Управление профилем
+              </a>
             </div>
           </div>
           <div className={styles.footerBottom}>

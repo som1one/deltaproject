@@ -1,6 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   Общий UI-кит — «Реестр»
-   Волосяные линии вместо теней · радиус 0–2px · дисциплина.
+   UI-кит — современный SaaS (стиль Lago, чёрный акцент)
    ═══════════════════════════════════════════════════════════ */
 
 /* ── Типографика ─────────────────────────────────────────── */
@@ -8,117 +7,122 @@
 .brow {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--brass-ink);
+  gap: 8px;
+  padding: 6px 12px 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text);
 }
 
 .brow::before {
   content: "";
-  width: 22px;
-  height: 1px;
-  background: var(--brass);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
 }
 
 .display {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(38px, 5.4vw, 64px);
-  line-height: 1.1;
-  letter-spacing: -0.005em;
+  font-weight: 700;
+  font-size: clamp(34px, 5.4vw, 60px);
+  line-height: 1.04;
+  letter-spacing: -0.028em;
   color: var(--ink);
 }
 
 .displayEm {
-  font-family: "Cormorant Garamond", var(--font-display);
-  font-style: italic;
-  font-weight: 600;
-  color: var(--brass);
+  color: var(--violet);
 }
 
 .h2 {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(28px, 3.4vw, 40px);
-  line-height: 1.15;
-  letter-spacing: -0.005em;
+  font-weight: 700;
+  font-size: clamp(26px, 3.4vw, 42px);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--ink);
 }
 
 .h3 {
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   font-weight: 600;
-  font-size: 22px;
-  line-height: 1.3;
+  font-size: 20px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 
 .lead {
-  font-size: clamp(16px, 1.7vw, 18px);
-  line-height: 1.6;
-  color: var(--ink-70);
+  font-size: clamp(16px, 1.5vw, 19px);
+  line-height: 1.55;
+  color: var(--muted);
   max-width: 56ch;
 }
 
 .muted {
-  color: var(--ink-55);
+  color: var(--muted);
 }
 
 .fine {
   font-size: 13px;
-  line-height: 1.55;
-  color: var(--ink-55);
+  line-height: 1.5;
+  color: var(--muted);
 }
 
 .mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.01em;
 }
 
 .recordNum {
   font-family: var(--font-mono);
   font-size: 13px;
-  font-weight: 500;
-  color: var(--brass);
-  font-variant-numeric: tabular-nums;
+  color: var(--faint);
 }
 
 .tag {
-  font-family: var(--font-body);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--brass-ink);
+  color: var(--muted);
 }
 
 .hr {
   border: none;
-  border-top: 1px solid var(--hairline);
+  border-top: 1px solid var(--line);
   margin: 0;
+}
+
+/* ── Section head ────────────────────────────────────────── */
+
+.sectionHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
 }
 
 /* ── Ссылки ──────────────────────────────────────────────── */
 
 .link {
-  display: inline;
-  color: inherit;
-  background-image: linear-gradient(var(--loden), var(--loden));
-  background-repeat: no-repeat;
-  background-position: 0 100%;
-  background-size: 0% 1px;
-  padding-bottom: 1px;
-  transition: background-size var(--dur) var(--ease), color var(--dur) var(--ease);
+  color: var(--ink);
+  font-weight: 500;
+  border-bottom: 1.5px solid var(--line-strong);
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 .link:hover {
-  color: var(--loden);
-  background-size: 100% 1px;
+  border-bottom-color: var(--ink);
 }
 
 /* ── Кнопки ──────────────────────────────────────────────── */
@@ -127,17 +131,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  height: 52px;
-  padding: 0 28px;
-  border-radius: var(--r);
-  font-family: var(--font-body);
+  gap: 8px;
+  height: 46px;
+  padding: 0 22px;
+  border-radius: var(--pill);
+  font-family: var(--font);
   font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease),
-    border-color var(--dur) var(--ease), opacity var(--dur) var(--ease);
+    border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 
 .btn:disabled {
@@ -147,67 +151,64 @@
 
 .btnPrimary {
   composes: btn;
-  background: var(--loden);
-  color: var(--on-ink);
-  border: 1px solid var(--loden);
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .btnPrimary:hover:not(:disabled) {
-  background: var(--loden-deep);
-  border-color: var(--loden-deep);
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
-/* Текстовая кнопка с подчёркиванием (secondary) */
-.btnUnderline {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 52px;
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--ink);
-  background-image: linear-gradient(var(--ink), var(--ink));
-  background-repeat: no-repeat;
-  background-position: 0 calc(100% - 15px);
-  background-size: 100% 1px;
-  transition: background-size var(--dur) var(--ease), color var(--dur) var(--ease),
-    background-image var(--dur) var(--ease);
-}
-
-.btnUnderline:hover:not(:disabled) {
-  color: var(--loden);
-  background-image: linear-gradient(var(--loden), var(--loden));
-}
-
-/* Обведённая волосяной линией */
 .btnLine {
   composes: btn;
-  background: transparent;
+  background: var(--surface);
   color: var(--ink);
-  border: 1px solid var(--hairline-strong);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-xs);
 }
 
 .btnLine:hover:not(:disabled) {
-  border-color: var(--loden);
-  color: var(--loden);
+  border-color: var(--ink);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Текстовая кнопка со стрелкой (ghost) */
+.btnUnderline {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 46px;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  transition: gap var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.btnUnderline:hover:not(:disabled) {
+  gap: 11px;
+  color: var(--primary-hover);
 }
 
 .btnDanger {
   composes: btn;
-  background: transparent;
-  color: var(--oxblood);
-  border: 1px solid var(--oxblood);
+  background: var(--surface);
+  color: var(--danger);
+  border: 1px solid var(--danger);
 }
 
 .btnDanger:hover:not(:disabled) {
-  background: var(--oxblood);
-  color: var(--on-ink);
+  background: var(--danger);
+  color: #fff;
 }
 
 .btnSmall {
-  height: 42px;
-  padding: 0 18px;
+  height: 38px;
+  padding: 0 16px;
   font-size: 14px;
 }
 
@@ -215,40 +216,78 @@
   width: 100%;
 }
 
-/* ── Штампы реестра ──────────────────────────────────────── */
+/* ── Карточки ────────────────────────────────────────────── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.cardHover {
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.cardHover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--line-strong);
+}
+
+/* Цветная иконка-плитка */
+.iconTile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r);
+  color: #fff;
+}
+
+/* ── Статус-пилюли ───────────────────────────────────────── */
 
 .stamp {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 5px 11px;
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--r);
-  font-family: var(--font-body);
-  font-size: 11px;
+  gap: 6px;
+  padding: 5px 11px 5px 9px;
+  border-radius: var(--pill);
+  font-family: var(--font);
+  font-size: 12.5px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-55);
+  letter-spacing: -0.01em;
   white-space: nowrap;
+  background: var(--surface-3);
+  color: var(--muted);
+}
+
+.stamp::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.9;
 }
 
 .stampActive {
   composes: stamp;
-  border-color: var(--loden);
-  color: var(--loden);
+  background: var(--violet-soft);
+  color: #5646c9;
 }
 
 .stampDone {
   composes: stamp;
-  border-color: var(--ink);
-  color: var(--ink);
+  background: var(--success-soft);
+  color: #0b7a3b;
 }
 
 .stampAlert {
   composes: stamp;
-  border-color: var(--oxblood);
-  color: var(--oxblood);
+  background: var(--danger-soft);
+  color: #c22a2f;
 }
 
 .stampMuted {
@@ -261,103 +300,116 @@
   gap: 8px;
 }
 
-/* ── Поля / формы ────────────────────────────────────────── */
+/* ── Формы ───────────────────────────────────────────────── */
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
 }
 
 .fieldLabel {
-  font-family: var(--font-body);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-55);
+  color: var(--text);
 }
 
 .input,
 .textarea,
 .select {
   width: 100%;
-  background: transparent;
-  border: 1px solid var(--hairline-strong);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
   border-radius: var(--r);
-  padding: 14px 16px;
-  font-family: var(--font-body);
-  font-size: 16px;
+  padding: 12px 14px;
+  font-family: var(--font);
+  font-size: 15px;
   color: var(--ink);
-  transition: border-color var(--dur) var(--ease);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--faint);
 }
 
 .input:hover,
 .textarea:hover,
 .select:hover {
-  border-color: var(--ink-55);
+  border-color: var(--faint);
 }
 
 .input:focus,
 .textarea:focus,
 .select:focus {
-  border-color: var(--loden);
   outline: none;
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(11, 11, 13, 0.08);
 }
 
 .textarea {
-  min-height: 128px;
+  min-height: 122px;
   resize: vertical;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .select {
   appearance: none;
   cursor: pointer;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2323211c' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c5e69' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 14px center;
-  padding-right: 40px;
+  background-position: right 13px center;
+  padding-right: 38px;
 }
 
 .inputError {
-  border-color: var(--oxblood) !important;
+  border-color: var(--danger) !important;
 }
 
-/* ── Уведомления (левая линейка-акцент) ──────────────────── */
+/* ── Уведомления ─────────────────────────────────────────── */
 
 .notice {
-  padding: 14px 18px;
-  border-left: 2px solid var(--ink);
-  background: var(--stone);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 13px 16px;
+  border-radius: var(--r);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
   font-size: 14.5px;
-  line-height: 1.55;
-  color: var(--ink);
+  line-height: 1.5;
+  color: var(--text);
 }
 
 .noticeSuccess {
   composes: notice;
-  border-left-color: var(--loden);
+  border-color: transparent;
+  background: var(--success-soft);
+  color: #0b7a3b;
 }
 
 .noticeDanger {
   composes: notice;
-  border-left-color: var(--oxblood);
-  color: var(--oxblood);
+  border-color: transparent;
+  background: var(--danger-soft);
+  color: #c22a2f;
 }
 
 .noticeWarning {
   composes: notice;
-  border-left-color: var(--brass);
+  border-color: transparent;
+  background: var(--warning-soft);
+  color: #9a6a12;
 }
 
-/* ── Список определений (реквизиты, факты) ───────────────── */
+/* ── Список определений ──────────────────────────────────── */
 
 .defList {
   display: flex;
@@ -369,8 +421,8 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 20px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--hairline);
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .defRow:last-child {
@@ -378,14 +430,14 @@
 }
 
 .defKey {
-  font-size: 13.5px;
-  color: var(--ink-55);
+  font-size: 14px;
+  color: var(--muted);
   white-space: nowrap;
 }
 
 .defValue {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--ink);
   text-align: right;
   word-break: break-word;
@@ -398,68 +450,56 @@
   align-items: center;
   gap: 6px;
   padding: 3px 9px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r);
-  font-family: var(--font-body);
-  font-size: 11.5px;
-  font-weight: 500;
-  color: var(--ink-55);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
   transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 .copyBtn:hover {
-  border-color: var(--loden);
-  color: var(--loden);
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
-/* ── Пустой экран (приглашает к действию) ────────────────── */
+/* ── Пустой экран ────────────────────────────────────────── */
 
 .empty {
-  padding: 56px 0;
-  border-top: 1px solid var(--hairline);
-  border-bottom: 1px solid var(--hairline);
+  text-align: center;
+  padding: 56px 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
 }
 
 .emptyTitle {
   font-family: var(--font-display);
-  font-size: 26px;
-  line-height: 1.2;
+  font-size: 22px;
+  font-weight: 700;
   color: var(--ink);
-  margin: 0 0 10px;
+  margin: 0 0 8px;
 }
 
 .emptyText {
-  color: var(--ink-55);
-  max-width: 46ch;
-  margin: 0 0 22px;
+  color: var(--muted);
+  max-width: 42ch;
+  margin: 0 auto 22px;
 }
 
-/* ── Портрет-дуотон / монограмма ─────────────────────────── */
+/* ── Аватар / портрет ────────────────────────────────────── */
 
 .portrait {
   position: relative;
   overflow: hidden;
-  background: var(--stone);
-  border: 1px solid var(--hairline);
-  border-radius: var(--r);
+  border-radius: var(--r-lg);
+  background: var(--surface-3);
 }
 
 .portrait img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: grayscale(1) sepia(0.26) saturate(0.72) brightness(1.02) contrast(1.03);
-}
-
-/* плёночное зерно 3–4% — единый приём */
-.grain::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity: 0.05;
-  mix-blend-mode: multiply;
 }
 
 .monogram {
@@ -469,37 +509,21 @@
   width: 100%;
   height: 100%;
   font-family: var(--font-display);
-  color: var(--brass);
-  background: var(--stone);
+  font-weight: 700;
+  color: #fff;
 }
 
-/* ── Скелетон (тихий) ────────────────────────────────────── */
+.grain::after {
+  content: none;
+}
+
+/* ── Skeleton ────────────────────────────────────────────── */
 
 .skeleton {
-  position: relative;
-  overflow: hidden;
-  background: var(--stone);
   border-radius: var(--r);
-}
-
-.skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(239, 236, 229, 0.5) 50%,
-    transparent 100%
-  );
-  transform: translateX(-100%);
-  animation: skelSweep 1.9s var(--ease) infinite;
-}
-
-@keyframes skelSweep {
-  to {
-    transform: translateX(100%);
-  }
+  background: linear-gradient(90deg, var(--surface-3) 25%, var(--surface-2) 37%, var(--surface-3) 63%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s var(--ease) infinite;
 }
 
 /* ── Сетки ───────────────────────────────────────────────── */
@@ -507,12 +531,12 @@
 .grid2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 40px;
+  gap: 28px;
 }
 
 @media (max-width: 860px) {
   .grid2 {
     grid-template-columns: 1fr;
-    gap: 28px;
+    gap: 20px;
   }
 }

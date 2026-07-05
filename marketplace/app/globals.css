@@ -1,56 +1,111 @@
 /* =========================================================
-   Looney Moon Market — «Реестр»
-   Частный реестр сделок: воздух, типографика, волосяные линии.
-   Единая дисциплинированная палитра, тёмные секции внутри неё.
+   Looney Moon Market — современный SaaS (стиль getlago.com),
+   синий акцент заменён на чёрный. Светло, чисто, живо.
    ========================================================= */
 
 :root {
-  /* ---------- Палитра (использовать только эти) ---------- */
-  --ink:        #23211c; /* тёплый почти-чёрный: текст, тёмные секции */
-  --bone:       #efece5; /* основной фон, «бумага» */
-  --stone:      #ddd9cf; /* вторичные подложки, ховеры строк */
-  --loden:      #46523e; /* тёмно-зелёный акцент: кнопки, активное, ссылки-ховер */
-  --loden-deep: #38412f; /* нажатие / ховер кнопки */
-  --brass:      #96784a; /* латунь: крупные цифры, печати, декор */
-  --brass-ink:  #7d6238; /* латунь для мелкого текста — затемнена под WCAG AA */
-  --oxblood:    #6b3a34; /* только «спор/отклонено» */
+  /* ---------- Поверхности ---------- */
+  --bg:         #ffffff;
+  --surface:    #ffffff;
+  --surface-2:  #f6f7f8;  /* фон секций */
+  --surface-3:  #eef0f2;  /* подложки, ховеры */
+  --surface-4:  #e6e8eb;
 
-  /* ---------- Волосяные линии (вместо теней) ---------- */
-  --hairline:        rgba(35, 33, 28, 0.16);
-  --hairline-soft:   rgba(35, 33, 28, 0.09);
-  --hairline-strong: rgba(35, 33, 28, 0.28);
+  /* ---------- Линии ---------- */
+  --line:        rgba(12, 14, 20, 0.09);
+  --line-strong: rgba(12, 14, 20, 0.16);
 
-  /* ---------- Производные тона текста на бумаге ----------
-     Значения выверены под WCAG AA на фоне --bone:
-     ink-70 и ink-55 проходят 4.5:1 для мелкого текста;
-     ink-40 — только для декоративных штрихов (стрелки, точки, лидеры). */
-  --ink-70: rgba(35, 33, 28, 0.74);
-  --ink-55: rgba(35, 33, 28, 0.66);
-  --ink-40: rgba(35, 33, 28, 0.42);
+  /* ---------- Текст ---------- */
+  --ink:    #0b0b0d;  /* заголовки + первичный акцент (чёрный вместо синего) */
+  --text:   #24252b;
+  --muted:  #5c5e69;
+  --faint:  #8a8c98;
 
-  /* ---------- Тёмная секция (--ink фон) ---------- */
-  --on-ink:      #efece5;
-  --on-ink-70:   rgba(239, 236, 229, 0.74);
-  --on-ink-45:   rgba(239, 236, 229, 0.62);
-  --on-ink-line: rgba(239, 236, 229, 0.18);
+  /* ---------- Первичный акцент (чёрный) ---------- */
+  --primary:        #0b0b0d;
+  --primary-hover:  #2a2b31;
+  --on-primary:     #ffffff;
+
+  /* ---------- Цветные акценты (иконки, аватары, мокапы) ---------- */
+  --violet: #6d5ef6;
+  --indigo: #4f46e5;
+  --green:  #12a150;
+  --emerald:#0f9d76;
+  --amber:  #f5a524;
+  --sky:    #2aa5f0;
+  --pink:   #ec4899;
+  --coral:  #f56342;
+  --violet-soft: #efedff;
+  --green-soft:  #e6f6ee;
+  --amber-soft:  #fdf1dd;
+  --sky-soft:    #e3f2fd;
+  --pink-soft:   #fce7f1;
+  --coral-soft:  #fdeae4;
+
+  /* ---------- Статусы ---------- */
+  --success: #12a150;
+  --warning: #cf8a12;
+  --danger:  #e5484d;
+  --info:    #2aa5f0;
+  --success-soft: #e6f6ee;
+  --warning-soft: #fbf0da;
+  --danger-soft:  #fdecec;
+  --info-soft:    #e3f2fd;
+
+  /* ---------- Тени (мягкие, SaaS) ---------- */
+  --shadow-xs: 0 1px 2px rgba(12, 14, 20, 0.06);
+  --shadow-sm: 0 1px 2px rgba(12, 14, 20, 0.06), 0 1px 3px rgba(12, 14, 20, 0.04);
+  --shadow:    0 4px 14px -4px rgba(12, 14, 20, 0.10), 0 2px 6px -2px rgba(12, 14, 20, 0.06);
+  --shadow-md: 0 12px 30px -10px rgba(12, 14, 20, 0.14), 0 4px 10px -4px rgba(12, 14, 20, 0.08);
+  --shadow-lg: 0 30px 60px -20px rgba(12, 14, 20, 0.24), 0 10px 24px -12px rgba(12, 14, 20, 0.12);
 
   /* ---------- Типографика ---------- */
-  --font-display: "Prata", "Cormorant Garamond", Georgia, "Times New Roman", serif;
-  --font-body:    "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono:    "JetBrains Mono", "PT Mono", ui-monospace, "SFMono-Regular", monospace;
+  --font:         "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Inter Tight", "Inter", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
-  /* ---------- Форма ---------- */
-  --r: 2px; /* формы документа, не приложения */
+  /* ---------- Радиусы ---------- */
+  --r-xs:  6px;
+  --r-sm:  8px;
+  --r:     12px;
+  --r-md:  14px;
+  --r-lg:  20px;
+  --r-xl:  28px;
+  --pill:  999px;
 
   /* ---------- Сетка ---------- */
-  --page-max: 1440px;
-  --page-pad: clamp(24px, 4vw, 56px);
-  --section:  clamp(96px, 13vw, 184px); /* вертикальный ритм — воздух */
-  --nav-h:    76px;
+  --page-max: 1200px;
+  --page-pad: clamp(20px, 4vw, 40px);
+  --section:  clamp(72px, 10vw, 132px);
+  --nav-h:    68px;
 
   /* ---------- Движение ---------- */
-  --ease: cubic-bezier(0.2, 0, 0, 1);
-  --dur:  280ms;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur:  240ms;
+
+  /* ---------- Мост совместимости со старыми страницами ----------
+     Пока каталог/досье/сделки/авторизация не переверстаны под SaaS,
+     старые имена токенов указывают на новую палитру, чтобы всё было
+     единым. Будет удалено после переверстки страниц. */
+  --font-body:       var(--font);
+  --bone:            var(--bg);
+  --stone:           var(--surface-3);
+  --ink-70:          var(--text);
+  --ink-55:          var(--muted);
+  --ink-40:          var(--faint);
+  --hairline:        var(--line);
+  --hairline-soft:   var(--line);
+  --hairline-strong: var(--line-strong);
+  --brass:           var(--muted);
+  --brass-ink:       var(--muted);
+  --loden:           var(--primary);
+  --loden-deep:      var(--primary-hover);
+  --oxblood:         var(--danger);
+  --on-ink:          #ffffff;
+  --on-ink-70:       rgba(255, 255, 255, 0.72);
+  --on-ink-45:       rgba(255, 255, 255, 0.5);
+  --on-ink-line:     rgba(255, 255, 255, 0.15);
+  --r:               12px;
 }
 
 /* ---------- Reset / base ---------- */
@@ -63,20 +118,21 @@
 
 html {
   color-scheme: light;
-  background: var(--bone);
+  background: var(--bg);
   -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   min-width: 320px;
-  background: var(--bone);
-  color: var(--ink);
-  font-family: var(--font-body);
-  font-size: 17px;
-  line-height: 1.65;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
   font-weight: 400;
-  font-synthesis: none;
+  letter-spacing: -0.011em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -85,6 +141,13 @@ body {
 
 h1, h2, h3, h4, p, figure, blockquote {
   margin: 0;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--ink);
+  letter-spacing: -0.022em;
+  line-height: 1.08;
 }
 
 a {
@@ -120,12 +183,12 @@ ul, ol {
 }
 
 ::selection {
-  background: var(--stone);
-  color: var(--ink);
+  background: var(--ink);
+  color: #fff;
 }
 
 ::placeholder {
-  color: var(--ink-40);
+  color: var(--faint);
   opacity: 1;
 }
 
@@ -134,40 +197,35 @@ ul, ol {
 }
 
 :focus-visible {
-  outline: 2px solid var(--loden);
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
+  border-radius: var(--r-xs);
 }
 
 /* ---------- Scrollbars ---------- */
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--hairline) transparent;
+  scrollbar-color: var(--surface-4) transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 9px;
-  height: 9px;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
+  width: 10px;
+  height: 10px;
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--hairline);
+  background: var(--surface-4);
   border: 3px solid transparent;
   background-clip: padding-box;
+  border-radius: 999px;
 }
 
-/* ---------- Numeric tabular defaults for mono ---------- */
+/* ---------- Утилиты ---------- */
 
-.tnum,
-[data-mono] {
+.tnum {
   font-variant-numeric: tabular-nums;
 }
-
-/* ---------- Утилиты: full-bleed и «линованная бумага» ---------- */
 
 .fullBleed {
   width: 100vw;
@@ -175,36 +233,22 @@ ul, ol {
   margin-right: calc(50% - 50vw);
 }
 
-/* Фон «реестровой бумаги»: тонкая горизонтальная линовка */
-.ledgerRules {
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 39px,
-    var(--hairline-soft) 39px,
-    var(--hairline-soft) 40px
-  );
-}
+/* ---------- Анимации ---------- */
 
-/* ---------- Один оркестрованный момент: маски строк h1 ---------- */
-
-@keyframes maskRise {
-  from {
-    opacity: 0;
-    transform: translateY(0.9em);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes quietFade {
-  from { opacity: 0; transform: translateY(12px); }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* строка каталога / фото / подчёркивание оформляются локально в модулях */
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+@keyframes shimmer {
+  from { background-position: -320px 0; }
+  to   { background-position: 320px 0; }
+}
 
 /* ---------- prefers-reduced-motion ---------- */
 

@@ -13,12 +13,12 @@ const stampClass: Record<StampTone, string> = {
   muted: ui.stampMuted,
 };
 
-/** Штамп статуса сделки в тонкой рамке. */
+/** Статус сделки как цветная пилюля. */
 export const StampBadge = ({ status }: { status: string }) => (
   <span className={stampClass[orderStampTone(status)]}>{orderStampLabel(status)}</span>
 );
 
-/** № сделки/записи в моно. */
+/** Номер сделки/заказа в моно. */
 export const DealNo = ({ value, className }: { value: string; className?: string }) => (
   <span className={`${ui.mono} ${className ?? ""}`.trim()}>№&nbsp;{value}</span>
 );
@@ -43,89 +43,51 @@ export const CopyButton = ({ value, label = "Копировать" }: { value: s
   );
 };
 
-/** Портрет-дуотон; при отсутствии фото — монограмма на камне. */
+/* Цветные градиенты для аватаров-заглушек */
+const GRADIENTS = [
+  "linear-gradient(135deg, #6d5ef6, #a78bfa)",
+  "linear-gradient(135deg, #2aa5f0, #22d3ee)",
+  "linear-gradient(135deg, #12a150, #4ade80)",
+  "linear-gradient(135deg, #f5a524, #fbbf5a)",
+  "linear-gradient(135deg, #ec4899, #f472b6)",
+  "linear-gradient(135deg, #f56342, #fb9678)",
+  "linear-gradient(135deg, #4f46e5, #818cf8)",
+  "linear-gradient(135deg, #0f9d76, #34d399)",
+];
+
+const pickGradient = (seed: string): string => {
+  let h = 0;
+  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return GRADIENTS[h % GRADIENTS.length];
+};
+
+/** Портрет автора: фото либо яркий градиентный аватар с инициалом. */
 export const Portrait = ({
   name,
   photoUrl,
-  record,
   className,
   monoSize = 40,
 }: {
   name: string;
   photoUrl?: string | null;
-  record?: string;
   className?: string;
   monoSize?: number;
+  /** совместимость со старыми вызовами (не используется) */
+  record?: string;
 }) => {
   const [failed, setFailed] = useState(false);
   const initial = (name || "•").trim().charAt(0).toUpperCase();
   const showImg = photoUrl && !failed;
 
   return (
-    <div className={`${ui.portrait} ${ui.grain} ${className ?? ""}`.trim()}>
+    <div className={`${ui.portrait} ${className ?? ""}`.trim()}>
       {showImg ? (
         <img src={photoUrl} alt={name} loading="lazy" onError={() => setFailed(true)} />
       ) : (
-        <span className={ui.monogram} style={{ fontSize: monoSize }} aria-hidden="true">
-          {record ?? initial}
+        <span className={ui.monogram} style={{ fontSize: monoSize, background: pickGradient(name || initial) }} aria-hidden="true">
+          {initial}
         </span>
       )}
     </div>
-  );
-};
-
-/** Латунная печать с текстом по кругу — единственный декор тёмной секции. */
-export const Seal = ({
-  size = 148,
-  text = "СДЕЛКА ПОД ЗАЩИТОЙ ПЛАТФОРМЫ · ",
-  center = "LM",
-}: {
-  size?: number;
-  text?: string;
-  center?: string;
-}) => {
-  const r = size / 2;
-  const pathR = r - 18;
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      role="img"
-      aria-label={text.replace(/·/g, "").trim()}
-      style={{ display: "block" }}
-    >
-      <defs>
-        <path
-          id="sealArc"
-          d={`M ${r},${r} m -${pathR},0 a ${pathR},${pathR} 0 1,1 ${pathR * 2},0 a ${pathR},${pathR} 0 1,1 -${pathR * 2},0`}
-          fill="none"
-        />
-      </defs>
-      <circle cx={r} cy={r} r={r - 1} fill="none" stroke="var(--brass)" strokeWidth="1" opacity="0.9" />
-      <circle cx={r} cy={r} r={r - 9} fill="none" stroke="var(--brass)" strokeWidth="1" opacity="0.45" />
-      <text
-        fill="var(--brass)"
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 9.5,
-          letterSpacing: "0.22em",
-        }}
-      >
-        <textPath href="#sealArc" startOffset="0">
-          {text.repeat(3)}
-        </textPath>
-      </text>
-      <text
-        x={r}
-        y={r}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fill="var(--brass)"
-        style={{ fontFamily: "var(--font-display)", fontSize: size * 0.24 }}
-      >
-        {center}
-      </text>
-    </svg>
   );
 };

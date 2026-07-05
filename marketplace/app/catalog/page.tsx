@@ -1,20 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
 import { MarketShell } from "@/components/shell/shell";
-import { BloggerCardSkeleton, BloggerCardView, categoryLabel } from "@/components/catalog/blogger-card";
-import { Portrait } from "@/components/ui/bits";
+import { BloggerCardSkeleton, BloggerCardView } from "@/components/catalog/blogger-card";
 import { Reveal } from "@/components/ui/motion";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { formatAudience, formatMoney } from "@/lib/format";
-import { recordNo } from "@/lib/registry";
 import { DEFAULT_MARKETPLACE_CATEGORIES, fetchMarketplaceCategories } from "@/lib/marketplace-categories";
-import type { BloggerCard, CatalogResponse } from "@/lib/types";
+import type { CatalogResponse } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
@@ -45,7 +41,7 @@ const sortOptions = [
 ];
 
 const SearchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8" />
     <line x1="21" y1="21" x2="16.65" y2="16.65" />
   </svg>
@@ -65,17 +61,11 @@ function CatalogFallback() {
       <div className={shell.pageContainer}>
         <header className={styles.head}>
           <span className={ui.brow}>Каталог</span>
-          <h1 className={`${ui.display} ${styles.headTitle}`}>Указатель авторов</h1>
+          <h1 className={`${ui.display} ${styles.headTitle}`}>Авторы</h1>
         </header>
-        <div className={styles.list} style={{ marginTop: 32 }}>
+        <div className={styles.grid}>
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className={styles.row} aria-hidden="true">
-              <span className={styles.rowNum}>{recordNo(i)}</span>
-              <span className={ui.skeleton} style={{ height: 26, width: "55%" }} />
-              <span />
-              <span className={ui.skeleton} style={{ height: 16, width: 80 }} />
-              <span />
-            </div>
+            <BloggerCardSkeleton key={i} />
           ))}
         </div>
       </div>
@@ -94,11 +84,8 @@ function CatalogContent() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [view, setView] = useState<"list" | "grid">("list");
-  const [activeId, setActiveId] = useState<string | null>(null);
   const [refNotice, setRefNotice] = useState(false);
 
-  // Реферальный код воркера: закрепляем до регистрации
   useEffect(() => {
     const ref = searchParams.get("ref");
     if (ref) {
@@ -140,11 +127,7 @@ function CatalogContent() {
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const offset = (page - 1) * PAGE_SIZE;
   const activeFiltersCount = [category, gender, audience, debouncedSearch].filter(Boolean).length;
-
-  const active: BloggerCard | undefined =
-    items.find((b) => b.user_id === activeId) ?? items[0];
 
   const sortedCategories = useMemo(
     () => [...categories].sort((a, b) => a.label.localeCompare(b.label, "ru")),
@@ -163,21 +146,20 @@ function CatalogContent() {
     <MarketShell>
       <div className={shell.pageContainer}>
         <Reveal as="header" className={styles.head}>
-          <span className={ui.brow}>Каталог · Указатель авторов</span>
-          <h1 className={`${ui.display} ${styles.headTitle}`}>Избранные авторы реестра</h1>
+          <span className={ui.brow}>Кураторский каталог</span>
+          <h1 className={`${ui.display} ${styles.headTitle}`}>Найдите автора для интеграции</h1>
           <p className={`${ui.lead} ${styles.headLead}`}>
-            Каждая запись проходит ручную модерацию. Выберите нишу, охват и бюджет —
+            Каждый профиль проходит ручную модерацию. Фильтруйте по нише, охвату и бюджету —
             остальное берёт на себя безопасная сделка.
           </p>
         </Reveal>
 
         {refNotice && (
-          <div className={ui.noticeSuccess} style={{ marginTop: 28 }}>
+          <div className={ui.noticeSuccess} style={{ marginTop: 24 }}>
             Вы пришли по приглашению. Зарегистрируйтесь — оно закрепится за вашим аккаунтом.
           </div>
         )}
 
-        {/* ── Тихая панель фильтров ── */}
         <div className={styles.toolbar}>
           <label className={styles.search}>
             <span className={styles.searchIcon}>
@@ -192,12 +174,7 @@ function CatalogContent() {
             />
           </label>
 
-          <select
-            className={styles.filterSelect}
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            aria-label="Ниша"
-          >
+          <select className={styles.filterSelect} value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Ниша">
             <option value="">Все ниши</option>
             {sortedCategories.map((c) => (
               <option key={c.value} value={c.value}>
@@ -206,12 +183,7 @@ function CatalogContent() {
             ))}
           </select>
 
-          <select
-            className={styles.filterSelect}
-            value={audience}
-            onChange={(e) => setAudience(e.target.value)}
-            aria-label="Охват"
-          >
+          <select className={styles.filterSelect} value={audience} onChange={(e) => setAudience(e.target.value)} aria-label="Охват">
             {audienceOptions.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -219,12 +191,7 @@ function CatalogContent() {
             ))}
           </select>
 
-          <select
-            className={styles.filterSelect}
-            value={gender}
-            onChange={(e) => setGender(e.target.value)}
-            aria-label="Пол автора"
-          >
+          <select className={styles.filterSelect} value={gender} onChange={(e) => setGender(e.target.value)} aria-label="Пол автора">
             {genderOptions.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -232,12 +199,7 @@ function CatalogContent() {
             ))}
           </select>
 
-          <select
-            className={styles.filterSelect}
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            aria-label="Сортировка"
-          >
+          <select className={styles.filterSelect} value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Сортировка">
             {sortOptions.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -248,168 +210,54 @@ function CatalogContent() {
           <span className={styles.count}>
             Найдено: <b>{total}</b>
           </span>
-
-          <div className={styles.viewToggle} role="group" aria-label="Вид списка">
-            <button
-              type="button"
-              className={view === "list" ? styles.viewBtnActive : styles.viewBtn}
-              aria-pressed={view === "list"}
-              onClick={() => setView("list")}
-            >
-              Список
-            </button>
-            <button
-              type="button"
-              className={view === "grid" ? styles.viewBtnActive : styles.viewBtn}
-              aria-pressed={view === "grid"}
-              onClick={() => setView("grid")}
-            >
-              Сетка
-            </button>
-          </div>
         </div>
 
-        {/* ── Результаты ── */}
         {error ? (
           <div className={ui.noticeDanger} style={{ marginTop: 24 }}>
             Каталог не загрузился. Проверьте соединение и обновите страницу.
           </div>
         ) : isLoading && !data ? (
-          <div className={view === "grid" ? styles.grid : styles.list} style={{ marginTop: 24 }} aria-busy="true">
-            {view === "grid"
-              ? Array.from({ length: 6 }, (_, i) => <BloggerCardSkeleton key={i} />)
-              : Array.from({ length: 6 }, (_, i) => (
-                  <div key={i} className={styles.row} aria-hidden="true">
-                    <span className={styles.rowNum}>{recordNo(offset + i)}</span>
-                    <span className={ui.skeleton} style={{ height: 26, width: "55%" }} />
-                    <span />
-                    <span className={ui.skeleton} style={{ height: 16, width: 80 }} />
-                    <span />
-                  </div>
-                ))}
+          <div className={styles.grid} aria-busy="true">
+            {Array.from({ length: 6 }, (_, i) => (
+              <BloggerCardSkeleton key={i} />
+            ))}
           </div>
         ) : items.length === 0 ? (
           <div className={ui.empty} style={{ marginTop: 24 }}>
             <h3 className={ui.emptyTitle}>По этим условиям авторов нет</h3>
-            <p className={ui.emptyText}>
-              Снимите один из фильтров — и записи вернутся в указатель.
-            </p>
+            <p className={ui.emptyText}>Снимите один из фильтров — и авторы вернутся в каталог.</p>
             <button type="button" className={ui.btnLine} onClick={resetFilters}>
               Сбросить фильтры{activeFiltersCount > 0 ? ` · ${activeFiltersCount}` : ""}
             </button>
           </div>
-        ) : view === "grid" ? (
-          <div className={styles.layoutFull}>
+        ) : (
+          <>
             <div className={styles.grid}>
-              {items.map((blogger, index) => (
-                <BloggerCardView key={blogger.id} blogger={blogger} index={offset + index} />
+              {items.map((blogger) => (
+                <BloggerCardView key={blogger.id} blogger={blogger} />
               ))}
             </div>
-            <Pagination page={page} totalPages={totalPages} setPage={setPage} styles={styles} ui={ui} />
-          </div>
-        ) : (
-          <div className={styles.layout}>
-            <div>
-              <div className={styles.list}>
-                {items.map((blogger, index) => (
-                  <Link
-                    key={blogger.id}
-                    href={`/bloggers/${blogger.user_id}`}
-                    className={`${styles.row} ${active?.user_id === blogger.user_id ? styles.rowActive : ""}`}
-                    onMouseEnter={() => setActiveId(blogger.user_id)}
-                    onFocus={() => setActiveId(blogger.user_id)}
-                  >
-                    <span className={styles.rowNum}>{recordNo(offset + index)}</span>
-                    <span>
-                      <span className={styles.rowName}>{blogger.name}</span>
-                      <span className={styles.rowNiche}>{categoryLabel(blogger.category)}</span>
-                    </span>
-                    <span className={styles.rowReach}>
-                      {formatAudience(blogger.subscriber_count)}
-                      <span>охват</span>
-                    </span>
-                    <span className={styles.rowPrice}>
-                      {formatMoney(blogger.average_price_kopeks)}
-                      <span>интеграция от</span>
-                    </span>
-                    <span className={styles.rowArrow}>→</span>
-                  </Link>
-                ))}
+            {totalPages > 1 && (
+              <div className={styles.pagination}>
+                <button type="button" className={ui.btnLine} disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                  ← Назад
+                </button>
+                <span className={styles.pageInfo}>
+                  {page} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  className={ui.btnLine}
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Вперёд →
+                </button>
               </div>
-              <Pagination page={page} totalPages={totalPages} setPage={setPage} styles={styles} ui={ui} />
-            </div>
-
-            {/* Sticky-превью наведённого автора (desktop) */}
-            <aside className={styles.aside} aria-hidden="true">
-              {active && (
-                <>
-                  <Portrait
-                    key={active.user_id}
-                    name={active.name}
-                    photoUrl={active.photo_url}
-                    className={styles.asidePortrait}
-                    monoSize={72}
-                  />
-                  <div className={styles.asideBody}>
-                    <div className={styles.asideName}>{active.name}</div>
-                    <div className={styles.asideNiche}>{categoryLabel(active.category)}</div>
-                    <div className={`${ui.defList} ${styles.asideFacts}`}>
-                      <div className={ui.defRow}>
-                        <span className={ui.defKey}>Охват</span>
-                        <span className={`${ui.defValue} ${ui.mono}`}>{formatAudience(active.subscriber_count)}</span>
-                      </div>
-                      <div className={ui.defRow}>
-                        <span className={ui.defKey}>Интеграция от</span>
-                        <span className={`${ui.defValue} ${ui.mono}`}>{formatMoney(active.average_price_kopeks)}</span>
-                      </div>
-                    </div>
-                    <span className={styles.asideLink}>Открыть досье →</span>
-                  </div>
-                </>
-              )}
-            </aside>
-          </div>
+            )}
+          </>
         )}
       </div>
     </MarketShell>
-  );
-}
-
-function Pagination({
-  page,
-  totalPages,
-  setPage,
-  styles,
-  ui,
-}: {
-  page: number;
-  totalPages: number;
-  setPage: (fn: (p: number) => number) => void;
-  styles: Record<string, string>;
-  ui: Record<string, string>;
-}) {
-  if (totalPages <= 1) return null;
-  return (
-    <div className={styles.pagination}>
-      <button
-        type="button"
-        className={ui.btnLine}
-        disabled={page <= 1}
-        onClick={() => setPage((p) => Math.max(1, p - 1))}
-      >
-        ← Назад
-      </button>
-      <span className={styles.pageInfo}>
-        {String(page).padStart(2, "0")} / {String(totalPages).padStart(2, "0")}
-      </span>
-      <button
-        type="button"
-        className={ui.btnLine}
-        disabled={page >= totalPages}
-        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-      >
-        Вперёд →
-      </button>
-    </div>
   );
 }
