@@ -10,7 +10,7 @@ Validates: Requirements 8.5
 import uuid
 
 import pytest
-from hypothesis import given, settings
+from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 from pydantic import ValidationError
 
@@ -50,7 +50,13 @@ class TestMessageValidationProperty:
             MessageSendRequest(recipient_id=FIXED_RECIPIENT_ID, text=text)
 
     @given(text=st.text(min_size=2001, max_size=3000))
-    @settings(max_examples=200)
+    @settings(
+        max_examples=200,
+        # min_size=2001 намеренно даёт большой базовый пример — это суть теста,
+        # а не проблема стратегии. Подавляем ложноположительный health-check
+        # (иначе тест падает на части поддерживаемых версий hypothesis).
+        suppress_health_check=[HealthCheck.large_base_example],
+    )
     def test_too_long_string_rejected(self, text: str) -> None:
         """Строка длиннее 2000 символов отклоняется.
 

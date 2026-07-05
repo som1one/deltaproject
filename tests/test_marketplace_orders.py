@@ -430,12 +430,19 @@ async def test_get_order_200_client_owner() -> None:
 
     async def fake_db():
         session = AsyncMock()
-        # First execute returns order, second returns settlement account (None)
+        # execute calls in order: order, settlement account (None),
+        # payment settings (None), party names lookup
         order_result = MagicMock()
         order_result.scalar_one_or_none = MagicMock(return_value=order)
         sa_result = MagicMock()
         sa_result.scalar_one_or_none = MagicMock(return_value=None)
-        session.execute = AsyncMock(side_effect=[order_result, sa_result])
+        payment_result = MagicMock()
+        payment_result.scalar_one_or_none = MagicMock(return_value=None)
+        names_result = MagicMock()
+        names_result.all = MagicMock(return_value=[])
+        session.execute = AsyncMock(
+            side_effect=[order_result, sa_result, payment_result, names_result]
+        )
         yield session
 
     app.dependency_overrides[get_db] = fake_db

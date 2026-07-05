@@ -120,9 +120,10 @@ def to_card_requisites(row: MarketplacePaymentSettings | None) -> CardRequisites
     )
 
 
-async def get_effective_yookassa(db: AsyncSession) -> YookassaCredentials:
-    """Ключи ЮKassa: БД (админка) приоритетнее ENV."""
-    row = await get_payment_settings(db)
+def effective_yookassa_from_row(
+    row: MarketplacePaymentSettings | None,
+) -> YookassaCredentials:
+    """Ключи ЮKassa из уже загруженной строки: БД (админка) приоритетнее ENV."""
     if row is not None and row.yookassa_shop_id and row.yookassa_secret_key:
         return YookassaCredentials(
             enabled=row.yookassa_enabled,
@@ -134,3 +135,9 @@ async def get_effective_yookassa(db: AsyncSession) -> YookassaCredentials:
         shop_id=settings.yukassa_payout_shop_id.strip(),
         secret_key=settings.yukassa_payout_secret_key.strip(),
     )
+
+
+async def get_effective_yookassa(db: AsyncSession) -> YookassaCredentials:
+    """Ключи ЮKassa: БД (админка) приоритетнее ENV."""
+    row = await get_payment_settings(db)
+    return effective_yookassa_from_row(row)

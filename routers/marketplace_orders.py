@@ -231,7 +231,7 @@ async def get_order(
             sa_response = SettlementAccountResponse.model_validate(account)
         payment_settings = await marketplace_payment_settings_service.get_payment_settings(db)
         card_requisites = marketplace_payment_settings_service.to_card_requisites(payment_settings)
-        creds = await marketplace_payment_settings_service.get_effective_yookassa(db)
+        creds = marketplace_payment_settings_service.effective_yookassa_from_row(payment_settings)
         yookassa_available = creds.active
 
     # Имена сторон для карточки заказа
