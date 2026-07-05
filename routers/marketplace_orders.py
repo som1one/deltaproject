@@ -30,7 +30,12 @@ from schemas.marketplace_orders import (
     OrderResponse,
 )
 from schemas.settlement_account import SettlementAccountResponse
-from services import marketplace_escrow_service, notification_service, settlement_account_service
+from services import (
+    marketplace_escrow_service,
+    marketplace_payment_settings_service,
+    notification_service,
+    settlement_account_service,
+)
 from services.marketplace_referral_service import get_worker_id_for_order
 from services.order_state_machine import transition_order
 
@@ -159,8 +164,24 @@ async def list_orders(
     result = await db.execute(items_query)
     orders = result.scalars().all()
 
+    # Имена сторон одним запросом
+    user_ids = {o.client_id for o in orders} | {o.blogger_id for o in orders}
+    names: dict[uuid.UUID, str] = {}
+    if user_ids:
+        names_result = await db.execute(
+            select(User.id, User.name).where(User.id.in_(user_ids))
+        )
+        names = {row.id: row.name for row in names_result.all()}
+
+    items: list[OrderResponse] = []
+    for o in orders:
+        item = OrderResponse.model_validate(o)
+        item.blogger_name = names.get(o.blogger_id)
+        item.client_name = names.get(o.client_id)
+        items.append(item)
+
     return OrderListResponse(
-        items=[OrderResponse.model_validate(o) for o in orders],
+        items=items,
         total=total,
         page=page,
         page_size=page_size,
@@ -200,12 +221,24 @@ async def get_order(
             detail="Нет доступа к этому заказу",
         )
 
-    # Build settlement_account: only for PENDING_PAYMENT and only for client or Admin (Req 2.1, 2.3)
+    # Build payment requisites: only for PENDING_PAYMENT and only for client or Admin (Req 2.1, 2.3)
     sa_response: SettlementAccountResponse | None = None
+    card_requisites = None
+    yookassa_available = False
     if order.status == MarketplaceOrderStatus.PENDING_PAYMENT.value and (is_client or is_admin):
         account = await settlement_account_service.get_settlement_account(db)
         if account is not None:
             sa_response = SettlementAccountResponse.model_validate(account)
+        payment_settings = await marketplace_payment_settings_service.get_payment_settings(db)
+        card_requisites = marketplace_payment_settings_service.to_card_requisites(payment_settings)
+        creds = await marketplace_payment_settings_service.get_effective_yookassa(db)
+        yookassa_available = creds.active
+
+    # Имена сторон для карточки заказа
+    names_result = await db.execute(
+        select(User.id, User.name).where(User.id.in_([order.client_id, order.blogger_id]))
+    )
+    names = {row.id: row.name for row in names_result.all()}
 
     # Build available_actions based on role and status (Req 2.1, 2.2, 2.3, 2.4)
     available_actions: list[str] = []
@@ -229,13 +262,87 @@ async def get_order(
             available_actions.append("confirm")
         if order_status == MarketplaceOrderStatus.PENDING_PAYMENT.value:
             available_actions.append("cancel")
+            if order.payment_reported_at is None:
+                available_actions.append("mark_paid")
 
     # Construct response
     response = OrderDetailResponse.model_validate(order)
     response.settlement_account = sa_response
+    response.card_requisites = card_requisites
+    response.yookassa_available = yookassa_available
+    response.blogger_name = names.get(order.blogger_id)
+    response.client_name = names.get(order.client_id)
     response.available_actions = available_actions
 
     return response
+
+
+@router.patch("/{order_id}/mark-paid", response_model=OrderResponse)
+async def mark_order_paid(
+    order_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OrderResponse:
+    """Клиент сообщает, что перевёл оплату по реквизитам.
+
+    Статус не меняется (остаётся PENDING_PAYMENT) — устанавливается
+    payment_reported_at и уведомляются администраторы, которые должны
+    проверить поступление и подтвердить оплату вручную.
+    """
+    if user.role != UserRole.CLIENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Только клиенты могут сообщать об оплате",
+        )
+
+    order_result = await db.execute(
+        select(MarketplaceOrder)
+        .where(MarketplaceOrder.id == order_id)
+        .with_for_update()
+    )
+    order = order_result.scalar_one_or_none()
+
+    if order is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Заказ не найден",
+        )
+
+    if order.client_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Вы не являетесь владельцем этого заказа",
+        )
+
+    if order.status != MarketplaceOrderStatus.PENDING_PAYMENT.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Сообщить об оплате можно только для заказа, ожидающего оплату",
+        )
+
+    if order.payment_reported_at is None:
+        order.payment_reported_at = datetime.now(timezone.utc)
+
+        # Уведомляем администраторов о необходимости проверить поступление
+        admins_result = await db.execute(
+            select(User.id).where(User.role == UserRole.ADMIN, User.is_active.is_(True))
+        )
+        for (admin_id,) in admins_result.all():
+            await notification_service.notify(
+                db=db,
+                user_id=admin_id,
+                event_type="order_payment_reported",
+                payload={
+                    "order_id": str(order.id),
+                    "amount": order.amount_kopeks,
+                    "client_name": user.name,
+                },
+            )
+
+        await db.commit()
+        await db.refresh(order)
+
+    return OrderResponse.model_validate(order)
 
 
 @router.patch("/{order_id}/complete", response_model=OrderResponse)

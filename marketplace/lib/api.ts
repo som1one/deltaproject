@@ -1,6 +1,15 @@
 import { appConfig } from "@/lib/config";
 import { tokenStorage } from "@/lib/storage";
-import type { AuthTokensResponse, BloggerProfile, UserMeRead } from "@/lib/types";
+import type {
+  AuthTokensResponse,
+  BloggerProfileFull,
+  CatalogResponse,
+  Order,
+  OrderDetail,
+  OrdersResponse,
+  SupportTicket,
+  UserMeRead,
+} from "@/lib/types";
 
 type RequestInitWithAuth = RequestInit & {
   auth?: boolean;
@@ -129,29 +138,10 @@ async function request<T>(path: string, init: RequestInitWithAuth = {}): Promise
 
 // ─── Marketplace API Client ─────────────────────────────────────────────────
 
-export type CatalogResponse = {
-  items: BloggerProfile[];
-  total: number;
-};
-
 export type OrderCreateBody = {
   blogger_id: string;
   message: string;
-};
-
-export type OrderItem = {
-  id: string;
-  blogger_id: string;
-  client_id: string;
-  blogger_name: string;
-  message: string;
-  status: string;
-  created_at: string;
-};
-
-export type OrdersResponse = {
-  items: OrderItem[];
-  total: number;
+  amount_kopeks: number;
 };
 
 export const api = {
@@ -180,19 +170,29 @@ export const api = {
       auth: true,
     }),
 
+  /** Обмен одноразового SSO-кода главной платформы на JWT-пару. */
+  platformExchange: (code: string) =>
+    request<AuthTokensResponse>("/auth/platform/exchange", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
+
   // ─── User ──────────────────────────────────────────────────────────────────
-  getMe: () => request<UserMeRead>("/me", { auth: true, credentials: "include" }),
+  getMe: () => request<UserMeRead>("/me", { auth: true }),
 
   // ─── Marketplace Catalog ───────────────────────────────────────────────────
   getBloggers: (query = "") =>
     request<CatalogResponse>(`/marketplace/bloggers${query}`, {}),
+
+  getBlogger: (userId: string) =>
+    request<BloggerProfileFull>(`/marketplace/bloggers/${userId}`, {}),
 
   getCategories: () =>
     request<{ value: string; label: string }[]>("/marketplace/categories", {}),
 
   // ─── Orders ────────────────────────────────────────────────────────────────
   createOrder: (body: OrderCreateBody) =>
-    request<OrderItem>("/marketplace/orders", {
+    request<Order>("/marketplace/orders", {
       method: "POST",
       auth: true,
       body: JSON.stringify(body),
@@ -202,4 +202,54 @@ export const api = {
     request<OrdersResponse>(`/marketplace/orders${query}`, {
       auth: true,
     }),
+
+  getOrder: (orderId: string) =>
+    request<OrderDetail>(`/marketplace/orders/${orderId}`, {
+      auth: true,
+    }),
+
+  markOrderPaid: (orderId: string) =>
+    request<Order>(`/marketplace/orders/${orderId}/mark-paid`, {
+      method: "PATCH",
+      auth: true,
+    }),
+
+  confirmOrder: (orderId: string) =>
+    request<Order>(`/marketplace/orders/${orderId}/confirm`, {
+      method: "PATCH",
+      auth: true,
+    }),
+
+  cancelOrder: (orderId: string) =>
+    request<Order>(`/marketplace/orders/${orderId}/cancel`, {
+      method: "PATCH",
+      auth: true,
+    }),
+
+  completeOrder: (orderId: string) =>
+    request<Order>(`/marketplace/orders/${orderId}/complete`, {
+      method: "PATCH",
+      auth: true,
+    }),
+
+  // ─── Payments ──────────────────────────────────────────────────────────────
+  createPayment: (orderId: string) =>
+    request<{ order_id: string; payment_id: string; payment_url: string; expires_at: string }>(
+      `/marketplace/payments/${orderId}/create`,
+      { method: "POST", auth: true },
+    ),
+
+  // ─── Support ───────────────────────────────────────────────────────────────
+  createTicket: (body: { order_id: string; message: string }) =>
+    request<SupportTicket>("/marketplace/support/tickets", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+
+  getTickets: (query = "") =>
+    request<{ items: SupportTicket[]; total: number; page: number; page_size: number }>(
+      `/marketplace/support/tickets${query}`,
+      { auth: true },
+    ),
 };

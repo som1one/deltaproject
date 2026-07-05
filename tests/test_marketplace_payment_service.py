@@ -50,15 +50,19 @@ class TestKopeksToAmountStr:
 class TestGetAuthHeader:
     """Tests for _get_auth_header."""
 
-    @patch("services.marketplace_payment_service.settings")
-    def test_returns_basic_auth(self, mock_settings: MagicMock) -> None:
-        mock_settings.yukassa_payout_shop_id = "shop_123"
-        mock_settings.yukassa_payout_secret_key = "secret_456"
-        header = _get_auth_header()
+    def test_returns_basic_auth(self) -> None:
+        header = _get_auth_header("shop_123", "secret_456")
         assert header.startswith("Basic ")
         # Decode and verify
         import base64
 
+        decoded = base64.b64decode(header.split(" ")[1]).decode()
+        assert decoded == "shop_123:secret_456"
+
+    def test_strips_whitespace(self) -> None:
+        import base64
+
+        header = _get_auth_header("  shop_123 ", " secret_456\n")
         decoded = base64.b64decode(header.split(" ")[1]).decode()
         assert decoded == "shop_123:secret_456"
 

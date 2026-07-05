@@ -1,0 +1,22 @@
+## Railway: marketplace service (Next.js, поддомен маркетплейса)
+##
+## Создайте отдельный сервис из этого же репо и в настройках укажите
+## Root Directory = marketplace. Этот railway.toml подхватится автоматически.
+##
+## Перед билдом обязательно задайте:
+##   NEXT_PUBLIC_API_BASE_URL  — публичный URL бэкенда
+##   NEXT_PUBLIC_APP_URL       — публичный URL маркетплейса (его же домен)
+##   NEXT_PUBLIC_MAIN_APP_URL  — публичный URL главного сайта (для SSO блогеров)
+##
+## На бэкенде MARKETPLACE_FRONTEND_URL должен указывать на домен этого сервиса.
+
+[build]
+builder = "RAILPACK"
+buildCommand = "npm ci && npm run build"
+
+[deploy]
+startCommand = "npm run start -- -p ${PORT:-3001}"
+healthcheckPath = "/"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

@@ -84,6 +84,10 @@ class MarketplaceOrder(Base):
     blogger_confirmed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # Клиент сообщил, что перевёл оплату по реквизитам (ручной приём)
+    payment_reported_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

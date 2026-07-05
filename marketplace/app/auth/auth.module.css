@@ -1,0 +1,196 @@
+/* ── Auth pages: split layout ────────────────────────────── */
+
+.page {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  background: var(--bg);
+}
+
+.aside {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(28px, 4vw, 52px);
+  background:
+    radial-gradient(90% 70% at 10% 0%, var(--bronze-soft), transparent 65%),
+    radial-gradient(70% 60% at 90% 100%, var(--status-info-soft), transparent 70%),
+    var(--surface-base);
+  border-right: 1px solid var(--border-faint);
+}
+
+.asideBrand {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1;
+  gap: 2px;
+}
+
+.asideBrandMark {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.asideBrandSub {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--bronze);
+}
+
+.asideQuote {
+  max-width: 380px;
+}
+
+.asideQuoteMark {
+  font-family: var(--font-display);
+  font-size: 84px;
+  line-height: 0.6;
+  color: var(--bronze);
+  opacity: 0.5;
+  display: block;
+  margin-bottom: 18px;
+}
+
+.asideQuoteText {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.6vw, 32px);
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.35;
+  color: var(--text-strong);
+}
+
+.asideFine {
+  font-size: 12.5px;
+  color: var(--text-soft);
+  line-height: 1.6;
+  max-width: 340px;
+}
+
+.main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(28px, 5vw, 64px);
+}
+
+.card {
+  width: 100%;
+  max-width: 460px;
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 30px;
+}
+
+.backLink {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: color var(--transition-base);
+}
+
+.backLink:hover {
+  color: var(--bronze-deep);
+}
+
+.roleTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-raised);
+  margin-bottom: 30px;
+}
+
+.roleTab {
+  height: 42px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all var(--transition-base);
+}
+
+.roleTabActive {
+  composes: roleTab;
+  background: var(--surface-base);
+  color: var(--text-strong);
+  box-shadow: var(--shadow-card);
+}
+
+.title {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 3.6vw, 38px);
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--text-strong);
+}
+
+.subtitle {
+  margin: 0 0 28px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.switchLine {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.switchLine a {
+  color: var(--bronze-deep);
+  font-weight: 600;
+}
+
+.switchLine a:hover {
+  text-decoration: underline;
+}
+
+.oauthBox {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.oauthHint {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border: 1px solid var(--bronze-edge);
+  border-radius: var(--radius-md);
+  background: var(--bronze-soft);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+@media (max-width: 860px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .aside {
+    display: none;
+  }
+}

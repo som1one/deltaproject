@@ -8,6 +8,7 @@ from typing import Annotated
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from enums.marketplace import MarketplaceOrderStatus
+from schemas.marketplace_payment_settings import CardRequisitesPublic
 from schemas.settlement_account import SettlementAccountResponse
 
 
@@ -36,10 +37,14 @@ class OrderResponse(BaseModel):
     yookassa_payment_id: str | None = None
     payment_url: str | None = None
     payment_expires_at: datetime | None = None
+    payment_reported_at: datetime | None = None
     created_at: datetime
     paid_at: datetime | None = None
+    blogger_confirmed_at: datetime | None = None
     completed_at: datetime | None = None
     updated_at: datetime
+    blogger_name: str | None = None
+    client_name: str | None = None
 
 
 class OrderListResponse(BaseModel):
@@ -52,9 +57,11 @@ class OrderListResponse(BaseModel):
 
 
 class OrderDetailResponse(OrderResponse):
-    """Расширенный ответ с деталями заказа, включая реквизиты р/с и доступные действия."""
+    """Расширенный ответ с деталями заказа, включая реквизиты оплаты и доступные действия."""
 
     settlement_account: SettlementAccountResponse | None = None
+    card_requisites: CardRequisitesPublic | None = None
+    yookassa_available: bool = False
     available_actions: list[str] = []
 
 

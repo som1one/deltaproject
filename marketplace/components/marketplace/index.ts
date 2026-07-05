@@ -1,4 +1,3 @@
-export { MarketplaceShell } from "./marketplace-shell";
 export { LoadingSpinner } from "./loading-spinner";
 export {
   MarketplaceErrorBoundary,

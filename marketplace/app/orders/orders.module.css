@@ -1,0 +1,243 @@
+/* ── Orders list + detail ────────────────────────────────── */
+
+.head {
+  padding: clamp(40px, 6vw, 64px) 0 clamp(24px, 4vw, 36px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 20px;
+}
+
+.orderRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 20px;
+  align-items: center;
+  padding: 20px 24px;
+  background: var(--surface-base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.orderRow:hover {
+  border-color: var(--bronze-edge);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+}
+
+.orderWho {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.orderName {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orderBrief {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orderDate {
+  font-size: 12.5px;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+
+.orderAmount {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+/* Detail */
+
+.detailWrap {
+  padding: clamp(36px, 5vw, 56px) 0 20px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 26px;
+}
+
+.backLink:hover {
+  color: var(--bronze-deep);
+}
+
+.detailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+
+.detailTitle {
+  margin: 8px 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 600;
+  color: var(--text-strong);
+  line-height: 1.1;
+}
+
+.detailAmount {
+  text-align: right;
+}
+
+.detailAmountValue {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 600;
+  color: var(--text-strong);
+  line-height: 1.1;
+}
+
+.detailLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: clamp(24px, 3.4vw, 40px);
+  align-items: start;
+}
+
+.mainCol {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sideCol {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: sticky;
+  top: calc(var(--nav-h) + 20px);
+}
+
+.panelTitle {
+  margin: 0 0 18px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.brief {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--text);
+  white-space: pre-line;
+}
+
+/* Payment methods */
+
+.payMethod {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  background: var(--surface-inset);
+}
+
+.payMethod + .payMethod {
+  margin-top: 14px;
+}
+
+.payMethodHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.payMethodTitle {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-strong);
+}
+
+.payAmountLine {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  background: var(--bronze-soft);
+  border: 1px solid var(--bronze-edge);
+  margin-bottom: 18px;
+}
+
+.payAmountLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bronze-deep);
+}
+
+.payAmountValue {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.actionsCol {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.metaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 24px;
+}
+
+@media (max-width: 920px) {
+  .detailLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .sideCol {
+    position: static;
+  }
+
+  .orderRow {
+    grid-template-columns: 1fr auto;
+  }
+
+  .orderDate {
+    display: none;
+  }
+}

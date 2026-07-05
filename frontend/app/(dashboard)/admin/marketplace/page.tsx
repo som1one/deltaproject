@@ -26,6 +26,24 @@ type AdminOrder = {
   amount_kopeks: number;
   status: string;
   created_at: string;
+  payment_reported_at: string | null;
+};
+
+type PaymentSettings = {
+  card_number: string | null;
+  card_holder: string | null;
+  card_bank: string | null;
+  sbp_phone: string | null;
+  yookassa_shop_id: string | null;
+  yookassa_secret_set: boolean;
+  yookassa_enabled: boolean;
+};
+
+type SettlementAccount = {
+  account_number: string;
+  bic: string;
+  bank_name: string;
+  recipient_name: string;
 };
 
 type AdminOrdersResponse = {
@@ -71,7 +89,7 @@ type BloggersResponse = {
   total: number;
 };
 
-type TabId = "dashboard" | "orders" | "settings" | "tickets" | "bloggers";
+type TabId = "dashboard" | "orders" | "payments" | "settings" | "tickets" | "bloggers";
 
 /* ---------- Helpers ---------- */
 
@@ -92,6 +110,7 @@ function formatStatus(status: string): string {
     case "BLOGGER_CONFIRMED": return "Подтверждён";
     case "COMPLETED": return "Завершён";
     case "REFUNDED": return "Возврат";
+    case "CANCELLED": return "Отменён";
     default: return status;
   }
 }
@@ -116,6 +135,7 @@ const ORDER_STATUSES = [
   { value: "BLOGGER_CONFIRMED", label: "Подтверждён" },
   { value: "COMPLETED", label: "Завершён" },
   { value: "REFUNDED", label: "Возврат" },
+  { value: "CANCELLED", label: "Отменён" },
 ];
 
 /* ---------- Main Component ---------- */
@@ -137,6 +157,7 @@ export default function AdminMarketplacePage() {
         {([
           ["dashboard", "Дашборд"],
           ["orders", "Заказы"],
+          ["payments", "Оплата"],
           ["settings", "Комиссии"],
           ["tickets", "Тикеты"],
           ["bloggers", "Блогеры"],
@@ -154,6 +175,7 @@ export default function AdminMarketplacePage() {
 
       {activeTab === "dashboard" && <DashboardTab accessToken={accessToken} />}
       {activeTab === "orders" && <OrdersTab accessToken={accessToken} />}
+      {activeTab === "payments" && <PaymentsTab accessToken={accessToken} />}
       {activeTab === "settings" && <SettingsTab accessToken={accessToken} />}
       {activeTab === "tickets" && <TicketsTab accessToken={accessToken} />}
       {activeTab === "bloggers" && <BloggersTab accessToken={accessToken} />}
@@ -208,6 +230,68 @@ function OrdersTab({ accessToken }: { accessToken: string }) {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [resolveOrder, setResolveOrder] = useState<AdminOrder | null>(null);
+  const [actionError, setActionError] = useState("");
+
+  const confirmPaymentMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const res = await fetch(
+        `${appConfig.apiBaseUrl}/admin/marketplace/orders/${orderId}/confirm-payment`,
+        {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось подтвердить оплату");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setActionError("");
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-orders"] });
+    },
+    onError: (err: Error) => setActionError(err.message),
+  });
+
+  const refundMutation = useMutation({
+    mutationFn: async ({ orderId, reason }: { orderId: string; reason: string }) => {
+      const res = await fetch(
+        `${appConfig.apiBaseUrl}/admin/marketplace/orders/${orderId}/refund`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ reason }),
+        }
+      );
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось оформить возврат");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setActionError("");
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-orders"] });
+    },
+    onError: (err: Error) => setActionError(err.message),
+  });
+
+  const handleConfirmPayment = (order: AdminOrder) => {
+    if (window.confirm(`Подтвердить поступление ${formatRubles(order.amount_kopeks)} по заказу ${order.client_name} → ${order.blogger_name}?`)) {
+      confirmPaymentMutation.mutate(order.id);
+    }
+  };
+
+  const handleRefund = (order: AdminOrder) => {
+    const reason = window.prompt("Причина возврата (1–1000 символов):");
+    if (reason && reason.trim()) {
+      refundMutation.mutate({ orderId: order.id, reason: reason.trim() });
+    }
+  };
 
   const { data, isLoading } = useQuery<AdminOrdersResponse>({
     queryKey: ["admin-marketplace-orders", page, statusFilter, dateFrom, dateTo],
@@ -215,8 +299,8 @@ function OrdersTab({ accessToken }: { accessToken: string }) {
       const params = new URLSearchParams();
       params.set("page", String(page));
       if (statusFilter) params.set("status", statusFilter);
-      if (dateFrom) params.set("date_from", dateFrom);
-      if (dateTo) params.set("date_to", dateTo);
+      if (dateFrom) params.set("from", `${dateFrom}T00:00:00`);
+      if (dateTo) params.set("to", `${dateTo}T23:59:59`);
 
       const res = await fetch(
         `${appConfig.apiBaseUrl}/admin/marketplace/orders?${params.toString()}`,
@@ -261,6 +345,8 @@ function OrdersTab({ accessToken }: { accessToken: string }) {
 
         {isLoading && <LoadingSpinner size="small" />}
 
+        {actionError && <p className={styles.errorMsg}>{actionError}</p>}
+
         {data && data.items.length === 0 && (
           <p className={styles.emptyText}>Нет заказов по выбранным фильтрам.</p>
         )}
@@ -289,17 +375,48 @@ function OrdersTab({ accessToken }: { accessToken: string }) {
                       <span className={`${styles.statusBadge} ${getStatusClass(order.status)}`}>
                         {formatStatus(order.status)}
                       </span>
+                      {order.status === "PENDING_PAYMENT" && order.payment_reported_at && (
+                        <span
+                          className={`${styles.statusBadge} ${styles.statusConfirmed}`}
+                          style={{ marginLeft: 6 }}
+                          title={`Клиент сообщил об оплате: ${formatDateTime(order.payment_reported_at)}`}
+                        >
+                          💳 клиент оплатил
+                        </span>
+                      )}
                     </td>
                     <td>
-                      {order.status === "ESCROW_HELD" && (
-                        <button
-                          type="button"
-                          className={styles.resolveBtn}
-                          onClick={() => setResolveOrder(order)}
-                        >
-                          Решить
-                        </button>
-                      )}
+                      <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+                        {order.status === "PENDING_PAYMENT" && (
+                          <button
+                            type="button"
+                            className={styles.resolveBtn}
+                            onClick={() => handleConfirmPayment(order)}
+                            disabled={confirmPaymentMutation.isPending}
+                          >
+                            Подтвердить оплату
+                          </button>
+                        )}
+                        {order.status === "ESCROW_HELD" && (
+                          <button
+                            type="button"
+                            className={styles.resolveBtn}
+                            onClick={() => setResolveOrder(order)}
+                          >
+                            Решить
+                          </button>
+                        )}
+                        {(order.status === "ESCROW_HELD" || order.status === "BLOGGER_CONFIRMED") && (
+                          <button
+                            type="button"
+                            className={styles.resolveBtn}
+                            onClick={() => handleRefund(order)}
+                            disabled={refundMutation.isPending}
+                          >
+                            Возврат
+                          </button>
+                        )}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -456,6 +573,313 @@ function ResolveOrderModal({
         </div>
       </div>
     </div>
+  );
+}
+
+/* ---------- Payments Tab (реквизиты + ЮKassa) ---------- */
+
+function PaymentsTab({ accessToken }: { accessToken: string }) {
+  const queryClient = useQueryClient();
+
+  // Карта + ЮKassa
+  const [card, setCard] = useState({ card_number: "", card_holder: "", card_bank: "", sbp_phone: "" });
+  const [yk, setYk] = useState({ shop_id: "", secret_key: "", enabled: false, secretSet: false });
+  const [reqError, setReqError] = useState("");
+  const [reqSuccess, setReqSuccess] = useState("");
+
+  // Расчётный счёт
+  const [account, setAccount] = useState({ account_number: "", bic: "", bank_name: "", recipient_name: "" });
+  const [accError, setAccError] = useState("");
+  const [accSuccess, setAccSuccess] = useState("");
+
+  const { isLoading: reqLoading } = useQuery<PaymentSettings>({
+    queryKey: ["admin-marketplace-payment-requisites"],
+    queryFn: async () => {
+      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/payment-requisites`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) throw new Error("Ошибка загрузки реквизитов");
+      const d: PaymentSettings = await res.json();
+      setCard({
+        card_number: d.card_number ?? "",
+        card_holder: d.card_holder ?? "",
+        card_bank: d.card_bank ?? "",
+        sbp_phone: d.sbp_phone ?? "",
+      });
+      setYk({ shop_id: d.yookassa_shop_id ?? "", secret_key: "", enabled: d.yookassa_enabled, secretSet: d.yookassa_secret_set });
+      return d;
+    },
+  });
+
+  const { isLoading: accLoading } = useQuery<SettlementAccount | null>({
+    queryKey: ["admin-settlement-account"],
+    queryFn: async () => {
+      const res = await fetch(`${appConfig.apiBaseUrl}/admin/settlement-account`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error("Ошибка загрузки р/с");
+      const d: SettlementAccount = await res.json();
+      setAccount({
+        account_number: d.account_number,
+        bic: d.bic,
+        bank_name: d.bank_name,
+        recipient_name: d.recipient_name,
+      });
+      return d;
+    },
+  });
+
+  const saveRequisites = useMutation({
+    mutationFn: async () => {
+      const body: Record<string, unknown> = {
+        card_number: card.card_number,
+        card_holder: card.card_holder,
+        card_bank: card.card_bank,
+        sbp_phone: card.sbp_phone,
+        yookassa_shop_id: yk.shop_id,
+        yookassa_enabled: yk.enabled,
+      };
+      // Пустое поле секрета = не менять сохранённый ключ
+      if (yk.secret_key.trim() !== "") body.yookassa_secret_key = yk.secret_key.trim();
+      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/payment-requisites`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        const detail = Array.isArray(d.detail)
+          ? d.detail.map((x: { msg?: string }) => x.msg).filter(Boolean).join("; ")
+          : d.detail;
+        throw new Error(typeof detail === "string" && detail ? detail : "Ошибка сохранения");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setReqSuccess("Реквизиты сохранены. Заказчики увидят их при оплате.");
+      setReqError("");
+      setYk((prev) => ({ ...prev, secret_key: "", secretSet: prev.secretSet || prev.secret_key.trim() !== "" }));
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-payment-requisites"] });
+    },
+    onError: (err: Error) => {
+      setReqError(err.message);
+      setReqSuccess("");
+    },
+  });
+
+  const saveAccount = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${appConfig.apiBaseUrl}/admin/settlement-account`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(account),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        const detail = Array.isArray(d.detail)
+          ? d.detail.map((x: { msg?: string }) => x.msg).filter(Boolean).join("; ")
+          : d.detail;
+        throw new Error(typeof detail === "string" && detail ? detail : "Ошибка сохранения р/с");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setAccSuccess("Реквизиты р/с сохранены.");
+      setAccError("");
+      queryClient.invalidateQueries({ queryKey: ["admin-settlement-account"] });
+    },
+    onError: (err: Error) => {
+      setAccError(err.message);
+      setAccSuccess("");
+    },
+  });
+
+  if (reqLoading || accLoading) return <LoadingSpinner size="small" />;
+
+  return (
+    <>
+      <div className={styles.section}>
+        <h2 className={styles.sectionTitle}>Карта для приёма оплаты</h2>
+        <p style={{ fontSize: "0.85rem", color: "var(--mp-text-muted)", marginTop: 0 }}>
+          Эти реквизиты видит заказчик на странице заказа. Пустой номер карты скрывает способ «перевод на карту».
+        </p>
+
+        {reqError && <p className={styles.errorMsg}>{reqError}</p>}
+        {reqSuccess && <p className={styles.successMsg}>{reqSuccess}</p>}
+
+        <div className={styles.settingsForm}>
+          <div className={styles.settingsRow}>
+            <span className={styles.settingsLabel}>Номер карты</span>
+            <input
+              className={styles.settingsInput}
+              style={{ width: 220 }}
+              value={card.card_number}
+              onChange={(e) => setCard((p) => ({ ...p, card_number: e.target.value }))}
+              placeholder="2200 0000 0000 0000"
+              aria-label="Номер карты"
+            />
+          </div>
+          <div className={styles.settingsRow}>
+            <span className={styles.settingsLabel}>Держатель карты</span>
+            <input
+              className={styles.settingsInput}
+              style={{ width: 220 }}
+              value={card.card_holder}
+              onChange={(e) => setCard((p) => ({ ...p, card_holder: e.target.value }))}
+              placeholder="IVAN IVANOV"
+              aria-label="Держатель карты"
+            />
+          </div>
+          <div className={styles.settingsRow}>
+            <span className={styles.settingsLabel}>Банк</span>
+            <input
+              className={styles.settingsInput}
+              style={{ width: 220 }}
+              value={card.card_bank}
+              onChange={(e) => setCard((p) => ({ ...p, card_bank: e.target.value }))}
+              placeholder="Т-Банк"
+              aria-label="Банк карты"
+            />
+          </div>
+          <div className={styles.settingsRow}>
+            <span className={styles.settingsLabel}>Телефон СБП (опц.)</span>
+            <input
+              className={styles.settingsInput}
+              style={{ width: 220 }}
+              value={card.sbp_phone}
+              onChange={(e) => setCard((p) => ({ ...p, sbp_phone: e.target.value }))}
+              placeholder="+7 900 000-00-00"
+              aria-label="Телефон СБП"
+            />
+          </div>
+        </div>
+
+        <h2 className={styles.sectionTitle} style={{ marginTop: "1.6rem" }}>ЮKassa (онлайн-оплата)</h2>
+        <p style={{ fontSize: "0.85rem", color: "var(--mp-text-muted)", marginTop: 0 }}>
+          Ключи из личного кабинета ЮKassa. Пока переключатель выключен — кнопка онлайн-оплаты скрыта у заказчиков.
+        </p>
+
+        <div className={styles.settingsForm}>
+          <div className={styles.settingsRow}>
+            <span className={styles.settingsLabel}>shopId</span>
+            <input
+              className={styles.settingsInput}
+              style={{ width: 220 }}
+              value={yk.shop_id}
+              onChange={(e) => setYk((p) => ({ ...p, shop_id: e.target.value }))}
+              placeholder="123456"
+              aria-label="ЮKassa shopId"
+            />
+          </div>
+          <div className={styles.settingsRow}>
+            <span className={styles.settingsLabel}>Секретный ключ</span>
+            <input
+              className={styles.settingsInput}
+              style={{ width: 220 }}
+              type="password"
+              value={yk.secret_key}
+              onChange={(e) => setYk((p) => ({ ...p, secret_key: e.target.value }))}
+              placeholder={yk.secretSet ? "•••••••• (сохранён)" : "live_..."}
+              aria-label="ЮKassa секретный ключ"
+            />
+          </div>
+          <div className={styles.settingsRow}>
+            <span className={styles.settingsLabel}>Онлайн-оплата включена</span>
+            <input
+              type="checkbox"
+              checked={yk.enabled}
+              onChange={(e) => setYk((p) => ({ ...p, enabled: e.target.checked }))}
+              aria-label="Включить ЮKassa"
+              style={{ width: 20, height: 20, accentColor: "var(--accent, #fff)" }}
+            />
+          </div>
+
+          <button
+            type="button"
+            className={styles.btnPrimary}
+            onClick={() => saveRequisites.mutate()}
+            disabled={saveRequisites.isPending}
+          >
+            {saveRequisites.isPending ? "Сохраняем…" : "Сохранить реквизиты"}
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.section} style={{ marginTop: "1.2rem" }}>
+        <h2 className={styles.sectionTitle}>Расчётный счёт (банковский перевод)</h2>
+        <p style={{ fontSize: "0.85rem", color: "var(--mp-text-muted)", marginTop: 0 }}>
+          Показывается заказчику как способ «банковский перевод». Все четыре поля обязательны.
+        </p>
+
+        {accError && <p className={styles.errorMsg}>{accError}</p>}
+        {accSuccess && <p className={styles.successMsg}>{accSuccess}</p>}
+
+        <div className={styles.settingsForm}>
+          <div className={styles.settingsRow}>
+            <span className={styles.settingsLabel}>Расчётный счёт (20 цифр)</span>
+            <input
+              className={styles.settingsInput}
+              style={{ width: 260 }}
+              value={account.account_number}
+              onChange={(e) => setAccount((p) => ({ ...p, account_number: e.target.value.replace(/\D/g, "") }))}
+              maxLength={20}
+              placeholder="40817810000000000000"
+              aria-label="Номер расчётного счёта"
+            />
+          </div>
+          <div className={styles.settingsRow}>
+            <span className={styles.settingsLabel}>БИК (9 цифр)</span>
+            <input
+              className={styles.settingsInput}
+              style={{ width: 220 }}
+              value={account.bic}
+              onChange={(e) => setAccount((p) => ({ ...p, bic: e.target.value.replace(/\D/g, "") }))}
+              maxLength={9}
+              placeholder="044525225"
+              aria-label="БИК"
+            />
+          </div>
+          <div className={styles.settingsRow}>
+            <span className={styles.settingsLabel}>Банк</span>
+            <input
+              className={styles.settingsInput}
+              style={{ width: 220 }}
+              value={account.bank_name}
+              onChange={(e) => setAccount((p) => ({ ...p, bank_name: e.target.value }))}
+              placeholder="ПАО Сбербанк"
+              aria-label="Наименование банка"
+            />
+          </div>
+          <div className={styles.settingsRow}>
+            <span className={styles.settingsLabel}>Получатель</span>
+            <input
+              className={styles.settingsInput}
+              style={{ width: 260 }}
+              value={account.recipient_name}
+              onChange={(e) => setAccount((p) => ({ ...p, recipient_name: e.target.value }))}
+              placeholder="ИП Иванов Иван Иванович"
+              aria-label="Наименование получателя"
+            />
+          </div>
+
+          <button
+            type="button"
+            className={styles.btnPrimary}
+            onClick={() => saveAccount.mutate()}
+            disabled={saveAccount.isPending}
+          >
+            {saveAccount.isPending ? "Сохраняем…" : "Сохранить р/с"}
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 

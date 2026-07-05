@@ -1,5 +1,6 @@
-import { LandingPage } from "@/components/marketing/landing-page";
+import { redirect } from "next/navigation";
 
-export default function MarketplaceHomePage() {
-  return <LandingPage />;
+/** Лендинг переехал на корень поддомена. */
+export default function LegacyHomeRedirect() {
+  redirect("/");
 }

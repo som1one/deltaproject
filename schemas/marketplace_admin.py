@@ -30,6 +30,7 @@ class AdminOrderResponse(BaseModel):
     status: MarketplaceOrderStatus
     created_at: datetime
     updated_at: datetime
+    payment_reported_at: datetime | None = None
     client_name: str = ""
     blogger_name: str = ""
     worker_name: str | None = None

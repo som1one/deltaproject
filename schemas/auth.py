@@ -62,3 +62,22 @@ class TelegramAuthExchangeRequest(BaseModel):
     """Одноразовый ticket из URL фронта (?exchange=...)."""
 
     ticket: Annotated[str, Field(min_length=10, max_length=128)]
+
+
+class PlatformAuthorizeRequest(BaseModel):
+    """Запрос выдачи одноразового кода для SSO-входа в маркетплейс."""
+
+    redirect_uri: Annotated[str, Field(min_length=1, max_length=2048)]
+
+
+class PlatformAuthorizeResponse(BaseModel):
+    """Одноразовый код авторизации + провалидированный redirect_uri."""
+
+    code: str
+    redirect_uri: str
+
+
+class PlatformExchangeRequest(BaseModel):
+    """Одноразовый код из query-параметра callback-страницы маркетплейса."""
+
+    code: Annotated[str, Field(min_length=10, max_length=128)]

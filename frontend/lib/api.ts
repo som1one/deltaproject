@@ -172,6 +172,13 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  /** SSO в маркетплейс: одноразовый код для redirect_uri маркетплейса. */
+  platformAuthorize: (redirectUri: string) =>
+    request<{ code: string; redirect_uri: string }>("/auth/platform/authorize", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ redirect_uri: redirectUri }),
+    }),
   adminLogin: (body: { email: string; password: string }) =>
     request<AuthTokensResponse>("/auth/admin-login", {
       method: "POST",

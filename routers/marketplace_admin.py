@@ -8,7 +8,10 @@ Endpoints:
 - PUT  /admin/marketplace/settings — обновление комиссий
 - GET  /admin/marketplace/support/tickets — открытые тикеты
 - PATCH /admin/marketplace/support/tickets/{id}/resolve — закрытие тикета
+- GET  /admin/marketplace/bloggers — список блогеров маркетплейса
 - PATCH /admin/marketplace/bloggers/{id} — редактирование профиля блогера
+- GET  /admin/marketplace/payment-requisites — реквизиты оплаты (карта + ЮKassa)
+- PUT  /admin/marketplace/payment-requisites — сохранить реквизиты оплаты
 - GET  /admin/settlement-account — получить реквизиты р/с
 - PUT  /admin/settlement-account — сохранить реквизиты р/с
 """
@@ -58,8 +61,13 @@ from schemas.marketplace_orders import (
     RefundRequest,
 )
 
+from schemas.marketplace_payment_settings import (
+    PaymentSettingsResponse,
+    PaymentSettingsUpsert,
+)
 from schemas.marketplace_support import TicketListResponse, TicketResponse
 from schemas.settlement_account import SettlementAccountResponse, SettlementAccountUpsert
+from services import marketplace_payment_settings_service
 from services.marketplace_escrow_service import calculate_distribution, confirm_payment, distribute_funds, process_refund, refund_to_client
 from services.settlement_account_service import (
     get_settlement_account,
@@ -232,6 +240,7 @@ async def get_marketplace_orders(
                 status=order.status,
                 created_at=order.created_at,
                 updated_at=order.updated_at,
+                payment_reported_at=order.payment_reported_at,
                 client_name=row.client_name or "",
                 blogger_name=row.blogger_name or "",
                 worker_name=row.worker_name,
@@ -736,6 +745,54 @@ async def resolve_marketplace_support_ticket(
 # ---------------------------------------------------------------------------
 
 
+@router.get("/bloggers")
+async def list_marketplace_bloggers(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=100),
+    q: str | None = Query(default=None, max_length=120),
+) -> dict:
+    """Список профилей блогеров маркетплейса (включая неактивных)."""
+    conditions = []
+    if q:
+        like = f"%{q.strip()}%"
+        conditions.append(User.name.ilike(like))
+
+    base = (
+        select(BloggerProfile, User.name)
+        .join(User, User.id == BloggerProfile.user_id)
+        .where(*conditions)
+    )
+
+    count_result = await db.execute(select(func.count()).select_from(base.subquery()))
+    total = count_result.scalar_one()
+
+    result = await db.execute(
+        base.order_by(BloggerProfile.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+
+    items = [
+        {
+            "id": str(profile.id),
+            "user_id": str(profile.user_id),
+            "name": name,
+            "category": profile.category,
+            "subscriber_count": profile.subscriber_count,
+            "average_price_kopeks": profile.average_price_kopeks,
+            "photo_url": profile.photo_url,
+            "is_active": profile.is_active,
+            "orders_enabled": profile.orders_enabled,
+            "created_at": profile.created_at.isoformat(),
+        }
+        for profile, name in result.all()
+    ]
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
 @router.patch("/bloggers/{blogger_profile_id}", response_model=BloggerProfileResponse)
 async def patch_marketplace_blogger(
     blogger_profile_id: uuid.UUID,
@@ -805,6 +862,39 @@ async def _get_or_create_settings(db: AsyncSession) -> MarketplaceSettings:
         db.add(settings)
         await db.flush()
     return settings
+
+
+# ---------------------------------------------------------------------------
+# Payment Requisites (карта админа + ключи ЮKassa)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/payment-requisites", response_model=PaymentSettingsResponse)
+async def get_payment_requisites(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> PaymentSettingsResponse:
+    """Текущие реквизиты приёма оплаты. Секретный ключ ЮKassa не возвращается."""
+    row = await marketplace_payment_settings_service.get_payment_settings(db)
+    return marketplace_payment_settings_service.to_response(row)
+
+
+@router.put("/payment-requisites", response_model=PaymentSettingsResponse)
+async def put_payment_requisites(
+    body: PaymentSettingsUpsert,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> PaymentSettingsResponse:
+    """Сохранить реквизиты приёма оплаты.
+
+    - card_number: 13–19 цифр, показывается заказчику при оплате
+    - yookassa_secret_key: None — оставить прежний, пустая строка — очистить
+    - yookassa_enabled: показывать ли клиентам кнопку онлайн-оплаты
+    """
+    row = await marketplace_payment_settings_service.upsert_payment_settings(db, body, admin.id)
+    await db.commit()
+    await db.refresh(row)
+    return marketplace_payment_settings_service.to_response(row)
 
 
 # ---------------------------------------------------------------------------

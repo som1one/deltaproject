@@ -1,225 +1,57 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 
-import {
-  AdMarketplaceShell,
-  BloggerCardSkeleton,
-  BloggerCardView,
-  PageHeader,
-  categoryLabel,
-  genderLabel,
-  stitchStyles as styles,
-  type BloggerCard,
-} from "@/components/marketplace/stitch-marketplace";
-import { appConfig } from "@/lib/config";
-import { useAuth } from "@/lib/auth-context";
+import { MarketShell } from "@/components/shell/shell";
+import { BloggerCardSkeleton, BloggerCardView } from "@/components/catalog/blogger-card";
+import { api } from "@/lib/api";
 import { DEFAULT_MARKETPLACE_CATEGORIES, fetchMarketplaceCategories } from "@/lib/marketplace-categories";
+import type { CatalogResponse } from "@/lib/types";
 
-type CatalogResponse = {
-  items: BloggerCard[];
-  total: number;
-  page: number;
-  page_size: number;
+import shell from "@/components/shell/shell.module.css";
+import ui from "@/components/ui/ui.module.css";
+import styles from "@/components/landing/landing.module.css";
+
+const fadeUp = {
+  initial: { opacity: 0, y: 22 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-60px" },
+  transition: { duration: 0.65, ease: [0.2, 0.6, 0.2, 1] as const },
 };
 
-const audienceOptions = [
-  { value: "", label: "Все охваты", icon: "🌐" },
-  { value: "nano", label: "Nano", sub: "до 10K", icon: "🌱" },
-  { value: "micro", label: "Micro", sub: "10K–100K", icon: "📱" },
-  { value: "macro", label: "Macro", sub: "100K–1M", icon: "🔥" },
-  { value: "mega", label: "Mega", sub: "от 1M", icon: "⚡" },
-];
+const ShieldIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
 
-const genderOptions = [
-  { value: "", label: "Все" },
-  { value: "female", label: "Женский" },
-  { value: "male", label: "Мужской" },
-  { value: "other", label: "Другое" },
-];
+const SparkIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3v3M12 18v3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M3 12h3M18 12h3M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
+  </svg>
+);
 
-const INITIAL_CATEGORY_COUNT = 8;
-const skeletonCards = Array.from({ length: 6 }, (_, index) => index);
+const HandshakeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 7 12 3 4 7v10l8 4 8-4V7z" />
+    <path d="M12 12 4 7M12 12l8-5M12 12v9" />
+  </svg>
+);
 
-export default function MarketplaceCatalogPage() {
-  return (
-    <Suspense fallback={<MarketplaceCatalogFallback />}>
-      <MarketplaceCatalogContent />
-    </Suspense>
-  );
-}
+const CheckIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
 
-function MarketplaceHero({
-  total,
-  search,
-  onSearchChange,
-}: {
-  total?: number;
-  search?: string;
-  onSearchChange?: (v: string) => void;
-}) {
-  const heroStats = [
-    { value: total != null ? `${total}+` : "—", label: "Авторов" },
-    { value: "24/7", label: "Поддержка" },
-    { value: "Telegram", label: "Площадка" },
-  ];
-
-  return (
-    <PageHeader
-      display
-      eyebrow="Looney Moon"
-      title="Найти идеальный голос"
-      lead="Кураторская подборка профессиональных креаторов для брендов, ценящих качество и эстетику."
-      stats={heroStats}
-      searchValue={search}
-      onSearchChange={onSearchChange}
-    />
-  );
-}
-
-function MarketplaceCatalogFallback() {
-  return (
-    <AdMarketplaceShell>
-      <main className={`${styles.main} ${styles.catalogMain}`}>
-        <MarketplaceHero />
-        <div className={styles.catalogGrid}>
-          <aside className={styles.sidebar}>
-            <div className={styles.stickyFilters}>
-              <SidebarFallback />
-            </div>
-          </aside>
-          <section className={styles.contentColumn} aria-busy="true" aria-live="polite">
-            <div className={styles.catalogToolbar}>
-              <div className={styles.search}>
-                <input className={styles.searchInput} disabled placeholder="Поиск..." />
-              </div>
-            </div>
-            <div className={styles.cardsGrid}>
-              {skeletonCards.map((item) => (
-                <BloggerCardSkeleton key={item} />
-              ))}
-            </div>
-          </section>
-        </div>
-      </main>
-    </AdMarketplaceShell>
-  );
-}
-
-function SidebarFallback() {
-  return (
-    <>
-      <div className={styles.sidebarHeader}>
-        <span className={styles.sidebarTitle}>Фильтры</span>
-      </div>
-      <div className={styles.filterGroup}>
-        <div className={styles.filterTitle}>Категории</div>
-        <div className={styles.filterBlock}>
-          <div className={styles.categoryList}>
-            <span className={styles.chipActive}>Все ниши</span>
-            {[...DEFAULT_MARKETPLACE_CATEGORIES]
-              .sort((a, b) => a.label.localeCompare(b.label, "ru"))
-              .slice(0, INITIAL_CATEGORY_COUNT)
-              .map((item) => (
-                <span className={styles.chip} key={item.value}>
-                  {item.label}
-                </span>
-              ))}
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function FilterSection({
-  title,
-  children,
-  defaultOpen = true,
-  badge,
-}: {
-  title: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-  badge?: number;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  return (
-    <div className={styles.filterGroup}>
-      <button
-        type="button"
-        className={styles.filterTitle}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {title}
-          {badge != null && badge > 0 && (
-            <span className={styles.filterBadge}>{badge}</span>
-          )}
-        </span>
-        <svg
-          className={styles.filterTitleArrow}
-          data-open={open}
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            className={styles.filterBlock}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: [0.2, 0.6, 0.2, 1] }}
-            style={{ overflow: "hidden" }}
-          >
-            {children}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function MarketplaceCatalogContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const queryClient = useQueryClient();
-  const { accessToken, isAuthenticated } = useAuth();
-
-  const [category, setCategory] = useState("");
-  const [gender, setGender] = useState("");
-  const [audience, setAudience] = useState("");
-  const [sort, setSort] = useState("audience_desc");
-  const [search, setSearch] = useState("");
-  const [categoryLimit, setCategoryLimit] = useState(INITIAL_CATEGORY_COUNT);
-  const [message, setMessage] = useState("Здравствуйте! Хочу обсудить рекламную интеграцию.");
-  const [selected, setSelected] = useState<BloggerCard | null>(null);
-  const [notice, setNotice] = useState("");
-
-  useEffect(() => {
-    const ref = searchParams.get("ref");
-    if (ref && !isAuthenticated) {
-      setNotice("Вы пришли по реферальной ссылке. Зарегистрируйтесь, чтобы закрепить приглашение и оформить заказ.");
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem("marketplace_referral_code", ref);
-      }
-    }
-  }, [isAuthenticated, searchParams]);
+export default function MarketplaceHomePage() {
+  const { data: catalog } = useQuery<CatalogResponse>({
+    queryKey: ["featured-bloggers"],
+    queryFn: () => api.getBloggers("?page_size=4&sort=audience_desc"),
+    staleTime: 60_000,
+  });
 
   const { data: categories = DEFAULT_MARKETPLACE_CATEGORIES } = useQuery({
     queryKey: ["marketplace-categories"],
@@ -227,393 +59,203 @@ function MarketplaceCatalogContent() {
     staleTime: 10 * 60 * 1000,
   });
 
-  const sortedCategories = useMemo(
-    () => [...categories].sort((a, b) => a.label.localeCompare(b.label, "ru")),
-    [categories],
-  );
-  const visibleCategories = sortedCategories.slice(0, categoryLimit);
-  const hasMoreCategories = categoryLimit < sortedCategories.length;
-
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams({ page_size: "12", sort });
-    if (category) params.set("category", category);
-    if (gender) params.set("gender", gender);
-    if (audience) params.set("audience", audience);
-    if (search.trim()) params.set("q", search.trim());
-    return params.toString();
-  }, [audience, category, gender, search, sort]);
-
-  const { data, isLoading, error } = useQuery<CatalogResponse>({
-    queryKey: ["marketplace-bloggers", queryString],
-    queryFn: async () => {
-      const response = await fetch(`${appConfig.apiBaseUrl}/marketplace/bloggers?${queryString}`);
-      if (!response.ok) throw new Error("Каталог не загрузился. Проверьте соединение и попробуйте еще раз.");
-      return response.json();
-    },
-  });
-
-  const orderMutation = useMutation({
-    mutationFn: async (blogger: BloggerCard) => {
-      if (!isAuthenticated) {
-        const ref = searchParams.get("ref");
-        router.push(`/auth/register${ref ? `?ref=${encodeURIComponent(ref)}` : ""}`);
-        return null;
-      }
-
-      const response = await fetch(`${appConfig.apiBaseUrl}/marketplace/orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ blogger_id: blogger.user_id, message }),
-      });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(typeof payload.detail === "string" ? payload.detail : "Не удалось создать заказ");
-      }
-
-      return response.json();
-    },
-    onSuccess: (order) => {
-      if (!order) return;
-      setNotice("Заказ создан. Теперь можно перейти к оплате в кабинете клиента.");
-      setSelected(null);
-      queryClient.invalidateQueries({ queryKey: ["marketplace-orders"] });
-    },
-    onError: (err: Error) => setNotice(err.message),
-  });
-
-  const total = data?.total ?? 0;
-
-  // Count active filters for badge
-  const activeFiltersCount = [category, gender, audience].filter(Boolean).length;
-
-  const handleResetFilters = () => {
-    setCategory("");
-    setGender("");
-    setAudience("");
-    setSearch("");
-    setSort("audience_desc");
-  };
+  const featured = catalog?.items ?? [];
+  const total = catalog?.total;
 
   return (
-    <AdMarketplaceShell>
-      <main className={`${styles.main} ${styles.catalogMain}`}>
-        <MarketplaceHero
-          total={total}
-          search={search}
-          onSearchChange={setSearch}
-        />
-
-        <AnimatePresence>
-          {notice && (
-            <motion.div
-              className={styles.noticeBanner}
-              initial={{ opacity: 0, y: -10, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: "auto" }}
-              exit={{ opacity: 0, y: -10, height: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <span className={styles.noticeBannerIcon} aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-              </span>
-              <p style={{ margin: 0 }}>{notice}</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className={styles.catalogGrid}>
-          {/* ── Sidebar Filters ── */}
-          <aside className={styles.sidebar} aria-label="Фильтры">
-            <div className={styles.stickyFilters}>
-              <div className={styles.sidebarHeader}>
-                <span className={styles.sidebarTitle}>Фильтры</span>
-                {activeFiltersCount > 0 && (
-                  <button
-                    className={styles.ghostButton}
-                    onClick={handleResetFilters}
-                    type="button"
-                    style={{ width: "auto", height: 28, padding: "0 10px", fontSize: 12 }}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                    Сбросить ({activeFiltersCount})
-                  </button>
-                )}
-              </div>
-
-              {/* Categories */}
-              <FilterSection
-                title="Категории"
-                defaultOpen={true}
-                badge={category ? 1 : 0}
-              >
-                <div className={styles.categoryList}>
-                  <button
-                    className={!category ? styles.chipActive : styles.chip}
-                    onClick={() => setCategory("")}
-                    type="button"
-                    id="filter-cat-all"
-                  >
-                    Все ниши
-                  </button>
-                  {visibleCategories.map((item) => (
-                    <button
-                      className={category === item.value ? styles.chipActive : styles.chip}
-                      key={item.value}
-                      onClick={() => setCategory(item.value)}
-                      type="button"
-                      id={`filter-cat-${item.value}`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-                {hasMoreCategories && (
-                  <button
-                    className={styles.categoryLoadButton}
-                    onClick={() => setCategoryLimit((value) => value + INITIAL_CATEGORY_COUNT)}
-                    type="button"
-                  >
-                    Показать ещё
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </button>
-                )}
-              </FilterSection>
-
-              {/* Audience */}
-              <FilterSection
-                title="Охват"
-                defaultOpen={true}
-                badge={audience ? 1 : 0}
-              >
-                <div className={styles.checkboxList}>
-                  {audienceOptions.map((item) => (
-                    <label className={styles.checkboxLabel} key={item.value}>
-                      <input
-                        checked={audience === item.value}
-                        name="audience"
-                        onChange={() => setAudience(item.value)}
-                        type="radio"
-                        id={`filter-audience-${item.value || "all"}`}
-                      />
-                      <span style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
-                        <span style={{ fontSize: 14 }}>{item.icon}</span>
-                        <span>
-                          {item.label}
-                          {"sub" in item && item.sub && (
-                            <span style={{ color: "var(--text-soft)", fontSize: 12, marginLeft: 4 }}>
-                              {item.sub}
-                            </span>
-                          )}
-                        </span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </FilterSection>
-
-              {/* Gender */}
-              <FilterSection
-                title="Пол"
-                defaultOpen={false}
-                badge={gender ? 1 : 0}
-              >
-                <div className={styles.segmentedList}>
-                  {genderOptions.map((item) => (
-                    <button
-                      className={gender === item.value ? styles.chipActive : styles.chip}
-                      key={item.value}
-                      onClick={() => setGender(item.value)}
-                      type="button"
-                      id={`filter-gender-${item.value || "all"}`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </FilterSection>
-
-              {activeFiltersCount > 0 && (
-                <button
-                  className={styles.ghostButton}
-                  onClick={handleResetFilters}
-                  type="button"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="1 4 1 10 7 10" />
-                    <path d="M3.51 15a9 9 0 1 0 .49-3.14" />
-                  </svg>
-                  Сбросить все фильтры
-                </button>
-              )}
-            </div>
-          </aside>
-
-          {/* ── Content Column ── */}
-          <section className={styles.contentColumn}>
-            <div className={styles.catalogToolbar}>
-              {/* Compact search in toolbar */}
-              <div className={styles.search}>
-                <span className={styles.searchIcon} aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
-                </span>
-                <input
-                  className={styles.searchInput}
-                  placeholder="Поиск по имени или нише"
-                  aria-label="Поиск"
-                  id="toolbar-search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-              </div>
-              <div className={styles.catalogMeta}>
-                <span className={styles.resultCount}>
-                  Найдено: <span>{total}</span>
-                </span>
-                <select
-                  className={styles.sortSelect}
-                  value={sort}
-                  onChange={(event) => setSort(event.target.value)}
-                  id="sort-select"
-                  aria-label="Сортировка"
-                >
-                  <option value="audience_desc">По аудитории</option>
-                  <option value="price_asc">По стоимости ↑</option>
-                  <option value="price_desc">По стоимости ↓</option>
-                  <option value="newest">Новые</option>
-                </select>
-              </div>
-            </div>
-
-            {isLoading && (
-              <div className={styles.cardsGrid} aria-busy="true" aria-live="polite">
-                {skeletonCards.map((item) => (
-                  <BloggerCardSkeleton key={item} />
-                ))}
-              </div>
-            )}
-
-            {error && (
-              <p className={styles.errorText}>
-                {error instanceof Error ? error.message : "Каталог не загрузился. Проверьте соединение и попробуйте еще раз."}
-              </p>
-            )}
-
-            {!isLoading && data?.items.length === 0 && (
-              <div className={styles.emptyText}>
-                <span className={styles.emptyIcon} aria-hidden="true">🔍</span>
-                Под эти фильтры пока нет блогеров.
-                <br />
-                <button
-                  onClick={handleResetFilters}
-                  type="button"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--brand-violet)",
-                    cursor: "pointer",
-                    fontSize: 15,
-                    fontWeight: 600,
-                    marginTop: 12,
-                    display: "inline-block",
-                    padding: 0,
-                  }}
-                >
-                  Сбросить фильтры →
-                </button>
-              </div>
-            )}
-
-            {!isLoading && !error && (
-              <div className={styles.cardsGrid}>
-                {data?.items.map((blogger, index) => (
-                  <BloggerCardView
-                    blogger={blogger}
-                    key={blogger.id}
-                    index={index}
-                    onOrder={(item) => {
-                      setSelected(item);
-                      setNotice("");
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* ── Order Form Panel ── */}
-        <AnimatePresence>
-          {selected && (
-            <motion.section
-              className={styles.panel}
-              style={{ marginTop: 40 }}
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 24 }}
-              transition={{ duration: 0.4, ease: [0.2, 0.6, 0.2, 1] }}
-            >
-              <div className={styles.twoColumnGrid}>
+    <MarketShell>
+      {/* ── Hero ── */}
+      <section className={styles.hero}>
+        <div className={styles.heroGlow} aria-hidden="true" />
+        <div className={shell.pageContainer}>
+          <div className={styles.heroInner}>
+            <div>
+              <motion.span className={ui.eyebrow} {...fadeUp}>
+                Кураторский маркетплейс
+              </motion.span>
+              <motion.h1 className={ui.displayTitle} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.06 }}>
+                Реклама у блогеров, <em>достойная</em> вашего бренда
+              </motion.h1>
+              <motion.p className={ui.lead} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.12 }}>
+                Избранные авторы, проверенная аудитория и безопасная сделка:
+                деньги остаются под защитой платформы, пока вы не подтвердите результат.
+              </motion.p>
+              <motion.div className={styles.heroActions} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.18 }}>
+                <Link href="/catalog" className={ui.btnPrimary}>
+                  Открыть каталог
+                </Link>
+                <Link href="/auth/register" className={ui.btnSecondary}>
+                  Стать заказчиком
+                </Link>
+              </motion.div>
+              <motion.div className={styles.heroStats} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.24 }}>
                 <div>
-                  <span className={styles.eyebrow}>Новый проект</span>
-                  <h2 className={styles.sectionTitle} style={{ fontSize: 28, marginTop: 8 }}>{selected.name}</h2>
-                  <p className={styles.text} style={{ marginTop: 12 }}>
-                    Ниша: <strong>{categoryLabel(selected.category)}</strong>.{" "}
-                    Бюджет будет рассчитан по цене профиля.
-                  </p>
-                  {selected.telegram_username && (
-                    <p className={styles.handle} style={{ marginTop: 8 }}>
-                      @{selected.telegram_username}
-                    </p>
-                  )}
+                  <div className={ui.statValue}>{total != null ? `${total}` : "—"}</div>
+                  <div className={ui.statLabel}>авторов в каталоге</div>
                 </div>
-                <form
-                  className={styles.form}
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    orderMutation.mutate(selected);
-                  }}
+                <div>
+                  <div className={ui.statValue}>{categories.length}</div>
+                  <div className={ui.statLabel}>ниш и категорий</div>
+                </div>
+                <div>
+                  <div className={ui.statValue}>100%</div>
+                  <div className={ui.statLabel}>сделок под защитой</div>
+                </div>
+              </motion.div>
+            </div>
+
+            <div className={styles.heroAside}>
+              {[
+                {
+                  icon: <ShieldIcon />,
+                  title: "Безопасная сделка",
+                  text: "Оплата хранится на счёте платформы до подтверждения публикации.",
+                },
+                {
+                  icon: <SparkIcon />,
+                  title: "Только избранные",
+                  text: "Каждый профиль проходит ручную модерацию перед публикацией.",
+                },
+                {
+                  icon: <HandshakeIcon />,
+                  title: "Прямой диалог",
+                  text: "Бриф, сроки и детали — напрямую с автором внутри заказа.",
+                },
+              ].map((card, i) => (
+                <motion.div
+                  key={card.title}
+                  className={styles.heroCard}
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.7, delay: 0.25 + i * 0.12, ease: [0.2, 0.6, 0.2, 1] }}
                 >
-                  <label>
-                    <span className={styles.fieldLabel}>Бриф для блогера</span>
-                    <textarea
-                      className={styles.lineTextarea}
-                      maxLength={1000}
-                      minLength={1}
-                      required
-                      value={message}
-                      onChange={(event) => setMessage(event.target.value)}
-                      id="order-message"
-                    />
-                  </label>
-                  <div className={styles.buttonRow}>
-                    <button className={styles.primaryButton} disabled={orderMutation.isPending} type="submit" id="submit-order">
-                      {orderMutation.isPending ? "Создаём..." : "Создать заказ"}
-                    </button>
-                    <button className={styles.secondaryButton} onClick={() => setSelected(null)} type="button" id="cancel-order">
-                      Отмена
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </motion.section>
-          )}
-        </AnimatePresence>
-      </main>
-    </AdMarketplaceShell>
+                  <span className={styles.heroCardIcon}>{card.icon}</span>
+                  <span>
+                    <p className={styles.heroCardTitle}>{card.title}</p>
+                    <p className={styles.heroCardText}>{card.text}</p>
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Categories strip ── */}
+      <section className={styles.stripSection}>
+        <div className={shell.pageContainer}>
+          <motion.div className={styles.strip} {...fadeUp}>
+            {categories.map((cat) => (
+              <Link key={cat.value} href={`/catalog?category=${encodeURIComponent(cat.value)}`} className={ui.chip}>
+                {cat.label}
+              </Link>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── Featured bloggers ── */}
+      <section className={ui.section}>
+        <div className={shell.pageContainer}>
+          <div className={ui.sectionHead}>
+            <div>
+              <span className={ui.eyebrow}>Подборка недели</span>
+              <h2 className={ui.sectionTitle}>Голоса, которым доверяют</h2>
+            </div>
+            <Link href="/catalog" className={ui.btnGhost}>
+              Смотреть всех →
+            </Link>
+          </div>
+          <div className={styles.bloggersGrid}>
+            {featured.length > 0
+              ? featured.map((blogger, index) => (
+                  <BloggerCardView key={blogger.id} blogger={blogger} index={index} />
+                ))
+              : Array.from({ length: 4 }, (_, i) => <BloggerCardSkeleton key={i} />)}
+          </div>
+        </div>
+      </section>
+
+      {/* ── How it works ── */}
+      <section className={ui.section} id="how">
+        <div className={shell.pageContainer}>
+          <div className={ui.sectionHead}>
+            <div>
+              <span className={ui.eyebrow}>Процесс</span>
+              <h2 className={ui.sectionTitle}>Четыре шага до публикации</h2>
+            </div>
+          </div>
+          <div className={styles.howGrid}>
+            {[
+              {
+                title: "Выберите автора",
+                text: "Фильтры по нише, охвату и бюджету. Портфолио и статистика — в каждом профиле.",
+              },
+              {
+                title: "Опишите задачу",
+                text: "Создайте заказ с брифом и суммой. Блогер увидит его сразу после оплаты.",
+              },
+              {
+                title: "Оплатите безопасно",
+                text: "Переводом по реквизитам платформы. Деньги заморожены до результата.",
+              },
+              {
+                title: "Подтвердите результат",
+                text: "Публикация вышла — вы подтверждаете, автор получает гонорар.",
+              },
+            ].map((step) => (
+              <motion.div key={step.title} className={styles.howCard} {...fadeUp}>
+                <div className={styles.howNum} aria-hidden="true" />
+                <h3 className={styles.howTitle}>{step.title}</h3>
+                <p className={styles.howText}>{step.text}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* ── Guarantee band ── */}
+          <motion.div className={styles.band} {...fadeUp}>
+            <div>
+              <span className={ui.eyebrow}>Гарантии</span>
+              <h2 className={ui.sectionTitle}>Сделка под защитой платформы</h2>
+              <p className={ui.lead}>
+                Мы удерживаем оплату на стороне платформы и переводим её автору
+                только после вашего подтверждения. Спорные ситуации решает служба поддержки.
+              </p>
+            </div>
+            <ul className={styles.bandList}>
+              {[
+                "Деньги не уходят блогеру до подтверждения результата",
+                "Возврат средств, если публикация не состоялась",
+                "Арбитраж поддержки в спорных ситуациях",
+                "История заказа и переписки сохраняется",
+              ].map((item) => (
+                <li key={item} className={styles.bandItem}>
+                  <span className={styles.bandCheck}>
+                    <CheckIcon />
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+
+          {/* ── Final CTA ── */}
+          <motion.div className={styles.finalCta} {...fadeUp}>
+            <span className={ui.eyebrow} style={{ justifyContent: "center" }}>
+              Начните сегодня
+            </span>
+            <h2 className={ui.sectionTitle}>Первый заказ — за пару минут</h2>
+            <div className={styles.finalActions}>
+              <Link href="/catalog" className={ui.btnPrimary}>
+                Выбрать блогера
+              </Link>
+              <Link href="/auth/login?role=blogger" className={ui.btnSecondary}>
+                Я блогер — войти
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+    </MarketShell>
   );
 }

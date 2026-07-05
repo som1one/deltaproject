@@ -1,113 +1,96 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-import {
-  AdMarketplaceShell,
-  OrderCard,
-  PageHeader,
-  stitchStyles as styles,
-  type OrderItem,
-} from "@/components/marketplace/stitch-marketplace";
-import { LoadingSpinner } from "@/components/marketplace/loading-spinner";
-import { appConfig } from "@/lib/config";
+import { MarketShell } from "@/components/shell/shell";
+import { StatusBadge } from "@/components/ui/bits";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { formatDateTime, formatMoney } from "@/lib/format";
+import type { OrdersResponse } from "@/lib/types";
 
-type OrdersResponse = {
-  items: OrderItem[];
-  total: number;
-};
+import shell from "@/components/shell/shell.module.css";
+import ui from "@/components/ui/ui.module.css";
+import styles from "./orders.module.css";
 
-export default function MarketplaceOrdersPage() {
+export default function OrdersPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const { accessToken, isAuthenticated, isHydrated } = useAuth();
-  const [message, setMessage] = useState("");
+  const { isHydrated, isAuthenticated, isBlogger } = useAuth();
 
   useEffect(() => {
-    if (isHydrated && !isAuthenticated) router.replace("/auth/login?next=/orders");
+    if (isHydrated && !isAuthenticated) {
+      router.replace("/auth/login?next=/orders");
+    }
   }, [isAuthenticated, isHydrated, router]);
 
   const { data, isLoading, error } = useQuery<OrdersResponse>({
     queryKey: ["marketplace-orders"],
-    queryFn: async () => {
-      const response = await fetch(`${appConfig.apiBaseUrl}/marketplace/orders`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!response.ok) throw new Error("Не удалось загрузить заказы");
-      return response.json();
-    },
-    enabled: isAuthenticated,
+    queryFn: () => api.getOrders("?page_size=50"),
+    enabled: isHydrated && isAuthenticated,
   });
 
-  const confirmMutation = useMutation({
-    mutationFn: async (orderId: string) => {
-      const response = await fetch(`${appConfig.apiBaseUrl}/marketplace/orders/${orderId}/confirm`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(typeof payload.detail === "string" ? payload.detail : "Не удалось подтвердить заказ");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      setMessage("Заказ подтверждён, средства распределены.");
-      queryClient.invalidateQueries({ queryKey: ["marketplace-orders"] });
-    },
-    onError: (err: Error) => setMessage(err.message),
-  });
+  const orders = data?.items ?? [];
 
   return (
-    <AdMarketplaceShell>
-      <main className={styles.main}>
-        <PageHeader
-          eyebrow="Client cabinet"
-          title="Мои заказы"
-          lead="Контролируйте оплату, статусы и финальное подтверждение рекламных интеграций."
-        />
-
-        {message && <p className={message.includes("подтверждён") ? styles.successText : styles.errorText}>{message}</p>}
-        {isLoading && <LoadingSpinner text="Загружаем заказы..." />}
-        {error && <p className={styles.errorText}>{error instanceof Error ? error.message : "Ошибка"}</p>}
-        {!isLoading && data?.items.length === 0 && (
-          <section className={styles.panel}>
-            <h2 className={styles.sectionTitle}>Пока пусто</h2>
-            <p className={styles.muted}>Выберите блогера в каталоге и отправьте первый проект.</p>
-            <Link className={styles.primaryButton} href="/">
-              Перейти в каталог
+    <MarketShell>
+      <div className={shell.pageContainer}>
+        <header className={styles.head}>
+          <div>
+            <span className={ui.eyebrow}>{isBlogger ? "Кабинет блогера" : "Кабинет заказчика"}</span>
+            <h1 className={ui.displayTitle} style={{ fontSize: "clamp(32px, 5vw, 48px)" }}>
+              Мои заказы
+            </h1>
+          </div>
+          {!isBlogger && (
+            <Link href="/catalog" className={ui.btnSecondary}>
+              + Новый заказ
             </Link>
-          </section>
+          )}
+        </header>
+
+        {isLoading ? (
+          <div className={styles.list}>
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className={ui.skeleton} style={{ height: 84, borderRadius: 20 }} />
+            ))}
+          </div>
+        ) : error ? (
+          <div className={ui.noticeDanger}>Не удалось загрузить заказы. Обновите страницу.</div>
+        ) : orders.length === 0 ? (
+          <div className={ui.empty}>
+            <h3 className={ui.emptyTitle}>Пока пусто</h3>
+            <p className={ui.muted}>
+              {isBlogger
+                ? "Новые заказы появятся здесь после оплаты заказчиком."
+                : "Выберите автора в каталоге и оформите первый заказ."}
+            </p>
+            {!isBlogger && (
+              <Link href="/catalog" className={ui.btnPrimary} style={{ marginTop: 18 }}>
+                Открыть каталог
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className={styles.list}>
+            {orders.map((order) => (
+              <Link key={order.id} href={`/orders/${order.id}`} className={styles.orderRow}>
+                <span className={styles.orderWho}>
+                  <span className={styles.orderName}>
+                    {isBlogger ? order.client_name ?? "Заказчик" : order.blogger_name ?? "Автор"}
+                  </span>
+                  <span className={styles.orderBrief}>{order.message}</span>
+                </span>
+                <span className={styles.orderDate}>{formatDateTime(order.created_at)}</span>
+                <span className={styles.orderAmount}>{formatMoney(order.amount_kopeks)}</span>
+                <StatusBadge status={order.status} />
+              </Link>
+            ))}
+          </div>
         )}
-        <div className={styles.list}>
-          {data?.items.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              action={
-                order.status === "BLOGGER_CONFIRMED" ? (
-                  <button
-                    className={styles.primaryButton}
-                    disabled={confirmMutation.isPending}
-                    onClick={() => confirmMutation.mutate(order.id)}
-                    type="button"
-                  >
-                    Подтвердить
-                  </button>
-                ) : (
-                  <Link className={styles.secondaryButton} href={`/support?order=${order.id}`}>
-                    Поддержка
-                  </Link>
-                )
-              }
-            />
-          ))}
-        </div>
-      </main>
-    </AdMarketplaceShell>
+      </div>
+    </MarketShell>
   );
 }

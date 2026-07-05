@@ -1,31 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { AdMarketplaceShell, PageHeader, statusClass, stitchStyles as styles } from "@/components/marketplace/stitch-marketplace";
-import { LoadingSpinner } from "@/components/marketplace/loading-spinner";
-import { appConfig } from "@/lib/config";
+import { MarketShell } from "@/components/shell/shell";
+import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
 
-type Ticket = {
-  id: string;
-  order_id: string;
-  message: string;
-  status: string;
-  created_at: string;
-};
-
-type TicketsResponse = {
-  items: Ticket[];
-  total: number;
-};
+import shell from "@/components/shell/shell.module.css";
+import ui from "@/components/ui/ui.module.css";
+import styles from "@/app/orders/orders.module.css";
 
 export default function SupportPage() {
   return (
-    <Suspense fallback={<LoadingSpinner text="Загрузка поддержки..." />}>
+    <Suspense fallback={null}>
       <SupportContent />
     </Suspense>
   );
@@ -35,121 +26,129 @@ function SupportContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { accessToken, isAuthenticated, isHydrated } = useAuth();
-  const orderId = searchParams.get("order") || "";
+  const { isAuthenticated, isHydrated } = useAuth();
 
+  const [orderId, setOrderId] = useState(searchParams.get("order") ?? "");
   const [message, setMessage] = useState("");
-  const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
+  const [notice, setNotice] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
 
   useEffect(() => {
     if (isHydrated && !isAuthenticated) router.replace("/auth/login?next=/support");
   }, [isAuthenticated, isHydrated, router]);
 
-  const { data: tickets, isLoading } = useQuery<TicketsResponse>({
+  const { data: tickets, isLoading } = useQuery({
     queryKey: ["marketplace-support-tickets"],
-    queryFn: async () => {
-      const response = await fetch(`${appConfig.apiBaseUrl}/marketplace/support/tickets`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!response.ok) throw new Error("Не удалось загрузить обращения");
-      return response.json();
-    },
-    enabled: isAuthenticated,
+    queryFn: () => api.getTickets("?page_size=50"),
+    enabled: isHydrated && isAuthenticated,
   });
 
-  const createTicketMutation = useMutation({
-    mutationFn: async () => {
-      if (!orderId) throw new Error("Откройте поддержку из карточки заказа, чтобы привязать обращение.");
-      if (!message.trim()) throw new Error("Введите сообщение");
-      const response = await fetch(`${appConfig.apiBaseUrl}/marketplace/support/tickets`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ order_id: orderId, message: message.trim() }),
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(typeof payload.detail === "string" ? payload.detail : "Не удалось создать обращение");
-      }
-      return response.json();
-    },
+  const createMutation = useMutation({
+    mutationFn: () => api.createTicket({ order_id: orderId.trim(), message: message.trim() }),
     onSuccess: () => {
-      setNotice("Обращение отправлено. Мы свяжемся с вами в ближайшее время.");
-      setError("");
+      setNotice({ tone: "success", text: "Обращение создано. Поддержка рассмотрит его и примет решение по сделке." });
       setMessage("");
       queryClient.invalidateQueries({ queryKey: ["marketplace-support-tickets"] });
     },
-    onError: (err: Error) => {
-      setNotice("");
-      setError(err.message);
-    },
+    onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
   });
 
   return (
-    <AdMarketplaceShell>
-      <main className={styles.main}>
-        <PageHeader
-          eyebrow="Support desk"
-          title="Поддержка"
-          lead="Создайте обращение по заказу или посмотрите историю диалогов с командой платформы."
-        />
+    <MarketShell>
+      <div className={shell.pageContainer}>
+        <header className={styles.head}>
+          <div>
+            <span className={ui.eyebrow}>Служба заботы</span>
+            <h1 className={ui.displayTitle} style={{ fontSize: "clamp(32px, 5vw, 48px)" }}>
+              Поддержка
+            </h1>
+          </div>
+        </header>
 
-        <div className={styles.dashboardGrid}>
-          <section className={styles.panel}>
-            <h2 className={styles.sectionTitle}>Новое обращение</h2>
-            <p className={styles.muted}>
-              {orderId ? `Заказ #${orderId.slice(0, 8)}` : "Для нового обращения нужен номер заказа."}
+        <div className={ui.grid2} style={{ alignItems: "start", paddingBottom: 20 }}>
+          <section className={ui.panel}>
+            <h2 className={styles.panelTitle}>Открыть спор по заказу</h2>
+            <p className={ui.muted} style={{ margin: "0 0 20px" }}>
+              Спор можно открыть по оплаченному заказу. Мы изучим детали и решим,
+              вернуть деньги или передать гонорар автору.
             </p>
-            {notice && <p className={styles.successText}>{notice}</p>}
-            {error && <p className={styles.errorText}>{error}</p>}
+            {notice && (
+              <div
+                className={notice.tone === "success" ? ui.noticeSuccess : ui.noticeDanger}
+                style={{ marginBottom: 18 }}
+              >
+                {notice.text}
+              </div>
+            )}
             <form
-              className={styles.form}
-              onSubmit={(event) => {
-                event.preventDefault();
-                createTicketMutation.mutate();
+              className={ui.form}
+              onSubmit={(e) => {
+                e.preventDefault();
+                setNotice(null);
+                createMutation.mutate();
               }}
             >
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Сообщение</span>
-                <textarea
-                  className={styles.lineTextarea}
-                  maxLength={2000}
-                  placeholder="Опишите вопрос или проблему..."
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
+              <label className={ui.field}>
+                <span className={ui.fieldLabel}>ID заказа</span>
+                <input
+                  className={`${ui.input} ${ui.mono}`}
+                  required
+                  value={orderId}
+                  onChange={(e) => setOrderId(e.target.value)}
+                  placeholder="например, 3f1c9b2e-…"
                 />
               </label>
-              <button className={styles.primaryButton} disabled={createTicketMutation.isPending} type="submit">
-                {createTicketMutation.isPending ? "Отправляем..." : "Отправить обращение"}
+              <label className={ui.field}>
+                <span className={ui.fieldLabel}>Опишите ситуацию</span>
+                <textarea
+                  className={ui.textarea}
+                  maxLength={2000}
+                  required
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Что пошло не так и какого решения вы ожидаете"
+                />
+              </label>
+              <button className={ui.btnPrimary} type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? "Отправляем…" : "Отправить обращение"}
               </button>
             </form>
           </section>
 
-          <section className={styles.panel}>
-            <h2 className={styles.sectionTitle}>Мои обращения</h2>
-            {isLoading && <LoadingSpinner size="small" text="Загрузка..." />}
-            {!isLoading && tickets?.items.length === 0 && (
-              <p className={styles.emptyText}>У вас пока нет обращений в поддержку.</p>
-            )}
-            <div className={styles.list} style={{ marginTop: "18px" }}>
-              {tickets?.items.map((ticket) => (
-                <div className={styles.rowItem} key={ticket.id}>
-                  <div>
-                    <strong>{ticket.message}</strong>
-                    <p className={styles.muted}>{formatDateTime(ticket.created_at)}</p>
+          <section className={ui.panel}>
+            <h2 className={styles.panelTitle}>Мои обращения</h2>
+            {isLoading ? (
+              <div className={ui.skeleton} style={{ height: 140, borderRadius: 16 }} />
+            ) : !tickets || tickets.items.length === 0 ? (
+              <p className={ui.muted} style={{ margin: 0 }}>
+                Обращений пока нет — надеемся, так и останется.
+              </p>
+            ) : (
+              <div className={ui.defList}>
+                {tickets.items.map((ticket) => (
+                  <div key={ticket.id} className={ui.defRow} style={{ alignItems: "flex-start" }}>
+                    <span style={{ minWidth: 0 }}>
+                      <Link
+                        href={`/orders/${ticket.order_id}`}
+                        className={ui.mono}
+                        style={{ fontSize: 13, color: "var(--bronze-deep)", fontWeight: 600 }}
+                      >
+                        Заказ {ticket.order_id.slice(0, 8)}
+                      </Link>
+                      <p className={ui.muted} style={{ margin: "6px 0 0", fontSize: 13.5 }}>
+                        {ticket.message}
+                      </p>
+                      <span className={ui.fine}>{formatDateTime(ticket.created_at)}</span>
+                    </span>
+                    <span className={ticket.status === "open" ? ui.badgeWarning : ui.badgeSuccess}>
+                      {ticket.status === "open" ? "Открыт" : "Решён"}
+                    </span>
                   </div>
-                  <span className={statusClass(ticket.status)}>
-                    {ticket.status === "open" ? "Открыт" : "Решён"}
-                  </span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
-      </main>
-    </AdMarketplaceShell>
+      </div>
+    </MarketShell>
   );
 }

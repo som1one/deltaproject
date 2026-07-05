@@ -534,6 +534,7 @@ async def refund_to_client(
                 payment_id=order.yookassa_payment_id,
                 amount_kopeks=order.amount_kopeks,
                 order_id=order_id,
+                db=db,
             )
         except Exception:
             logger.exception(

@@ -27,6 +27,7 @@ from models.user import User
 logger = logging.getLogger(__name__)
 
 YOOKASSA_PAYMENTS_URL = "https://api.yookassa.ru/v3/payments"
+YOOKASSA_REFUNDS_URL = "https://api.yookassa.ru/v3/refunds"
 PAYMENT_EXPIRATION_MINUTES = 60
 
 
@@ -57,18 +58,25 @@ def _kopeks_to_amount_str(kopeks: int) -> str:
     return f"{q:.2f}"
 
 
-def _get_auth_header() -> str:
+def _get_auth_header(shop_id: str, secret: str) -> str:
     """Формирует Basic Auth заголовок из shop_id и secret_key."""
-    shop_id = settings.yukassa_payout_shop_id.strip()
-    secret = settings.yukassa_payout_secret_key.strip()
-    token = base64.b64encode(f"{shop_id}:{secret}".encode()).decode()
+    token = base64.b64encode(f"{shop_id.strip()}:{secret.strip()}".encode()).decode()
     return f"Basic {token}"
+
+
+async def _effective_credentials(db: AsyncSession):
+    """Ключи ЮKassa: настройки из админки (БД) приоритетнее ENV."""
+    from services.marketplace_payment_settings_service import get_effective_yookassa
+
+    return await get_effective_yookassa(db)
 
 
 async def create_refund(
     payment_id: str,
     amount_kopeks: int,
     order_id: uuid.UUID,
+    *,
+    db: AsyncSession,
 ) -> str | None:
     """
     Создаёт возврат платежа через YooKassa Refunds API.
@@ -77,17 +85,20 @@ async def create_refund(
         payment_id: ID платежа YooKassa для возврата.
         amount_kopeks: Сумма возврата в копейках.
         order_id: ID заказа (для метаданных).
+        db: Сессия БД (для чтения ключей из настроек админки).
 
     Returns:
         refund_id или None при ошибке.
     """
-    if not settings.yukassa_payout_active:
+    creds = await _effective_credentials(db)
+    if not creds.active:
         raise PaymentServiceError("YooKassa не настроена")
 
-    refund_url = f"{YOOKASSA_PAYMENTS_URL}/{payment_id}/refunds"
+    refund_url = YOOKASSA_REFUNDS_URL
     idempotency_key = f"{order_id}:refund"
 
     payload: dict[str, Any] = {
+        "payment_id": payment_id,
         "amount": {
             "value": _kopeks_to_amount_str(amount_kopeks),
             "currency": "RUB",
@@ -96,7 +107,7 @@ async def create_refund(
     }
 
     headers = {
-        "Authorization": _get_auth_header(),
+        "Authorization": _get_auth_header(creds.shop_id, creds.secret_key),
         "Content-Type": "application/json",
         "Idempotence-Key": idempotency_key,
     }
@@ -147,7 +158,8 @@ class PaymentService:
         Raises:
             PaymentServiceError: если YooKassa вернула ошибку или заказ не найден.
         """
-        if not settings.yukassa_payout_active:
+        creds = await _effective_credentials(db)
+        if not creds.active:
             raise PaymentServiceError("YooKassa платежи не настроены")
 
         # Verify order exists and is in correct status
@@ -184,7 +196,7 @@ class PaymentService:
         }
 
         headers = {
-            "Authorization": _get_auth_header(),
+            "Authorization": _get_auth_header(creds.shop_id, creds.secret_key),
             "Content-Type": "application/json",
             "Idempotence-Key": idempotency_key,
         }
@@ -413,6 +425,10 @@ class PaymentService:
         if withdrawal_id:
             metadata["withdrawal_id"] = str(withdrawal_id)
 
+        creds = await _effective_credentials(db)
+        if not creds.active:
+            raise PaymentServiceError("ЮKassa выплаты не настроены")
+
         try:
             payout_id, status = await yookassa_create_payout(
                 amount_kopeks=amount_kopeks,
@@ -420,6 +436,8 @@ class PaymentService:
                 description=f"Выплата маркетплейс пользователю {user_id}",
                 metadata=metadata,
                 idempotency_key=idempotency_key,
+                shop_id=creds.shop_id,
+                secret_key=creds.secret_key,
             )
         except YookassaPayoutError as exc:
             logger.warning("Marketplace payout failed for user %s: %s", user_id, exc)

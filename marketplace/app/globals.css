@@ -1,102 +1,119 @@
 /* =========================================================
-   Marketplace — Light Theme Design System
-   Warm cream background, dark text, quiet luxury.
+   Looney Moon Market — Quiet Luxury Design System
+   Две темы: Ivory (light, default) и Noir (dark).
+   Переключение через html[data-theme="dark"].
    ========================================================= */
 
 :root {
-  /* ---------- Surfaces ---------- */
-  --bg:             #faf9f7;
-  --surface-base:   #ffffff;
-  --surface-raised: #f4f3f1;
-  --surface-hover:  #efeeec;
-  --surface-elev:   #e9e8e6;
-  --surface-inset:  #ffffff;
+  /* ---------- Surfaces (Ivory) ---------- */
+  --bg:             #f6f4ef;
+  --surface-base:   #fffefb;
+  --surface-raised: #f0ede6;
+  --surface-hover:  #eae6dd;
+  --surface-elev:   #ffffff;
+  --surface-inset:  #fbfaf7;
+  --surface-glass:  rgba(255, 254, 251, 0.78);
 
   /* ---------- Borders ---------- */
-  --border:        #e3e2e0;
-  --border-strong: #c4c7c7;
-  --border-faint:  #f4f3f1;
+  --border:        rgba(28, 25, 18, 0.10);
+  --border-strong: rgba(28, 25, 18, 0.20);
+  --border-faint:  rgba(28, 25, 18, 0.05);
 
   /* ---------- Text ---------- */
-  --text-strong: #000000;
-  --text:        #1a1c1b;
-  --text-muted:  #444748;
-  --text-soft:   #858383;
-  --text-faint:  #c8c6c6;
+  --text-strong: #171410;
+  --text:        #26221b;
+  --text-muted:  rgba(28, 25, 18, 0.62);
+  --text-soft:   rgba(28, 25, 18, 0.42);
+  --text-faint:  rgba(28, 25, 18, 0.26);
 
-  /* ---------- Accent ---------- */
-  --accent:      #000000;
-  --accent-deep: #474747;
-  --accent-ink:  #ffffff;
+  /* ---------- Accent: ink + bronze ---------- */
+  --accent:       #171410;
+  --accent-ink:   #fffefb;
+  --accent-hover: #2c2820;
+  --bronze:       #96794d;
+  --bronze-deep:  #7c6440;
+  --bronze-soft:  rgba(150, 121, 77, 0.10);
+  --bronze-edge:  rgba(150, 121, 77, 0.32);
 
   /* ---------- Status ---------- */
-  --status-active:  #000000;
-  --status-success: #2e7d32;
-  --status-warning: #f57c00;
-  --status-danger:  #c62828;
+  --status-success: #4c6b4f;
+  --status-warning: #9a7b3c;
+  --status-danger:  #a04b43;
+  --status-info:    #4c5d6b;
+  --status-success-soft: rgba(76, 107, 79, 0.10);
+  --status-warning-soft: rgba(154, 123, 60, 0.12);
+  --status-danger-soft:  rgba(160, 75, 67, 0.10);
+  --status-info-soft:    rgba(76, 93, 107, 0.10);
 
-  --status-success-soft: rgba(46, 125, 50, 0.08);
-  --status-success-edge: rgba(46, 125, 50, 0.22);
-  --status-danger-soft:  rgba(198, 40, 40, 0.08);
-  --status-danger-edge:  rgba(198, 40, 40, 0.22);
-  --status-warning-soft: rgba(245, 124, 0, 0.08);
-  --status-warning-edge: rgba(245, 124, 0, 0.22);
+  /* ---------- Shadows ---------- */
+  --shadow-card:  0 1px 2px rgba(28, 25, 18, 0.04), 0 10px 30px -12px rgba(28, 25, 18, 0.10);
+  --shadow-hover: 0 2px 4px rgba(28, 25, 18, 0.05), 0 24px 48px -16px rgba(28, 25, 18, 0.16);
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 20px 60px -24px rgba(28, 25, 18, 0.18);
 
   /* ---------- Typography ---------- */
-  --font-display: "EB Garamond", "Georgia", serif;
-  --font-body:    "Hanken Grotesk", "Manrope", system-ui, sans-serif;
-  --font-narrow:  "Hanken Grotesk", "Manrope", system-ui, sans-serif;
-  --font-serif:   "Cormorant Garamond", "Times New Roman", Georgia, serif;
+  --font-display: "Cormorant Garamond", "EB Garamond", Georgia, serif;
+  --font-body:    "Manrope", "Hanken Grotesk", system-ui, sans-serif;
   --font-mono:    "JetBrains Mono", ui-monospace, monospace;
 
-  /* ---------- Legacy ad-* tokens (marketplace-ui.module.css) ---------- */
-  --ad-on-surface-variant:       #444748;
-  --ad-surface-container-highest: #e3e2e0;
-  --ad-primary:                  #000000;
-  --ad-on-primary:               #ffffff;
-  --ad-surface-container-lowest:  #ffffff;
-  --font-marketplace-sans:       var(--font-body);
-  --font-marketplace-serif:      var(--font-serif);
-
   /* ---------- Radii ---------- */
-  --radius-xs:   4px;
-  --radius-sm:   8px;
-  --radius-md:   12px;
-  --radius-lg:   18px;
-  --radius-xl:   24px;
+  --radius-xs:   6px;
+  --radius-sm:   10px;
+  --radius-md:   14px;
+  --radius-lg:   20px;
+  --radius-xl:   28px;
   --radius-pill: 999px;
-  --radius-card: var(--radius-md);
-
-  /* ---------- Spacing ---------- */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.5rem;
-  --space-6: 2rem;
-  --space-7: 3rem;
-  --space-8: 4rem;
 
   /* ---------- Motion ---------- */
-  --transition-base: 220ms cubic-bezier(.2,.6,.2,1);
-  --transition-slow: 480ms cubic-bezier(.2,.6,.2,1);
   --easing:          cubic-bezier(.2,.6,.2,1);
+  --transition-base: 220ms var(--easing);
+  --transition-slow: 480ms var(--easing);
 
-  /* ---------- Brand Accents ---------- */
-  --brand-violet:       #6c47ff;
-  --brand-violet-soft:  rgba(108, 71, 255, 0.08);
-  --brand-violet-edge:  rgba(108, 71, 255, 0.18);
-  --brand-violet-glow:  rgba(108, 71, 255, 0.25);
-  --brand-indigo:       #4f46e5;
-  --brand-rose:         #e11d68;
-  --brand-rose-soft:    rgba(225, 29, 104, 0.07);
-  --brand-amber:        #d97706;
-  --brand-amber-soft:   rgba(217, 119, 6, 0.08);
+  /* ---------- Layout ---------- */
+  --page-max: 1200px;
+  --page-pad: clamp(20px, 4vw, 44px);
+  --nav-h: 72px;
+}
 
-  /* ---------- Hero gradient ---------- */
-  --hero-grad-1: rgba(108, 71, 255, 0.06);
-  --hero-grad-2: rgba(79, 70, 229, 0.04);
-  --hero-grad-3: rgba(225, 29, 104, 0.04);
+html[data-theme="dark"] {
+  /* ---------- Surfaces (Noir) ---------- */
+  --bg:             #0e0d0b;
+  --surface-base:   #151310;
+  --surface-raised: #1c1a16;
+  --surface-hover:  #23201b;
+  --surface-elev:   #191713;
+  --surface-inset:  #12100e;
+  --surface-glass:  rgba(21, 19, 16, 0.72);
+
+  --border:        rgba(243, 238, 227, 0.10);
+  --border-strong: rgba(243, 238, 227, 0.20);
+  --border-faint:  rgba(243, 238, 227, 0.05);
+
+  --text-strong: #f5f1e8;
+  --text:        #e8e3d8;
+  --text-muted:  rgba(240, 235, 223, 0.62);
+  --text-soft:   rgba(240, 235, 223, 0.42);
+  --text-faint:  rgba(240, 235, 223, 0.24);
+
+  --accent:       #f5f1e8;
+  --accent-ink:   #171410;
+  --accent-hover: #ffffff;
+  --bronze:       #c8ab77;
+  --bronze-deep:  #dbc297;
+  --bronze-soft:  rgba(200, 171, 119, 0.12);
+  --bronze-edge:  rgba(200, 171, 119, 0.36);
+
+  --status-success: #9db89a;
+  --status-warning: #cdb082;
+  --status-danger:  #cd8d84;
+  --status-info:    #93a7b5;
+  --status-success-soft: rgba(157, 184, 154, 0.12);
+  --status-warning-soft: rgba(205, 176, 130, 0.12);
+  --status-danger-soft:  rgba(205, 141, 132, 0.12);
+  --status-info-soft:    rgba(147, 167, 181, 0.12);
+
+  --shadow-card:  0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 16px 40px -16px rgba(0, 0, 0, 0.6);
+  --shadow-hover: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 28px 60px -20px rgba(0, 0, 0, 0.75);
+  --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 24px 70px -28px rgba(0, 0, 0, 0.8);
 }
 
 /* ---------- Reset / base ---------- */
@@ -113,20 +130,25 @@ html {
   background: var(--bg);
 }
 
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   background: var(--bg);
-  color: var(--text-strong);
+  color: var(--text);
   font-family: var(--font-body);
-  font-feature-settings: "ss01", "cv11", "cv02";
+  font-feature-settings: "ss01", "cv11";
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   letter-spacing: -0.01em;
-  line-height: 1.55;
+  line-height: 1.6;
   overflow-x: hidden;
+  transition: background-color 320ms ease, color 320ms ease;
 }
 
 a {
@@ -142,6 +164,10 @@ select {
   color: inherit;
 }
 
+button {
+  cursor: pointer;
+}
+
 img,
 svg,
 video {
@@ -150,8 +176,8 @@ video {
 }
 
 ::selection {
-  background: rgba(108, 71, 255, 0.15);
-  color: #000000;
+  background: var(--bronze-soft);
+  color: var(--text-strong);
 }
 
 ::placeholder {
@@ -164,7 +190,7 @@ video {
 }
 
 :focus-visible {
-  outline: 1px solid rgba(108, 71, 255, 0.5);
+  outline: 1.5px solid var(--bronze);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -173,7 +199,7 @@ video {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -186,14 +212,9 @@ video {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.10);
+  background: var(--border-strong);
   border-radius: 999px;
   border: 2px solid transparent;
-  background-clip: padding-box;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.20);
   background-clip: padding-box;
 }
 
@@ -212,20 +233,18 @@ video {
 
 /* ---------- Animations ---------- */
 
-@keyframes deltaFadeUp {
+@keyframes luxFadeUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
-    filter: blur(6px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 }
 
-@keyframes deltaFadeIn {
+@keyframes luxFadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
@@ -233,47 +252,6 @@ video {
 @keyframes shimmer {
   0%   { background-position: -400px 0; }
   100% { background-position: 400px 0; }
-}
-
-@keyframes gradientShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes floatY {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-18px); }
-}
-
-@keyframes floatX {
-  0%, 100% { transform: translateX(0px); }
-  50%       { transform: translateX(12px); }
-}
-
-@keyframes pulseRing {
-  0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(108, 71, 255, 0.35); }
-  70%  { transform: scale(1);    box-shadow: 0 0 0 12px rgba(108, 71, 255, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(108, 71, 255, 0); }
-}
-
-@keyframes counterUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-16px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.94); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-.fadeIn {
-  animation: deltaFadeUp 700ms var(--easing) both;
 }
 
 .shimmerBlock {

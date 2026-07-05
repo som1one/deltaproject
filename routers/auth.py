@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.rate_limit import limiter
 from core.settings import settings
+from dependencies.auth import get_access_token_string
 from dependencies.database import get_db
 from enums.user import UserRole
 from models.user import User
@@ -17,6 +18,9 @@ from schemas.auth import (
     AdminLoginRequest,
     AuthTokensResponse,
     BloggerLoginRequest,
+    PlatformAuthorizeRequest,
+    PlatformAuthorizeResponse,
+    PlatformExchangeRequest,
     RefreshRequest,
     TelegramAuthExchangeRequest,
     TelegramOAuthConfigResponse,
@@ -302,6 +306,114 @@ async def telegram_oauth_exchange(
         except HTTPException:
             # rate-limit/401: не валим выдачу токенов — это уже подтверждённый OIDC-вход
             pass
+        except Exception:  # pragma: no cover
+            pass
+
+    return AuthTokensResponse(
+        message="Login successful",
+        token=entry.access_token,
+        refresh_token=entry.refresh_token,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Platform SSO (OAuth-подобный обмен) — вход блогера в маркетплейс
+# ---------------------------------------------------------------------------
+
+
+def _validate_marketplace_redirect(redirect_uri: str) -> str:
+    """Разрешаем redirect только на фронт маркетплейса (или localhost в dev)."""
+    from urllib.parse import urlparse
+
+    candidate = redirect_uri.strip()
+    parsed = urlparse(candidate)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise HTTPException(status_code=400, detail="Некорректный redirect_uri")
+
+    allowed_origins: set[str] = set()
+    mp = urlparse(settings.marketplace_frontend_url.strip())
+    if mp.scheme and mp.netloc:
+        allowed_origins.add(f"{mp.scheme}://{mp.netloc}".lower())
+    # Dev-режим: локальные адреса
+    if settings.app_env != "production":
+        for host in ("localhost", "127.0.0.1"):
+            for port in ("3000", "3001", "3002"):
+                allowed_origins.add(f"http://{host}:{port}")
+
+    origin = f"{parsed.scheme}://{parsed.netloc}".lower()
+    if origin not in allowed_origins:
+        raise HTTPException(
+            status_code=400,
+            detail="redirect_uri не входит в список разрешённых адресов маркетплейса",
+        )
+    return candidate
+
+
+@router.post("/platform/authorize", response_model=PlatformAuthorizeResponse)
+@limiter.limit(settings.rate_limit_login)
+async def platform_oauth_authorize(
+    request: Request,
+    body: PlatformAuthorizeRequest,
+    db: AsyncSession = Depends(get_db),
+    token: str = Depends(get_access_token_string),
+):
+    """Выдаёт одноразовый код для SSO-входа блогера в маркетплейс.
+
+    Вызывается фронтом главной платформы от имени залогиненного блогера.
+    Код обменивается маркетплейсом на JWT-пару через /auth/platform/exchange.
+    """
+    try:
+        payload = verify_access_token(token)
+        user_id = get_user_id_from_payload(payload)
+    except PyJWTError:
+        raise HTTPException(status_code=401, detail="Невалидный access-токен") from None
+
+    user = await db.get(User, user_id)
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=401, detail="Пользователь не найден или деактивирован")
+    if user.role != UserRole.BLOGER:
+        raise HTTPException(
+            status_code=403,
+            detail="SSO-вход в маркетплейс доступен только блогерам",
+        )
+
+    redirect_uri = _validate_marketplace_redirect(body.redirect_uri)
+
+    access = create_access_token(user.id)
+    refresh = create_refresh_token(user.id)
+    ticket = await create_exchange_ticket(access_token=access, refresh_token=refresh)
+
+    return PlatformAuthorizeResponse(code=ticket.ticket, redirect_uri=redirect_uri)
+
+
+@router.post("/platform/exchange", response_model=AuthTokensResponse)
+@limiter.limit(settings.rate_limit_login)
+async def platform_oauth_exchange(
+    request: Request,
+    body: PlatformExchangeRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Обменивает одноразовый код SSO на пару JWT (вызывается фронтом маркетплейса)."""
+    entry = await consume_exchange_ticket(body.code)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Код уже использован или истёк")
+
+    client_ip = get_client_ip(request)
+    try:
+        payload = verify_access_token(entry.access_token)
+        user_id = get_user_id_from_payload(payload)
+    except PyJWTError:
+        user_id = None
+
+    if user_id is not None:
+        try:
+            await record_user_session(
+                db,
+                client_ip,
+                request.headers.get("user-agent", ""),
+                user_id=user_id,
+                session_kind="login",
+            )
         except Exception:  # pragma: no cover
             pass
 

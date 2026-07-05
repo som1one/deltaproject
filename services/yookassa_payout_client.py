@@ -33,18 +33,28 @@ async def create_payout(
     description: str,
     metadata: dict[str, str],
     idempotency_key: str,
+    shop_id: str | None = None,
+    secret_key: str | None = None,
 ) -> tuple[str, str]:
     """
     Создаёт выплату.
 
+    Ключи можно передать явно (например, из настроек админки);
+    иначе используются ENV `YUKASSA_PAYOUT_*`.
+
     Returns:
         (payout_id, status) — status из ответа ЮKassa, например pending / succeeded.
     """
-    if not settings.yukassa_payout_active:
-        raise YookassaPayoutError("ЮKassa выплаты не настроены")
+    if shop_id is None or secret_key is None:
+        if not settings.yukassa_payout_active:
+            raise YookassaPayoutError("ЮKassa выплаты не настроены")
+        shop_id = settings.yukassa_payout_shop_id
+        secret_key = settings.yukassa_payout_secret_key
 
-    shop_id = settings.yukassa_payout_shop_id.strip()
-    secret = settings.yukassa_payout_secret_key.strip()
+    shop_id = shop_id.strip()
+    secret = secret_key.strip()
+    if not shop_id or not secret:
+        raise YookassaPayoutError("ЮKassa выплаты не настроены")
     token = base64.b64encode(f"{shop_id}:{secret}".encode()).decode()
 
     payload: dict[str, Any] = {

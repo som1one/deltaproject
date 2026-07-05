@@ -21,6 +21,7 @@ from models.marketplace_message import MarketplaceMessage
 from models.marketplace_order import MarketplaceOrder
 from models.notification import Notification
 from models.order_status_history import OrderStatusHistory
+from models.marketplace_payment_settings import MarketplacePaymentSettings
 from models.marketplace_referral import MarketplaceReferral
 from models.marketplace_settings import MarketplaceSettings
 from models.marketplace_withdrawal import MarketplaceWithdrawal
@@ -53,6 +54,7 @@ __all__ = [
     "MarketplaceOrderStatus",
     "Notification",
     "OrderStatusHistory",
+    "MarketplacePaymentSettings",
     "MarketplaceReferral",
     "MarketplaceSettings",
     "MarketplaceWithdrawal",

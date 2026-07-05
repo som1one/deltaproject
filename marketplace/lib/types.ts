@@ -25,15 +25,105 @@ export type UserMeRead = {
   referral_invite_url: string | null;
 };
 
-export type BloggerProfile = {
+export type OrderStatus =
+  | "PENDING_PAYMENT"
+  | "PAYMENT_FAILED"
+  | "ESCROW_HELD"
+  | "BLOGGER_CONFIRMED"
+  | "COMPLETED"
+  | "REFUNDED"
+  | "CANCELLED";
+
+export type BloggerCard = {
   id: string;
   user_id: string;
   name: string;
-  telegram_username?: string;
-  profile_image_url?: string;
-  category?: string;
-  description?: string;
-  audience_size?: number;
-  price_per_post?: number;
-  gender?: string;
+  category: string | null;
+  gender: string | null;
+  subscriber_count: number;
+  average_price_kopeks: number;
+  photo_url: string | null;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type BloggerProfileFull = BloggerCard & {
+  description: string | null;
+  portfolio_links: string[];
+  social_links: string[];
+  preferred_contact: string | null;
+  orders_enabled: boolean;
+  updated_at: string;
+};
+
+export type CatalogResponse = {
+  items: BloggerCard[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export type Order = {
+  id: string;
+  client_id: string;
+  blogger_id: string;
+  worker_id: string | null;
+  status: OrderStatus;
+  amount_kopeks: number;
+  message: string;
+  platform_commission_pct: number;
+  worker_commission_pct: number;
+  yookassa_payment_id: string | null;
+  payment_url: string | null;
+  payment_expires_at: string | null;
+  payment_reported_at: string | null;
+  created_at: string;
+  paid_at: string | null;
+  blogger_confirmed_at: string | null;
+  completed_at: string | null;
+  updated_at: string;
+  blogger_name: string | null;
+  client_name: string | null;
+};
+
+export type SettlementAccount = {
+  account_number: string;
+  bic: string;
+  bank_name: string;
+  recipient_name: string;
+  updated_at: string;
+};
+
+export type CardRequisites = {
+  card_number: string;
+  card_holder: string | null;
+  card_bank: string | null;
+  sbp_phone: string | null;
+};
+
+export type OrderDetail = Order & {
+  settlement_account: SettlementAccount | null;
+  card_requisites: CardRequisites | null;
+  yookassa_available: boolean;
+  available_actions: string[];
+};
+
+export type OrdersResponse = {
+  items: Order[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export type SupportTicket = {
+  id: string;
+  order_id: string;
+  submitter_id: string;
+  submitter_role: string;
+  message: string;
+  status: "open" | "resolved";
+  resolution_decision: string | null;
+  resolution_reason: string | null;
+  created_at: string;
+  resolved_at: string | null;
 };
