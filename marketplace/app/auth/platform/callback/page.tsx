@@ -58,7 +58,7 @@ function PlatformCallback() {
       {status === "pending" ? (
         <>
           <p className={styles.subtitle}>Обмениваем код платформы на сессию маркета.</p>
-          <div className={ui.skeleton} style={{ height: 48, borderRadius: 999 }} />
+          <div className={ui.skeleton} style={{ height: 48 }} />
         </>
       ) : (
         <>

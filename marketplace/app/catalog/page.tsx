@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MarketShell } from "@/components/shell/shell";
 import { BloggerCardSkeleton, BloggerCardView, categoryLabel } from "@/components/catalog/blogger-card";
 import { Portrait } from "@/components/ui/bits";
+import { Reveal } from "@/components/ui/motion";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { formatAudience, formatMoney } from "@/lib/format";
@@ -161,14 +162,14 @@ function CatalogContent() {
   return (
     <MarketShell>
       <div className={shell.pageContainer}>
-        <header className={styles.head}>
+        <Reveal as="header" className={styles.head}>
           <span className={ui.brow}>Каталог · Указатель авторов</span>
           <h1 className={`${ui.display} ${styles.headTitle}`}>Избранные авторы реестра</h1>
           <p className={`${ui.lead} ${styles.headLead}`}>
             Каждая запись проходит ручную модерацию. Выберите нишу, охват и бюджет —
             остальное берёт на себя безопасная сделка.
           </p>
-        </header>
+        </Reveal>
 
         {refNotice && (
           <div className={ui.noticeSuccess} style={{ marginTop: 28 }}>

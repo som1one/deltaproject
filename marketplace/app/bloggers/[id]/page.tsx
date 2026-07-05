@@ -7,6 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 
 import { MarketShell } from "@/components/shell/shell";
 import { Portrait } from "@/components/ui/bits";
+import { Reveal } from "@/components/ui/motion";
 import { categoryLabel } from "@/components/catalog/blogger-card";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -115,7 +116,7 @@ export default function BloggerProfilePage() {
             </div>
           ) : (
             <>
-              <header className={styles.header}>
+              <Reveal as="header" className={styles.header}>
                 <span className={ui.brow}>Досье автора</span>
                 <h1 className={styles.name}>{blogger.name}</h1>
                 <div className={styles.tagRow}>
@@ -126,7 +127,7 @@ export default function BloggerProfilePage() {
                     <span className={ui.stampMuted}>Сделки приостановлены</span>
                   )}
                 </div>
-              </header>
+              </Reveal>
 
               <div className={styles.layout}>
                 {/* Левая колонка — портрет и нарратив */}

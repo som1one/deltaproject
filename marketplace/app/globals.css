@@ -43,9 +43,9 @@
   --r: 2px; /* формы документа, не приложения */
 
   /* ---------- Сетка ---------- */
-  --page-max: 1320px;
-  --page-pad: 24px;
-  --section:  clamp(84px, 12vw, 160px); /* вертикальный ритм — воздух */
+  --page-max: 1440px;
+  --page-pad: clamp(24px, 4vw, 56px);
+  --section:  clamp(96px, 13vw, 184px); /* вертикальный ритм — воздух */
   --nav-h:    76px;
 
   /* ---------- Движение ---------- */
@@ -165,6 +165,25 @@ ul, ol {
 .tnum,
 [data-mono] {
   font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Утилиты: full-bleed и «линованная бумага» ---------- */
+
+.fullBleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+/* Фон «реестровой бумаги»: тонкая горизонтальная линовка */
+.ledgerRules {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 39px,
+    var(--hairline-soft) 39px,
+    var(--hairline-soft) 40px
+  );
 }
 
 /* ---------- Один оркестрованный момент: маски строк h1 ---------- */

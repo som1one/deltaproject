@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════════════
-   Лендинг — «Реестр»
+   Лендинг — «Реестр», расширенная редакция
+   Full-bleed, крупная типографика, сигнатурный слой, движение.
    ═══════════════════════════════════════════════════════════ */
 
 .section {
@@ -7,70 +8,85 @@
 }
 
 .sectionHead {
-  max-width: 640px;
-  margin-bottom: clamp(36px, 5vw, 56px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: clamp(36px, 5vw, 60px);
+}
+
+.sectionHeadText {
+  max-width: 720px;
 }
 
 .sectionTitle {
-  margin-top: 16px;
-}
-
-/* ── Hero (7/5) ───────────────────────────────────────────── */
-
-.hero {
-  padding: clamp(52px, 8vw, 104px) 0 0;
-}
-
-.heroGrid {
-  display: grid;
-  grid-template-columns: 7fr 5fr;
-  gap: clamp(40px, 6vw, 88px);
-  align-items: center;
-}
-
-.heroTitle {
-  margin: 22px 0 0;
+  margin-top: 18px;
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(40px, 5.6vw, 66px);
+  font-size: clamp(30px, 4vw, 52px);
   line-height: 1.08;
   letter-spacing: -0.008em;
   color: var(--ink);
 }
 
-.line {
-  display: block;
-  overflow: hidden;
-  padding-bottom: 0.04em;
+/* ── Hero ─────────────────────────────────────────────────── */
+
+.hero {
+  position: relative;
+  padding: clamp(36px, 5vw, 72px) 0 clamp(52px, 7vw, 104px);
 }
 
-.lineInner {
-  display: inline-block;
-  animation: maskRise 0.72s var(--ease) both;
+.heroInner {
+  display: grid;
+  grid-template-columns: 1.32fr 1fr;
+  gap: clamp(36px, 5vw, 80px);
+  align-items: center;
+}
+
+.heroTitle {
+  margin: 26px 0 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(46px, 7.4vw, 108px);
+  line-height: 1.015;
+  letter-spacing: -0.018em;
+  color: var(--ink);
 }
 
 .heroLead {
-  margin: 26px 0 0;
-  max-width: 46ch;
-  font-size: clamp(16px, 1.7vw, 18px);
-  line-height: 1.62;
+  margin: 30px 0 0;
+  max-width: 44ch;
+  font-size: clamp(17px, 1.5vw, 20px);
+  line-height: 1.55;
   color: var(--ink-70);
 }
 
 .heroActions {
   display: flex;
   align-items: center;
-  gap: 26px;
-  margin-top: 36px;
+  gap: 30px;
+  margin-top: 42px;
 }
 
-/* Живая карточка сделки из «Реестра» */
+/* Живая карточка сделки */
 .dealCard {
+  position: relative;
   border: 1px solid var(--hairline-strong);
   border-top: 2px solid var(--brass);
   border-radius: var(--r);
-  padding: 26px 26px 24px;
-  background: color-mix(in srgb, var(--bone) 55%, #fff);
+  padding: clamp(24px, 2.4vw, 34px);
+  background: color-mix(in srgb, var(--bone) 42%, #fff);
+}
+
+.dealCardCorner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 26px;
+  height: 26px;
+  background: linear-gradient(225deg, var(--stone) 50%, transparent 50%);
+  border-left: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .dealCardHead {
@@ -82,7 +98,7 @@
 
 .dealCardNo {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--ink);
@@ -91,7 +107,7 @@
 .dealCardTag {
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--brass-ink);
 }
@@ -99,7 +115,7 @@
 .dealCardRule {
   border: none;
   border-top: 1px solid var(--hairline);
-  margin: 20px 0;
+  margin: 22px 0;
 }
 
 .dealCardBody {
@@ -116,23 +132,23 @@
 }
 
 .dealMono {
-  width: 46px;
-  height: 46px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--hairline);
   border-radius: var(--r);
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 22px;
   color: var(--brass);
   background: var(--stone);
 }
 
 .dealName {
   font-family: var(--font-display);
-  font-size: 19px;
-  line-height: 1.2;
+  font-size: 21px;
+  line-height: 1.15;
   color: var(--ink);
 }
 
@@ -156,7 +172,7 @@
 .dealSum {
   margin-top: 4px;
   font-family: var(--font-mono);
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 500;
   color: var(--ink);
   white-space: nowrap;
@@ -166,11 +182,11 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 22px;
+  margin-top: 24px;
 }
 
 .dealFine {
-  margin-top: 20px;
+  margin-top: 22px;
   padding-top: 18px;
   border-top: 1px solid var(--hairline);
   font-size: 13px;
@@ -178,72 +194,140 @@
   color: var(--ink-55);
 }
 
-/* ── Строка фактов ────────────────────────────────────────── */
+/* ── Лента-реестр (тикер) ─────────────────────────────────── */
 
-.facts {
-  margin-top: clamp(56px, 8vw, 96px);
-  padding: 22px 0;
-  border-top: 1px solid var(--hairline);
-  border-bottom: 1px solid var(--hairline);
+.tape {
+  margin-top: clamp(44px, 6vw, 80px);
+  background: var(--ink);
+  color: var(--on-ink);
+  border-top: 1px solid var(--ink);
+  padding: 20px 0;
 }
 
-.factsRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 18px;
-  font-family: var(--font-mono);
-  font-size: 14px;
-  color: var(--ink-70);
-}
-
-.factsRow span {
+.tapeItem {
   display: inline-flex;
   align-items: center;
   gap: 18px;
+  padding: 0 26px;
+  border-right: 1px solid var(--on-ink-line);
 }
 
-.factsRow span:not(:last-child)::after {
-  content: "·";
-  color: var(--ink-40);
+.tapeNo {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  color: var(--brass);
 }
 
-.factStrong {
+.tapeName {
+  font-family: var(--font-display);
+  font-size: 21px;
+  color: var(--on-ink);
+}
+
+.tapeNiche {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--on-ink-70);
+}
+
+.tapeSum {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--on-ink);
+}
+
+.tapeStamp {
+  padding: 4px 9px;
+  border: 1px solid var(--brass);
+  border-radius: var(--r);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+/* ── Факты (count-up) ─────────────────────────────────────── */
+
+.facts {
+  padding: clamp(60px, 8vw, 104px) 0;
+}
+
+.factsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-top: 1px solid var(--hairline);
+}
+
+.fact {
+  padding: 28px 24px 0 0;
+  border-right: 1px solid var(--hairline);
+}
+
+.fact:last-child {
+  border-right: none;
+}
+
+.factNum {
+  font-family: var(--font-display);
+  font-size: clamp(44px, 5.4vw, 80px);
+  line-height: 0.98;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 
-/* ── Указатель ниш ────────────────────────────────────────── */
+.factNum em {
+  font-style: normal;
+  color: var(--brass);
+}
+
+.factLabel {
+  margin-top: 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-55);
+  max-width: 20ch;
+}
+
+/* ── Указатель ниш (крупные литеры) ───────────────────────── */
 
 .indexGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0 clamp(40px, 6vw, 88px);
+  gap: 0 clamp(48px, 6vw, 100px);
 }
 
 .indexItem {
+  position: relative;
   display: flex;
   align-items: baseline;
-  gap: 14px;
-  padding: 16px 0;
+  gap: 18px;
+  padding: 22px 0;
   border-bottom: 1px solid var(--hairline);
   color: var(--ink);
-  transition: color var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease), padding-left var(--dur) var(--ease);
 }
 
 .indexItem:hover {
   color: var(--loden);
+  padding-left: 10px;
 }
 
 .indexNum {
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--brass);
-  min-width: 22px;
+  min-width: 24px;
 }
 
 .indexLabel {
   font-family: var(--font-display);
-  font-size: 21px;
+  font-size: clamp(24px, 2.8vw, 36px);
+  line-height: 1.05;
 }
 
 .indexLeader {
@@ -251,19 +335,19 @@
   align-self: center;
   border-bottom: 1px dotted var(--hairline-strong);
   height: 1px;
-  margin: 0 2px;
+  margin: 0 4px;
 }
 
 .indexArrow {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 15px;
   color: var(--ink-40);
   transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
 .indexItem:hover .indexArrow {
   color: var(--loden);
-  transform: translateX(3px);
+  transform: translateX(5px);
 }
 
 /* ── Подборка недели ──────────────────────────────────────── */
@@ -275,10 +359,10 @@
 .record {
   position: relative;
   display: grid;
-  grid-template-columns: 60px 1fr auto auto 28px;
+  grid-template-columns: 78px 1fr auto auto 30px;
   align-items: center;
-  gap: 24px;
-  padding: 22px 12px;
+  gap: 28px;
+  padding: 26px 14px;
   border-bottom: 1px solid var(--hairline);
   transition: background-color var(--dur) var(--ease);
 }
@@ -289,8 +373,8 @@
 
 .recordLeft {
   position: relative;
-  width: 52px;
-  height: 64px;
+  width: 64px;
+  height: 80px;
 }
 
 .recordNum {
@@ -299,7 +383,7 @@
   display: flex;
   align-items: center;
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 15px;
   color: var(--brass);
   transition: opacity var(--dur) var(--ease);
 }
@@ -308,7 +392,7 @@
   position: absolute;
   inset: 0;
   opacity: 0;
-  transform: translateX(-6px);
+  transform: translateX(-8px) scale(0.98);
   transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 
@@ -318,18 +402,18 @@
 
 .record:hover .recordPortrait {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateX(0) scale(1);
 }
 
 .recordName {
   font-family: var(--font-display);
-  font-size: clamp(22px, 2.6vw, 28px);
-  line-height: 1.15;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.1;
   color: var(--ink);
 }
 
 .recordNiche {
-  margin-top: 4px;
+  margin-top: 5px;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.07em;
@@ -339,7 +423,7 @@
 
 .recordReach {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 15px;
   color: var(--ink-70);
   text-align: right;
 }
@@ -351,12 +435,12 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-55);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .recordPrice {
   font-family: var(--font-mono);
-  font-size: 16px;
+  font-size: 17px;
   color: var(--ink);
   white-space: nowrap;
   text-align: right;
@@ -369,11 +453,12 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-55);
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .recordArrow {
   font-family: var(--font-mono);
+  font-size: 16px;
   color: var(--ink-40);
   text-align: right;
   transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
@@ -381,48 +466,62 @@
 
 .record:hover .recordArrow {
   color: var(--loden);
-  transform: translateX(3px);
+  transform: translateX(5px);
 }
 
 .featuredFoot {
-  margin-top: 28px;
+  margin-top: 32px;
 }
 
-/* ── Процесс (документальная лента) ───────────────────────── */
+/* ── Процесс (крупные литеры + прогресс-линия) ────────────── */
 
-.processGrid {
+.process {
+  padding-top: var(--section);
+}
+
+.processTrack {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0;
+  margin-top: 44px;
   border-top: 1px solid var(--hairline);
 }
 
-.step {
-  padding: 32px 28px 0 0;
+.processRule {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background: var(--brass);
+  transform-origin: left center;
+}
+
+.processStep {
+  padding: 40px 32px 8px 0;
   border-right: 1px solid var(--hairline);
 }
 
-.step:last-child {
+.processStep:last-child {
   border-right: none;
-  padding-right: 0;
 }
 
-.stepNum {
+.processNum {
   font-family: var(--font-display);
-  font-size: 40px;
-  line-height: 1;
+  font-size: clamp(56px, 7vw, 108px);
+  line-height: 0.85;
   color: var(--brass);
 }
 
-.stepTitle {
-  margin: 20px 0 10px;
+.processTitle {
+  margin: 26px 0 12px;
   font-family: var(--font-display);
-  font-size: 22px;
-  line-height: 1.2;
+  font-size: clamp(20px, 2vw, 26px);
+  line-height: 1.15;
   color: var(--ink);
 }
 
-.stepText {
+.processText {
   font-size: 14.5px;
   line-height: 1.55;
   color: var(--ink-70);
@@ -434,7 +533,7 @@
   margin-top: var(--section);
   background: var(--ink);
   color: var(--on-ink);
-  padding: clamp(64px, 9vw, 120px) 0;
+  padding: clamp(72px, 10vw, 140px) 0;
 }
 
 .termsBrow {
@@ -444,36 +543,37 @@
 .termsGrid {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
-  gap: clamp(40px, 6vw, 80px);
+  gap: clamp(44px, 6vw, 96px);
   align-items: start;
-  margin-top: 26px;
+  margin-top: 30px;
 }
 
 .termsTitle {
   font-family: var(--font-display);
-  font-size: clamp(28px, 3.6vw, 42px);
-  line-height: 1.14;
+  font-size: clamp(32px, 4.4vw, 64px);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
   color: var(--on-ink);
-  max-width: 18ch;
+  max-width: 16ch;
 }
 
 .termsLead {
-  margin-top: 22px;
+  margin-top: 26px;
   max-width: 52ch;
-  font-size: 16px;
-  line-height: 1.62;
+  font-size: 17px;
+  line-height: 1.6;
   color: var(--on-ink-70);
 }
 
 .clauseList {
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .clause {
   display: grid;
-  grid-template-columns: 46px 1fr;
-  gap: 12px;
-  padding: 20px 0;
+  grid-template-columns: 52px 1fr;
+  gap: 14px;
+  padding: 22px 0;
   border-bottom: 1px solid var(--on-ink-line);
 }
 
@@ -483,12 +583,12 @@
 
 .clauseNo {
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 15px;
   color: var(--brass);
 }
 
 .clauseText {
-  font-size: 15px;
+  font-size: 15.5px;
   line-height: 1.55;
   color: var(--on-ink-70);
 }
@@ -497,8 +597,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 28px;
-  padding-top: 8px;
+  gap: 30px;
+  padding-top: 12px;
 }
 
 .sealNote {
@@ -510,49 +610,61 @@
   max-width: 22ch;
 }
 
-/* ── Финальный CTA ────────────────────────────────────────── */
+/* ── Финальный CTA (крупный) ──────────────────────────────── */
 
 .cta {
-  margin-top: var(--section);
+  padding: var(--section) 0 0;
 }
 
-.ctaRow {
+.ctaInner {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 32px;
+  gap: 40px;
   flex-wrap: wrap;
-  padding-bottom: 6px;
 }
 
 .ctaTitle {
   font-family: var(--font-display);
-  font-size: clamp(28px, 3.6vw, 44px);
-  line-height: 1.12;
+  font-size: clamp(38px, 6vw, 92px);
+  line-height: 1.03;
+  letter-spacing: -0.015em;
   color: var(--ink);
-  max-width: 16ch;
+  max-width: 15ch;
 }
 
 /* ── Responsive ───────────────────────────────────────────── */
 
-@media (max-width: 900px) {
-  .heroGrid {
+@media (max-width: 960px) {
+  .heroInner {
     grid-template-columns: 1fr;
     gap: 44px;
   }
 
-  .processGrid {
+  .factsGrid {
     grid-template-columns: 1fr 1fr;
   }
 
-  .step {
-    padding: 28px 24px 28px 0;
+  .fact {
+    padding: 26px 20px 26px 0;
     border-bottom: 1px solid var(--hairline);
   }
 
-  .step:nth-child(2n) {
+  .fact:nth-child(2n) {
     border-right: none;
-    padding-right: 0;
+  }
+
+  .processTrack {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .processStep {
+    padding: 34px 24px 24px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .processStep:nth-child(2n) {
+    border-right: none;
   }
 
   .termsGrid {
@@ -562,8 +674,8 @@
   .termsAside {
     flex-direction: row;
     justify-content: flex-start;
-    gap: 20px;
     align-items: center;
+    gap: 22px;
   }
 
   .sealNote {
@@ -576,15 +688,26 @@
     grid-template-columns: 1fr;
   }
 
+  .factsGrid,
+  .processTrack {
+    grid-template-columns: 1fr;
+  }
+
+  .fact,
+  .processStep,
+  .processStep:nth-child(2n) {
+    border-right: none;
+  }
+
   .record {
-    grid-template-columns: 44px 1fr auto;
-    gap: 14px;
-    padding: 18px 4px;
+    grid-template-columns: 52px 1fr auto;
+    gap: 16px;
+    padding: 22px 4px;
   }
 
   .recordLeft {
-    width: 40px;
-    height: 40px;
+    width: 46px;
+    height: 46px;
   }
 
   .recordPortrait {
@@ -596,18 +719,12 @@
     display: none;
   }
 
-  .processGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .step,
-  .step:nth-child(2n) {
-    border-right: none;
-    padding: 26px 0;
+  .ctaInner {
+    align-items: flex-start;
   }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 420px) {
   .dealCardBody {
     flex-direction: column;
     align-items: flex-start;
