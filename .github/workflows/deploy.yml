@@ -72,5 +72,22 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
+            # Готовим swap ДО тяжёлых билдов: без него npm ci / next build ловят
+            # OOM-killer (exit 137). Делаем это здесь, в workflow, а не в
+            # remote-deploy.sh — тот на сервере обновляет сам себя и подхватил бы
+            # правку лишь на следующий прогон; этот же файл Actions читает сразу
+            # из свежего коммита, поэтому фикс срабатывает с первого пуша.
+            ( set -e
+              if [ "$(wc -l < /proc/swaps)" -le 1 ]; then
+                if [ ! -e /swapfile ]; then
+                  fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+                  chmod 600 /swapfile
+                  mkswap /swapfile
+                fi
+                swapon /swapfile
+                grep -q '^/swapfile[[:space:]]' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+              fi ) || echo "[deploy] swap setup skipped/failed, continuing"
+            swapon --show || true
+            free -h || true
             cd ${{ secrets.DEPLOY_PATH }}
             ./deploy/remote-deploy.sh
