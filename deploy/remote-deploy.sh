@@ -21,6 +21,28 @@ else
   SUDO="sudo -n"
 fi
 
+# Гарантируем swap: два npm ci + два Next-билда подряд съедают память и без
+# swap ловят OOM-killer (SIGKILL, exit 137). Идемпотентно, не валит деплой.
+ensure_swap() {
+  # Уже есть активный swap? — ничего не делаем (/proc/swaps: >1 строки = есть).
+  if [[ -r /proc/swaps && "$(wc -l < /proc/swaps)" -gt 1 ]]; then
+    return 0
+  fi
+  echo "[deploy] нет активного swap — поднимаю 2G swapfile"
+  if [[ ! -e /swapfile ]]; then
+    $SUDO fallocate -l 2G /swapfile 2>/dev/null \
+      || $SUDO dd if=/dev/zero of=/swapfile bs=1M count=2048 status=none
+    $SUDO chmod 600 /swapfile
+    $SUDO mkswap /swapfile >/dev/null
+  fi
+  $SUDO swapon /swapfile
+  if ! grep -q '^/swapfile[[:space:]]' /etc/fstab 2>/dev/null; then
+    echo '/swapfile none swap sw 0 0' | $SUDO tee -a /etc/fstab >/dev/null
+  fi
+  $SUDO swapon --show || true
+}
+ensure_swap || echo "[deploy] swap не поднялся — продолжаю (мало прав?); при OOM добавьте swap вручную"
+
 echo "[deploy] git pull"
 git fetch --all --prune
 git reset --hard origin/main
