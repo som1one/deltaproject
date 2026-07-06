@@ -275,19 +275,19 @@
 .stampActive {
   composes: stamp;
   background: var(--violet-soft);
-  color: #5646c9;
+  color: var(--violet-ink);
 }
 
 .stampDone {
   composes: stamp;
   background: var(--success-soft);
-  color: #0b7a3b;
+  color: var(--success-ink);
 }
 
 .stampAlert {
   composes: stamp;
   background: var(--danger-soft);
-  color: #c22a2f;
+  color: var(--danger-ink);
 }
 
 .stampMuted {
@@ -392,21 +392,21 @@
   composes: notice;
   border-color: transparent;
   background: var(--success-soft);
-  color: #0b7a3b;
+  color: var(--success-ink);
 }
 
 .noticeDanger {
   composes: notice;
   border-color: transparent;
   background: var(--danger-soft);
-  color: #c22a2f;
+  color: var(--danger-ink);
 }
 
 .noticeWarning {
   composes: notice;
   border-color: transparent;
   background: var(--warning-soft);
-  color: #9a6a12;
+  color: var(--warning-ink);
 }
 
 /* ── Список определений ──────────────────────────────────── */

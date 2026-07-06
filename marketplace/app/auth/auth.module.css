@@ -17,14 +17,15 @@
   justify-content: space-between;
   gap: 40px;
   padding: clamp(40px, 5vw, 72px);
-  background: var(--ink);
+  background: var(--panel-ink);
   color: var(--on-ink);
 }
 
 .asideBrand {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1;
 }
 
 .asideBrandMark {
@@ -36,10 +37,10 @@
 
 .asideBrandSub {
   font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
+  font-weight: 700;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--brass);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .asideBody {

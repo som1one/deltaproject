@@ -17,9 +17,9 @@ export const categoryLabel = (value: string | null | undefined): string => {
 };
 
 const VerifiedIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M12 1l2.4 2.1 3.2-.2.9 3 2.6 1.8-1.1 3 1.1 3-2.6 1.8-.9 3-3.2-.2L12 23l-2.4-2.1-3.2.2-.9-3L2.9 15 4 12 2.9 9l2.6-1.8.9-3 3.2.2z" />
-    <path d="M10.5 14.6l-2-2L7 14l3.5 3.5L17 11l-1.5-1.5z" fill="#fff" />
+  <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="10" fill="currentColor" />
+    <path d="M8 12.4l2.6 2.6 5-5.6" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 

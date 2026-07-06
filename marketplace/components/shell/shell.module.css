@@ -18,10 +18,10 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(255, 255, 255, 0.8);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
   backdrop-filter: saturate(1.2) blur(12px);
   border-bottom: 1px solid transparent;
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), background-color var(--dur) var(--ease);
 }
 
 .headerScrolled {
@@ -43,31 +43,40 @@
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   margin-right: auto;
 }
 
 .brand::before {
   content: "";
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 9px;
   background: linear-gradient(135deg, #0b0b0d, #3a3a42);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), var(--shadow-xs);
+}
+
+.brandText {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1;
 }
 
 .brandMark {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 17px;
+  line-height: 1.05;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
 
 .brandSub {
-  font-size: 11px;
+  margin-top: 2px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--faint);
 }
@@ -102,6 +111,26 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.themeToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: var(--shadow-xs);
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+.themeToggle:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
 }
 
 .ctaDesktop {
@@ -260,29 +289,38 @@
 .footerBrand {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
 }
 
 .footerBrand::before {
   content: "";
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 9px;
   background: linear-gradient(135deg, #0b0b0d, #3a3a42);
+}
+
+.footerBrandText {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1;
 }
 
 .footerBrandMark {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 17px;
+  line-height: 1.05;
   letter-spacing: -0.02em;
   color: var(--ink);
 }
 
 .footerBrandSub {
-  font-size: 11px;
+  margin-top: 2px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--faint);
 }

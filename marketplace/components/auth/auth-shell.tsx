@@ -10,7 +10,7 @@ export const AuthShell = ({ children }: { children: ReactNode }) => (
     <aside className={styles.aside}>
       <Link href="/" className={styles.asideBrand}>
         <span className={styles.asideBrandMark}>looney moon</span>
-        <span className={styles.asideBrandSub}>market</span>
+        <span className={styles.asideBrandSub}>маркетплейс</span>
       </Link>
       <div className={styles.asideBody}>
         <p className={styles.asideQuote}>

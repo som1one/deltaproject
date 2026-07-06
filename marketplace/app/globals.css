@@ -52,6 +52,19 @@
   --danger-soft:  #fdecec;
   --info-soft:    #e3f2fd;
 
+  /* Читаемый текст статуса на soft-подложке (светлее в тёмной теме) */
+  --success-ink: #0b7a3b;
+  --warning-ink: #9a6a12;
+  --danger-ink:  #c22a2f;
+  --info-ink:    #1668a8;
+  --violet-ink:  #5646c9;
+
+  /* Тёмная showcase-панель (CTA, aside авторизации) — тёмная в обеих темах */
+  --panel-ink: #0b0b0d;
+
+  /* Режим наложения маркер-подсветки (multiply на светлом, screen на тёмном) */
+  --mark-blend: multiply;
+
   /* ---------- Тени (мягкие, SaaS) ---------- */
   --shadow-xs: 0 1px 2px rgba(12, 14, 20, 0.06);
   --shadow-sm: 0 1px 2px rgba(12, 14, 20, 0.06), 0 1px 3px rgba(12, 14, 20, 0.04);
@@ -106,6 +119,57 @@
   --on-ink-45:       rgba(255, 255, 255, 0.5);
   --on-ink-line:     rgba(255, 255, 255, 0.15);
   --r:               12px;
+}
+
+/* ═══════════════ Тёмная тема ═══════════════ */
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg:         #0d0d10;
+  --surface:    #17171b;
+  --surface-2:  #1c1c22;
+  --surface-3:  #262630;
+  --surface-4:  #35353f;
+
+  --line:        rgba(255, 255, 255, 0.10);
+  --line-strong: rgba(255, 255, 255, 0.20);
+
+  --ink:    #f3f3f6;
+  --text:   #d3d3da;
+  --muted:  #9c9ca8;
+  --faint:  #6c6c78;
+
+  --primary:       #f3f3f6;
+  --primary-hover: #e2e2e8;
+  --on-primary:    #0d0d10;
+
+  --violet-soft: rgba(109, 94, 246, 0.22);
+  --green-soft:  rgba(18, 161, 80, 0.20);
+  --amber-soft:  rgba(245, 165, 36, 0.20);
+  --sky-soft:    rgba(42, 165, 240, 0.20);
+  --pink-soft:   rgba(236, 72, 153, 0.20);
+  --coral-soft:  rgba(245, 99, 66, 0.20);
+
+  --success-soft: rgba(18, 161, 80, 0.20);
+  --warning-soft: rgba(207, 138, 18, 0.20);
+  --danger-soft:  rgba(229, 72, 77, 0.20);
+  --info-soft:    rgba(42, 165, 240, 0.20);
+
+  --success-ink: #4ade80;
+  --warning-ink: #fbbf5a;
+  --danger-ink:  #ff8a8e;
+  --info-ink:    #7cc4f5;
+  --violet-ink:  #b3a4ff;
+
+  --panel-ink: #141418;
+  --mark-blend: screen;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow:    0 4px 14px -4px rgba(0, 0, 0, 0.6), 0 2px 6px -2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 12px 30px -10px rgba(0, 0, 0, 0.7), 0 4px 10px -4px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 30px 60px -20px rgba(0, 0, 0, 0.8), 0 10px 24px -12px rgba(0, 0, 0, 0.6);
 }
 
 /* ---------- Reset / base ---------- */
@@ -184,7 +248,7 @@ ul, ol {
 
 ::selection {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-primary);
 }
 
 ::placeholder {
@@ -219,6 +283,29 @@ ul, ol {
   border: 3px solid transparent;
   background-clip: padding-box;
   border-radius: 999px;
+}
+
+/* ---------- Lenis (плавный скролл) ---------- */
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
 }
 
 /* ---------- Утилиты ---------- */

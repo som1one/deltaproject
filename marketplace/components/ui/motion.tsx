@@ -84,12 +84,16 @@ export const CountUp = ({
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
   const reduce = useReducedMotion();
+  // format хранится в ref, чтобы новая идентичность функции на каждый рендер
+  // не перезапускала анимацию (иначе счётчик «залипает» на 0).
+  const formatRef = useRef(format);
+  formatRef.current = format;
   const [display, setDisplay] = useState(() => format(reduce ? value : 0));
 
   useEffect(() => {
     if (!inView) return;
     if (reduce) {
-      setDisplay(format(value));
+      setDisplay(formatRef.current(value));
       return;
     }
     let raf = 0;
@@ -98,12 +102,12 @@ export const CountUp = ({
       if (!start) start = t;
       const p = Math.min(1, (t - start) / (duration * 1000));
       const eased = 1 - Math.pow(1 - p, 3);
-      setDisplay(format(value * eased));
+      setDisplay(formatRef.current(value * eased));
       if (p < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [inView, value, duration, reduce, format]);
+  }, [inView, value, duration, reduce]);
 
   return (
     <span ref={ref} className={className}>

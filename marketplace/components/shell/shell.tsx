@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { useAuth } from "@/lib/auth-context";
 import { appConfig } from "@/lib/config";
+import { ThemeToggle } from "./theme-toggle";
 
 import styles from "./shell.module.css";
 
@@ -70,8 +71,10 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
       <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}>
         <div className={styles.headerRow}>
           <Link href="/" className={styles.brand} onClick={closeMenu}>
-            <span className={styles.brandMark}>looney moon</span>
-            <span className={styles.brandSub}>market</span>
+            <span className={styles.brandText}>
+              <span className={styles.brandMark}>looney moon</span>
+              <span className={styles.brandSub}>маркетплейс</span>
+            </span>
           </Link>
 
           <nav className={styles.nav} aria-label="Основная навигация">
@@ -87,6 +90,7 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
           </nav>
 
           <div className={styles.actions}>
+            <ThemeToggle />
             {authed ? (
               <span className={styles.userChip}>
                 <span className={styles.userRole}>{isBlogger ? "автор" : "заказчик"}</span>
@@ -152,8 +156,10 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
           <div className={styles.footerTop}>
             <div className={styles.footerBrandBlock}>
               <Link href="/" className={styles.footerBrand}>
-                <span className={styles.footerBrandMark}>looney moon</span>
-                <span className={styles.footerBrandSub}>market</span>
+                <span className={styles.footerBrandText}>
+                  <span className={styles.footerBrandMark}>looney moon</span>
+                  <span className={styles.footerBrandSub}>маркетплейс</span>
+                </span>
               </Link>
               <p className={styles.footerText}>
                 Кураторский реестр рекламных размещений. Ручной отбор авторов,
