@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, Search, Star, TrendingUp, Users } from "lucide-react";
@@ -9,8 +9,9 @@ import { Check, Search, Star, TrendingUp, Users } from "lucide-react";
 import { MarketShell } from "@/components/shell/shell";
 import { CountUp, Reveal } from "@/components/ui/motion";
 import { api } from "@/lib/api";
+import { formatAudience, formatMoney } from "@/lib/format";
 import { DEFAULT_MARKETPLACE_CATEGORIES, fetchMarketplaceCategories } from "@/lib/marketplace-categories";
-import type { CatalogResponse } from "@/lib/types";
+import type { BloggerCard, CatalogResponse, HeroConfigResponse } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
@@ -89,6 +90,71 @@ const DEMO = [
   { id: "d5", name: "Вика", niche: "Бьюти", key: "beauty", reach: "260K", price: "120 000 ₽", grad: "linear-gradient(135deg,#8b5cf6,#c084fc)", color: "#8b5cf6", er: "9.3%", bars: [38, 50, 44, 62, 70, 90], platforms: ["ig", "tt", "tg"] },
   { id: "d6", name: "Тимур", niche: "Гейминг", key: "games", reach: "430K", price: "160 000 ₽", grad: "linear-gradient(135deg,#0f9d76,#34d399)", color: "#0f9d76", er: "6.8%", bars: [44, 38, 56, 50, 68, 84], platforms: ["yt", "tt"] },
 ];
+
+/* ── Единая модель карточки витрины (демо ИЛИ реальные авторы) ─── */
+type HeroVM = {
+  id: string;
+  name: string;
+  niche: string;
+  key: string;
+  reach: string;
+  price: string;
+  er: string;
+  rating: string;
+  grad: string;
+  color: string;
+  photoUrl?: string | null;
+  bars: number[];
+  platforms: string[];
+};
+
+const HERO_AVATARS = [
+  { grad: "linear-gradient(135deg,#6d5ef6,#a78bfa)", color: "#6d5ef6" },
+  { grad: "linear-gradient(135deg,#ec4899,#f472b6)", color: "#ec4899" },
+  { grad: "linear-gradient(135deg,#12a150,#4ade80)", color: "#12a150" },
+  { grad: "linear-gradient(135deg,#f5a524,#fbbf5a)", color: "#f5a524" },
+  { grad: "linear-gradient(135deg,#8b5cf6,#c084fc)", color: "#8b5cf6" },
+  { grad: "linear-gradient(135deg,#2aa5f0,#22d3ee)", color: "#2aa5f0" },
+];
+
+const hashSeed = (seed: string): number => {
+  let h = 0;
+  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return h;
+};
+
+// Столбики — декоративные, но детерминированные (стабильны для автора).
+const heroBars = (seed: string): number[] => {
+  const h = hashSeed(seed);
+  return Array.from({ length: 6 }, (_, i) =>
+    Math.min(96, 34 + ((h >> (i * 3)) % 9) * 7 + (i === 5 ? 14 : 0)),
+  );
+};
+
+const demoToHeroVM = (d: (typeof DEMO)[number]): HeroVM => ({
+  ...d,
+  rating: "4.9",
+  photoUrl: undefined,
+});
+
+const bloggerToHeroVM = (a: BloggerCard, label: string): HeroVM => {
+  const av = HERO_AVATARS[hashSeed(a.id) % HERO_AVATARS.length];
+  return {
+    id: a.id,
+    name: a.name,
+    niche: label,
+    key: a.category ?? "other",
+    reach: formatAudience(a.subscriber_count),
+    price: formatMoney(a.average_price_kopeks),
+    er: a.engagement_rate != null ? `${a.engagement_rate}%` : "—",
+    rating: a.rating != null ? a.rating.toFixed(1) : "—",
+    grad: av.grad,
+    color: av.color,
+    photoUrl: a.photo_url,
+    bars: heroBars(a.id),
+    platforms: a.platforms ?? [],
+  };
+};
 
 const BENEFITS = [
   { icon: I.shield, color: "var(--green)", soft: "var(--green-soft)", title: "Безопасная сделка", text: "Деньги на счёте платформы, пока вы не подтвердите публикацию." },
@@ -174,18 +240,59 @@ export default function HomePage() {
     queryFn: fetchMarketplaceCategories,
     staleTime: 10 * 60 * 1000,
   });
+  // Настройка витрины из админки. Ошибка/пусто → показываем демо.
+  const { data: heroConfig } = useQuery<HeroConfigResponse>({
+    queryKey: ["hero-config"],
+    queryFn: () => api.getHeroConfig(),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const total = catalog?.total;
 
   const [heroQuery, setHeroQuery] = useState("");
   const [heroNiche, setHeroNiche] = useState("all");
+  const [orderExample, setOrderExample] = useState(false);
 
   const q = heroQuery.trim().toLowerCase();
-  const heroCards = DEMO.filter(
-    (d) =>
-      (heroNiche === "all" || d.key === heroNiche) &&
-      (q === "" || `${d.name} ${d.niche}`.toLowerCase().includes(q)),
-  ).slice(0, 3);
+
+  // Есть ли настроенные авторы? Иначе — демо.
+  const configured = Boolean(
+    heroConfig &&
+      (heroConfig.authors_all.length > 0 ||
+        Object.values(heroConfig.authors_by_category ?? {}).some((list) => list.length > 0)),
+  );
+
+  const heroChips = useMemo(() => {
+    if (heroConfig?.categories?.length) {
+      return [
+        { key: "all", label: "Все ниши" },
+        ...heroConfig.categories.map((c) => ({ key: c.value, label: c.label })),
+      ];
+    }
+    return HERO_CHIPS;
+  }, [heroConfig]);
+
+  const heroCards = useMemo(() => {
+    let pool: HeroVM[];
+    if (configured && heroConfig) {
+      const catLabel = (val: string | null) =>
+        val ? categories.find((c) => c.value === val)?.label ?? val : "Другое";
+      let list: BloggerCard[];
+      if (heroNiche === "all") {
+        list = heroConfig.authors_all;
+      } else {
+        const per = heroConfig.authors_by_category?.[heroNiche];
+        list = per && per.length ? per : heroConfig.authors_all.filter((a) => a.category === heroNiche);
+      }
+      pool = list.map((a) => bloggerToHeroVM(a, catLabel(a.category)));
+    } else {
+      const list = heroNiche === "all" ? DEMO : DEMO.filter((d) => d.key === heroNiche);
+      pool = list.map(demoToHeroVM);
+    }
+    return pool
+      .filter((vm) => q === "" || `${vm.name} ${vm.niche}`.toLowerCase().includes(q))
+      .slice(0, 3);
+  }, [configured, heroConfig, heroNiche, q, categories]);
 
   return (
     <MarketShell>
@@ -242,7 +349,7 @@ export default function HomePage() {
                       aria-label="Поиск авторов"
                     />
                   </span>
-                  {HERO_CHIPS.map((chip) => (
+                  {heroChips.map((chip) => (
                     <button
                       key={chip.key}
                       type="button"
@@ -259,7 +366,15 @@ export default function HomePage() {
                       <div key={c.id} className={s.creatorCard}>
                         <div className={s.caTop}>
                           <span className={s.caAvatar} style={{ background: c.grad }}>
-                            {c.name.charAt(0)}
+                            {c.photoUrl ? (
+                              <img
+                                src={c.photoUrl}
+                                alt=""
+                                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+                              />
+                            ) : (
+                              c.name.charAt(0)
+                            )}
                           </span>
                           <div className={s.caHead}>
                             <span className={s.caName}>
@@ -293,7 +408,7 @@ export default function HomePage() {
                             {MINI.chart} ER&nbsp;<b>{c.er}</b>
                           </span>
                           <span className={s.metric}>
-                            {MINI.star} <b>4.9</b>
+                            {MINI.star} <b>{c.rating}</b>
                           </span>
                         </div>
                         <div className={s.caFoot}>
@@ -301,7 +416,13 @@ export default function HomePage() {
                             {c.price}
                             <span>интеграция от</span>
                           </span>
-                          <span className={s.caBtn}>Заказать</span>
+                          <button
+                            type="button"
+                            className={s.caBtn}
+                            onClick={() => setOrderExample(true)}
+                          >
+                            Заказать
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -334,9 +455,6 @@ export default function HomePage() {
       <section className={shell.pageContainer}>
         <div className={s.feature}>
           <Reveal className={s.featureText} as="div">
-            <span className={`${ui.iconTile} ${s.featureIcon}`} style={{ background: "var(--green)" }}>
-              {I.shield()}
-            </span>
             <h2 className={s.featureTitle}>Деньги под защитой до результата</h2>
             <p className={s.featureLead}>
               Оплата хранится на счёте платформы и переходит автору только после того,
@@ -388,9 +506,6 @@ export default function HomePage() {
       <section className={shell.pageContainer}>
         <div className={`${s.feature} ${s.featureReverse}`}>
           <Reveal className={s.featureText} as="div">
-            <span className={`${ui.iconTile} ${s.featureIcon}`} style={{ background: "var(--violet)" }}>
-              {I.users()}
-            </span>
             <h2 className={s.featureTitle}>Только проверенные авторы</h2>
             <p className={s.featureLead}>
               Каждый профиль проходит ручную модерацию: реальная аудитория, честная
@@ -432,9 +547,6 @@ export default function HomePage() {
       <section className={shell.pageContainer}>
         <div className={s.feature}>
           <Reveal className={s.featureText} as="div">
-            <span className={`${ui.iconTile} ${s.featureIcon}`} style={{ background: "var(--pink)" }}>
-              {I.chat()}
-            </span>
             <h2 className={s.featureTitle}>Прямой диалог с автором</h2>
             <p className={s.featureLead}>
               Обсуждайте бриф, сроки и формат внутри сделки — без посредников и потери
@@ -472,9 +584,6 @@ export default function HomePage() {
         <div className={s.benefits}>
           {BENEFITS.map((b, i) => (
             <Reveal key={b.title} className={`${ui.card} ${s.benefitCard}`} as="div" delay={i * 0.06}>
-              <span className={ui.iconTile} style={{ background: b.soft, color: b.color }}>
-                {b.icon()}
-              </span>
               <h3 className={s.benefitTitle}>{b.title}</h3>
               <p className={s.benefitText}>{b.text}</p>
             </Reveal>
@@ -522,6 +631,34 @@ export default function HomePage() {
           </div>
         </Reveal>
       </section>
+
+      {orderExample && (
+        <div
+          className={s.exampleOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="example-title"
+          onClick={() => setOrderExample(false)}
+        >
+          <div className={s.exampleCard} onClick={(e) => e.stopPropagation()}>
+            <h3 id="example-title" className={s.exampleTitle}>
+              Это демо-пример
+            </h3>
+            <p className={s.exampleText}>
+              Карточки на этой странице — иллюстрация. Настоящих авторов и безопасную
+              сделку вы найдёте в каталоге.
+            </p>
+            <div className={s.exampleBtns}>
+              <Link href="/catalog" className={ui.btnPrimary}>
+                Открыть каталог
+              </Link>
+              <button type="button" className={ui.btnLine} onClick={() => setOrderExample(false)}>
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </MarketShell>
   );
 }

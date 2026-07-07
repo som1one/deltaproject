@@ -19,7 +19,7 @@
 
 .toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 12px;
   margin-top: clamp(28px, 4vw, 44px);
@@ -33,10 +33,28 @@
   z-index: 20;
 }
 
+/* Фильтры — лента в одну строку: на десктопе видны все, при нехватке места
+   листаются по горизонтали, а не переносятся на вторую строку. */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filters::-webkit-scrollbar {
+  display: none;
+}
+
 .search {
   position: relative;
-  flex: 1 1 220px;
-  min-width: 180px;
+  flex: 0 1 260px;
+  min-width: 150px;
 }
 
 .searchInput {
@@ -66,6 +84,7 @@
 }
 
 .filterSelect {
+  flex: 0 0 auto;
   appearance: none;
   cursor: pointer;
   background: var(--surface-2);
@@ -136,16 +155,92 @@
 }
 
 @media (max-width: 620px) {
+  /* Две компактные карточки в ряд — чтобы не были огромными на телефоне. */
   .grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
   }
 
+  /* Тулбар в столбик: поиск сверху, фильтры — лентой, которую можно листать. */
   .toolbar {
     position: static;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .search {
+    flex: 0 0 auto;
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Фильтры — горизонтальная лента со свайпом, скрытый скроллбар. */
+  .filters {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+    /* выходим за padding тулбара, чтобы лента шла от края до края */
+    margin: 0 -14px;
+    padding: 2px 14px;
+  }
+
+  .filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filterSelect {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
   }
 
   .count {
     margin-left: 0;
     width: 100%;
+    text-align: right;
   }
+}
+
+/* ── Ошибка загрузки ──────────────────────────────────────── */
+
+.errorState {
+  margin-top: 24px;
+  text-align: center;
+  padding: 52px 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+
+.errorIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+  margin-bottom: 18px;
+}
+
+.errorTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 8px;
+}
+
+.errorText {
+  color: var(--muted);
+  max-width: 46ch;
+  margin: 0 auto 22px;
+  line-height: 1.5;
 }

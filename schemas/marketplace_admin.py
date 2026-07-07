@@ -7,7 +7,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
-from enums.marketplace import MarketplaceOrderStatus
+from enums.marketplace import BloggerCategory, MarketplaceOrderStatus
 
 
 class DashboardResponse(BaseModel):
@@ -180,3 +180,44 @@ class OrderResolveRequest(BaseModel):
 
     decision: Literal["favor_client", "favor_blogger"]
     reason: Annotated[str, Field(min_length=1, max_length=500)]
+
+
+# ---------------------------------------------------------------------------
+# Hero (витрина лендинга)
+# ---------------------------------------------------------------------------
+
+
+class HeroConfigAdminResponse(BaseModel):
+    """Сырая настройка витрины для админки (ниши + user_id авторов)."""
+
+    featured_categories: list[str] = Field(default_factory=list)
+    featured_all: list[uuid.UUID] = Field(default_factory=list)
+    featured_by_category: dict[str, list[uuid.UUID]] = Field(default_factory=dict)
+
+
+class HeroConfigUpdateRequest(BaseModel):
+    """Сохранение витрины: до 3 ниш и списки авторов (для «все» и по нишам)."""
+
+    featured_categories: list[str] = Field(default_factory=list)
+    featured_all: Annotated[list[uuid.UUID], Field(max_length=24)] = Field(default_factory=list)
+    featured_by_category: dict[str, list[uuid.UUID]] = Field(default_factory=dict)
+
+    @field_validator("featured_categories")
+    @classmethod
+    def _clean_categories(cls, value: list[str]) -> list[str]:
+        valid = {category.value for category in BloggerCategory}
+        seen: set[str] = set()
+        cleaned: list[str] = []
+        for item in value:
+            if item in valid and item not in seen:
+                seen.add(item)
+                cleaned.append(item)
+        return cleaned[:3]
+
+    @field_validator("featured_by_category")
+    @classmethod
+    def _clean_by_category(
+        cls, value: dict[str, list[uuid.UUID]]
+    ) -> dict[str, list[uuid.UUID]]:
+        valid = {category.value for category in BloggerCategory}
+        return {key: ids[:24] for key, ids in value.items() if key in valid}

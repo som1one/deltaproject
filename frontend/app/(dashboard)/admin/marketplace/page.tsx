@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { appConfig } from "@/lib/config";
@@ -81,6 +81,9 @@ type BloggerAdmin = {
   category: string;
   subscriber_count: number;
   average_price_kopeks: number;
+  engagement_rate?: number | null;
+  rating?: number | null;
+  reviews_count?: number;
   is_active: boolean;
 };
 
@@ -89,7 +92,7 @@ type BloggersResponse = {
   total: number;
 };
 
-type TabId = "dashboard" | "orders" | "payments" | "settings" | "tickets" | "bloggers";
+type TabId = "dashboard" | "orders" | "payments" | "settings" | "tickets" | "bloggers" | "hero";
 
 /* ---------- Helpers ---------- */
 
@@ -161,6 +164,7 @@ export default function AdminMarketplacePage() {
           ["settings", "Комиссии"],
           ["tickets", "Тикеты"],
           ["bloggers", "Блогеры"],
+          ["hero", "Витрина"],
         ] as [TabId, string][]).map(([id, label]) => (
           <button
             key={id}
@@ -179,6 +183,7 @@ export default function AdminMarketplacePage() {
       {activeTab === "settings" && <SettingsTab accessToken={accessToken} />}
       {activeTab === "tickets" && <TicketsTab accessToken={accessToken} />}
       {activeTab === "bloggers" && <BloggersTab accessToken={accessToken} />}
+      {activeTab === "hero" && <HeroTab accessToken={accessToken} />}
     </div>
   );
 }
@@ -1171,6 +1176,74 @@ function ResolveTicketModal({
 
 /* ---------- Bloggers Tab ---------- */
 
+function BloggerMetricEditor({
+  blogger,
+  accessToken,
+}: {
+  blogger: BloggerAdmin;
+  accessToken: string;
+}) {
+  const queryClient = useQueryClient();
+  const [er, setEr] = useState(blogger.engagement_rate != null ? String(blogger.engagement_rate) : "");
+  const [rating, setRating] = useState(blogger.rating != null ? String(blogger.rating) : "");
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/bloggers/${blogger.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          engagement_rate: er.trim() === "" ? null : Number(er),
+          rating: rating.trim() === "" ? null : Number(rating),
+        }),
+      });
+      if (!res.ok) throw new Error("Ошибка");
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-marketplace-bloggers"] }),
+  });
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+      <input
+        type="number"
+        className={styles.settingsInput}
+        style={{ width: 66 }}
+        value={er}
+        onChange={(e) => setEr(e.target.value)}
+        placeholder="ER %"
+        min={0}
+        max={100}
+        step={0.1}
+        aria-label={`ER ${blogger.name}`}
+      />
+      <input
+        type="number"
+        className={styles.settingsInput}
+        style={{ width: 58 }}
+        value={rating}
+        onChange={(e) => setRating(e.target.value)}
+        placeholder="★"
+        min={0}
+        max={5}
+        step={0.1}
+        aria-label={`Рейтинг ${blogger.name}`}
+      />
+      <button
+        type="button"
+        className={styles.toggleBtn}
+        onClick={() => save.mutate()}
+        disabled={save.isPending}
+      >
+        {save.isPending ? "…" : "OK"}
+      </button>
+    </div>
+  );
+}
+
 function BloggersTab({ accessToken }: { accessToken: string }) {
   const queryClient = useQueryClient();
 
@@ -1241,6 +1314,7 @@ function BloggersTab({ accessToken }: { accessToken: string }) {
                 </span>
               </div>
               <div className={styles.bloggerActions}>
+                <BloggerMetricEditor blogger={blogger} accessToken={accessToken} />
                 <button
                   type="button"
                   className={`${styles.toggleBtn} ${blogger.is_active ? styles.toggleBtnActive : ""}`}
@@ -1253,6 +1327,287 @@ function BloggersTab({ accessToken }: { accessToken: string }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------- Hero (витрина лендинга) Tab ---------- */
+
+type HeroAuthor = {
+  user_id: string;
+  name: string;
+  category: string | null;
+  photo_url: string | null;
+};
+
+type HeroCategory = { value: string; label: string };
+
+type HeroConfigPublic = {
+  categories: HeroCategory[];
+  authors_all: HeroAuthor[];
+  authors_by_category: Record<string, HeroAuthor[]>;
+};
+
+const heroChipStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.35rem",
+  padding: "0.25rem 0.6rem",
+  borderRadius: "999px",
+  background: "var(--surface-3, #eee)",
+  fontSize: "0.85rem",
+  fontWeight: 600,
+};
+
+const heroChipRemoveStyle: CSSProperties = {
+  border: "none",
+  background: "transparent",
+  cursor: "pointer",
+  fontSize: "1rem",
+  lineHeight: 1,
+  color: "inherit",
+};
+
+const heroDropdownStyle: CSSProperties = {
+  marginTop: "0.35rem",
+  border: "1px solid var(--line, #ddd)",
+  borderRadius: "0.5rem",
+  overflow: "hidden",
+  maxWidth: 360,
+};
+
+const heroDropdownItemStyle: CSSProperties = {
+  display: "block",
+  width: "100%",
+  textAlign: "left",
+  padding: "0.5rem 0.7rem",
+  border: "none",
+  borderBottom: "1px solid var(--line, #eee)",
+  background: "var(--surface, #fff)",
+  cursor: "pointer",
+  fontSize: "0.85rem",
+};
+
+function HeroAuthorPicker({
+  title,
+  selected,
+  onChange,
+}: {
+  title: string;
+  selected: HeroAuthor[];
+  onChange: (next: HeroAuthor[]) => void;
+}) {
+  const [term, setTerm] = useState("");
+  const q = term.trim();
+
+  const { data: results } = useQuery<{ items: HeroAuthor[] }>({
+    queryKey: ["hero-author-search", q],
+    queryFn: async () => {
+      const res = await fetch(
+        `${appConfig.apiBaseUrl}/marketplace/bloggers?page_size=8&q=${encodeURIComponent(q)}`,
+      );
+      if (!res.ok) throw new Error("Ошибка");
+      return res.json();
+    },
+    enabled: q.length >= 2,
+    staleTime: 30_000,
+  });
+
+  const add = (a: HeroAuthor) => {
+    if (!selected.some((s) => s.user_id === a.user_id)) onChange([...selected, a]);
+    setTerm("");
+  };
+  const remove = (id: string) => onChange(selected.filter((s) => s.user_id !== id));
+
+  const candidates = (results?.items ?? []).filter(
+    (a) => !selected.some((s) => s.user_id === a.user_id),
+  );
+
+  return (
+    <div style={{ marginBottom: "1.1rem" }}>
+      <div className={styles.settingsLabel} style={{ marginBottom: "0.4rem" }}>
+        {title}
+      </div>
+
+      {selected.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.5rem" }}>
+          {selected.map((a) => (
+            <span key={a.user_id} style={heroChipStyle}>
+              {a.name}
+              <button
+                type="button"
+                onClick={() => remove(a.user_id)}
+                style={heroChipRemoveStyle}
+                aria-label={`Убрать ${a.name}`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <input
+        type="text"
+        className={styles.settingsInput}
+        style={{ width: "100%", maxWidth: 360 }}
+        placeholder="Поиск автора по имени…"
+        value={term}
+        onChange={(e) => setTerm(e.target.value)}
+      />
+
+      {q.length >= 2 && candidates.length > 0 && (
+        <div style={heroDropdownStyle}>
+          {candidates.map((a) => (
+            <button
+              key={a.user_id}
+              type="button"
+              onClick={() => add(a)}
+              style={heroDropdownItemStyle}
+            >
+              {a.name}
+              {a.category ? ` · ${a.category}` : ""}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HeroTab({ accessToken }: { accessToken: string }) {
+  const queryClient = useQueryClient();
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [authorsAll, setAuthorsAll] = useState<HeroAuthor[]>([]);
+  const [byCategory, setByCategory] = useState<Record<string, HeroAuthor[]>>({});
+
+  const { data: allCategories } = useQuery<HeroCategory[]>({
+    queryKey: ["hero-all-categories"],
+    queryFn: async () => {
+      const res = await fetch(`${appConfig.apiBaseUrl}/marketplace/categories`);
+      if (!res.ok) throw new Error("Ошибка");
+      return res.json();
+    },
+  });
+
+  const { isLoading } = useQuery<HeroConfigPublic>({
+    queryKey: ["hero-config-admin-load"],
+    queryFn: async () => {
+      const res = await fetch(`${appConfig.apiBaseUrl}/marketplace/hero-config`);
+      if (!res.ok) throw new Error("Ошибка");
+      const d: HeroConfigPublic = await res.json();
+      setCategories(d.categories.map((c) => c.value));
+      setAuthorsAll(d.authors_all ?? []);
+      setByCategory(d.authors_by_category ?? {});
+      return d;
+    },
+  });
+
+  const toggleCategory = (value: string) => {
+    setCategories((prev) => {
+      if (prev.includes(value)) return prev.filter((v) => v !== value);
+      if (prev.length >= 3) return prev;
+      return [...prev, value];
+    });
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const body = {
+        featured_categories: categories,
+        featured_all: authorsAll.map((a) => a.user_id),
+        featured_by_category: Object.fromEntries(
+          categories.map((c) => [c, (byCategory[c] ?? []).map((a) => a.user_id)]),
+        ),
+      };
+      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/hero-config`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(typeof d.detail === "string" ? d.detail : "Ошибка сохранения");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setSuccess("Витрина сохранена!");
+      setError("");
+      queryClient.invalidateQueries({ queryKey: ["hero-config"] });
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+      setSuccess("");
+    },
+  });
+
+  if (isLoading) return <LoadingSpinner size="small" />;
+
+  return (
+    <div className={styles.section}>
+      <h2 className={styles.sectionTitle}>Витрина лендинга</h2>
+      <p className={styles.emptyText} style={{ marginBottom: "1rem" }}>
+        Выберите до 3 ниш-вкладок и авторов для показа на главной. Если ничего не выбрано —
+        показываются демо-примеры.
+      </p>
+
+      {error && <p className={styles.errorMsg}>{error}</p>}
+      {success && <p className={styles.successMsg}>{success}</p>}
+
+      <div style={{ marginBottom: "1.5rem" }}>
+        <div className={styles.settingsLabel} style={{ marginBottom: "0.5rem" }}>
+          Ниши (до 3)
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+          {(allCategories ?? []).map((c) => {
+            const on = categories.includes(c.value);
+            return (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => toggleCategory(c.value)}
+                className={`${styles.tab} ${on ? styles.tabActive : ""}`}
+                disabled={!on && categories.length >= 3}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <HeroAuthorPicker
+        title="Авторы для «Все ниши»"
+        selected={authorsAll}
+        onChange={setAuthorsAll}
+      />
+
+      {categories.map((cat) => {
+        const label = (allCategories ?? []).find((c) => c.value === cat)?.label ?? cat;
+        return (
+          <HeroAuthorPicker
+            key={cat}
+            title={`Авторы для ниши «${label}»`}
+            selected={byCategory[cat] ?? []}
+            onChange={(next) => setByCategory((prev) => ({ ...prev, [cat]: next }))}
+          />
+        );
+      })}
+
+      <button
+        type="button"
+        className={styles.btnPrimary}
+        onClick={() => saveMutation.mutate()}
+        disabled={saveMutation.isPending}
+      >
+        {saveMutation.isPending ? "Сохраняем…" : "Сохранить витрину"}
+      </button>
     </div>
   );
 }

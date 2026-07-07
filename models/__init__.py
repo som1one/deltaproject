@@ -17,6 +17,7 @@ from models.deal import Deal
 from models.deal_admin_log import DealAdminLog
 from models.ledger_entry import LedgerEntry
 from models.marketplace_escrow_ledger import MarketplaceEscrowEntry
+from models.marketplace_hero_config import MarketplaceHeroConfig
 from models.marketplace_message import MarketplaceMessage
 from models.marketplace_order import MarketplaceOrder
 from models.notification import Notification
@@ -49,6 +50,7 @@ __all__ = [
     "LedgerEntry",
     "LedgerEntryStatus",
     "MarketplaceEscrowEntry",
+    "MarketplaceHeroConfig",
     "MarketplaceMessage",
     "MarketplaceOrder",
     "MarketplaceOrderStatus",

@@ -34,6 +34,7 @@ from enums.marketplace import MarketplaceOrderStatus, SupportTicketStatus
 from enums.user import UserRole
 from models.blogger_profile import BloggerProfile
 from models.marketplace_escrow_ledger import MarketplaceEscrowEntry
+from models.marketplace_hero_config import MarketplaceHeroConfig
 from models.marketplace_order import MarketplaceOrder
 from models.marketplace_settings import MarketplaceSettings
 from models.order_status_history import OrderStatusHistory
@@ -50,6 +51,8 @@ from schemas.marketplace_admin import (
     DashboardResponse,
     DistributionBreakdown,
     EscrowLedgerEntry,
+    HeroConfigAdminResponse,
+    HeroConfigUpdateRequest,
     OrderCountByStatus,
     OrderResolveRequest,
     StatusHistoryEntry,
@@ -567,6 +570,75 @@ async def update_marketplace_settings(
 
 
 # ---------------------------------------------------------------------------
+# Hero config (витрина лендинга)
+# ---------------------------------------------------------------------------
+
+
+def _hero_config_to_response(row: MarketplaceHeroConfig | None) -> HeroConfigAdminResponse:
+    if row is None:
+        return HeroConfigAdminResponse()
+
+    def _uuids(values) -> list[uuid.UUID]:
+        out: list[uuid.UUID] = []
+        for value in values or []:
+            try:
+                out.append(uuid.UUID(str(value)))
+            except (ValueError, TypeError, AttributeError):
+                continue
+        return out
+
+    return HeroConfigAdminResponse(
+        featured_categories=list(row.featured_categories or []),
+        featured_all=_uuids(row.featured_all),
+        featured_by_category={
+            str(key): _uuids(ids) for key, ids in (row.featured_by_category or {}).items()
+        },
+    )
+
+
+@router.get("/hero-config", response_model=HeroConfigAdminResponse)
+async def get_hero_config_admin(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> HeroConfigAdminResponse:
+    """Текущая настройка витрины лендинга (сырые id авторов)."""
+
+    row = (await db.execute(select(MarketplaceHeroConfig).limit(1))).scalar_one_or_none()
+    return _hero_config_to_response(row)
+
+
+@router.put("/hero-config", response_model=HeroConfigAdminResponse)
+async def update_hero_config_admin(
+    body: HeroConfigUpdateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> HeroConfigAdminResponse:
+    """Сохранить витрину: до 3 ниш и списки авторов (для «все» и по нишам)."""
+
+    row = (await db.execute(select(MarketplaceHeroConfig).limit(1))).scalar_one_or_none()
+    if row is None:
+        row = MarketplaceHeroConfig(
+            featured_categories=[],
+            featured_all=[],
+            featured_by_category={},
+        )
+        db.add(row)
+
+    row.featured_categories = list(body.featured_categories)
+    row.featured_all = [str(value) for value in body.featured_all]
+    row.featured_by_category = {
+        key: [str(value) for value in ids] for key, ids in body.featured_by_category.items()
+    }
+    row.updated_by = admin.id
+
+    await db.flush()
+    await db.commit()
+    await db.refresh(row)
+
+    return _hero_config_to_response(row)
+
+
+# ---------------------------------------------------------------------------
 # Commission Settings (new /commission-settings endpoints)
 # ---------------------------------------------------------------------------
 
@@ -782,6 +854,11 @@ async def list_marketplace_bloggers(
             "category": profile.category,
             "subscriber_count": profile.subscriber_count,
             "average_price_kopeks": profile.average_price_kopeks,
+            "engagement_rate": (
+                float(profile.engagement_rate) if profile.engagement_rate is not None else None
+            ),
+            "rating": float(profile.rating) if profile.rating is not None else None,
+            "reviews_count": profile.reviews_count,
             "photo_url": profile.photo_url,
             "is_active": profile.is_active,
             "orders_enabled": profile.orders_enabled,
@@ -834,6 +911,11 @@ async def patch_marketplace_blogger(
         gender=profile.gender if profile.gender in {"female", "male", "other"} else None,
         subscriber_count=profile.subscriber_count,
         average_price_kopeks=profile.average_price_kopeks,
+        engagement_rate=(
+            float(profile.engagement_rate) if profile.engagement_rate is not None else None
+        ),
+        rating=float(profile.rating) if profile.rating is not None else None,
+        reviews_count=profile.reviews_count,
         description=profile.description,
         portfolio_links=profile.portfolio_links or [],
         social_links=profile.social_links,

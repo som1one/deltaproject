@@ -43,8 +43,23 @@ export type BloggerCard = {
   subscriber_count: number;
   average_price_kopeks: number;
   photo_url: string | null;
+  engagement_rate?: number | null;
+  rating?: number | null;
+  reviews_count?: number;
+  platforms?: string[];
   is_active: boolean;
   created_at: string;
+};
+
+export type MarketplaceCategory = {
+  value: string;
+  label: string;
+};
+
+export type HeroConfigResponse = {
+  categories: MarketplaceCategory[];
+  authors_all: BloggerCard[];
+  authors_by_category: Record<string, BloggerCard[]>;
 };
 
 export type BloggerProfileFull = BloggerCard & {

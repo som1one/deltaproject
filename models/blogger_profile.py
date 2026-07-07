@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, Integer, String, text
+from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, text
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -35,6 +36,21 @@ class BloggerProfile(Base):
     gender: Mapped[str | None] = mapped_column(String(20), nullable=True)
     subscriber_count: Mapped[int] = mapped_column(Integer, nullable=False)
     average_price_kopeks: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Витринные метрики: показатели вовлечённости/рейтинга для карточек.
+    # Nullable — заполняются не у всех авторов; площадки выводятся из social_links.
+    engagement_rate: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=4, scale=1),
+        nullable=True,
+    )
+    rating: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=2, scale=1),
+        nullable=True,
+    )
+    reviews_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
     description: Mapped[str] = mapped_column(String(500), nullable=False)
     portfolio_links: Mapped[list] = mapped_column(
         JSON,

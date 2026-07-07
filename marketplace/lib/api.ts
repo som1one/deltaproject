@@ -4,6 +4,7 @@ import type {
   AuthTokensResponse,
   BloggerProfileFull,
   CatalogResponse,
+  HeroConfigResponse,
   Order,
   OrderDetail,
   OrdersResponse,
@@ -189,6 +190,9 @@ export const api = {
 
   getCategories: () =>
     request<{ value: string; label: string }[]>("/marketplace/categories", {}),
+
+  getHeroConfig: () =>
+    request<HeroConfigResponse>("/marketplace/hero-config", {}),
 
   // ─── Orders ────────────────────────────────────────────────────────────────
   createOrder: (body: OrderCreateBody) =>

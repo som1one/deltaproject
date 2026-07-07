@@ -23,6 +23,11 @@ class BloggerCardResponse(BaseModel):
     subscriber_count: int
     average_price_kopeks: int
     photo_url: str | None = None
+    # Витринные метрики (опциональны — выводятся, если заданы).
+    engagement_rate: float | None = None
+    rating: float | None = None
+    reviews_count: int = 0
+    platforms: list[str] = Field(default_factory=list)
     is_active: bool
     created_at: datetime
 
@@ -39,6 +44,9 @@ class BloggerProfileResponse(BaseModel):
     gender: BloggerGender | None = None
     subscriber_count: int
     average_price_kopeks: int
+    engagement_rate: float | None = None
+    rating: float | None = None
+    reviews_count: int = 0
     description: str
     portfolio_links: list[str] = Field(default_factory=list)
     social_links: list[str]
@@ -96,6 +104,9 @@ class BloggerProfileUpdateRequest(BaseModel):
     gender: BloggerGender | None = None
     subscriber_count: Annotated[int | None, Field(ge=1, le=999_000_000)] = None
     average_price_kopeks: Annotated[int | None, Field(ge=100, le=1_000_000_000)] = None
+    engagement_rate: Annotated[float | None, Field(ge=0, le=100)] = None
+    rating: Annotated[float | None, Field(ge=0, le=5)] = None
+    reviews_count: Annotated[int | None, Field(ge=0, le=1_000_000)] = None
     description: Annotated[str | None, Field(min_length=1, max_length=500)] = None
     social_links: Annotated[list[str] | None, Field(min_length=1, max_length=10)] = None
     portfolio_links: Annotated[list[str] | None, Field(max_length=5)] = None
@@ -145,3 +156,14 @@ class MarketplaceCategoryResponse(BaseModel):
 
     value: str
     label: str
+
+
+class HeroConfigPublicResponse(BaseModel):
+    """Витрина лендинга с уже разрешёнными карточками авторов.
+
+    Пустые списки означают «не настроено» — лендинг покажет демо-данные.
+    """
+
+    categories: list[MarketplaceCategoryResponse] = Field(default_factory=list)
+    authors_all: list[BloggerCardResponse] = Field(default_factory=list)
+    authors_by_category: dict[str, list[BloggerCardResponse]] = Field(default_factory=dict)
