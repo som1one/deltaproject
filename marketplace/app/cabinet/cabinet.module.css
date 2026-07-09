@@ -1,0 +1,338 @@
+/* ═══════════════════════════════════════════════════════════
+   Личный кабинет — хаб «где всё смотреть».
+   Новая SaaS-палитра: карточки ui.card + токены главной.
+   ═══════════════════════════════════════════════════════════ */
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: clamp(30px, 4.5vw, 56px) 0 clamp(20px, 3vw, 32px);
+}
+
+.greeting {
+  margin-top: 14px;
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4.4vw, 46px);
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+.sub {
+  margin-top: 10px;
+  max-width: 54ch;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* Чип аккаунта справа в шапке */
+.accountChip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.accountRole {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.accountName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.accountMeta {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ── Ключевые цифры ───────────────────────────────────────── */
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.statValue {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+.statLabel {
+  margin-top: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.statHint {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--faint);
+}
+
+@media (max-width: 720px) {
+  .statsRow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* ── Раскладка ────────────────────────────────────────────── */
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+  padding-bottom: var(--section);
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+@media (max-width: 940px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Заголовок панели ─────────────────────────────────────── */
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.panelTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.seeAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--muted);
+  transition: gap var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.seeAll:hover {
+  gap: 8px;
+  color: var(--ink);
+}
+
+/* ── Строки сделок ────────────────────────────────────────── */
+
+.dealList {
+  display: flex;
+  flex-direction: column;
+}
+
+.dealRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  transition: background-color var(--dur) var(--ease);
+}
+
+.dealRow:first-child {
+  border-top: none;
+  padding-top: 4px;
+}
+
+.dealRow:hover {
+  background: var(--surface-2);
+}
+
+.dealNo {
+  font-size: 12.5px;
+  color: var(--violet);
+  white-space: nowrap;
+}
+
+.dealWho {
+  min-width: 0;
+}
+
+.dealName {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.dealBrief {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 42ch;
+}
+
+.dealRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.dealAmount {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+/* ── Быстрые действия ─────────────────────────────────────── */
+
+.actionGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.action:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.actionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+}
+
+.actionText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.actionTitle {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.actionSub {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.actionArrow {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--faint);
+}
+
+/* ── Карта выплат (автор) ─────────────────────────────────── */
+
+.payoutCard {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  padding: 11px 14px;
+  border-radius: var(--r);
+  background: var(--surface-2);
+  font-size: 13.5px;
+  color: var(--text);
+}
+
+/* ── Реферальный блок ─────────────────────────────────────── */
+
+.referralHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.referralIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.referralRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.referralRow input {
+  min-width: 0;
+}

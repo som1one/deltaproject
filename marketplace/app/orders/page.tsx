@@ -40,7 +40,7 @@ export default function OrdersPage() {
       <div className={shell.pageContainer}>
         <header className={styles.head}>
           <div>
-            <span className={ui.brow}>{isBlogger ? "Кабинет автора" : "Кабинет заказчика"}</span>
+            <span className={ui.brow}>{isBlogger ? "Входящие и история" : "Ваши сделки"}</span>
             <h1 className={styles.headTitle}>Реестр сделок</h1>
           </div>
           {!isBlogger && (

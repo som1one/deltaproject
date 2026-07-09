@@ -46,19 +46,22 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
     closeMenu();
   }, [pathname, closeMenu]);
 
-  // Разделы зависят от роли: гостю — витрина + маркетинг, вошедшим — рабочие разделы.
+  // Разделы зависят от роли. «Главная» остаётся всегда — это точка возврата
+  // и якорь навигации; без неё меню после входа ощущается обрезанным.
   let navItems: NavItem[];
   if (isHydrated && isAuthenticated && isBlogger) {
     navItems = [
+      { href: "/", label: "Главная" },
+      { href: "/cabinet", label: "Кабинет" },
       { href: "/blogger", label: "Входящие" },
       { href: "/orders", label: "Мои сделки" },
-      { href: "/support", label: "Поддержка" },
     ];
   } else if (isHydrated && isAuthenticated && isClient) {
     navItems = [
+      { href: "/", label: "Главная" },
+      { href: "/cabinet", label: "Кабинет" },
       { href: "/catalog", label: "Каталог" },
       { href: "/orders", label: "Мои сделки" },
-      { href: "/support", label: "Поддержка" },
     ];
   } else {
     navItems = [
@@ -79,6 +82,11 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
       <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}>
         <div className={styles.headerRow}>
           <Link href="/" className={styles.brand} onClick={closeMenu}>
+            <span className={styles.brandMoon} aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" fill="currentColor" />
+              </svg>
+            </span>
             <span className={styles.brandText}>
               <span className={styles.brandMark}>looney moon</span>
               <span className={styles.brandSub}>маркетплейс</span>

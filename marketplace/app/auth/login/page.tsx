@@ -31,7 +31,10 @@ function LoginForm() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
 
-  const nextPath = searchParams.get("next") || "/catalog";
+  // После входа ведём в личный кабинет (хаб «где всё смотреть»), а не в витрину.
+  // Явный next (deep-link с закрытой страницы) по-прежнему в приоритете.
+  const explicitNext = searchParams.get("next");
+  const nextPath = explicitNext || "/cabinet";
 
   const loginMutation = useMutation({
     mutationFn: () => api.login({ email: form.email.trim(), password: form.password }),
@@ -129,7 +132,7 @@ function LoginForm() {
           </form>
           <p className={styles.switchLine}>
             Нет аккаунта?{" "}
-            <Link href={`/auth/register${nextPath !== "/catalog" ? `?next=${encodeURIComponent(nextPath)}` : ""}`}>
+            <Link href={`/auth/register${explicitNext ? `?next=${encodeURIComponent(explicitNext)}` : ""}`}>
               Зарегистрироваться
             </Link>
           </p>
