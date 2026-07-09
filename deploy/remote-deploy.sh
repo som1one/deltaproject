@@ -64,16 +64,21 @@ $NPM_BIN run build
 cd ..
 
 echo "[deploy] marketplace build"
-# Ensure .env.local exists BEFORE build (Next.js inlines NEXT_PUBLIC_* at build time)
+# Next.js инлайнит NEXT_PUBLIC_* на этапе БИЛДА, поэтому .env.local должен быть
+# верным ДО сборки. Пишем его ВСЕГДА (не "если нет") — иначе старый файл с
+# http://IP:8000 переживёт деплой и фронт словит mixed-content ("Failed to
+# fetch": HTTPS-сайт не может дёргать HTTP-API).
+#
+# API — того же origin, что и сайт: nginx проксирует /marketplace/ → 127.0.0.1:8000
+# (см. nginx-marketplace.conf). Поэтому базовый URL = https://<домен>, без
+# http://IP:8000, без mixed-content и без CORS.
 MARKETPLACE_DOMAIN="marketplace.looneymoon.ru"
-if [[ ! -f marketplace/.env.local ]]; then
-  echo "[deploy] creating marketplace/.env.local"
-  cat > marketplace/.env.local << EOF
-NEXT_PUBLIC_API_BASE_URL=http://37.220.80.62:8000
-NEXT_PUBLIC_APP_URL=http://$MARKETPLACE_DOMAIN
-NEXT_PUBLIC_MAIN_APP_URL=http://looneymoon.ru
+echo "[deploy] writing marketplace/.env.local"
+cat > marketplace/.env.local << EOF
+NEXT_PUBLIC_API_BASE_URL=https://$MARKETPLACE_DOMAIN
+NEXT_PUBLIC_APP_URL=https://$MARKETPLACE_DOMAIN
+NEXT_PUBLIC_MAIN_APP_URL=https://looneymoon.ru
 EOF
-fi
 cd marketplace
 $NPM_BIN ci
 $NPM_BIN run build
@@ -95,6 +100,21 @@ if [[ ! -f /etc/nginx/sites-available/marketplace ]]; then
   $SUDO cp deploy/nginx-marketplace.conf /etc/nginx/sites-available/marketplace
   $SUDO ln -sf /etc/nginx/sites-available/marketplace /etc/nginx/sites-enabled/marketplace
   $SUDO nginx -t && $SUDO systemctl reload nginx
+fi
+
+# Идемпотентно доносим /marketplace/ API-прокси в ЖИВОЙ конфиг. Файл мог быть
+# переписан certbot (443-блок + редирект), поэтому НЕ перезаписываем шаблоном
+# (снесли бы SSL) — а дописываем location, только если его ещё нет. Вставляем
+# после server_name (в обоих блоках; в :80-редиректе он безвреден).
+NGINX_CONF=/etc/nginx/sites-available/marketplace
+if [[ -f "$NGINX_CONF" ]] && ! $SUDO grep -q 'location /marketplace/' "$NGINX_CONF"; then
+  echo "[deploy] injecting /marketplace/ API proxy into live nginx conf"
+  $SUDO sed -i '/server_name marketplace.looneymoon.ru;/a\    location /marketplace/ { proxy_pass http://127.0.0.1:8000; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }' "$NGINX_CONF"
+  if $SUDO nginx -t; then
+    $SUDO systemctl reload nginx
+  else
+    echo "[deploy] WARNING: nginx -t failed after injecting API proxy — не перезагружаю, проверьте конфиг вручную" >&2
+  fi
 fi
 
 # Issue SSL cert if not yet obtained
