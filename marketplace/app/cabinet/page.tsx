@@ -16,6 +16,7 @@ import type { OrdersResponse, UserMeRead } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
+import s from "@/components/landing/landing.module.css";
 import styles from "./cabinet.module.css";
 
 /** Статусы, которые считаем «живыми» сделками, и те, где деньги на счёте платформы. */
@@ -130,7 +131,9 @@ export default function CabinetPage() {
         <header className={styles.head}>
           <div>
             <span className={ui.brow}>Личный кабинет</span>
-            <h1 className={styles.greeting}>С возвращением, {displayName}</h1>
+            <h1 className={styles.greeting}>
+              С возвращением, <span className={s.mark}>{displayName}</span>
+            </h1>
             <p className={styles.sub}>
               {isBlogger
                 ? "Входящие сделки, выплаты и всё по вашим публикациям — в одном месте."
