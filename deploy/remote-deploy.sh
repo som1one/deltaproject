@@ -69,13 +69,14 @@ echo "[deploy] marketplace build"
 # http://IP:8000 переживёт деплой и фронт словит mixed-content ("Failed to
 # fetch": HTTPS-сайт не может дёргать HTTP-API).
 #
-# API — того же origin, что и сайт: nginx проксирует /marketplace/ → 127.0.0.1:8000
-# (см. nginx-marketplace.conf). Поэтому базовый URL = https://<домен>, без
-# http://IP:8000, без mixed-content и без CORS.
+# API — того же origin: nginx проксирует /api/* → 127.0.0.1:8000 (снимая /api),
+# что покрывает и /marketplace/*, и /auth/* (SSO-обмен блогера), и /me — без
+# коллизий с фронтовыми /auth/*-страницами. Базовый URL = https://<домен>/api,
+# без http://IP:8000, без mixed-content и без CORS.
 MARKETPLACE_DOMAIN="marketplace.looneymoon.ru"
 echo "[deploy] writing marketplace/.env.local"
 cat > marketplace/.env.local << EOF
-NEXT_PUBLIC_API_BASE_URL=https://$MARKETPLACE_DOMAIN
+NEXT_PUBLIC_API_BASE_URL=https://$MARKETPLACE_DOMAIN/api
 NEXT_PUBLIC_APP_URL=https://$MARKETPLACE_DOMAIN
 NEXT_PUBLIC_MAIN_APP_URL=https://looneymoon.ru
 EOF
@@ -102,18 +103,19 @@ if [[ ! -f /etc/nginx/sites-available/marketplace ]]; then
   $SUDO nginx -t && $SUDO systemctl reload nginx
 fi
 
-# Идемпотентно доносим /marketplace/ API-прокси в ЖИВОЙ конфиг. Файл мог быть
-# переписан certbot (443-блок + редирект), поэтому НЕ перезаписываем шаблоном
-# (снесли бы SSL) — а дописываем location, только если его ещё нет. Вставляем
-# после server_name (в обоих блоках; в :80-редиректе он безвреден).
+# Идемпотентно доносим /api/ прокси в ЖИВОЙ конфиг. Файл мог быть переписан
+# certbot (443-блок + редирект), поэтому НЕ перезаписываем шаблоном (снесли бы
+# SSL) — а дописываем location, только если его ещё нет. Вставляем после
+# server_name (в обоих блоках; в :80-редиректе он безвреден). Трейлинг-слэш в
+# proxy_pass снимает /api перед проксированием на бэк.
 NGINX_CONF=/etc/nginx/sites-available/marketplace
-if [[ -f "$NGINX_CONF" ]] && ! $SUDO grep -q 'location /marketplace/' "$NGINX_CONF"; then
-  echo "[deploy] injecting /marketplace/ API proxy into live nginx conf"
-  $SUDO sed -i '/server_name marketplace.looneymoon.ru;/a\    location /marketplace/ { proxy_pass http://127.0.0.1:8000; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }' "$NGINX_CONF"
+if [[ -f "$NGINX_CONF" ]] && ! $SUDO grep -q 'location /api/' "$NGINX_CONF"; then
+  echo "[deploy] injecting /api/ proxy into live nginx conf"
+  $SUDO sed -i '/server_name marketplace.looneymoon.ru;/a\    location /api/ { proxy_pass http://127.0.0.1:8000/; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; }' "$NGINX_CONF"
   if $SUDO nginx -t; then
     $SUDO systemctl reload nginx
   else
-    echo "[deploy] WARNING: nginx -t failed after injecting API proxy — не перезагружаю, проверьте конфиг вручную" >&2
+    echo "[deploy] WARNING: nginx -t failed after injecting /api/ proxy — не перезагружаю, проверьте конфиг вручную" >&2
   fi
 fi
 
