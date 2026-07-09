@@ -208,6 +208,19 @@ export const api = {
   // ─── User ──────────────────────────────────────────────────────────────────
   getMe: () => request<UserMeRead>("/me", { auth: true }),
 
+  updateMe: (body: {
+    name?: string;
+    email?: string;
+    telegram?: string;
+    password?: string;
+    current_password?: string;
+  }) =>
+    request<UserMeRead>("/me", {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+
   // ─── Marketplace Catalog ───────────────────────────────────────────────────
   getBloggers: (query = "") =>
     request<CatalogResponse>(`/marketplace/bloggers${query}`, {}),

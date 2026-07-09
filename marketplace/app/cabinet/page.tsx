@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, CreditCard, Gift, LayoutGrid, LifeBuoy, Receipt } from "lucide-react";
+import { ArrowRight, CreditCard, Gift, LayoutGrid, LifeBuoy, Receipt, Settings } from "lucide-react";
 
 import { MarketShell } from "@/components/shell/shell";
 import { CopyButton, StampBadge } from "@/components/ui/bits";
@@ -12,16 +12,17 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { formatMoney } from "@/lib/format";
 import { dealNo } from "@/lib/registry";
-import type { OrdersResponse, UserMeRead } from "@/lib/types";
+import type { Order, OrdersResponse, UserMeRead } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
 import s from "@/components/landing/landing.module.css";
 import styles from "./cabinet.module.css";
 
-/** Статусы, которые считаем «живыми» сделками, и те, где деньги на счёте платформы. */
+/** Живые сделки, деньги на счёте платформы, завершённые/терминальные. */
 const ACTIVE = new Set(["PENDING_PAYMENT", "ESCROW_HELD", "BLOGGER_CONFIRMED"]);
 const IN_ESCROW = new Set(["ESCROW_HELD", "BLOGGER_CONFIRMED"]);
+const TERMINAL = new Set(["COMPLETED", "REFUNDED", "CANCELLED"]);
 
 type Tone = "violet" | "sky" | "amber" | "green";
 const TONE: Record<Tone, { bg: string; fg: string }> = {
@@ -101,16 +102,49 @@ export default function CabinetPage() {
     return [...items].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
   }, [ordersResp]);
 
+  const activeDeals = useMemo(() => orders.filter((o) => ACTIVE.has(o.status)), [orders]);
+  const historyDeals = useMemo(() => orders.filter((o) => TERMINAL.has(o.status)), [orders]);
+
   const stats = useMemo(() => {
-    const active = orders.filter((o) => ACTIVE.has(o.status)).length;
     const escrow = orders.filter((o) => IN_ESCROW.has(o.status)).reduce((sum, o) => sum + o.amount_kopeks, 0);
+    const spent = orders.filter((o) => o.status === "COMPLETED").reduce((sum, o) => sum + o.amount_kopeks, 0);
     const completed = orders.filter((o) => o.status === "COMPLETED").length;
-    return { active, escrow, completed };
+    return { escrow, spent, completed };
   }, [orders]);
 
-  const recent = orders.slice(0, 4);
   const openTickets = tickets?.items.filter((t) => t.status === "open").length ?? 0;
   const displayName = me?.name ?? userName ?? "Аккаунт";
+
+  const statTiles: { value: string; label: string; hint?: string }[] = isBlogger
+    ? [
+        { value: String(activeDeals.length), label: "Активных сделок" },
+        {
+          value: formatMoney(me?.balance_pending_confirmation_kopeks ?? 0),
+          label: "Ожидает выплаты",
+          hint: "переведём после подтверждения",
+        },
+        { value: String(stats.completed), label: "Завершено сделок" },
+      ]
+    : [
+        { value: String(activeDeals.length), label: "Сделок в работе" },
+        { value: formatMoney(stats.escrow), label: "На счёте платформы", hint: "деньги под защитой до результата" },
+        { value: formatMoney(stats.spent), label: "Потрачено всего", hint: "по завершённым сделкам" },
+        { value: String(stats.completed), label: "Завершено сделок" },
+      ];
+
+  const renderDeal = (o: Order) => (
+    <Link key={o.id} href={`/orders/${o.id}`} className={styles.dealRow}>
+      <span className={`${ui.mono} ${styles.dealNo}`}>№&nbsp;{dealNo(o.id, o.created_at)}</span>
+      <span className={styles.dealWho}>
+        <span className={styles.dealName}>{isBlogger ? o.client_name ?? "Заказчик" : o.blogger_name ?? "Автор"}</span>
+        <span className={styles.dealBrief}>{o.message}</span>
+      </span>
+      <span className={styles.dealRight}>
+        <span className={styles.dealAmount}>{formatMoney(o.amount_kopeks)}</span>
+        <StampBadge status={o.status} />
+      </span>
+    </Link>
+  );
 
   // До гидрации/редиректа показываем мягкий скелет вместо гостевого мигания.
   if (!authed) {
@@ -137,7 +171,7 @@ export default function CabinetPage() {
             <p className={styles.sub}>
               {isBlogger
                 ? "Входящие сделки, выплаты и всё по вашим публикациям — в одном месте."
-                : "Ваши сделки, статус денег на счёте платформы и быстрый доступ к каталогу и поддержке — всё здесь."}
+                : "Ваши размещения, статус денег на счёте платформы и быстрый доступ к каталогу, истории и поддержке — всё здесь."}
             </p>
           </div>
           <div className={styles.accountChip}>
@@ -148,44 +182,31 @@ export default function CabinetPage() {
         </header>
 
         <div className={styles.statsRow}>
-          <div className={styles.statCard}>
-            <div className={styles.statValue}>{stats.active}</div>
-            <div className={styles.statLabel}>{isBlogger ? "Активных сделок" : "Сделок в работе"}</div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statValue}>
-              {formatMoney(isBlogger ? me?.balance_pending_confirmation_kopeks ?? 0 : stats.escrow)}
+          {statTiles.map((t) => (
+            <div key={t.label} className={styles.statCard}>
+              <div className={styles.statValue}>{t.value}</div>
+              <div className={styles.statLabel}>{t.label}</div>
+              {t.hint && <div className={styles.statHint}>{t.hint}</div>}
             </div>
-            <div className={styles.statLabel}>{isBlogger ? "Ожидает выплаты" : "На счёте платформы"}</div>
-            <div className={styles.statHint}>
-              {isBlogger ? "переведём после подтверждения" : "деньги под защитой до результата"}
-            </div>
-          </div>
-          <div className={styles.statCard}>
-            <div className={styles.statValue}>{stats.completed}</div>
-            <div className={styles.statLabel}>Завершено сделок</div>
-          </div>
+          ))}
         </div>
 
         <div className={styles.layout}>
-          {/* Последние сделки */}
+          {/* Нынешняя реклама + история */}
           <div className={styles.col}>
             <section className={ui.card} style={{ padding: "22px 24px" }}>
               <div className={styles.panelHead}>
-                <h2 className={styles.panelTitle}>Последние сделки</h2>
-                <Link href="/orders" className={styles.seeAll}>
-                  Все сделки <ArrowRight size={14} />
-                </Link>
+                <h2 className={styles.panelTitle}>{isBlogger ? "Активные сделки" : "Активные размещения"}</h2>
+                {activeDeals.length > 0 && <span className={styles.countPill}>{activeDeals.length}</span>}
               </div>
-
               {ordersLoading ? (
-                <div className={ui.skeleton} style={{ height: 200 }} />
-              ) : recent.length === 0 ? (
-                <div style={{ padding: "6px 0 2px" }}>
+                <div className={ui.skeleton} style={{ height: 140 }} />
+              ) : activeDeals.length === 0 ? (
+                <div style={{ padding: "4px 0 2px" }}>
                   <p className={ui.muted} style={{ margin: "0 0 16px", fontSize: 14.5 }}>
                     {isBlogger
-                      ? "Входящих сделок пока нет — они появятся, когда заказчик оплатит заказ."
-                      : "Вы ещё не создавали сделок. Начните с каталога авторов."}
+                      ? "Сейчас нет активных сделок — они появятся, когда заказчик оплатит заказ."
+                      : "Нет активных размещений. Выберите автора в каталоге и оформите сделку."}
                   </p>
                   {!isBlogger && (
                     <Link href="/catalog" className={ui.btnPrimary}>
@@ -194,23 +215,25 @@ export default function CabinetPage() {
                   )}
                 </div>
               ) : (
-                <div className={styles.dealList}>
-                  {recent.map((o) => (
-                    <Link key={o.id} href={`/orders/${o.id}`} className={styles.dealRow}>
-                      <span className={`${ui.mono} ${styles.dealNo}`}>№&nbsp;{dealNo(o.id, o.created_at)}</span>
-                      <span className={styles.dealWho}>
-                        <span className={styles.dealName}>
-                          {isBlogger ? o.client_name ?? "Заказчик" : o.blogger_name ?? "Автор"}
-                        </span>
-                        <span className={styles.dealBrief}>{o.message}</span>
-                      </span>
-                      <span className={styles.dealRight}>
-                        <span className={styles.dealAmount}>{formatMoney(o.amount_kopeks)}</span>
-                        <StampBadge status={o.status} />
-                      </span>
-                    </Link>
-                  ))}
-                </div>
+                <div className={styles.dealList}>{activeDeals.slice(0, 5).map(renderDeal)}</div>
+              )}
+            </section>
+
+            <section className={ui.card} style={{ padding: "22px 24px" }}>
+              <div className={styles.panelHead}>
+                <h2 className={styles.panelTitle}>{isBlogger ? "История сделок" : "История покупок"}</h2>
+                <Link href="/orders" className={styles.seeAll}>
+                  Все сделки <ArrowRight size={14} />
+                </Link>
+              </div>
+              {ordersLoading ? (
+                <div className={ui.skeleton} style={{ height: 100 }} />
+              ) : historyDeals.length === 0 ? (
+                <p className={ui.muted} style={{ margin: "2px 0", fontSize: 14 }}>
+                  Завершённых сделок пока нет.
+                </p>
+              ) : (
+                <div className={styles.dealList}>{historyDeals.slice(0, 5).map(renderDeal)}</div>
               )}
             </section>
           </div>
@@ -266,6 +289,13 @@ export default function CabinetPage() {
                   </span>
                 </div>
               )}
+              <Link
+                href="/settings"
+                className={`${ui.btnLine} ${ui.btnSmall} ${ui.btnBlock}`}
+                style={{ marginTop: 16, gap: 8 }}
+              >
+                <Settings size={15} /> Настроить аккаунт
+              </Link>
             </section>
 
             {me?.referral_invite_url && (

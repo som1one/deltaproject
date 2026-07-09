@@ -64,7 +64,7 @@
 
 .statsRow {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -160,6 +160,20 @@
 .seeAll:hover {
   gap: 8px;
   color: var(--ink);
+}
+
+.countPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: var(--pill);
+  background: var(--violet-soft);
+  color: var(--violet-ink);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 /* ── Строки сделок ────────────────────────────────────────── */
