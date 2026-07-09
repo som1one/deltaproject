@@ -13,11 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from dependencies.database import get_db
 from enums.user import UserRole
 from models.user import User
+from schemas.auth import AuthTokensResponse
 from schemas.marketplace_auth import (
     ClientLoginRequest,
     ClientRefreshRequest,
     ClientRegisterRequest,
-    TokenResponse,
 )
 from services.marketplace_referral_service import assign_referral, resolve_referral, ReferralAlreadyAssignedError
 from utils.jwt_tokens import (
@@ -31,7 +31,7 @@ from utils.security import hash_password, verify_password
 router = APIRouter(prefix="/marketplace/auth", tags=["marketplace-auth"])
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=AuthTokensResponse, status_code=status.HTTP_201_CREATED)
 async def register_client(
     body: ClientRegisterRequest,
     db: AsyncSession = Depends(get_db),
@@ -82,14 +82,14 @@ async def register_client(
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
 
-    return TokenResponse(
-        access_token=access_token,
+    return AuthTokensResponse(
+        message="Регистрация успешна",
+        token=access_token,
         refresh_token=refresh_token,
-        user_id=user.id,
     )
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=AuthTokensResponse)
 async def login_client(
     body: ClientLoginRequest,
     db: AsyncSession = Depends(get_db),
@@ -125,14 +125,14 @@ async def login_client(
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
 
-    return TokenResponse(
-        access_token=access_token,
+    return AuthTokensResponse(
+        message="Login successful",
+        token=access_token,
         refresh_token=refresh_token,
-        user_id=user.id,
     )
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=AuthTokensResponse)
 async def refresh_tokens(
     body: ClientRefreshRequest,
     db: AsyncSession = Depends(get_db),
@@ -166,8 +166,8 @@ async def refresh_tokens(
     access_token = create_access_token(user.id)
     new_refresh_token = create_refresh_token(user.id)
 
-    return TokenResponse(
-        access_token=access_token,
+    return AuthTokensResponse(
+        message="Token refreshed",
+        token=access_token,
         refresh_token=new_refresh_token,
-        user_id=user.id,
     )

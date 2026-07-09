@@ -63,10 +63,9 @@ async def test_register_success() -> None:
             )
         assert r.status_code == 201
         data = r.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
-        assert data["token_type"] == "bearer"
-        assert "user_id" in data
+        assert data["token"]
+        assert data["refresh_token"]
+        assert "message" in data
     finally:
         app.dependency_overrides.clear()
 
@@ -220,7 +219,7 @@ async def test_register_with_valid_referral() -> None:
                 )
             assert r.status_code == 201
             data = r.json()
-            assert "access_token" in data
+            assert data["token"]
         finally:
             app.dependency_overrides.clear()
 
@@ -292,10 +291,9 @@ async def test_login_success() -> None:
             )
         assert r.status_code == 200
         data = r.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
-        assert data["token_type"] == "bearer"
-        assert data["user_id"] == str(user.id)
+        assert data["token"]
+        assert data["refresh_token"]
+        assert "message" in data
     finally:
         app.dependency_overrides.clear()
 
@@ -410,9 +408,8 @@ async def test_refresh_success() -> None:
             )
         assert r.status_code == 200
         data = r.json()
-        assert "access_token" in data
-        assert "refresh_token" in data
-        assert data["user_id"] == str(user.id)
+        assert data["token"]
+        assert data["refresh_token"]
     finally:
         app.dependency_overrides.clear()
 

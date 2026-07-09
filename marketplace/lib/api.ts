@@ -26,6 +26,25 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Auth endpoints across the platform return `{ message, token, refresh_token }`,
+ * but OAuth-style handlers may send `{ access_token, ... }`. Normalising both
+ * shapes here means a non-atomic deploy of the frontend/backend (separate
+ * Railway services) can never strand the session with an `undefined` token.
+ */
+type RawAuthTokens = {
+  message?: string;
+  token?: string;
+  access_token?: string;
+  refresh_token: string;
+};
+
+const normalizeAuthTokens = (raw: RawAuthTokens): AuthTokensResponse => ({
+  message: raw.message ?? "",
+  token: raw.token ?? raw.access_token ?? "",
+  refresh_token: raw.refresh_token,
+});
+
 let refreshPromise: Promise<string> | null = null;
 
 const refreshAccessToken = async () => {
@@ -43,7 +62,7 @@ const refreshAccessToken = async () => {
         tokenStorage.clear();
         throw new Error("Не удалось обновить сессию");
       }
-      const data = (await response.json()) as Pick<AuthTokensResponse, "token" | "refresh_token">;
+      const data = normalizeAuthTokens((await response.json()) as RawAuthTokens);
       tokenStorage.setTokens(data.token, data.refresh_token);
       return data.token;
     })
@@ -147,23 +166,29 @@ export type OrderCreateBody = {
 
 export const api = {
   // ─── Auth ───────────────────────────────────────────────────────────────────
-  login: (body: { email: string; password: string }) =>
-    request<AuthTokensResponse>("/marketplace/auth/login", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
+  login: async (body: { email: string; password: string }) =>
+    normalizeAuthTokens(
+      await request<RawAuthTokens>("/marketplace/auth/login", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    ),
 
-  register: (body: { email: string; password: string; name: string; referral_code?: string }) =>
-    request<AuthTokensResponse>("/marketplace/auth/register", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
+  register: async (body: { email: string; password: string; name: string; referral_code?: string }) =>
+    normalizeAuthTokens(
+      await request<RawAuthTokens>("/marketplace/auth/register", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    ),
 
-  refreshToken: () =>
-    request<Pick<AuthTokensResponse, "token" | "refresh_token">>("/marketplace/auth/refresh", {
-      method: "POST",
-      body: JSON.stringify({ refresh_token: tokenStorage.readRefreshToken() }),
-    }),
+  refreshToken: async () =>
+    normalizeAuthTokens(
+      await request<RawAuthTokens>("/marketplace/auth/refresh", {
+        method: "POST",
+        body: JSON.stringify({ refresh_token: tokenStorage.readRefreshToken() }),
+      }),
+    ),
 
   logout: () =>
     request<{ message: string }>("/auth/logout", {
@@ -172,11 +197,13 @@ export const api = {
     }),
 
   /** Обмен одноразового SSO-кода главной платформы на JWT-пару. */
-  platformExchange: (code: string) =>
-    request<AuthTokensResponse>("/auth/platform/exchange", {
-      method: "POST",
-      body: JSON.stringify({ code }),
-    }),
+  platformExchange: async (code: string) =>
+    normalizeAuthTokens(
+      await request<RawAuthTokens>("/auth/platform/exchange", {
+        method: "POST",
+        body: JSON.stringify({ code }),
+      }),
+    ),
 
   // ─── User ──────────────────────────────────────────────────────────────────
   getMe: () => request<UserMeRead>("/me", { auth: true }),

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from typing import Annotated
 
 from pydantic import BaseModel, EmailStr, Field
@@ -29,12 +28,3 @@ class ClientRefreshRequest(BaseModel):
     """Запрос на обновление токенов."""
 
     refresh_token: str
-
-
-class TokenResponse(BaseModel):
-    """Ответ с токенами авторизации."""
-
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    user_id: uuid.UUID
