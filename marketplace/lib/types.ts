@@ -62,13 +62,34 @@ export type HeroConfigResponse = {
   authors_by_category: Record<string, BloggerCard[]>;
 };
 
+/** Распределение аудитории по группам с процентами (сумма = 100). */
+export type AudienceGroup = { label: string; percent: number };
+
 export type BloggerProfileFull = BloggerCard & {
   description: string | null;
   portfolio_links: string[];
+  /** Названия публикаций из портфолио, параллельно portfolio_links. */
+  portfolio_titles?: string[] | null;
   social_links: string[];
   preferred_contact: string | null;
   orders_enabled: boolean;
   updated_at: string;
+  /** Возрастные группы аудитории. */
+  audience_age?: AudienceGroup[] | null;
+  /** Пол аудитории — проценты женщин/мужчин. */
+  audience_gender?: { female: number; male: number } | null;
+  /** География аудитории — топ-регионы. */
+  audience_geo?: AudienceGroup[] | null;
+  /** Устройства — Mobile / Desktop / TV с процентами. */
+  audience_devices?: AudienceGroup[] | null;
+  /** Форматы, в которых автор берётся за интеграции. */
+  formats?: string[] | null;
+  /** Средние просмотры одной публикации. */
+  avg_views?: number | null;
+  /** Частота публикаций, свободный текст: «3 видео в неделю». */
+  posting_frequency?: string | null;
+  /** Среднее время ответа автора, свободный текст: «≈ 2 часа». */
+  response_time?: string | null;
 };
 
 export type CatalogResponse = {

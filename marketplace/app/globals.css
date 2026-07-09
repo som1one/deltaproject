@@ -73,8 +73,10 @@
   --shadow-lg: 0 30px 60px -20px rgba(12, 14, 20, 0.24), 0 10px 24px -12px rgba(12, 14, 20, 0.12);
 
   /* ---------- Типографика ---------- */
-  --font:         "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Inter Tight", "Inter", system-ui, sans-serif;
+  --font:         "Manrope", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Manrope", "Inter Tight", system-ui, sans-serif;
+  --font-serif:   "Cormorant Garamond", "EB Garamond", Georgia, "Times New Roman", serif;
+  --font-script:  "Caveat", cursive;
   --font-mono:    "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
 
   /* ---------- Радиусы ---------- */

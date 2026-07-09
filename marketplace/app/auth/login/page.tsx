@@ -152,12 +152,6 @@ function LoginForm() {
             <button type="button" className={ui.btnPrimary} onClick={handleBloggerLogin}>
               Войти через платформу
             </button>
-            <p className={ui.fine} style={{ textAlign: "center" }}>
-              Ещё не сотрудничаете с looney moon?{" "}
-              <a href={appConfig.mainAppUrl} target="_blank" rel="noreferrer" className={ui.link}>
-                Узнать об условиях
-              </a>
-            </p>
           </div>
         </>
       )}

@@ -59,7 +59,7 @@ export const BloggerCardView = ({ blogger }: { blogger: BloggerCardVM; index?: n
   return (
     <Link href={`/bloggers/${blogger.user_id}`} className={styles.card}>
       <div className={styles.media}>
-        <Portrait name={blogger.name} photoUrl={blogger.photo_url} className={styles.portrait} monoSize={64} />
+        <Portrait name={blogger.name} photoUrl={blogger.photo_url} className={styles.portrait} monoSize={104} />
         <span className={styles.scrim} aria-hidden="true" />
 
         <span className={`${styles.chip} ${styles.chipReach}`}>
@@ -74,8 +74,9 @@ export const BloggerCardView = ({ blogger }: { blogger: BloggerCardVM; index?: n
         )}
 
         <div className={styles.caption}>
-          <div className={styles.capTop}>
-            <span className={styles.nichePill}>{categoryLabel(blogger.category)}</span>
+          <span className={styles.nichePill}>{categoryLabel(blogger.category)}</span>
+          <div className={styles.capBottom}>
+            <span className={styles.name}>{blogger.name}</span>
             {platforms.length > 0 && (
               <div className={styles.platforms}>
                 {platforms.map((p) => (
@@ -84,7 +85,6 @@ export const BloggerCardView = ({ blogger }: { blogger: BloggerCardVM; index?: n
               </div>
             )}
           </div>
-          <span className={styles.name}>{blogger.name}</span>
         </div>
       </div>
 

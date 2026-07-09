@@ -19,15 +19,19 @@
 }
 
 .header {
-  padding-bottom: clamp(28px, 4vw, 44px);
-  border-bottom: 1px solid var(--hairline);
+  padding-bottom: clamp(26px, 3.5vw, 40px);
+  border-bottom: 1px solid var(--line);
 }
 
+/* Имя — чистый дисплейный Manrope (как заголовки на главной/в каталоге),
+   а не сериф; размер под профиль, не «геройский». */
 .name {
-  margin-top: 14px;
+  margin-top: 0;
   font-family: var(--font-display);
-  font-size: clamp(34px, 5vw, 56px);
-  line-height: 1.08;
+  font-weight: 800;
+  font-size: clamp(32px, 4.4vw, 48px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
   color: var(--ink);
 }
 
@@ -35,19 +39,53 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  margin-top: 18px;
+  gap: 8px;
+  margin-top: 16px;
 }
 
+/* Ниша и статус — единый язык пилюль: ниша нейтральная, статус зелёный
+   (доступность = green, как остальные trust-акценты; было — грязный violet). */
 .nicheTag {
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 13px;
+  border-radius: var(--pill);
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--brass-ink);
-  border: 1px solid var(--brass);
-  border-radius: var(--r);
-  padding: 5px 11px;
+  letter-spacing: -0.01em;
+}
+
+.statusOpen,
+.statusPaused {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px 6px 11px;
+  border-radius: var(--pill);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.statusOpen::before,
+.statusPaused::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.statusOpen {
+  background: var(--success-soft);
+  color: var(--success-ink);
+}
+
+.statusPaused {
+  background: var(--surface-3);
+  color: var(--muted);
 }
 
 /* ── Раскладка ────────────────────────────────────────────── */
@@ -134,16 +172,402 @@
   transform: translateX(3px);
 }
 
+/* ── Мини-статы под описанием автора ────────────────────────── */
+
+.authorMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px 32px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.authorMetaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.authorMetaVal {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.authorMetaKey {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* ── Аудитория: одна карточка, внутри — три секции. На широких —
+   бок о бок с тонкими разделителями, на узких — стакаются вертикально. */
+
+.audiencePanel {
+  margin-top: 16px;
+  padding: 22px 26px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+
+@media (min-width: 1120px) {
+  .audiencePanel {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+  }
+}
+
+.audienceCol {
+  min-width: 0;
+}
+
+/* На широких — вертикальные разделители между секциями. */
+@media (min-width: 1120px) {
+  .audienceCol {
+    padding: 0 24px;
+  }
+  .audienceCol:first-child { padding-left: 0; }
+  .audienceCol:last-child  { padding-right: 0; }
+  .audienceCol + .audienceCol {
+    border-left: 1px solid var(--line);
+  }
+}
+
+/* На узких — горизонтальные разделители сверху секций (кроме первой). */
+@media (max-width: 1119px) {
+  .audienceCol + .audienceCol {
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+}
+
+.audienceColTitle {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.audienceList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.audienceRow {
+  display: grid;
+  grid-template-columns: 52px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.audienceLabel {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.audienceBar {
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: var(--pill);
+  overflow: hidden;
+}
+
+/* Бары везде в зелёном акценте — тот же цвет, что маркер, эскроу, бейдж. */
+.audienceBar span {
+  display: block;
+  height: 100%;
+  background: var(--success);
+  border-radius: var(--pill);
+}
+
+.audienceVal {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: right;
+  font-size: 12.5px;
+}
+
+/* «Пол» — одна разноцветная полоса вверху колонки, потом легенда-строки
+   с теми же грид-колонками, что и списки возраста/гео → колонки выравнены. */
+.genderTrack {
+  display: flex;
+  height: 8px;
+  border-radius: var(--pill);
+  overflow: hidden;
+  background: var(--surface-3);
+  margin-bottom: 14px;
+}
+
+.genderFemale { background: var(--pink); height: 100%; }
+.genderMale   { background: var(--sky);  height: 100%; }
+
+.genderLegend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* minmax(0,1fr) — label усадится, если колонка узкая; % справа фитит по auto. */
+.genderLegend li {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.dotFemale,
+.dotMale {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  justify-self: center;
+}
+
+.dotFemale { background: var(--pink); }
+.dotMale   { background: var(--sky); }
+
+
+/* ── Форматы работы: чипы ──────────────────────────────────── */
+
+.formatChips {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.formatChip {
+  padding: 8px 14px;
+  background: var(--surface-3);
+  border-radius: var(--pill);
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ── Портфолио: видео-карточки с превью, «play» и названием ── */
+
+.portfolioGrid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.portfolioItem {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  overflow: hidden;
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.portfolioItem:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--line-strong);
+}
+
+.portfolioCover {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+/* Тонкая тёмная виньетка снизу — читаемость логотипа и «play». */
+.portfolioCover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.35) 100%);
+  pointer-events: none;
+}
+
+.portfolioLogo {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 22px;
+  height: 22px;
+  color: rgba(255, 255, 255, 0.95);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
+  z-index: 1;
+}
+
+.portfolioPlay {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: transform var(--dur) var(--ease);
+  z-index: 1;
+}
+
+.portfolioItem:hover .portfolioPlay {
+  transform: translate(-50%, -50%) scale(1.06);
+}
+
+.portfolioPlay svg {
+  width: 20px;
+  height: 20px;
+  margin-left: 3px; /* компенсируем оптический центр треугольника */
+}
+
+.portfolioMeta {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.portfolioTitle {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.32;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.portfolioSub {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+@media (max-width: 520px) {
+  .portfolioGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Площадки: кнопки соцсетей ─────────────────────────────── */
+
+.socialGrid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.socialBtn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.socialBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--hairline-strong);
+}
+
+.socialIcon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  color: #fff;
+  background: var(--stone);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 1px 2px rgba(12, 14, 20, 0.18);
+}
+
+.socialIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.socialMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.socialName {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.socialHandle {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--ink-55);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.socialArrow {
+  flex-shrink: 0;
+  color: var(--ink-40);
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.socialBtn:hover .socialArrow {
+  color: var(--loden);
+  transform: translate(2px, -2px);
+}
+
+@media (max-width: 520px) {
+  .socialGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Карточка заказа (sticky) ─────────────────────────────── */
 
+/* Форма заказа — «панель», а не всплывший мокап: рамка + радиус, без тени.
+   На геро-странице карточки-мокапы «летят» с shadow-md над секциями —
+   здесь она была бы модалкой поверх портрета, поэтому тень убрана. */
 .orderCard {
   position: sticky;
   top: calc(var(--nav-h) + 20px);
-  border: 1px solid var(--hairline-strong);
-  border-top: 2px solid var(--brass);
-  border-radius: var(--r);
-  padding: 26px;
-  background: color-mix(in srgb, var(--bone) 55%, #fff);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: clamp(22px, 2.4vw, 28px);
+  background: var(--surface);
 }
 
 .orderHead {
@@ -158,25 +582,27 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--brass-ink);
+  color: var(--muted);
 }
 
 .orderDealNo {
   font-family: var(--font-mono);
   font-size: 12.5px;
-  color: var(--ink-55);
+  color: var(--faint);
 }
 
+/* Цена — первый и главный элемент карточки, без «шапки» над ней. */
 .orderPrice {
-  margin: 18px 0 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid var(--hairline);
+  margin: 0 0 18px;
 }
 
+/* Цена — как .mockSum на главной: дисплейный шрифт, жирный, плотный трекинг
+   (а не «чековый» моноширинный). */
 .orderPriceValue {
-  font-family: var(--font-mono);
-  font-size: 28px;
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 
@@ -186,11 +612,168 @@
   font-size: 12px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--ink-55);
+  color: var(--muted);
 }
 
-.facts {
-  margin-bottom: 22px;
+/* Маркер под ценой — тот же «живой» штрих, что и на главной (.mark).
+   line-height:1 обязателен: иначе inline-block тянется по строке (1.6),
+   и штрих съезжает по высоте относительно самих цифр. */
+.priceMark {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  line-height: 1;
+  z-index: 0;
+  --mark-shape: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 480 64' preserveAspectRatio='none'><path d='M10,30 C90,15 200,20 300,17 C380,14 440,20 470,27 C480,36 476,49 462,55 C400,64 250,60 150,59 C90,63 44,60 14,53 C3,45 4,37 10,30 Z' fill='%2312a150'/></svg>");
+}
+
+.priceMark::before {
+  content: "";
+  position: absolute;
+  left: -0.14em;
+  right: -0.14em;
+  top: -0.42em;
+  bottom: -0.18em;
+  z-index: -1;
+  background-image: var(--mark-shape);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  opacity: 0.42;
+  mix-blend-mode: var(--mark-blend);
+  transform: rotate(-1.4deg);
+  clip-path: inset(0 100% 0 0);
+  animation:
+    markStroke 1.1s cubic-bezier(0.5, 0, 0.15, 1) 0.3s both,
+    markPulse 5.5s ease-in-out 2s infinite;
+}
+
+.priceMark::after {
+  content: "";
+  position: absolute;
+  left: -0.14em;
+  right: -0.14em;
+  top: -0.42em;
+  bottom: -0.18em;
+  z-index: -1;
+  transform: rotate(-1.4deg);
+  background: linear-gradient(100deg, transparent 44%, rgba(255, 255, 255, 0.5) 50%, transparent 56%);
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  mask-image: var(--mark-shape);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  mix-blend-mode: overlay;
+  opacity: 0;
+  animation: markSheen 5.5s ease-in-out 2.4s infinite;
+}
+
+@keyframes markStroke {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes markPulse {
+  0%, 100% { opacity: 0.4; transform: rotate(-1.4deg) scale(1); }
+  50%      { opacity: 0.5; transform: rotate(-1.7deg) scale(1.008); }
+}
+
+@keyframes markSheen {
+  0%   { background-position: 130% 0; opacity: 0; }
+  10%  { opacity: 0.75; }
+  40%  { background-position: -70% 0; opacity: 0; }
+  100% { background-position: -70% 0; opacity: 0; }
+}
+
+/* Тёмная тема — чистый изумруд и мягкий screen-блик, как на главной. */
+:global(html[data-theme="dark"]) .priceMark {
+  --mark-shape: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 480 64' preserveAspectRatio='none'><path d='M10,30 C90,15 200,20 300,17 C380,14 440,20 470,27 C480,36 476,49 462,55 C400,64 250,60 150,59 C90,63 44,60 14,53 C3,45 4,37 10,30 Z' fill='%2333d391'/></svg>");
+}
+
+:global(html[data-theme="dark"]) .priceMark::after {
+  background: linear-gradient(100deg, transparent 44%, rgba(198, 255, 228, 0.32) 50%, transparent 56%);
+  mix-blend-mode: screen;
+}
+
+/* Стата автора в шапке: рейтинг, охват, ER одной строкой — там же, где имя,
+   не в карточке заказа (она — только про сделку, не «досье-в-досье»). */
+.statRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 22px;
+  margin-top: 20px;
+}
+
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.stat b {
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.statStar {
+  color: var(--amber);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.stat svg {
+  color: var(--muted);
+}
+
+.statSub {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Дата регистрации — тихий бейдж доверия рядом с нишей и статусом. */
+.memberSince {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 13px 6px 10px;
+  border-radius: var(--pill);
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.memberSince svg {
+  flex-shrink: 0;
+  color: var(--green);
+}
+
+/* Список «что вы получаете» перед формой — прогрессив-дисклоужер:
+   сначала выгоды и одна кнопка, форма раскрывается по клику. */
+.perks {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.perk {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.perk svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .amountRow {
@@ -204,27 +787,30 @@
 }
 
 .amountSuffix {
-  font-family: var(--font-mono);
   font-size: 16px;
-  color: var(--ink-55);
+  font-weight: 600;
+  color: var(--muted);
 }
 
+/* Эскроу — зелёная плашка, как .moneyRow на главной (а не текст с разделителем). */
 .secureNote {
   display: flex;
   gap: 10px;
   align-items: flex-start;
   margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--hairline);
-  font-size: 12.5px;
-  line-height: 1.5;
-  color: var(--ink-55);
+  padding: 12px 14px;
+  border-radius: var(--r);
+  background: var(--success-soft);
+  color: var(--success-ink);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .secureNote svg {
   flex-shrink: 0;
   margin-top: 2px;
-  color: var(--loden);
+  color: currentColor;
 }
 
 /* ── Responsive ───────────────────────────────────────────── */

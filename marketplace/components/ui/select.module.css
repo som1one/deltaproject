@@ -1,0 +1,151 @@
+/* ── Кастомный дропдаун ────────────────────────────────────── */
+/* Триггер — в стиле сайта (совпадает с тулбаром); меню — в стиле macOS. */
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  cursor: pointer;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  padding: 10px 14px 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+
+.trigger:hover {
+  border-color: var(--line-strong);
+}
+
+.trigger[data-open] {
+  border-color: var(--ink);
+  background: var(--surface);
+}
+
+.leading {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: -2px;
+  color: var(--faint);
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  color: var(--faint);
+  flex-shrink: 0;
+  transition: transform var(--dur) var(--ease);
+}
+
+.trigger[data-open] .chevron {
+  transform: rotate(180deg);
+  color: var(--ink);
+}
+
+/* ── Меню в стиле macOS (vibrancy + accent-подсветка) ─────── */
+
+.menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: max-content;
+  max-width: min(320px, 92vw);
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 5px;
+  background: rgba(250, 250, 252, 0.72);
+  backdrop-filter: saturate(1.8) blur(22px);
+  border: 0.5px solid rgba(0, 0, 0, 0.14);
+  border-radius: 11px;
+  box-shadow:
+    0 14px 40px -8px rgba(0, 0, 0, 0.3),
+    0 0 0 0.5px rgba(0, 0, 0, 0.05);
+  transform-origin: top center;
+  animation: selectIn 140ms var(--ease);
+}
+
+.menu[data-up] {
+  transform-origin: bottom center;
+  animation-name: selectInUp;
+}
+
+:global(html[data-theme="dark"]) .menu {
+  background: rgba(44, 44, 46, 0.74);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 16px 44px -8px rgba(0, 0, 0, 0.62),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+}
+
+@keyframes selectIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes selectInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 14px 6px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* Левый слот под галочку — всегда занят, чтобы подписи были выровнены. */
+.check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  flex-shrink: 0;
+}
+
+.optLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Подсветка активной строки — фирменный акцент сайта (чёрный/белый по теме),
+   как у кнопок и активной пилюли навигации. */
+.option[data-active] {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu {
+    animation: none;
+  }
+}

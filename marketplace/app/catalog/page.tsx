@@ -3,10 +3,12 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowUpDown } from "lucide-react";
 
 import { MarketShell } from "@/components/shell/shell";
 import { BloggerCardSkeleton, BloggerCardView, type BloggerCardVM } from "@/components/catalog/blogger-card";
 import { Reveal } from "@/components/ui/motion";
+import { Select } from "@/components/ui/select";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { DEFAULT_MARKETPLACE_CATEGORIES, fetchMarketplaceCategories } from "@/lib/marketplace-categories";
@@ -14,6 +16,7 @@ import type { CatalogResponse } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
+import land from "@/components/landing/landing.module.css";
 import styles from "./catalog.module.css";
 
 const PAGE_SIZE = 12;
@@ -104,7 +107,6 @@ function CatalogFallback() {
     <MarketShell>
       <div className={shell.pageContainer}>
         <header className={styles.head}>
-          <span className={ui.brow}>Каталог</span>
           <h1 className={`${ui.display} ${styles.headTitle}`}>Авторы</h1>
         </header>
         <div className={styles.grid}>
@@ -186,6 +188,11 @@ function CatalogContent() {
     [categories],
   );
 
+  const categoryOptions = useMemo(
+    () => [{ value: "", label: "Все ниши" }, ...sortedCategories.map((c) => ({ value: c.value, label: c.label }))],
+    [sortedCategories],
+  );
+
   const resetFilters = () => {
     setCategory("");
     setGender("");
@@ -198,8 +205,9 @@ function CatalogContent() {
     <MarketShell>
       <div className={shell.pageContainer}>
         <Reveal as="header" className={styles.head}>
-          <span className={ui.brow}>Кураторский каталог</span>
-          <h1 className={`${ui.display} ${styles.headTitle}`}>Найдите автора для интеграции</h1>
+          <h1 className={`${ui.display} ${styles.headTitle}`}>
+            Найдите автора для <span className={land.mark}>интеграции</span>
+          </h1>
           <p className={`${ui.lead} ${styles.headLead}`}>
             Каждый профиль проходит ручную модерацию. Фильтруйте по нише, охвату и бюджету —
             остальное берёт на себя безопасная сделка.
@@ -213,57 +221,45 @@ function CatalogContent() {
         )}
 
         <div className={styles.toolbar}>
-          <label className={styles.search}>
-            <span className={styles.searchIcon}>
-              <SearchIcon />
+          <div className={styles.winBar}>
+            <span className={styles.winDots}>
+              <span className={styles.winDot} />
+              <span className={styles.winDot} />
+              <span className={styles.winDot} />
             </span>
-            <input
-              className={styles.searchInput}
-              placeholder="Поиск по имени"
-              aria-label="Поиск по имени или описанию"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </label>
-
-          <div className={styles.filters}>
-          <select className={styles.filterSelect} value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Ниша">
-            <option value="">Все ниши</option>
-            {sortedCategories.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-
-          <select className={styles.filterSelect} value={audience} onChange={(e) => setAudience(e.target.value)} aria-label="Охват">
-            {audienceOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-
-          <select className={styles.filterSelect} value={gender} onChange={(e) => setGender(e.target.value)} aria-label="Пол автора">
-            {genderOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-
-          <select className={styles.filterSelect} value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Сортировка">
-            {sortOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+            <span className={styles.winUrl}>marketplace.looneymoon.ru/catalog</span>
           </div>
 
-          <span className={styles.count}>
-            Найдено: <b>{total}</b>
-          </span>
+          <div className={styles.winBody}>
+            <div className={styles.toolbarTop}>
+              <label className={styles.search}>
+                <span className={styles.searchIcon}>
+                  <SearchIcon />
+                </span>
+                <input
+                  className={styles.searchInput}
+                  placeholder="Поиск по имени"
+                  aria-label="Поиск по имени или описанию"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className={styles.filters}>
+              <Select value={category} onChange={setCategory} options={categoryOptions} ariaLabel="Ниша" />
+              <Select value={audience} onChange={setAudience} options={audienceOptions} ariaLabel="Охват" />
+              <Select value={gender} onChange={setGender} options={genderOptions} ariaLabel="Пол автора" />
+              <Select
+                value={sort}
+                onChange={setSort}
+                options={sortOptions}
+                ariaLabel="Сортировка"
+                className={styles.sortSelect}
+                leadingIcon={<ArrowUpDown size={15} strokeWidth={2} />}
+              />
+            </div>
+          </div>
         </div>
 
         {!demoMode && error ? (

@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { useAuth } from "@/lib/auth-context";
-import { appConfig } from "@/lib/config";
 import { ThemeToggle } from "./theme-toggle";
 
 import styles from "./shell.module.css";
@@ -47,16 +46,25 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
     closeMenu();
   }, [pathname, closeMenu]);
 
-  const navItems: NavItem[] = [
-    { href: "/catalog", label: "Каталог" },
-    { href: "/#how", label: "Как это работает" },
-  ];
-  if (isHydrated && isAuthenticated && isClient) {
-    navItems.push({ href: "/orders", label: "Мои сделки" });
-    navItems.push({ href: "/support", label: "Поддержка" });
-  }
+  // Разделы зависят от роли: гостю — витрина + маркетинг, вошедшим — рабочие разделы.
+  let navItems: NavItem[];
   if (isHydrated && isAuthenticated && isBlogger) {
-    navItems.push({ href: "/blogger", label: "Входящие" });
+    navItems = [
+      { href: "/blogger", label: "Входящие" },
+      { href: "/orders", label: "Мои сделки" },
+      { href: "/support", label: "Поддержка" },
+    ];
+  } else if (isHydrated && isAuthenticated && isClient) {
+    navItems = [
+      { href: "/catalog", label: "Каталог" },
+      { href: "/orders", label: "Мои сделки" },
+      { href: "/support", label: "Поддержка" },
+    ];
+  } else {
+    navItems = [
+      { href: "/", label: "Главная" },
+      { href: "/catalog", label: "Каталог" },
+    ];
   }
 
   const handleLogout = async () => {
@@ -153,46 +161,13 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <div className={styles.footerTop}>
-            <div className={styles.footerBrandBlock}>
-              <Link href="/" className={styles.footerBrand}>
-                <span className={styles.footerBrandText}>
-                  <span className={styles.footerBrandMark}>looney moon</span>
-                  <span className={styles.footerBrandSub}>маркетплейс</span>
-                </span>
-              </Link>
-              <p className={styles.footerText}>
-                Кураторский реестр рекламных размещений. Ручной отбор авторов,
-                безопасная сделка: оплата удерживается платформой до подтверждения публикации.
-              </p>
-            </div>
-            <div className={styles.footerCol}>
-              <span className={styles.footerColTitle}>Маркет</span>
-              <Link href="/catalog" className={styles.footerLink}>Каталог авторов</Link>
-              <Link href="/#how" className={styles.footerLink}>Как проходит сделка</Link>
-              <Link href="/orders" className={styles.footerLink}>Мои сделки</Link>
-              <Link href="/support" className={styles.footerLink}>Поддержка</Link>
-            </div>
-            <div className={styles.footerCol}>
-              <span className={styles.footerColTitle}>Авторам</span>
-              <Link href="/auth/login?role=blogger" className={styles.footerLink}>Вход для авторов</Link>
-              <a href={appConfig.mainAppUrl} className={styles.footerLink} target="_blank" rel="noreferrer">
-                Платформа looney moon
-              </a>
-              <a
-                href={`${appConfig.mainAppUrl}/blogger/profile`}
-                className={styles.footerLink}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Управление профилем
-              </a>
-            </div>
-          </div>
-          <div className={styles.footerBottom}>
-            <span className={styles.footerFine}>© {new Date().getFullYear()} looney moon · сделки под защитой платформы</span>
-            <span className={styles.footerFine}>marketplace.looneymoon.ru</span>
-          </div>
+          <nav className={styles.footerLegal} aria-label="Документы и поддержка">
+            <Link href="/offer" className={styles.footerLegalLink}>Публичная оферта</Link>
+            <Link href="/privacy" className={styles.footerLegalLink}>Политика конфиденциальности</Link>
+            <Link href="/terms" className={styles.footerLegalLink}>Условия использования</Link>
+            <Link href="/support" className={styles.footerLegalLink}>Поддержка</Link>
+          </nav>
+          <span className={styles.footerFine}>© {new Date().getFullYear()} looney moon</span>
         </div>
       </footer>
     </div>
