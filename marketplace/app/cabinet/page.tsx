@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, CreditCard, Gift, LayoutGrid, LifeBuoy, Receipt, Settings } from "lucide-react";
+import { ArrowRight, CreditCard, Gift, Settings } from "lucide-react";
 
 import { MarketShell } from "@/components/shell/shell";
 import { CopyButton, StampBadge } from "@/components/ui/bits";
@@ -23,42 +23,6 @@ import styles from "./cabinet.module.css";
 const ACTIVE = new Set(["PENDING_PAYMENT", "ESCROW_HELD", "BLOGGER_CONFIRMED"]);
 const IN_ESCROW = new Set(["ESCROW_HELD", "BLOGGER_CONFIRMED"]);
 const TERMINAL = new Set(["COMPLETED", "REFUNDED", "CANCELLED"]);
-
-type Tone = "violet" | "sky" | "amber" | "green";
-const TONE: Record<Tone, { bg: string; fg: string }> = {
-  violet: { bg: "var(--violet-soft)", fg: "var(--violet)" },
-  sky: { bg: "var(--sky-soft)", fg: "var(--sky)" },
-  amber: { bg: "var(--amber-soft)", fg: "var(--amber)" },
-  green: { bg: "var(--green-soft)", fg: "var(--green)" },
-};
-
-function Action({
-  href,
-  icon,
-  title,
-  sub,
-  tone,
-}: {
-  href: string;
-  icon: ReactNode;
-  title: string;
-  sub: string;
-  tone: Tone;
-}) {
-  const t = TONE[tone];
-  return (
-    <Link href={href} className={styles.action}>
-      <span className={styles.actionIcon} style={{ background: t.bg, color: t.fg }}>
-        {icon}
-      </span>
-      <span className={styles.actionText}>
-        <span className={styles.actionTitle}>{title}</span>
-        <span className={styles.actionSub}>{sub}</span>
-      </span>
-      <ArrowRight size={16} className={styles.actionArrow} />
-    </Link>
-  );
-}
 
 function Row({ k, v }: { k: string; v: string }) {
   return (
@@ -91,12 +55,6 @@ export default function CabinetPage() {
     enabled: authed,
   });
 
-  const { data: tickets } = useQuery({
-    queryKey: ["marketplace-support-tickets"],
-    queryFn: () => api.getTickets("?page_size=50"),
-    enabled: authed,
-  });
-
   const orders = useMemo(() => {
     const items = ordersResp?.items ?? [];
     return [...items].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
@@ -112,24 +70,19 @@ export default function CabinetPage() {
     return { escrow, spent, completed };
   }, [orders]);
 
-  const openTickets = tickets?.items.filter((t) => t.status === "open").length ?? 0;
   const displayName = me?.name ?? userName ?? "Аккаунт";
 
-  const statTiles: { value: string; label: string; hint?: string }[] = isBlogger
+  const statTiles: { value: string; label: string }[] = isBlogger
     ? [
-        { value: String(activeDeals.length), label: "Активных сделок" },
-        {
-          value: formatMoney(me?.balance_pending_confirmation_kopeks ?? 0),
-          label: "Ожидает выплаты",
-          hint: "переведём после подтверждения",
-        },
-        { value: String(stats.completed), label: "Завершено сделок" },
+        { value: String(activeDeals.length), label: "активных" },
+        { value: formatMoney(me?.balance_pending_confirmation_kopeks ?? 0), label: "ожидает выплаты" },
+        { value: String(stats.completed), label: "завершено" },
       ]
     : [
-        { value: String(activeDeals.length), label: "Сделок в работе" },
-        { value: formatMoney(stats.escrow), label: "На счёте платформы", hint: "деньги под защитой до результата" },
-        { value: formatMoney(stats.spent), label: "Потрачено всего", hint: "по завершённым сделкам" },
-        { value: String(stats.completed), label: "Завершено сделок" },
+        { value: String(activeDeals.length), label: "в работе" },
+        { value: formatMoney(stats.escrow), label: "на счёте" },
+        { value: formatMoney(stats.spent), label: "потрачено" },
+        { value: String(stats.completed), label: "завершено" },
       ];
 
   const renderDeal = (o: Order) => (
@@ -164,14 +117,13 @@ export default function CabinetPage() {
       <div className={shell.pageContainer}>
         <header className={styles.head}>
           <div>
-            <span className={ui.brow}>Личный кабинет</span>
             <h1 className={styles.greeting}>
               С возвращением, <span className={s.mark}>{displayName}</span>
             </h1>
             <p className={styles.sub}>
               {isBlogger
                 ? "Входящие сделки, выплаты и всё по вашим публикациям — в одном месте."
-                : "Ваши размещения, статус денег на счёте платформы и быстрый доступ к каталогу, истории и поддержке — всё здесь."}
+                : "Ваши размещения, статус денег на счёте платформы и история покупок — всё здесь."}
             </p>
           </div>
           <div className={styles.accountChip}>
@@ -181,12 +133,11 @@ export default function CabinetPage() {
           </div>
         </header>
 
-        <div className={styles.statsRow}>
+        <div className={styles.statBar}>
           {statTiles.map((t) => (
-            <div key={t.label} className={styles.statCard}>
-              <div className={styles.statValue}>{t.value}</div>
-              <div className={styles.statLabel}>{t.label}</div>
-              {t.hint && <div className={styles.statHint}>{t.hint}</div>}
+            <div key={t.label} className={styles.statItem}>
+              <span className={styles.statNum}>{t.value}</span>
+              <span className={styles.statText}>{t.label}</span>
             </div>
           ))}
         </div>
@@ -238,37 +189,8 @@ export default function CabinetPage() {
             </section>
           </div>
 
-          {/* Действия · аккаунт · реферал */}
+          {/* Аккаунт · реферал */}
           <aside className={styles.col}>
-            <section className={ui.card} style={{ padding: "18px 20px" }}>
-              <h2 className={styles.panelTitle} style={{ marginBottom: 14 }}>
-                Быстрые действия
-              </h2>
-              <div className={styles.actionGrid}>
-                {isBlogger ? (
-                  <Action href="/orders" icon={<Receipt size={18} />} tone="violet" title="Мои сделки" sub="Входящие и история" />
-                ) : (
-                  <>
-                    <Action
-                      href="/catalog"
-                      icon={<LayoutGrid size={18} />}
-                      tone="violet"
-                      title="Каталог авторов"
-                      sub="Найти блогера и оформить сделку"
-                    />
-                    <Action href="/orders" icon={<Receipt size={18} />} tone="sky" title="Мои сделки" sub="Статусы и оплата" />
-                  </>
-                )}
-                <Action
-                  href="/support"
-                  icon={<LifeBuoy size={18} />}
-                  tone="amber"
-                  title="Поддержка и споры"
-                  sub={openTickets > 0 ? `${openTickets} в работе` : "Помощь по сделке"}
-                />
-              </div>
-            </section>
-
             <section className={ui.card} style={{ padding: "18px 20px" }}>
               <h2 className={styles.panelTitle} style={{ marginBottom: 14 }}>
                 Аккаунт

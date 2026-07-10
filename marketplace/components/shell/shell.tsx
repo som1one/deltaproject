@@ -3,7 +3,8 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
 import { ThemeToggle } from "./theme-toggle";
@@ -12,13 +13,22 @@ import styles from "./shell.module.css";
 
 type NavItem = { href: string; label: string };
 
+// Пункты меню аккаунта (десктоп-дропдаун и мобильная панель используют один список).
+const ACCOUNT_LINKS: NavItem[] = [
+  { href: "/cabinet", label: "Кабинет" },
+  { href: "/settings", label: "Настройки" },
+  { href: "/support", label: "Поддержка" },
+];
+
 export const MarketShell = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
   const reduceMotion = useReducedMotion() ?? false;
   const { isHydrated, isAuthenticated, isBlogger, isClient, userName, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [acctOpen, setAcctOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const acctRef = useRef<HTMLDivElement>(null);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
   useEffect(() => {
@@ -42,9 +52,27 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
     };
   }, [menuOpen]);
 
+  // Меню аккаунта: закрытие по клику вне и Escape.
   useEffect(() => {
-    closeMenu();
-  }, [pathname, closeMenu]);
+    if (!acctOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (acctRef.current && !acctRef.current.contains(e.target as Node)) setAcctOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAcctOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [acctOpen]);
+
+  useEffect(() => {
+    setMenuOpen(false);
+    setAcctOpen(false);
+  }, [pathname]);
 
   // Разделы зависят от роли. «Главная» остаётся всегда — это точка возврата
   // и якорь навигации; без неё меню после входа ощущается обрезанным.
@@ -71,11 +99,14 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
   }
 
   const handleLogout = async () => {
+    setAcctOpen(false);
+    closeMenu();
     await logout();
     router.push("/");
   };
 
   const authed = isHydrated && isAuthenticated;
+  const initial = (userName?.trim()?.charAt(0) || "А").toUpperCase();
 
   return (
     <div className={styles.shell}>
@@ -108,13 +139,41 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
           <div className={styles.actions}>
             <ThemeToggle />
             {authed ? (
-              <span className={styles.userChip}>
-                <span className={styles.userRole}>{isBlogger ? "автор" : "заказчик"}</span>
-                <span className={styles.userName}>{userName ?? "Аккаунт"}</span>
-                <button type="button" className={styles.logoutBtn} onClick={handleLogout}>
-                  Выйти
+              <div className={styles.account} ref={acctRef}>
+                <button
+                  type="button"
+                  className={styles.accountTrigger}
+                  onClick={() => setAcctOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={acctOpen}
+                >
+                  <span className={styles.avatar} aria-hidden="true">{initial}</span>
+                  <span className={styles.accountName}>{userName ?? "Аккаунт"}</span>
+                  <ChevronDown size={15} className={styles.accountCaret} data-open={acctOpen} />
                 </button>
-              </span>
+                {acctOpen && (
+                  <div className={styles.accountMenu} role="menu">
+                    <div className={styles.accountMenuHead}>
+                      <span className={styles.accountMenuName}>{userName ?? "Аккаунт"}</span>
+                      <span className={styles.accountMenuRole}>{isBlogger ? "автор" : "заказчик"}</span>
+                    </div>
+                    {ACCOUNT_LINKS.map(({ href, label }) => (
+                      <Link
+                        key={href}
+                        href={href}
+                        role="menuitem"
+                        className={styles.accountMenuItem}
+                        onClick={() => setAcctOpen(false)}
+                      >
+                        {label}
+                      </Link>
+                    ))}
+                    <button type="button" role="menuitem" className={styles.accountMenuLogout} onClick={handleLogout}>
+                      Выйти
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <Link href="/auth/login" className={styles.ctaDesktop}>
                 Войти
@@ -152,7 +211,25 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
                     </Link>
                   </li>
                 ))}
-                {!authed && (
+                {authed ? (
+                  <>
+                    <li>
+                      <Link href="/settings" className={styles.mobileLink} onClick={closeMenu}>
+                        Настройки
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/support" className={styles.mobileLink} onClick={closeMenu}>
+                        Поддержка
+                      </Link>
+                    </li>
+                    <li>
+                      <button type="button" className={styles.mobileLogout} onClick={handleLogout}>
+                        Выйти
+                      </button>
+                    </li>
+                  </>
+                ) : (
                   <li>
                     <Link href="/auth/login" className={styles.mobileLink} onClick={closeMenu}>
                       Войти

@@ -62,47 +62,54 @@
 
 /* ── Ключевые цифры ───────────────────────────────────────── */
 
-.statsRow {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.statCard {
-  padding: 20px 22px;
+/* Компактная строка вместо крупных плиток — цифры на виду, без «стены нулей». */
+.statBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 4px;
+  padding: 14px 22px;
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
+  margin-bottom: 24px;
 }
 
-.statValue {
+.statItem {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 22px;
+  border-right: 1px solid var(--line);
+}
+
+.statItem:first-child {
+  padding-left: 0;
+}
+
+.statItem:last-child {
+  border-right: none;
+}
+
+.statNum {
   font-family: var(--font-display);
-  font-size: clamp(26px, 3vw, 32px);
+  font-size: 19px;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
+  letter-spacing: -0.01em;
   color: var(--ink);
+  white-space: nowrap;
 }
 
-.statLabel {
-  margin-top: 8px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--text);
+.statText {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
-.statHint {
-  margin-top: 3px;
-  font-size: 12px;
-  color: var(--faint);
-}
-
-@media (max-width: 720px) {
-  .statsRow {
-    grid-template-columns: 1fr;
-    gap: 12px;
+@media (max-width: 620px) {
+  .statItem {
+    padding: 6px 16px;
   }
 }
 
