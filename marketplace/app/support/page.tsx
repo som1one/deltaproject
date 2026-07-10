@@ -91,6 +91,9 @@ function SupportContent() {
             <h1 className={styles.headTitle}>
               <span className={s.mark}>Поддержка</span>
             </h1>
+            <p className={styles.headSub}>
+              Ответим на вопрос по сделке, оплате или работе площадки — выберите тему и опишите ситуацию.
+            </p>
           </div>
         </header>
 
