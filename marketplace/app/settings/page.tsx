@@ -13,6 +13,7 @@ import type { UserMeRead } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
+import s from "@/components/landing/landing.module.css";
 import styles from "./settings.module.css";
 
 type Notice = { tone: "success" | "danger"; text: string } | null;
@@ -106,7 +107,9 @@ export default function SettingsPage() {
           <Link href="/cabinet" className={styles.backLink}>
             <ArrowLeft size={15} /> В кабинет
           </Link>
-          <h1 className={styles.title}>Настройки аккаунта</h1>
+          <h1 className={styles.title}>
+            Настройки <span className={s.mark}>аккаунта</span>
+          </h1>
         </header>
 
         <div className={styles.sections}>
