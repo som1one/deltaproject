@@ -1058,6 +1058,7 @@
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
+    margin-bottom: 14px;
   }
 
   .shotSearch {
@@ -1086,6 +1087,7 @@
     display: flex;
     grid-template-columns: none;
     gap: 12px;
+    min-height: 0;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
@@ -1101,6 +1103,30 @@
   .shotGrid .creatorCard {
     flex: 0 0 82%;
     scroll-snap-align: center;
+  }
+
+  /* Мокап заметно ниже на мобилке: короче график, плотнее отступы карточки */
+  .creatorCard {
+    padding: 12px 13px;
+  }
+
+  .caChart {
+    height: 28px;
+    margin: 9px 0 8px;
+  }
+
+  .caMetrics {
+    padding-top: 9px;
+  }
+
+  .caFoot {
+    margin-top: 9px;
+  }
+
+  .shotFooter {
+    margin-top: 12px;
+    padding-top: 12px;
+    min-height: 0;
   }
 
   .floatDeal {
