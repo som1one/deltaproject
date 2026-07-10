@@ -12,7 +12,15 @@ import {
 } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, PackagePlus, SendHorizontal, ShieldAlert, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  PackagePlus,
+  Paperclip,
+  SendHorizontal,
+  ShieldAlert,
+  X,
+} from "lucide-react";
 
 import { Modal, Portrait, StarRating } from "@/components/ui/bits";
 import { categoryLabel } from "@/components/catalog/blogger-card";
@@ -21,6 +29,7 @@ import { OfferModal } from "@/components/chat/offer-modal";
 import { dayKey, dayLabel, plural, roleCaption, timeShort } from "@/components/chat/chat-utils";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { resolveUploadUrl } from "@/lib/config";
 import { formatDate } from "@/lib/format";
 import type { ChatMessage, Conversation as ConversationData, UserPeek } from "@/lib/types";
 
@@ -191,6 +200,41 @@ export function Conversation({ partnerId }: { partnerId: string }) {
     }
   };
 
+  /* ── Вложения: загрузка картинки → сообщение kind=image ──── */
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const sendAttachment = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setSendError("Можно отправлять только изображения: JPEG, PNG, WebP, GIF.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setSendError("Файл больше 5 МБ — сожмите изображение и попробуйте снова.");
+      return;
+    }
+    setSendError(null);
+    setUploading(true);
+    try {
+      const { url } = await api.uploadImage(file);
+      // Текст из композера уходит подписью к фото
+      const caption = text.trim();
+      await api.sendMessage({ recipient_id: partnerId, text: caption, attachment_url: url });
+      if (caption) {
+        setText("");
+        requestAnimationFrame(autogrow);
+      }
+      stickRef.current = true;
+      queryClient.invalidateQueries({ queryKey: convKey });
+      queryClient.invalidateQueries({ queryKey: ["chat-threads"] });
+    } catch (e) {
+      setSendError(e instanceof Error && e.message ? e.message : "Не удалось отправить файл.");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
   /* ── Модалки ──────────────────────────────────────────────── */
   const [peekOpen, setPeekOpen] = useState(false);
   const [offerOpen, setOfferOpen] = useState(false);
@@ -310,6 +354,30 @@ export function Conversation({ partnerId }: { partnerId: string }) {
           >
             <PackagePlus size={18} strokeWidth={2} />
           </button>
+          <button
+            type="button"
+            className={st.plusBtn}
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            aria-label="Прикрепить изображение"
+            title="Прикрепить изображение"
+          >
+            {uploading ? (
+              <Loader2 size={18} strokeWidth={2} className={st.spin} />
+            ) : (
+              <Paperclip size={18} strokeWidth={2} />
+            )}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void sendAttachment(file);
+            }}
+          />
           <textarea
             ref={textareaRef}
             className={st.composerInput}
@@ -374,6 +442,28 @@ function MessageRow({ msg, partnerId }: { msg: ChatMessage; partnerId: string })
     return (
       <motion.div {...appear}>
         <OfferCard msg={msg} partnerId={partnerId} />
+      </motion.div>
+    );
+  }
+
+  if (msg.kind === "image") {
+    const src = resolveUploadUrl(msg.payload?.attachment_url ?? null);
+    return (
+      <motion.div className={`${st.msgRow} ${mine ? st.msgRowOut : ""}`.trim()} {...appear}>
+        <div
+          className={`${st.bubble} ${st.bubbleImg} ${mine ? st.bubbleOut : st.bubbleIn} ${pending ? st.pending : ""}`.trim()}
+        >
+          {src && (
+            <a href={src} target="_blank" rel="noopener noreferrer" className={st.msgImageLink}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt="Изображение из чата" className={st.msgImage} loading="lazy" />
+            </a>
+          )}
+          {msg.text && <span className={st.msgImageCaption}>{msg.text}</span>}
+          <span className={`${st.bubbleTime} ${msg.text ? "" : st.bubbleTimeOverlay}`.trim()}>
+            {timeShort(msg.created_at)}
+          </span>
+        </div>
       </motion.div>
     );
   }

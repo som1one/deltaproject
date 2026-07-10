@@ -4,22 +4,31 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class MessageSendRequest(BaseModel):
-    """Запрос на отправку сообщения на маркетплейсе."""
+    """Запрос на отправку сообщения на маркетплейсе.
+
+    Либо текст, либо картинка из /marketplace/uploads (можно вместе).
+    """
 
     recipient_id: uuid.UUID
-    text: Annotated[str, Field(min_length=1, max_length=2000)]
+    text: Annotated[str, Field(max_length=2000)] = ""
+    # Путь вида /uploads/<uuid>.<ext>, выданный эндпоинтом загрузки
+    attachment_url: Annotated[str, Field(max_length=300)] | None = None
 
-    @field_validator("text")
-    @classmethod
-    def validate_text_not_whitespace(cls, v: str) -> str:
-        """Текст сообщения не должен состоять только из пробелов."""
-        if not v.strip():
-            raise ValueError("Сообщение не может состоять только из пробелов")
-        return v
+    @model_validator(mode="after")
+    def validate_content(self) -> "MessageSendRequest":
+        """Пустое сообщение допустимо только с вложением."""
+        if not self.text.strip() and not self.attachment_url:
+            raise ValueError("Сообщение не может быть пустым")
+        if self.attachment_url is not None and (
+            not self.attachment_url.startswith("/uploads/")
+            or ".." in self.attachment_url
+        ):
+            raise ValueError("Недопустимая ссылка на вложение")
+        return self
 
 
 class MessageResponse(BaseModel):

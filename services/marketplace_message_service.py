@@ -27,20 +27,23 @@ async def send_message(
     kind: str = "text",
     order_id: uuid.UUID | None = None,
     payload: dict | None = None,
+    attachment_url: str | None = None,
 ) -> MarketplaceMessage:
     """Отправить сообщение на маркетплейсе.
 
-    Валидирует текст (1–2000 символов, не только пробелы), проверяет
-    существование получателя, сохраняет сообщение и создаёт уведомление.
+    Валидирует текст (1–2000 символов, не только пробелы; пустой текст
+    допустим при вложении), проверяет существование получателя,
+    сохраняет сообщение и создаёт уведомление.
 
     Args:
         db: Async database session.
         sender_id: UUID отправителя.
         recipient_id: UUID получателя.
         text: Текст сообщения.
-        kind: 'text' | 'offer' | 'system'.
+        kind: 'text' | 'image' | 'offer' | 'system'.
         order_id: Привязка к заказу для offer/system-сообщений.
         payload: Снапшот условий оффера для карточки в чате.
+        attachment_url: Картинка из /marketplace/uploads (kind станет 'image').
 
     Returns:
         Созданный объект MarketplaceMessage.
@@ -48,7 +51,7 @@ async def send_message(
     Raises:
         ValueError: Если текст или получатель не проходят валидацию.
     """
-    if not text or not text.strip():
+    if (not text or not text.strip()) and attachment_url is None:
         raise ValueError("Сообщение не может быть пустым или состоять только из пробелов")
     if len(text) > 2000:
         raise ValueError("Сообщение не может превышать 2000 символов")
@@ -65,10 +68,14 @@ async def send_message(
     if recipient.role not in (UserRole.CLIENT, UserRole.BLOGER):
         raise ValueError("Получатель недоступен для переписки")
 
+    if attachment_url is not None:
+        kind = "image"
+        payload = {**(payload or {}), "attachment_url": attachment_url}
+
     message = MarketplaceMessage(
         sender_id=sender_id,
         recipient_id=recipient_id,
-        text=text,
+        text=text.strip(),
         kind=kind,
         order_id=order_id,
         payload=payload,

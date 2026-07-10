@@ -620,6 +620,55 @@
   align-self: flex-end;
 }
 
+/* ── Картинки в сообщениях ────────────────────────────────── */
+
+.bubbleImg {
+  padding: 4px;
+  max-width: min(320px, 78%);
+}
+
+.msgImageLink {
+  display: block;
+  line-height: 0;
+}
+
+.msgImage {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.msgImageCaption {
+  display: block;
+  /* Справа — место под абсолютное время в углу пузыря */
+  padding: 6px 44px 6px 10px;
+  line-height: 1.45;
+}
+
+/* Без подписи время лежит поверх картинки — подложка для читаемости */
+.bubbleTimeOverlay {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  margin: 0;
+  padding: 2px 7px;
+  border-radius: var(--pill);
+  background: rgba(0, 0, 0, 0.55);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.spin {
+  animation: chatSpin 0.9s linear infinite;
+}
+
+@keyframes chatSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ── Композер ─────────────────────────────────────────────── */
 
 .composerBox {
@@ -680,7 +729,8 @@
 }
 
 .composerInput:focus {
-  border-color: var(--ink);
+  /* Едва заметный фокус: яркая рамка (--ink) в тёмной теме белая и режет глаз */
+  border-color: var(--surface-4);
 }
 
 .composerInput::placeholder {

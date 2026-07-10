@@ -30,7 +30,7 @@ export function ThreadList({ activePartnerId }: { activePartnerId?: string }) {
   return (
     <>
       <div className={st.sideHead}>
-        <span>Диалоги</span>
+        <span>Входящие</span>
         {data != null && data.total_unread > 0 && (
           <span className={st.unread}>{data.total_unread > 99 ? "99+" : data.total_unread}</span>
         )}

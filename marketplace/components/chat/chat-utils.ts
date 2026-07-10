@@ -40,8 +40,11 @@ export const dayKey = (iso: string): string => {
 };
 
 /** Превью последнего сообщения в списке тредов. */
-export const previewText = (message: ChatMessage): string =>
-  message.kind === "offer" ? "📋 Предложение услуги" : message.text;
+export const previewText = (message: ChatMessage): string => {
+  if (message.kind === "offer") return "📋 Предложение услуги";
+  if (message.kind === "image") return message.text ? `📷 ${message.text}` : "📷 Фото";
+  return message.text;
+};
 
 /** Роль собеседника человеческим словом. */
 export const roleCaption = (partner: ChatPartner): string =>

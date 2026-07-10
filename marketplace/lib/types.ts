@@ -246,7 +246,7 @@ export type OrderDetail = Order & {
 
 /* ── Чаты ──────────────────────────────────────────────────── */
 
-export type MessageKind = "text" | "offer" | "system";
+export type MessageKind = "text" | "image" | "offer" | "system";
 
 export type ChatMessage = {
   id: string;
@@ -255,7 +255,7 @@ export type ChatMessage = {
   text: string;
   kind: MessageKind;
   order_id: string | null;
-  /** Снапшот условий оффера для карточки в чате. */
+  /** Снапшот условий оффера / вложение для карточки в чате. */
   payload: {
     order_id?: string;
     service_type_name?: string | null;
@@ -264,6 +264,7 @@ export type ChatMessage = {
     publish_at?: string | null;
     message?: string;
     status?: string;
+    attachment_url?: string;
   } | null;
   is_read: boolean;
   created_at: string;

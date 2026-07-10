@@ -368,7 +368,7 @@ export const api = {
       auth: true,
     }),
 
-  sendMessage: (body: { recipient_id: string; text: string }) =>
+  sendMessage: (body: { recipient_id: string; text: string; attachment_url?: string }) =>
     request<ChatMessage>("/marketplace/messages", {
       method: "POST",
       auth: true,

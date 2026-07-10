@@ -1059,3 +1059,58 @@
   line-height: 1.55;
   color: var(--muted);
 }
+
+/* ── Премиум: полировка ───────────────────────────────────── */
+
+/* Тонкая золотая линия по верхней кромке — «дорогой» акцент */
+.premiumTopline {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(245, 165, 36, 0.9) 30%, rgba(251, 191, 90, 0.9) 70%, transparent);
+  pointer-events: none;
+}
+
+.premiumSpark {
+  color: #fbbf5a;
+}
+
+.premiumList {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.premiumItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.premiumItemIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  border-radius: 7px;
+  background: rgba(251, 191, 90, 0.14);
+  color: #fbbf5a;
+}
+
+/* Модалка: суть премиума той же тёмной панелью, что и плашка */
+.pmIntro {
+  position: relative;
+  overflow: hidden;
+  padding: 16px;
+  border-radius: var(--r-md);
+  background: var(--panel-ink);
+}

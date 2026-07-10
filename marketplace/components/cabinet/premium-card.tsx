@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock3, PhoneCall, Sparkles } from "lucide-react";
+import { BadgeCheck, Clock3, Eye, PhoneCall, Sparkles, TrendingUp } from "lucide-react";
 
 import { Modal } from "@/components/ui/bits";
 import { api, ApiError } from "@/lib/api";
@@ -12,6 +12,13 @@ import type { PremiumRequest } from "@/lib/types";
 import ui from "@/components/ui/ui.module.css";
 import { PREMIUM_LATEST_KEY } from "./keys";
 import s from "./cabinet.module.css";
+
+/** Что даёт премиум — коротко, для плашки и модалки. */
+const PERKS = [
+  { icon: Eye, text: "Первый экран у каждого заказчика платформы" },
+  { icon: TrendingUp, text: "Основной трафик — на вашу карточку" },
+  { icon: BadgeCheck, text: "Читается как рекомендация площадки" },
+];
 
 /**
  * Тёмная CTA-плашка «Премиум-размещение на главной».
@@ -49,14 +56,26 @@ export function PremiumCard() {
 
   return (
     <section className={s.premium}>
+      <span className={s.premiumTopline} aria-hidden="true" />
       <div className={s.premiumGlow} aria-hidden="true" />
       <span className={s.premiumBrow}>
-        <Sparkles size={13} /> Премиум
+        <Sparkles size={13} className={s.premiumSpark} /> Премиум
       </span>
       <h2 className={s.premiumTitle}>Ваша карточка — в витрине на главной</h2>
       <p className={s.premiumText}>
-        Первым экраном для всех заказчиков платформы. Оставьте заявку — обсудим условия и подберём слот.
+        Оставьте заявку — менеджер подберёт слот и вернётся с условиями.
       </p>
+
+      <ul className={s.premiumList}>
+        {PERKS.map((perk) => (
+          <li key={perk.text} className={s.premiumItem}>
+            <span className={s.premiumItemIcon}>
+              <perk.icon size={13} strokeWidth={2.2} />
+            </span>
+            {perk.text}
+          </li>
+        ))}
+      </ul>
 
       {alive ? (
         <div className={s.premiumStatus}>
@@ -74,8 +93,26 @@ export function PremiumCard() {
       )}
 
       <Modal open={open} onClose={() => setOpen(false)} title="Премиум-размещение" maxWidth={480}>
-        <p className={ui.muted} style={{ margin: "0 0 14px", fontSize: 14, lineHeight: 1.55 }}>
-          Расскажите пару слов о себе и удобном способе связи — менеджер платформы вернётся с условиями.
+        {/* Суть премиума — той же тёмной панелью, что и плашка */}
+        <div className={s.pmIntro}>
+          <span className={s.premiumTopline} aria-hidden="true" />
+          <span className={s.premiumBrow}>
+            <Sparkles size={13} className={s.premiumSpark} /> Что это даёт
+          </span>
+          <ul className={s.premiumList} style={{ marginTop: 10 }}>
+            {PERKS.map((perk) => (
+              <li key={perk.text} className={s.premiumItem}>
+                <span className={s.premiumItemIcon}>
+                  <perk.icon size={13} strokeWidth={2.2} />
+                </span>
+                {perk.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className={ui.muted} style={{ margin: "14px 0", fontSize: 13.5, lineHeight: 1.55 }}>
+          Расскажите пару слов о себе — менеджер платформы вернётся с условиями и свободными слотами.
         </p>
         <label className={ui.field}>
           <span className={ui.fieldLabel}>Комментарий</span>
