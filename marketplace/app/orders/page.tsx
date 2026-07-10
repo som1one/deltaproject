@@ -15,6 +15,7 @@ import type { OrdersResponse } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
+import s from "@/components/landing/landing.module.css";
 import styles from "./orders.module.css";
 
 export default function OrdersPage() {
@@ -40,8 +41,9 @@ export default function OrdersPage() {
       <div className={shell.pageContainer}>
         <header className={styles.head}>
           <div>
-            <span className={ui.brow}>{isBlogger ? "Входящие и история" : "Ваши сделки"}</span>
-            <h1 className={styles.headTitle}>Реестр сделок</h1>
+            <h1 className={styles.headTitle}>
+              Реестр <span className={s.mark}>сделок</span>
+            </h1>
           </div>
           {!isBlogger && (
             <Link href="/catalog" className={ui.btnLine}>

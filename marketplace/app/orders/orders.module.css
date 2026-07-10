@@ -17,6 +17,7 @@
   font-family: var(--font-display);
   font-size: clamp(32px, 5vw, 52px);
   line-height: 1.08;
+  letter-spacing: -0.025em;
   color: var(--ink);
 }
 
@@ -89,13 +90,13 @@
 }
 
 .orderRow:hover {
-  background: var(--stone);
+  background: var(--surface-2);
 }
 
 .orderNum {
   font-family: var(--font-mono);
   font-size: 13px;
-  color: var(--brass);
+  color: var(--violet-ink);
   white-space: nowrap;
 }
 
