@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, CreditCard, Gift, Settings } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CreditCard, Gift, Settings } from "lucide-react";
 
 import { MarketShell } from "@/components/shell/shell";
 import { CopyButton, StampBadge } from "@/components/ui/bits";
@@ -72,17 +72,17 @@ export default function CabinetPage() {
 
   const displayName = me?.name ?? userName ?? "Аккаунт";
 
-  const statTiles: { value: string; label: string }[] = isBlogger
+  const statTiles: { value: string; label: string; href: string }[] = isBlogger
     ? [
-        { value: String(activeDeals.length), label: "активных" },
-        { value: formatMoney(me?.balance_pending_confirmation_kopeks ?? 0), label: "ожидает выплаты" },
-        { value: String(stats.completed), label: "завершено" },
+        { value: String(activeDeals.length), label: "активных", href: "#active-placements" },
+        { value: formatMoney(me?.balance_pending_confirmation_kopeks ?? 0), label: "ожидает выплаты", href: "/orders" },
+        { value: String(stats.completed), label: "завершено", href: "#history" },
       ]
     : [
-        { value: String(activeDeals.length), label: "в работе" },
-        { value: formatMoney(stats.escrow), label: "на счёте" },
-        { value: formatMoney(stats.spent), label: "потрачено" },
-        { value: String(stats.completed), label: "завершено" },
+        { value: String(activeDeals.length), label: "в работе", href: "#active-placements" },
+        { value: formatMoney(stats.escrow), label: "на счёте", href: "/orders" },
+        { value: formatMoney(stats.spent), label: "потрачено", href: "/orders" },
+        { value: String(stats.completed), label: "завершено", href: "#history" },
       ];
 
   const renderDeal = (o: Order) => (
@@ -116,36 +116,38 @@ export default function CabinetPage() {
     <MarketShell>
       <div className={shell.pageContainer}>
         <header className={styles.head}>
-          <div>
-            <h1 className={styles.greeting}>
-              С возвращением, <span className={s.mark}>{displayName}</span>
-            </h1>
-            <p className={styles.sub}>
-              {isBlogger
-                ? "Входящие сделки, выплаты и всё по вашим публикациям — в одном месте."
-                : "Ваши размещения, статус денег на счёте платформы и история покупок — всё здесь."}
-            </p>
-          </div>
-          <div className={styles.accountChip}>
-            <span className={styles.accountRole}>{isBlogger ? "автор" : "заказчик"}</span>
-            <span className={styles.accountName}>{displayName}</span>
-            {me?.email && <span className={styles.accountMeta}>{me.email}</span>}
-          </div>
+          <h1 className={styles.greeting}>
+            С возвращением, <span className={s.mark}>{displayName}</span>
+          </h1>
+          <p className={styles.sub}>
+            {isBlogger
+              ? "Входящие сделки, выплаты и всё по вашим публикациям — в одном месте."
+              : "Ваши размещения, статус денег на счёте платформы и история покупок — всё здесь."}
+          </p>
         </header>
 
-        <div className={styles.statBar}>
+        <nav
+          className={`${styles.statGrid} ${statTiles.length === 3 ? styles.statGrid3 : ""}`}
+          aria-label="Сводка по сделкам"
+        >
           {statTiles.map((t) => (
-            <div key={t.label} className={styles.statItem}>
+            <Link
+              key={t.label}
+              href={t.href}
+              className={styles.statItem}
+              aria-label={`${t.label}: ${t.value}. ${t.href.startsWith("#") ? "Перейти к разделу" : "Открыть реестр"}`}
+            >
               <span className={styles.statNum}>{t.value}</span>
               <span className={styles.statText}>{t.label}</span>
-            </div>
+              <ArrowUpRight className={styles.statArrow} size={14} aria-hidden="true" />
+            </Link>
           ))}
-        </div>
+        </nav>
 
         <div className={styles.layout}>
           {/* Нынешняя реклама + история */}
           <div className={styles.col}>
-            <section className={ui.card} style={{ padding: "22px 24px" }}>
+            <section id="active-placements" className={`${ui.card} ${styles.anchorSection}`} style={{ padding: "22px 24px" }}>
               <div className={styles.panelHead}>
                 <h2 className={styles.panelTitle}>{isBlogger ? "Активные сделки" : "Активные размещения"}</h2>
                 {activeDeals.length > 0 && <span className={styles.countPill}>{activeDeals.length}</span>}
@@ -170,7 +172,7 @@ export default function CabinetPage() {
               )}
             </section>
 
-            <section className={ui.card} style={{ padding: "22px 24px" }}>
+            <section id="history" className={`${ui.card} ${styles.anchorSection}`} style={{ padding: "22px 24px" }}>
               <div className={styles.panelHead}>
                 <h2 className={styles.panelTitle}>{isBlogger ? "История сделок" : "История покупок"}</h2>
                 <Link href="/orders" className={styles.seeAll}>

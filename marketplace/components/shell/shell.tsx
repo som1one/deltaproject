@@ -74,20 +74,19 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
     setAcctOpen(false);
   }, [pathname]);
 
-  // Разделы зависят от роли. «Главная» остаётся всегда — это точка возврата
-  // и якорь навигации; без неё меню после входа ощущается обрезанным.
+  // Верхнее меню держим коротким и стабильным: общий с гостем префикс
+  // (Главная, Каталог) не двигается при входе — просто добавляется «Мои сделки».
+  // Кабинет/Настройки/Поддержка живут в меню аккаунта (ACCOUNT_LINKS).
   let navItems: NavItem[];
   if (isHydrated && isAuthenticated && isBlogger) {
     navItems = [
       { href: "/", label: "Главная" },
-      { href: "/cabinet", label: "Кабинет" },
       { href: "/blogger", label: "Входящие" },
       { href: "/orders", label: "Мои сделки" },
     ];
   } else if (isHydrated && isAuthenticated && isClient) {
     navItems = [
       { href: "/", label: "Главная" },
-      { href: "/cabinet", label: "Кабинет" },
       { href: "/catalog", label: "Каталог" },
       { href: "/orders", label: "Мои сделки" },
     ];
@@ -213,16 +212,13 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
                 ))}
                 {authed ? (
                   <>
-                    <li>
-                      <Link href="/settings" className={styles.mobileLink} onClick={closeMenu}>
-                        Настройки
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/support" className={styles.mobileLink} onClick={closeMenu}>
-                        Поддержка
-                      </Link>
-                    </li>
+                    {ACCOUNT_LINKS.map(({ href, label }) => (
+                      <li key={href}>
+                        <Link href={href} className={styles.mobileLink} onClick={closeMenu}>
+                          {label}
+                        </Link>
+                      </li>
+                    ))}
                     <li>
                       <button type="button" className={styles.mobileLogout} onClick={handleLogout}>
                         Выйти

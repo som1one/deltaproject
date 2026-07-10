@@ -4,11 +4,6 @@
    ═══════════════════════════════════════════════════════════ */
 
 .head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
   padding: clamp(30px, 4.5vw, 56px) 0 clamp(20px, 3vw, 32px);
 }
 
@@ -29,67 +24,59 @@
   color: var(--muted);
 }
 
-/* Чип аккаунта справа в шапке */
-.accountChip {
-  display: inline-flex;
+/* ── Ключевые цифры — интерактивные карточки-ссылки ───────────
+   Grid из отдельных карточек: без border-right и без flex-wrap, поэтому
+   на мобиле нет «домов» (переносов / висячих разделителей / сирот). */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* Блогер — 3 плитки */
+.statGrid3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.statItem {
+  position: relative;
+  display: flex;
   flex-direction: column;
-  gap: 3px;
-  padding: 12px 18px;
+  gap: 4px;
+  min-width: 0;
+  padding: 13px 16px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface);
   box-shadow: var(--shadow-xs);
-}
-
-.accountRole {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-
-.accountName {
-  font-size: 15px;
-  font-weight: 600;
   color: var(--ink);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
 }
 
-.accountMeta {
-  font-size: 13px;
-  color: var(--muted);
+.statItem:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 2px;
 }
 
-/* ── Ключевые цифры ───────────────────────────────────────── */
-
-/* Компактная строка вместо крупных плиток — цифры на виду, без «стены нулей». */
-.statBar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  row-gap: 4px;
-  padding: 14px 22px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-xs);
-  margin-bottom: 24px;
+.statItem:focus-visible .statArrow {
+  opacity: 1;
+  color: var(--violet);
 }
 
-.statItem {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 6px 22px;
-  border-right: 1px solid var(--line);
-}
+/* Hover только на устройствах с реальным ховером — без залипания на iOS. */
+@media (hover: hover) {
+  .statItem:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-2px);
+  }
 
-.statItem:first-child {
-  padding-left: 0;
-}
-
-.statItem:last-child {
-  border-right: none;
+  .statItem:hover .statArrow {
+    opacity: 1;
+    color: var(--violet);
+  }
 }
 
 .statNum {
@@ -98,19 +85,70 @@
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  padding-right: 15px;
 }
 
 .statText {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--muted);
-  white-space: nowrap;
 }
 
-@media (max-width: 620px) {
-  .statItem {
-    padding: 6px 16px;
+/* Диагональная стрелка — сигнал «кликабельно». */
+.statArrow {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: var(--faint);
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+/* На тач-устройствах ховера нет — держим стрелку тихо видимой (аффорданс). */
+@media (hover: none) {
+  .statArrow {
+    opacity: 0.5;
   }
+}
+
+/* Мобайл: 2 колонки, компактнее, число меньше — длинные суммы не переполняют. */
+@media (max-width: 680px) {
+  .statGrid,
+  .statGrid3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .statGrid3 .statItem:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .statItem {
+    padding: 12px 13px;
+  }
+
+  .statNum {
+    font-size: 16px;
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Очень узкие экраны — один столбец, гарантированно без переполнения. */
+@media (max-width: 360px) {
+  .statGrid,
+  .statGrid3 {
+    grid-template-columns: 1fr;
+  }
+
+  .statGrid3 .statItem:last-child {
+    grid-column: auto;
+  }
+}
+
+/* Якорь-секции: заголовок не заезжает под липкую шапку shell. */
+.anchorSection {
+  scroll-margin-top: calc(var(--nav-h) + 16px);
 }
 
 /* ── Раскладка ────────────────────────────────────────────── */
@@ -253,65 +291,6 @@
   font-variant-numeric: tabular-nums;
   font-size: 14.5px;
   color: var(--ink);
-}
-
-/* ── Быстрые действия ─────────────────────────────────────── */
-
-.actionGrid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.action {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
-}
-
-.action:hover {
-  border-color: var(--line-strong);
-  box-shadow: var(--shadow-sm);
-  transform: translateY(-1px);
-}
-
-.actionIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
-  border-radius: 10px;
-}
-
-.actionText {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.actionTitle {
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.actionSub {
-  font-size: 12.5px;
-  color: var(--muted);
-}
-
-.actionArrow {
-  margin-left: auto;
-  flex-shrink: 0;
-  color: var(--faint);
 }
 
 /* ── Карта выплат (автор) ─────────────────────────────────── */
