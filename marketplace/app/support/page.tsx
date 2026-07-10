@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { MarketShell } from "@/components/shell/shell";
+import { Select } from "@/components/ui/select";
 import { api } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
@@ -115,16 +116,16 @@ function SupportContent() {
                 createMutation.mutate();
               }}
             >
-              <label className={ui.field}>
+              <div className={ui.field}>
                 <span className={ui.fieldLabel}>Тема обращения</span>
-                <select className={ui.select} value={subject} onChange={(e) => setSubject(e.target.value)}>
-                  {SUBJECTS.map((x) => (
-                    <option key={x.value} value={x.value}>
-                      {x.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <Select
+                  value={subject}
+                  onChange={setSubject}
+                  options={SUBJECTS}
+                  ariaLabel="Тема обращения"
+                  className={ui.selectField}
+                />
+              </div>
               {showOrderField && (
                 <label className={ui.field}>
                   <span className={ui.fieldLabel}>

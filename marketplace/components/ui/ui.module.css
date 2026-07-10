@@ -369,6 +369,21 @@
   padding-right: 38px;
 }
 
+/* Кастомный <Select> в роли поля формы — полноширинный box, как .input.
+   Атрибутный селектор поднимает специфичность над .trigger из select.module. */
+.selectField[aria-haspopup] {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  border-radius: var(--r);
+  border-color: var(--line-strong);
+  background: var(--surface);
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--ink);
+  box-shadow: var(--shadow-xs);
+}
+
 .inputError {
   border-color: var(--danger) !important;
 }
