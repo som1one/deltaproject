@@ -44,6 +44,9 @@ export default function OrdersPage() {
             <h1 className={styles.headTitle}>
               <span className={s.mark}>Реестр сделок</span>
             </h1>
+            <p className={styles.headSub}>
+              Статусы, суммы и даты по всем вашим сделкам — в одном месте.
+            </p>
           </div>
           {!isBlogger && (
             <Link href="/catalog" className={ui.btnLine}>
