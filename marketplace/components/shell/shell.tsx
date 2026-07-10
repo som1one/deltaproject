@@ -167,6 +167,7 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
                         {label}
                       </Link>
                     ))}
+                    <div className={styles.accountMenuSep} aria-hidden="true" />
                     <button type="button" role="menuitem" className={styles.accountMenuLogout} onClick={handleLogout}>
                       Выйти
                     </button>

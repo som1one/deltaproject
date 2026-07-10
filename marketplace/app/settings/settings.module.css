@@ -1,12 +1,12 @@
 /* ═══════════════════════════════════════════════════════════
-   Настройки аккаунта — форма профиля + смена пароля (PATCH /me).
+   Настройки аккаунта — секции «инфо слева / форма справа» (PATCH /me).
    ═══════════════════════════════════════════════════════════ */
 
 .head {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   padding: clamp(28px, 4.5vw, 52px) 0 clamp(18px, 3vw, 28px);
 }
 
@@ -25,34 +25,69 @@
 }
 
 .title {
-  margin-top: 6px;
   font-family: var(--font-display);
-  font-size: clamp(28px, 4vw, 42px);
-  line-height: 1.06;
+  font-size: clamp(26px, 3.2vw, 34px);
+  line-height: 1.08;
   letter-spacing: -0.025em;
   color: var(--ink);
 }
 
-.grid {
+/* ── Секции ───────────────────────────────────────────────── */
+
+.sections {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  max-width: 640px;
+  max-width: 840px;
   padding-bottom: var(--section);
 }
 
-.cardTitle {
+.section {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 40px;
+  padding: 32px 0;
+  border-top: 1px solid var(--line);
+}
+
+.section:first-child {
+  border-top: none;
+  padding-top: 8px;
+}
+
+.sectionTitle {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--ink);
-  margin-bottom: 4px;
 }
 
-.cardSub {
-  font-size: 13.5px;
+.sectionDesc {
+  margin-top: 8px;
+  font-size: 14px;
   line-height: 1.5;
   color: var(--muted);
-  margin-bottom: 18px;
+  max-width: 30ch;
+}
+
+.sectionBody {
+  min-width: 0;
+  max-width: 460px;
+}
+
+/* Кнопки — по содержимому, а не во всю ширину (без «тяжёлой» белой полосы). */
+.formActions {
+  display: flex;
+}
+
+@media (max-width: 760px) {
+  .section {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 26px 0;
+  }
+
+  .sectionDesc {
+    max-width: none;
+  }
 }

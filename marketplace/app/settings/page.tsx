@@ -92,7 +92,7 @@ export default function SettingsPage() {
       <MarketShell>
         <div className={shell.pageContainer}>
           <div className={styles.head}>
-            <div className={ui.skeleton} style={{ height: 90, width: "100%", maxWidth: 380 }} />
+            <div className={ui.skeleton} style={{ height: 80, width: "100%", maxWidth: 340 }} />
           </div>
         </div>
       </MarketShell>
@@ -106,103 +106,114 @@ export default function SettingsPage() {
           <Link href="/cabinet" className={styles.backLink}>
             <ArrowLeft size={15} /> В кабинет
           </Link>
-          <span className={ui.brow}>Личный кабинет</span>
           <h1 className={styles.title}>Настройки аккаунта</h1>
         </header>
 
-        <div className={styles.grid}>
+        <div className={styles.sections}>
           {/* Профиль */}
-          <section className={ui.card} style={{ padding: "24px 26px" }}>
-            <h2 className={styles.cardTitle}>Профиль</h2>
-            <p className={styles.cardSub}>Имя, почта и Telegram для связи по сделкам.</p>
-            {profileNotice && (
-              <div
-                className={profileNotice.tone === "success" ? ui.noticeSuccess : ui.noticeDanger}
-                style={{ marginBottom: 16 }}
-              >
-                {profileNotice.text}
-              </div>
-            )}
-            <form className={ui.form} onSubmit={submitProfile}>
-              <label className={ui.field}>
-                <span className={ui.fieldLabel}>Имя и фамилия</span>
-                <input
-                  className={ui.input}
-                  value={form.name}
-                  maxLength={255}
-                  required
-                  autoComplete="name"
-                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                />
-              </label>
-              <label className={ui.field}>
-                <span className={ui.fieldLabel}>Электронная почта</span>
-                <input
-                  className={ui.input}
-                  type="email"
-                  value={form.email}
-                  maxLength={320}
-                  required
-                  autoComplete="email"
-                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                />
-              </label>
-              <label className={ui.field}>
-                <span className={ui.fieldLabel}>Telegram</span>
-                <input
-                  className={ui.input}
-                  value={form.telegram}
-                  maxLength={255}
-                  placeholder="@username"
-                  onChange={(e) => setForm((p) => ({ ...p, telegram: e.target.value }))}
-                />
-              </label>
-              <button className={ui.btnPrimary} type="submit" disabled={profileMutation.isPending}>
-                {profileMutation.isPending ? "Сохраняем…" : "Сохранить"}
-              </button>
-            </form>
+          <section className={styles.section}>
+            <div>
+              <h2 className={styles.sectionTitle}>Профиль</h2>
+              <p className={styles.sectionDesc}>Имя, почта и Telegram для связи по сделкам.</p>
+            </div>
+            <div className={styles.sectionBody}>
+              {profileNotice && (
+                <div
+                  className={profileNotice.tone === "success" ? ui.noticeSuccess : ui.noticeDanger}
+                  style={{ marginBottom: 16 }}
+                >
+                  {profileNotice.text}
+                </div>
+              )}
+              <form className={ui.form} onSubmit={submitProfile}>
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}>Имя и фамилия</span>
+                  <input
+                    className={ui.input}
+                    value={form.name}
+                    maxLength={255}
+                    required
+                    autoComplete="name"
+                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                  />
+                </label>
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}>Электронная почта</span>
+                  <input
+                    className={ui.input}
+                    type="email"
+                    value={form.email}
+                    maxLength={320}
+                    required
+                    autoComplete="email"
+                    onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                  />
+                </label>
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}>Telegram</span>
+                  <input
+                    className={ui.input}
+                    value={form.telegram}
+                    maxLength={255}
+                    placeholder="@username"
+                    onChange={(e) => setForm((p) => ({ ...p, telegram: e.target.value }))}
+                  />
+                </label>
+                <div className={styles.formActions}>
+                  <button className={ui.btnPrimary} type="submit" disabled={profileMutation.isPending}>
+                    {profileMutation.isPending ? "Сохраняем…" : "Сохранить"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </section>
 
-          {/* Смена пароля */}
-          <section className={ui.card} style={{ padding: "24px 26px" }}>
-            <h2 className={styles.cardTitle}>Безопасность</h2>
-            <p className={styles.cardSub}>Смена пароля. Понадобится текущий пароль.</p>
-            {pwNotice && (
-              <div
-                className={pwNotice.tone === "success" ? ui.noticeSuccess : ui.noticeDanger}
-                style={{ marginBottom: 16 }}
-              >
-                {pwNotice.text}
-              </div>
-            )}
-            <form className={ui.form} onSubmit={submitPassword}>
-              <label className={ui.field}>
-                <span className={ui.fieldLabel}>Текущий пароль</span>
-                <input
-                  className={ui.input}
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={pw.current_password}
-                  onChange={(e) => setPw((p) => ({ ...p, current_password: e.target.value }))}
-                />
-              </label>
-              <label className={ui.field}>
-                <span className={ui.fieldLabel}>Новый пароль</span>
-                <input
-                  className={ui.input}
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                  value={pw.password}
-                  onChange={(e) => setPw((p) => ({ ...p, password: e.target.value }))}
-                />
-              </label>
-              <button className={ui.btnLine} type="submit" disabled={passwordMutation.isPending}>
-                {passwordMutation.isPending ? "Меняем…" : "Изменить пароль"}
-              </button>
-            </form>
+          {/* Безопасность */}
+          <section className={styles.section}>
+            <div>
+              <h2 className={styles.sectionTitle}>Безопасность</h2>
+              <p className={styles.sectionDesc}>Смена пароля. Понадобится текущий пароль.</p>
+            </div>
+            <div className={styles.sectionBody}>
+              {pwNotice && (
+                <div
+                  className={pwNotice.tone === "success" ? ui.noticeSuccess : ui.noticeDanger}
+                  style={{ marginBottom: 16 }}
+                >
+                  {pwNotice.text}
+                </div>
+              )}
+              <form className={ui.form} onSubmit={submitPassword}>
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}>Текущий пароль</span>
+                  <input
+                    className={ui.input}
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={pw.current_password}
+                    onChange={(e) => setPw((p) => ({ ...p, current_password: e.target.value }))}
+                  />
+                </label>
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}>Новый пароль</span>
+                  <input
+                    className={ui.input}
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                    value={pw.password}
+                    onChange={(e) => setPw((p) => ({ ...p, password: e.target.value }))}
+                  />
+                </label>
+                <div className={styles.formActions}>
+                  <button className={ui.btnLine} type="submit" disabled={passwordMutation.isPending}>
+                    {passwordMutation.isPending ? "Меняем…" : "Изменить пароль"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </section>
         </div>
       </div>

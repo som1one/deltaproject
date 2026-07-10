@@ -299,13 +299,18 @@
   color: var(--ink);
 }
 
+.accountMenuSep {
+  height: 1px;
+  margin: 5px 4px;
+  background: var(--line);
+}
+
 .accountMenuLogout {
   display: flex;
   align-items: center;
   width: 100%;
   padding: 9px 10px;
-  margin-top: 4px;
-  border-top: 1px solid var(--line);
+  border-radius: var(--r-sm);
   font-size: 14px;
   font-weight: 600;
   color: var(--danger);
