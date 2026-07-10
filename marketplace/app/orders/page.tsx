@@ -42,7 +42,7 @@ export default function OrdersPage() {
         <header className={styles.head}>
           <div>
             <h1 className={styles.headTitle}>
-              Реестр <span className={s.mark}>сделок</span>
+              <span className={s.mark}>Реестр сделок</span>
             </h1>
           </div>
           {!isBlogger && (

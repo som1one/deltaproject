@@ -108,7 +108,7 @@ export default function SettingsPage() {
             <ArrowLeft size={15} /> В кабинет
           </Link>
           <h1 className={styles.title}>
-            Настройки <span className={s.mark}>аккаунта</span>
+            <span className={s.mark}>Настройки аккаунта</span>
           </h1>
         </header>
 
