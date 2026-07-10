@@ -284,7 +284,7 @@ export const api = {
     ),
 
   // ─── Support ───────────────────────────────────────────────────────────────
-  createTicket: (body: { order_id: string; message: string }) =>
+  createTicket: (body: { subject: string; order_id?: string; message: string }) =>
     request<SupportTicket>("/marketplace/support/tickets", {
       method: "POST",
       auth: true,

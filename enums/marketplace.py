@@ -40,6 +40,15 @@ class SupportTicketStatus(str, enum.Enum):
     RESOLVED = "resolved"
 
 
+class SupportTicketSubject(str, enum.Enum):
+    """Тема обращения в поддержку. DISPUTE требует сделку, остальные — нет."""
+
+    DISPUTE = "dispute"
+    PAYMENT = "payment"
+    TECHNICAL = "technical"
+    GENERAL = "general"
+
+
 class WithdrawalStatus(str, enum.Enum):
     """Withdrawal request statuses."""
 

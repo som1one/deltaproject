@@ -21,10 +21,11 @@ class SupportTicket(Base):
         primary_key=True,
         default=uuid.uuid4,
     )
-    order_id: Mapped[uuid.UUID] = mapped_column(
+    # Общие вопросы могут быть без сделки, поэтому order_id необязателен.
+    order_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("marketplace_orders.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
     )
     submitter_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -32,6 +33,12 @@ class SupportTicket(Base):
         nullable=False,
     )
     submitter_role: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Тема обращения; исторические тикеты — споры по сделке.
+    subject: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        server_default=text("'dispute'"),
+    )
     message: Mapped[str] = mapped_column(String(2000), nullable=False)
     status: Mapped[str] = mapped_column(
         String(20),

@@ -12,7 +12,23 @@ import { useAuth } from "@/lib/auth-context";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
+import s from "@/components/landing/landing.module.css";
 import styles from "@/app/orders/orders.module.css";
+
+const SUBJECTS = [
+  { value: "dispute", label: "Спор по сделке" },
+  { value: "payment", label: "Оплата и выплаты" },
+  { value: "technical", label: "Технический вопрос" },
+  { value: "general", label: "Общий вопрос" },
+];
+const SUBJECT_LABELS: Record<string, string> = Object.fromEntries(SUBJECTS.map((x) => [x.value, x.label]));
+const SUBJECT_HINTS: Record<string, string> = {
+  dispute:
+    "Спор открывается по оплаченной сделке. Мы изучим детали и решим — вернуть средства заказчику или передать гонорар автору.",
+  payment: "Вопрос по оплате, эскроу или выплате. Если он по конкретной сделке — укажите её ниже.",
+  technical: "Что-то не работает или отображается неверно? Опишите, что произошло и что вы ожидали увидеть.",
+  general: "Любой другой вопрос по площадке — ответим и поможем.",
+};
 
 export default function SupportPage() {
   return (
@@ -28,9 +44,14 @@ function SupportContent() {
   const queryClient = useQueryClient();
   const { isAuthenticated, isHydrated } = useAuth();
 
-  const [orderId, setOrderId] = useState(searchParams.get("order") ?? "");
+  const initialOrder = searchParams.get("order") ?? "";
+  const [subject, setSubject] = useState(initialOrder ? "dispute" : "general");
+  const [orderId, setOrderId] = useState(initialOrder);
   const [message, setMessage] = useState("");
   const [notice, setNotice] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+
+  const showOrderField = subject === "dispute" || subject === "payment";
+  const orderRequired = subject === "dispute";
 
   useEffect(() => {
     if (isHydrated && !isAuthenticated) router.replace("/auth/login?next=/support");
@@ -43,9 +64,18 @@ function SupportContent() {
   });
 
   const createMutation = useMutation({
-    mutationFn: () => api.createTicket({ order_id: orderId.trim(), message: message.trim() }),
+    mutationFn: () => {
+      const trimmedOrder = orderId.trim();
+      // Сделку шлём только для тем, где она уместна, и только если заполнена.
+      const sendOrder = showOrderField && trimmedOrder ? trimmedOrder : undefined;
+      return api.createTicket({
+        subject,
+        ...(sendOrder ? { order_id: sendOrder } : {}),
+        message: message.trim(),
+      });
+    },
     onSuccess: () => {
-      setNotice({ tone: "success", text: "Обращение создано. Поддержка рассмотрит его и примет решение по сделке." });
+      setNotice({ tone: "success", text: "Обращение создано. Поддержка ответит в ближайшее время." });
       setMessage("");
       queryClient.invalidateQueries({ queryKey: ["marketplace-support-tickets"] });
     },
@@ -57,17 +87,17 @@ function SupportContent() {
       <div className={shell.pageContainer}>
         <header className={styles.head}>
           <div>
-            <span className={ui.brow}>Служба поддержки</span>
-            <h1 className={styles.headTitle}>Спор по сделке</h1>
+            <h1 className={styles.headTitle}>
+              <span className={s.mark}>Поддержка</span>
+            </h1>
           </div>
         </header>
 
         <div className={ui.grid2} style={{ alignItems: "start" }}>
           <section className={styles.panel}>
-            <h2 className={styles.panelTitle}>Открыть спор</h2>
+            <h2 className={styles.panelTitle}>Новое обращение</h2>
             <p className={ui.muted} style={{ margin: "0 0 20px", fontSize: 14.5 }}>
-              Спор открывается по оплаченной сделке. Мы изучим детали и решим — вернуть
-              средства заказчику или передать гонорар автору.
+              {SUBJECT_HINTS[subject]}
             </p>
             {notice && (
               <div
@@ -86,15 +116,29 @@ function SupportContent() {
               }}
             >
               <label className={ui.field}>
-                <span className={ui.fieldLabel}>Идентификатор сделки</span>
-                <input
-                  className={`${ui.input} ${ui.mono}`}
-                  required
-                  value={orderId}
-                  onChange={(e) => setOrderId(e.target.value)}
-                  placeholder="3f1c9b2e-…"
-                />
+                <span className={ui.fieldLabel}>Тема обращения</span>
+                <select className={ui.select} value={subject} onChange={(e) => setSubject(e.target.value)}>
+                  {SUBJECTS.map((x) => (
+                    <option key={x.value} value={x.value}>
+                      {x.label}
+                    </option>
+                  ))}
+                </select>
               </label>
+              {showOrderField && (
+                <label className={ui.field}>
+                  <span className={ui.fieldLabel}>
+                    {orderRequired ? "Идентификатор сделки" : "Сделка (необязательно)"}
+                  </span>
+                  <input
+                    className={`${ui.input} ${ui.mono}`}
+                    required={orderRequired}
+                    value={orderId}
+                    onChange={(e) => setOrderId(e.target.value)}
+                    placeholder="3f1c9b2e-…"
+                  />
+                </label>
+              )}
               <label className={ui.field}>
                 <span className={ui.fieldLabel}>Опишите ситуацию</span>
                 <textarea
@@ -125,9 +169,18 @@ function SupportContent() {
                 {tickets.items.map((ticket) => (
                   <div key={ticket.id} className={ui.defRow} style={{ alignItems: "flex-start" }}>
                     <span style={{ minWidth: 0 }}>
-                      <Link href={`/orders/${ticket.order_id}`} className={`${ui.mono} ${ui.link}`} style={{ fontSize: 13 }}>
-                        Сделка {ticket.order_id.slice(0, 8)}
-                      </Link>
+                      <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span className={ui.tag}>{SUBJECT_LABELS[ticket.subject] ?? "Обращение"}</span>
+                        {ticket.order_id && (
+                          <Link
+                            href={`/orders/${ticket.order_id}`}
+                            className={`${ui.mono} ${ui.link}`}
+                            style={{ fontSize: 12.5 }}
+                          >
+                            Сделка {ticket.order_id.slice(0, 8)}
+                          </Link>
+                        )}
+                      </span>
                       <p className={ui.muted} style={{ margin: "6px 0 0", fontSize: 13.5 }}>
                         {ticket.message}
                       </p>

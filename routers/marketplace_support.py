@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from dependencies.auth import get_current_user
 from dependencies.database import get_db
-from enums.marketplace import MarketplaceOrderStatus, SupportTicketStatus
+from enums.marketplace import MarketplaceOrderStatus, SupportTicketStatus, SupportTicketSubject
 from enums.user import UserRole
 from models.marketplace_order import MarketplaceOrder
 from models.support_ticket import SupportTicket
@@ -41,12 +41,12 @@ async def create_support_ticket(
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> TicketResponse:
-    """Create a support ticket for an order.
+    """Create a support ticket.
 
     Only Clients and Bloggers can create tickets.
-    The order must be in ESCROW_HELD or BLOGGER_CONFIRMED status.
-    The user must be either the client or blogger of the order.
-    Message must be 1-2000 characters and not whitespace-only.
+    A "dispute" ticket must reference a paid deal (ESCROW_HELD / BLOGGER_CONFIRMED)
+    the user participates in. Other topics may omit the deal, or attach one the
+    user participates in. Message must be 1-2000 characters and not whitespace-only.
     """
     # Check role
     if user.role not in _ALLOWED_ROLES:
@@ -55,36 +55,47 @@ async def create_support_ticket(
             detail="Создание тикетов доступно только клиентам и блогерам",
         )
 
-    # Fetch the order
-    order = await db.get(MarketplaceOrder, body.order_id)
-    if order is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Заказ не найден",
-        )
+    order_id = body.order_id
 
-    # Verify order status allows support ticket creation
-    if order.status not in _ALLOWED_ORDER_STATUSES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Тикет можно создать только для заказов в статусе ESCROW_HELD или BLOGGER_CONFIRMED",
-        )
-
-    # Verify user is either the client or blogger of the order
-    if user.id != order.client_id and user.id != order.blogger_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Вы не являетесь участником этого заказа",
-        )
-
-    # Determine submitter role
-    submitter_role = user.role
+    if body.subject == SupportTicketSubject.DISPUTE:
+        # Спор — только по существующей оплаченной сделке, где пользователь участник.
+        # (order_id гарантированно не None: проверено валидатором схемы.)
+        order = await db.get(MarketplaceOrder, order_id)
+        if order is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Заказ не найден",
+            )
+        if order.status not in _ALLOWED_ORDER_STATUSES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Спор можно открыть только по сделке в статусе ESCROW_HELD или BLOGGER_CONFIRMED",
+            )
+        if user.id != order.client_id and user.id != order.blogger_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Вы не являетесь участником этой сделки",
+            )
+    elif order_id is not None:
+        # Необязательная привязка сделки к общему вопросу — проверяем существование и участие.
+        order = await db.get(MarketplaceOrder, order_id)
+        if order is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Заказ не найден",
+            )
+        if user.id != order.client_id and user.id != order.blogger_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Вы не являетесь участником этой сделки",
+            )
 
     # Create the support ticket
     ticket = SupportTicket(
-        order_id=body.order_id,
+        order_id=order_id,
         submitter_id=user.id,
-        submitter_role=submitter_role.value,
+        submitter_role=user.role.value,
+        subject=body.subject.value,
         message=body.message,
         status=SupportTicketStatus.OPEN.value,
     )

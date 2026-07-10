@@ -151,9 +151,12 @@ export type OrdersResponse = {
   page_size: number;
 };
 
+export type SupportTicketSubject = "dispute" | "payment" | "technical" | "general";
+
 export type SupportTicket = {
   id: string;
-  order_id: string;
+  order_id: string | null;
+  subject: SupportTicketSubject;
   submitter_id: string;
   submitter_role: string;
   message: string;

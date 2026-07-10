@@ -4,16 +4,17 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
-from enums.marketplace import SupportTicketStatus
+from enums.marketplace import SupportTicketStatus, SupportTicketSubject
 from enums.user import UserRole
 
 
 class TicketCreateRequest(BaseModel):
     """Запрос на создание тикета поддержки."""
 
-    order_id: uuid.UUID
+    subject: SupportTicketSubject = SupportTicketSubject.DISPUTE
+    order_id: uuid.UUID | None = None
     message: Annotated[str, Field(min_length=1, max_length=2000)]
 
     @field_validator("message")
@@ -24,6 +25,13 @@ class TicketCreateRequest(BaseModel):
             raise ValueError("Сообщение не может состоять только из пробелов")
         return v
 
+    @model_validator(mode="after")
+    def validate_dispute_requires_order(self) -> TicketCreateRequest:
+        """Спор по сделке обязательно привязан к сделке; прочие темы — нет."""
+        if self.subject == SupportTicketSubject.DISPUTE and self.order_id is None:
+            raise ValueError("Для спора по сделке укажите идентификатор сделки")
+        return self
+
 
 class TicketResponse(BaseModel):
     """Ответ с данными тикета поддержки."""
@@ -31,7 +39,8 @@ class TicketResponse(BaseModel):
     model_config = {"from_attributes": True}
 
     id: uuid.UUID
-    order_id: uuid.UUID
+    order_id: uuid.UUID | None = None
+    subject: SupportTicketSubject
     submitter_id: uuid.UUID
     submitter_role: UserRole
     message: str
