@@ -269,7 +269,8 @@
 }
 
 .winBody {
-  padding: clamp(18px, 2.4vw, 30px);
+  --shot-pad: clamp(18px, 2.4vw, 30px);
+  padding: var(--shot-pad);
   background: var(--surface-2);
 }
 
@@ -277,8 +278,15 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
   margin-bottom: 20px;
+}
+
+.shotChips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .shotSearch {
@@ -315,6 +323,8 @@
 }
 
 .shotChip {
+  flex-shrink: 0;
+  white-space: nowrap;
   padding: 8px 14px;
   border-radius: var(--pill);
   background: var(--surface);
@@ -845,6 +855,8 @@
 }
 
 .benefitCard {
+  display: flex;
+  flex-direction: column;
   padding: 26px 24px;
   transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
 }
@@ -853,6 +865,20 @@
   transform: translateY(-4px);
   box-shadow: var(--shadow-md);
   border-color: var(--line-strong);
+}
+
+.benefitIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r);
+  margin-bottom: 16px;
+}
+
+.benefitBody {
+  min-width: 0;
 }
 
 .benefitTitle {
@@ -883,8 +909,21 @@
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
+  gap: 0;
   text-align: center;
+}
+
+.statsGrid > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px clamp(16px, 3vw, 40px);
+  border-left: 1px solid var(--line);
+}
+
+.statsGrid > div:first-child {
+  border-left: none;
 }
 
 .statNum {
@@ -1014,27 +1053,131 @@
 }
 
 @media (max-width: 720px) {
-  .shotGrid {
-    grid-template-columns: 1fr;
+  /* Тулбар мокапа: поиск сверху, ниши — горизонтальный свайп, без переносов */
+  .shotToolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
   }
 
-  .shotGrid .creatorCard:nth-child(n + 2) {
+  .shotSearch {
+    flex: 0 0 auto;
+  }
+
+  .shotChips {
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    margin-inline: calc(-1 * var(--shot-pad));
+    padding-inline: var(--shot-pad);
+    padding-block: 2px;
+  }
+
+  .shotChips::-webkit-scrollbar {
     display: none;
+  }
+
+  .shotChip {
+    scroll-snap-align: start;
+  }
+
+  /* Авторы: горизонтальная лента со свайпом вместо одной карточки */
+  .shotGrid {
+    display: flex;
+    grid-template-columns: none;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    margin-inline: calc(-1 * var(--shot-pad));
+    padding-inline: var(--shot-pad);
+    padding-bottom: 2px;
+  }
+
+  .shotGrid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .shotGrid .creatorCard {
+    flex: 0 0 82%;
+    scroll-snap-align: center;
   }
 
   .floatDeal {
     display: none;
   }
 
+  /* Статистика: число слева, подпись справа, разделители между строками */
   .statsGrid {
     grid-template-columns: 1fr;
-    gap: 24px;
+  }
+
+  .statsGrid > div {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    text-align: left;
+    padding: 18px 0;
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+
+  .statsGrid > div:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+
+  .statsGrid > div:last-child {
+    padding-bottom: 0;
+  }
+
+  .statNum {
+    font-size: 38px;
+  }
+
+  .statLabel {
+    margin-top: 0;
+    max-width: 52%;
+    text-align: right;
+  }
+}
+
+/* Триггеры доверия: на узких экранах — аккуратный вертикальный список,
+   а не разъезжающиеся 2 + 1 */
+@media (max-width: 560px) {
+  .heroTrust {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-top: 22px;
+    font-size: 14px;
   }
 }
 
 @media (max-width: 520px) {
   .benefits {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Карточки преимуществ: иконка слева, текст справа — компактно */
+  .benefitCard {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 18px;
+  }
+
+  .benefitIcon {
+    width: 42px;
+    height: 42px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .benefitBody {
+    flex: 1;
   }
 
   .proofRow {

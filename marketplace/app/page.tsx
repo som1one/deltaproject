@@ -349,16 +349,18 @@ export default function HomePage() {
                       aria-label="Поиск авторов"
                     />
                   </span>
-                  {heroChips.map((chip) => (
-                    <button
-                      key={chip.key}
-                      type="button"
-                      className={heroNiche === chip.key ? s.shotChipActive : s.shotChip}
-                      onClick={() => setHeroNiche(chip.key)}
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
+                  <div className={s.shotChips}>
+                    {heroChips.map((chip) => (
+                      <button
+                        key={chip.key}
+                        type="button"
+                        className={heroNiche === chip.key ? s.shotChipActive : s.shotChip}
+                        onClick={() => setHeroNiche(chip.key)}
+                      >
+                        {chip.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 {heroCards.length > 0 ? (
                   <div className={s.shotGrid}>
@@ -584,8 +586,13 @@ export default function HomePage() {
         <div className={s.benefits}>
           {BENEFITS.map((b, i) => (
             <Reveal key={b.title} className={`${ui.card} ${s.benefitCard}`} as="div" delay={i * 0.06}>
-              <h3 className={s.benefitTitle}>{b.title}</h3>
-              <p className={s.benefitText}>{b.text}</p>
+              <span className={s.benefitIcon} style={{ color: b.color, background: b.soft }}>
+                {b.icon({ size: 22 })}
+              </span>
+              <div className={s.benefitBody}>
+                <h3 className={s.benefitTitle}>{b.title}</h3>
+                <p className={s.benefitText}>{b.text}</p>
+              </div>
             </Reveal>
           ))}
         </div>
