@@ -92,7 +92,52 @@ type BloggersResponse = {
   total: number;
 };
 
-type TabId = "dashboard" | "orders" | "payments" | "settings" | "tickets" | "bloggers" | "hero";
+type ServiceType = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+};
+
+type AudienceSubmission = {
+  id: string;
+  profile_id: string;
+  status: string;
+  payload: Record<string, unknown>;
+  screenshots: string[];
+  review_comment: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  blogger_user_id: string;
+  blogger_name: string;
+  blogger_category: string | null;
+  subscriber_count: number | null;
+};
+
+type PremiumRequest = {
+  id: string;
+  user_id: string;
+  status: string;
+  comment: string | null;
+  created_at: string;
+  resolved_at: string | null;
+  blogger_name: string | null;
+  blogger_email: string | null;
+};
+
+type TabId =
+  | "dashboard"
+  | "orders"
+  | "payments"
+  | "settings"
+  | "tickets"
+  | "bloggers"
+  | "hero"
+  | "services"
+  | "moderation"
+  | "premium";
 
 /* ---------- Helpers ---------- */
 
@@ -164,6 +209,9 @@ export default function AdminMarketplacePage() {
           ["settings", "Комиссии"],
           ["tickets", "Тикеты"],
           ["bloggers", "Блогеры"],
+          ["services", "Услуги"],
+          ["moderation", "Модерация"],
+          ["premium", "Премиум"],
           ["hero", "Витрина"],
         ] as [TabId, string][]).map(([id, label]) => (
           <button
@@ -183,6 +231,9 @@ export default function AdminMarketplacePage() {
       {activeTab === "settings" && <SettingsTab accessToken={accessToken} />}
       {activeTab === "tickets" && <TicketsTab accessToken={accessToken} />}
       {activeTab === "bloggers" && <BloggersTab accessToken={accessToken} />}
+      {activeTab === "services" && <ServicesTab accessToken={accessToken} />}
+      {activeTab === "moderation" && <ModerationTab accessToken={accessToken} />}
+      {activeTab === "premium" && <PremiumTab accessToken={accessToken} />}
       {activeTab === "hero" && <HeroTab accessToken={accessToken} />}
     </div>
   );
@@ -1608,6 +1659,668 @@ function HeroTab({ accessToken }: { accessToken: string }) {
       >
         {saveMutation.isPending ? "Сохраняем…" : "Сохранить витрину"}
       </button>
+    </div>
+  );
+}
+
+/* ---------- Services Tab (реестр услуг) ---------- */
+
+function ServiceTypeRow({
+  service,
+  accessToken,
+  onError,
+}: {
+  service: ServiceType;
+  accessToken: string;
+  onError: (msg: string) => void;
+}) {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState(service.name);
+  const [description, setDescription] = useState(service.description ?? "");
+  const [sortOrder, setSortOrder] = useState(String(service.sort_order));
+
+  const patchMutation = useMutation({
+    mutationFn: async (body: Record<string, unknown>) => {
+      const res = await fetch(
+        `${appConfig.apiBaseUrl}/admin/marketplace/service-types/${service.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(body),
+        }
+      );
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось сохранить услугу");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      onError("");
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-service-types"] });
+    },
+    onError: (err: Error) => onError(err.message),
+  });
+
+  const changed =
+    name.trim() !== service.name ||
+    description.trim() !== (service.description ?? "") ||
+    Number(sortOrder) !== service.sort_order;
+
+  const save = () => {
+    if (!name.trim()) {
+      onError("Название услуги не может быть пустым");
+      return;
+    }
+    patchMutation.mutate({
+      name: name.trim(),
+      description: description.trim() || null,
+      sort_order: Number.isFinite(Number(sortOrder)) ? Number(sortOrder) : service.sort_order,
+    });
+  };
+
+  return (
+    <tr>
+      <td>
+        <code style={{ fontFamily: "ui-monospace, monospace", fontSize: "0.82rem" }}>
+          {service.code}
+        </code>
+      </td>
+      <td>
+        <input
+          className={styles.settingsInput}
+          style={{ width: 180 }}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={100}
+          aria-label={`Название услуги ${service.code}`}
+        />
+      </td>
+      <td>
+        <input
+          className={styles.settingsInput}
+          style={{ width: 240 }}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          maxLength={300}
+          placeholder="—"
+          aria-label={`Описание услуги ${service.code}`}
+        />
+      </td>
+      <td>
+        <input
+          type="number"
+          className={styles.settingsInput}
+          style={{ width: 70 }}
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+          min={0}
+          max={10000}
+          aria-label={`Порядок услуги ${service.code}`}
+        />
+      </td>
+      <td>
+        <input
+          type="checkbox"
+          checked={service.is_active}
+          onChange={(e) => patchMutation.mutate({ is_active: e.target.checked })}
+          disabled={patchMutation.isPending}
+          aria-label={`Активность услуги ${service.code}`}
+          style={{ width: 18, height: 18 }}
+        />
+      </td>
+      <td>
+        <button
+          type="button"
+          className={styles.toggleBtn}
+          onClick={save}
+          disabled={!changed || patchMutation.isPending}
+        >
+          {patchMutation.isPending ? "…" : "Сохранить"}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
+function ServicesTab({ accessToken }: { accessToken: string }) {
+  const queryClient = useQueryClient();
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({ code: "", name: "", description: "", sort_order: "0" });
+
+  const { data, isLoading } = useQuery<ServiceType[]>({
+    queryKey: ["admin-marketplace-service-types"],
+    queryFn: async () => {
+      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/service-types`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (!res.ok) throw new Error("Ошибка");
+      return res.json();
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const code = form.code.trim().toLowerCase();
+      if (!/^[a-z0-9_-]+$/.test(code)) {
+        throw new Error("Код: только латиница в нижнем регистре, цифры, «_» и «-»");
+      }
+      if (!form.name.trim()) throw new Error("Укажите название услуги");
+      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/service-types`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          code,
+          name: form.name.trim(),
+          description: form.description.trim() || null,
+          sort_order: Number.isFinite(Number(form.sort_order)) ? Number(form.sort_order) : 0,
+          is_active: true,
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось добавить услугу");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setError("");
+      setForm({ code: "", name: "", description: "", sort_order: "0" });
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-service-types"] });
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  if (isLoading) return <LoadingSpinner size="small" />;
+
+  return (
+    <div className={styles.section}>
+      <h2 className={styles.sectionTitle}>Реестр услуг</h2>
+      <p style={{ fontSize: "0.85rem", color: "var(--mp-text-muted)", marginTop: 0 }}>
+        Реестр услуг единый для всех авторов — авторы указывают свои цены на эти услуги в
+        кабинете маркетплейса.
+      </p>
+
+      {error && <p className={styles.errorMsg}>{error}</p>}
+
+      <div className={styles.settingsForm} style={{ marginBottom: "1.2rem" }}>
+        <div className={styles.settingsRow}>
+          <span className={styles.settingsLabel}>Код (a-z, 0-9, _-)</span>
+          <input
+            className={styles.settingsInput}
+            style={{ width: 180, fontFamily: "ui-monospace, monospace" }}
+            value={form.code}
+            onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
+            placeholder="integration_story"
+            maxLength={50}
+            aria-label="Код новой услуги"
+          />
+        </div>
+        <div className={styles.settingsRow}>
+          <span className={styles.settingsLabel}>Название</span>
+          <input
+            className={styles.settingsInput}
+            style={{ width: 220 }}
+            value={form.name}
+            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+            placeholder="Интеграция в сторис"
+            maxLength={100}
+            aria-label="Название новой услуги"
+          />
+        </div>
+        <div className={styles.settingsRow}>
+          <span className={styles.settingsLabel}>Описание (опц.)</span>
+          <input
+            className={styles.settingsInput}
+            style={{ width: 260 }}
+            value={form.description}
+            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+            maxLength={300}
+            aria-label="Описание новой услуги"
+          />
+        </div>
+        <div className={styles.settingsRow}>
+          <span className={styles.settingsLabel}>Порядок</span>
+          <input
+            type="number"
+            className={styles.settingsInput}
+            style={{ width: 90 }}
+            value={form.sort_order}
+            onChange={(e) => setForm((p) => ({ ...p, sort_order: e.target.value }))}
+            min={0}
+            max={10000}
+            aria-label="Порядок новой услуги"
+          />
+        </div>
+        <button
+          type="button"
+          className={styles.btnPrimary}
+          onClick={() => createMutation.mutate()}
+          disabled={createMutation.isPending}
+        >
+          {createMutation.isPending ? "Добавляем…" : "Добавить услугу"}
+        </button>
+      </div>
+
+      {data && data.length === 0 && (
+        <p className={styles.emptyText}>Реестр пуст — добавьте первую услугу.</p>
+      )}
+
+      {data && data.length > 0 && (
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Код</th>
+                <th>Название</th>
+                <th>Описание</th>
+                <th>Порядок</th>
+                <th>Активна</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((s) => (
+                <ServiceTypeRow key={s.id} service={s} accessToken={accessToken} onError={setError} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Moderation Tab (заявки на аудиторию) ---------- */
+
+const SUBMISSION_STATUSES = [
+  { value: "pending", label: "На рассмотрении" },
+  { value: "approved", label: "Подтверждённые" },
+  { value: "rejected", label: "Отклонённые" },
+];
+
+const PAYLOAD_FIELD_LABELS: Record<string, string> = {
+  audience_age: "Возраст аудитории",
+  audience_gender: "Пол аудитории",
+  audience_geo: "География",
+  audience_devices: "Устройства",
+  avg_views: "Средние просмотры",
+  posting_frequency: "Частота постинга",
+  response_time: "Время ответа",
+  subscriber_count: "Подписчики",
+};
+
+function formatPayloadValue(key: string, value: unknown): string {
+  if (value == null) return "";
+  if (Array.isArray(value)) {
+    // Группы вида [{label, percent}]
+    return value
+      .map((item) => {
+        if (item && typeof item === "object" && "label" in item) {
+          const g = item as { label?: unknown; percent?: unknown };
+          return `${String(g.label ?? "")} — ${String(g.percent ?? "")}%`;
+        }
+        return String(item);
+      })
+      .join(", ");
+  }
+  if (typeof value === "object") {
+    // Пол аудитории: {female, male}
+    const g = value as { female?: unknown; male?: unknown };
+    if (g.female != null || g.male != null) {
+      return `Ж — ${String(g.female ?? 0)}%, М — ${String(g.male ?? 0)}%`;
+    }
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number") return value.toLocaleString("ru-RU");
+  return String(value);
+}
+
+function screenshotUrl(path: string): string {
+  return path.startsWith("/") ? `${appConfig.apiBaseUrl}${path}` : path;
+}
+
+function AudienceSubmissionCard({
+  submission,
+  accessToken,
+  onError,
+}: {
+  submission: AudienceSubmission;
+  accessToken: string;
+  onError: (msg: string) => void;
+}) {
+  const queryClient = useQueryClient();
+
+  const resolveMutation = useMutation({
+    mutationFn: async ({ action, comment }: { action: "approve" | "reject"; comment?: string }) => {
+      const res = await fetch(
+        `${appConfig.apiBaseUrl}/admin/marketplace/audience-submissions/${submission.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify(comment ? { action, comment } : { action }),
+        }
+      );
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось обработать заявку");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      onError("");
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-audience-submissions"] });
+    },
+    onError: (err: Error) => onError(err.message),
+  });
+
+  const handleApprove = () => {
+    if (window.confirm(`Подтвердить данные аудитории автора «${submission.blogger_name}»?`)) {
+      resolveMutation.mutate({ action: "approve" });
+    }
+  };
+
+  const handleReject = () => {
+    const comment = window.prompt("Комментарий для автора (причина отклонения):");
+    if (comment === null) return;
+    resolveMutation.mutate({ action: "reject", comment: comment.trim() || undefined });
+  };
+
+  const payloadRows = Object.keys(PAYLOAD_FIELD_LABELS)
+    .filter((key) => {
+      const v = submission.payload?.[key];
+      return v != null && !(Array.isArray(v) && v.length === 0);
+    })
+    .map((key) => ({ key, label: PAYLOAD_FIELD_LABELS[key], value: formatPayloadValue(key, submission.payload[key]) }));
+
+  return (
+    <div className={styles.section} style={{ marginTop: "0.8rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0.6rem" }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: "1rem" }}>{submission.blogger_name}</h3>
+          <p style={{ margin: "0.2rem 0 0", fontSize: "0.83rem", color: "var(--mp-text-muted)" }}>
+            {submission.blogger_category ?? "без категории"}
+            {submission.subscriber_count != null &&
+              ` · ${submission.subscriber_count.toLocaleString("ru-RU")} подп.`}
+            {` · заявка от ${formatDateTime(submission.created_at)}`}
+          </p>
+        </div>
+        {submission.status === "pending" ? (
+          <span style={{ display: "inline-flex", gap: 8, alignItems: "flex-start" }}>
+            <button
+              type="button"
+              className={styles.btnPrimary}
+              onClick={handleApprove}
+              disabled={resolveMutation.isPending}
+            >
+              Подтвердить
+            </button>
+            <button
+              type="button"
+              className={styles.resolveBtn}
+              onClick={handleReject}
+              disabled={resolveMutation.isPending}
+            >
+              Отклонить
+            </button>
+          </span>
+        ) : (
+          <span className={styles.statusBadge}>
+            {submission.status === "approved" ? "Подтверждена" : "Отклонена"}
+            {submission.reviewed_at ? ` · ${formatDateTime(submission.reviewed_at)}` : ""}
+          </span>
+        )}
+      </div>
+
+      {payloadRows.length > 0 && (
+        <dl style={{ margin: "0.8rem 0 0", display: "grid", gridTemplateColumns: "max-content 1fr", gap: "0.3rem 1rem", fontSize: "0.87rem" }}>
+          {payloadRows.map((row) => (
+            <div key={row.key} style={{ display: "contents" }}>
+              <dt style={{ color: "var(--mp-text-muted)" }}>{row.label}</dt>
+              <dd style={{ margin: 0 }}>{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {submission.screenshots.length > 0 && (
+        <div style={{ marginTop: "0.8rem" }}>
+          <span style={{ fontSize: "0.83rem", color: "var(--mp-text-muted)" }}>Скриншоты:</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.4rem" }}>
+            {submission.screenshots.map((shot, i) => (
+              <a
+                key={`${shot}-${i}`}
+                href={screenshotUrl(shot)}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={screenshotUrl(shot)}
+                  alt={`Скриншот ${i + 1} — ${submission.blogger_name}`}
+                  style={{ width: 120, height: 90, objectFit: "cover", borderRadius: 8, border: "1px solid var(--line, #ddd)" }}
+                />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {submission.review_comment && (
+        <p style={{ marginTop: "0.7rem", fontSize: "0.85rem", fontStyle: "italic" }}>
+          Комментарий модератора: {submission.review_comment}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ModerationTab({ accessToken }: { accessToken: string }) {
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [error, setError] = useState("");
+
+  const { data, isLoading } = useQuery<AudienceSubmission[]>({
+    queryKey: ["admin-marketplace-audience-submissions", statusFilter],
+    queryFn: async () => {
+      const res = await fetch(
+        `${appConfig.apiBaseUrl}/admin/marketplace/audience-submissions?status=${statusFilter}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!res.ok) throw new Error("Ошибка");
+      return res.json();
+    },
+  });
+
+  return (
+    <div>
+      <div className={styles.filters} style={{ marginBottom: "0.4rem" }}>
+        <select
+          className={styles.filterSelect}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Фильтр заявок по статусу"
+        >
+          {SUBMISSION_STATUSES.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {error && <p className={styles.errorMsg}>{error}</p>}
+      {isLoading && <LoadingSpinner size="small" />}
+
+      {data && data.length === 0 && (
+        <p className={styles.emptyText}>Нет заявок с этим статусом.</p>
+      )}
+
+      {data?.map((submission) => (
+        <AudienceSubmissionCard
+          key={submission.id}
+          submission={submission}
+          accessToken={accessToken}
+          onError={setError}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ---------- Premium Tab (заявки на премиум-размещение) ---------- */
+
+const PREMIUM_STATUSES = [
+  { value: "", label: "Все статусы" },
+  { value: "new", label: "Новые" },
+  { value: "contacted", label: "Связались" },
+  { value: "closed", label: "Закрытые" },
+];
+
+function formatPremiumStatus(status: string): string {
+  switch (status) {
+    case "new": return "Новая";
+    case "contacted": return "Связались";
+    case "closed": return "Закрыта";
+    default: return status;
+  }
+}
+
+function PremiumTab({ accessToken }: { accessToken: string }) {
+  const queryClient = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState("new");
+  const [error, setError] = useState("");
+
+  const { data, isLoading } = useQuery<PremiumRequest[]>({
+    queryKey: ["admin-marketplace-premium-requests", statusFilter],
+    queryFn: async () => {
+      const qs = statusFilter ? `?status=${statusFilter}` : "";
+      const res = await fetch(
+        `${appConfig.apiBaseUrl}/admin/marketplace/premium-requests${qs}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      if (!res.ok) throw new Error("Ошибка");
+      return res.json();
+    },
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: "contacted" | "closed" }) => {
+      const res = await fetch(
+        `${appConfig.apiBaseUrl}/admin/marketplace/premium-requests/${id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ status }),
+        }
+      );
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось обновить заявку");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setError("");
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-premium-requests"] });
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  return (
+    <div className={styles.section}>
+      <h2 className={styles.sectionTitle}>Заявки на премиум-размещение</h2>
+      <p style={{ fontSize: "0.85rem", color: "var(--mp-text-muted)", marginTop: 0 }}>
+        После договорённости добавьте автора в витрину на табе «Витрина».
+      </p>
+
+      <div className={styles.filters}>
+        <select
+          className={styles.filterSelect}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Фильтр премиум-заявок по статусу"
+        >
+          {PREMIUM_STATUSES.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {error && <p className={styles.errorMsg}>{error}</p>}
+      {isLoading && <LoadingSpinner size="small" />}
+
+      {data && data.length === 0 && (
+        <p className={styles.emptyText}>Нет заявок с этим статусом.</p>
+      )}
+
+      {data && data.length > 0 && (
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Автор</th>
+                <th>Комментарий</th>
+                <th>Дата</th>
+                <th>Статус</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((req) => (
+                <tr key={req.id}>
+                  <td>
+                    {req.blogger_name ?? "—"}
+                    {req.blogger_email && (
+                      <span style={{ display: "block", fontSize: "0.8rem", color: "var(--mp-text-muted)" }}>
+                        {req.blogger_email}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ maxWidth: 320 }}>{req.comment || "—"}</td>
+                  <td>{formatDateTime(req.created_at)}</td>
+                  <td>
+                    <span className={styles.statusBadge}>{formatPremiumStatus(req.status)}</span>
+                  </td>
+                  <td>
+                    <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+                      {req.status === "new" && (
+                        <button
+                          type="button"
+                          className={styles.resolveBtn}
+                          onClick={() => resolveMutation.mutate({ id: req.id, status: "contacted" })}
+                          disabled={resolveMutation.isPending}
+                        >
+                          Связались
+                        </button>
+                      )}
+                      {req.status !== "closed" && (
+                        <button
+                          type="button"
+                          className={styles.resolveBtn}
+                          onClick={() => resolveMutation.mutate({ id: req.id, status: "closed" })}
+                          disabled={resolveMutation.isPending}
+                        >
+                          Закрыть
+                        </button>
+                      )}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

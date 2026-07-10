@@ -1,15 +1,29 @@
 import { appConfig } from "@/lib/config";
 import { tokenStorage } from "@/lib/storage";
 import type {
+  AudienceStats,
+  AudienceSubmission,
   AuthTokensResponse,
   BloggerProfileFull,
+  BloggerSelfProfile,
   CatalogResponse,
+  ChatMessage,
+  Conversation,
   HeroConfigResponse,
   Order,
   OrderDetail,
   OrdersResponse,
+  PremiumRequest,
+  PriceItemFull,
+  Review,
+  ServiceType,
   SupportTicket,
+  ThreadsList,
   UserMeRead,
+  UserPeek,
+  WorkerCommission,
+  WorkerReferral,
+  WorkerStats,
 } from "@/lib/types";
 
 type RequestInitWithAuth = RequestInit & {
@@ -162,7 +176,42 @@ export type OrderCreateBody = {
   blogger_id: string;
   message: string;
   amount_kopeks: number;
+  service_type_id?: string | null;
+  deadline_days?: number | null;
+  publish_at?: string | null;
 };
+
+export type OfferCreateBody = {
+  counterpart_id: string;
+  message: string;
+  amount_kopeks: number;
+  service_type_id?: string | null;
+  deadline_days?: number | null;
+  publish_at?: string | null;
+};
+
+export type PriceListItemBody = {
+  service_type_id: string;
+  price_kopeks: number;
+  description?: string | null;
+  is_enabled: boolean;
+};
+
+export type ProfileUpdateBody = Partial<{
+  category: string;
+  gender: string | null;
+  subscriber_count: number;
+  average_price_kopeks: number;
+  description: string;
+  social_links: string[];
+  portfolio_links: string[];
+  photo_url: string | null;
+  preferred_contact: string | null;
+  is_active: boolean;
+  orders_enabled: boolean;
+  show_portfolio: boolean;
+  show_socials: boolean;
+}>;
 
 export const api = {
   // ─── Auth ───────────────────────────────────────────────────────────────────
@@ -231,8 +280,109 @@ export const api = {
   getCategories: () =>
     request<{ value: string; label: string }[]>("/marketplace/categories", {}),
 
+  getServiceTypes: () =>
+    request<ServiceType[]>("/marketplace/service-types", {}),
+
   getHeroConfig: () =>
     request<HeroConfigResponse>("/marketplace/hero-config", {}),
+
+  // ─── Профиль автора (кабинет) ─────────────────────────────────────────────
+  getSelfProfile: () =>
+    request<BloggerSelfProfile>("/marketplace/blogger/profile", { auth: true }),
+
+  createSelfProfile: (body: {
+    category: string;
+    gender?: string | null;
+    subscriber_count: number;
+    average_price_kopeks: number;
+    description: string;
+    social_links: string[];
+    portfolio_links?: string[];
+    photo_url?: string | null;
+    preferred_contact?: string | null;
+  }) =>
+    request<BloggerSelfProfile>("/marketplace/blogger/profile", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+
+  updateSelfProfile: (body: ProfileUpdateBody) =>
+    request<BloggerSelfProfile>("/marketplace/blogger/profile", {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+
+  updatePriceList: (items: PriceListItemBody[]) =>
+    request<PriceItemFull[]>("/marketplace/blogger/price-list", {
+      method: "PUT",
+      auth: true,
+      body: JSON.stringify({ items }),
+    }),
+
+  createAudienceSubmission: (body: { payload: AudienceStats; screenshots: string[] }) =>
+    request<AudienceSubmission>("/marketplace/blogger/audience-submission", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+
+  uploadImage: async (file: File): Promise<{ url: string }> => {
+    const doUpload = async (token: string) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return fetch(`${appConfig.apiBaseUrl}/marketplace/uploads`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: formData,
+      });
+    };
+
+    let response = await doUpload(tokenStorage.readAccessToken());
+    // FormData идёт мимо request(), поэтому повтор после refresh — вручную
+    if (response.status === 401 && tokenStorage.readRefreshToken()) {
+      const freshToken = await refreshAccessToken();
+      response = await doUpload(freshToken);
+    }
+    return handleResponse<{ url: string }>(response);
+  },
+
+  // ─── Премиум-размещение ───────────────────────────────────────────────────
+  createPremiumRequest: (comment?: string) =>
+    request<PremiumRequest>("/marketplace/premium/requests", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ comment: comment || null }),
+    }),
+
+  getLatestPremiumRequest: () =>
+    request<PremiumRequest>("/marketplace/premium/requests/latest", { auth: true }),
+
+  // ─── Чаты ─────────────────────────────────────────────────────────────────
+  getThreads: () =>
+    request<ThreadsList>("/marketplace/messages", { auth: true }),
+
+  getConversation: (partnerId: string, query = "") =>
+    request<Conversation>(`/marketplace/messages/${partnerId}${query}`, {
+      auth: true,
+    }),
+
+  sendMessage: (body: { recipient_id: string; text: string }) =>
+    request<ChatMessage>("/marketplace/messages", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+
+  markThreadRead: (partnerId: string) =>
+    request<void>(`/marketplace/messages/${partnerId}/read`, {
+      method: "PATCH",
+      auth: true,
+    }),
+
+  peekUser: (partnerId: string) =>
+    request<UserPeek>(`/marketplace/messages/${partnerId}/peek`, { auth: true }),
 
   // ─── Orders ────────────────────────────────────────────────────────────────
   createOrder: (body: OrderCreateBody) =>
@@ -252,10 +402,44 @@ export const api = {
       auth: true,
     }),
 
+  createOfferFromChat: (body: OfferCreateBody) =>
+    request<Order>("/marketplace/orders/offer", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+
+  acceptOffer: (orderId: string) =>
+    request<Order>(`/marketplace/orders/${orderId}/accept`, {
+      method: "PATCH",
+      auth: true,
+    }),
+
+  declineOffer: (orderId: string, reason?: string) =>
+    request<Order>(`/marketplace/orders/${orderId}/decline`, {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify({ reason: reason || null }),
+    }),
+
   markOrderPaid: (orderId: string) =>
     request<Order>(`/marketplace/orders/${orderId}/mark-paid`, {
       method: "PATCH",
       auth: true,
+    }),
+
+  submitWork: (orderId: string, result: string) =>
+    request<Order>(`/marketplace/orders/${orderId}/submit-work`, {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify({ result }),
+    }),
+
+  requestChanges: (orderId: string, reason: string) =>
+    request<Order>(`/marketplace/orders/${orderId}/request-changes`, {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify({ reason }),
     }),
 
   confirmOrder: (orderId: string) =>
@@ -270,11 +454,33 @@ export const api = {
       auth: true,
     }),
 
-  completeOrder: (orderId: string) =>
-    request<Order>(`/marketplace/orders/${orderId}/complete`, {
-      method: "PATCH",
+  createReview: (orderId: string, body: { rating: number; text?: string | null }) =>
+    request<Review>(`/marketplace/orders/${orderId}/review`, {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+
+  // ─── Кабинет воркера ──────────────────────────────────────────────────────
+  getWorkerStats: () =>
+    request<WorkerStats>("/marketplace/worker/stats", { auth: true }),
+
+  getWorkerReferralLink: () =>
+    request<{ referral_url: string }>("/marketplace/worker/referral-link", {
       auth: true,
     }),
+
+  getWorkerReferrals: (query = "") =>
+    request<{ items: WorkerReferral[]; total: number; page: number; page_size: number }>(
+      `/marketplace/worker/referrals${query}`,
+      { auth: true },
+    ),
+
+  getWorkerCommissions: (query = "") =>
+    request<{ items: WorkerCommission[]; total: number; page: number; page_size: number }>(
+      `/marketplace/worker/commissions${query}`,
+      { auth: true },
+    ),
 
   // ─── Payments ──────────────────────────────────────────────────────────────
   createPayment: (orderId: string) =>

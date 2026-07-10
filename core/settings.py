@@ -249,6 +249,13 @@ class Settings(BaseSettings):
         "redirect_uri для SSO-входа блогера (см. _validate_marketplace_redirect)",
     )
 
+    uploads_dir: str = Field(
+        default="uploads",
+        validation_alias="UPLOADS_DIR",
+        description="Директория для загруженных изображений (аватары, скриншоты "
+        "статистики); раздаётся приложением по /uploads",
+    )
+
     @property
     def yukassa_payout_active(self) -> bool:
         """Выплаты через API ЮKassa (требуются shop id и секрет)."""

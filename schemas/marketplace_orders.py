@@ -13,11 +13,76 @@ from schemas.settlement_account import SettlementAccountResponse
 
 
 class OrderCreateRequest(BaseModel):
-    """Запрос на создание заказа на маркетплейсе."""
+    """Запрос на создание заказа (оффер от заказчика из карточки автора)."""
 
     blogger_id: uuid.UUID
     message: Annotated[str, Field(min_length=1, max_length=1000)]
     amount_kopeks: int = Field(..., ge=100, le=1_000_000_000)
+    service_type_id: uuid.UUID | None = None
+    deadline_days: Annotated[int | None, Field(ge=1, le=90)] = None
+    publish_at: datetime | None = None
+
+
+class OfferCreateRequest(BaseModel):
+    """Оффер из чата: услугу может предложить и заказчик, и блогер."""
+
+    counterpart_id: uuid.UUID
+    message: Annotated[str, Field(min_length=1, max_length=1000)]
+    amount_kopeks: int = Field(..., ge=100, le=1_000_000_000)
+    service_type_id: uuid.UUID | None = None
+    deadline_days: Annotated[int | None, Field(ge=1, le=90)] = None
+    publish_at: datetime | None = None
+
+
+class OfferDeclineRequest(BaseModel):
+    """Отказ от оффера с необязательной причиной."""
+
+    reason: Annotated[str | None, Field(max_length=1000)] = None
+
+
+class SubmitWorkRequest(BaseModel):
+    """Сдача работы блогером: ссылка на публикацию и/или комментарий."""
+
+    result: Annotated[str, Field(min_length=1, max_length=2000)]
+
+    @field_validator("result")
+    @classmethod
+    def result_not_whitespace(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Опишите результат или приложите ссылку на публикацию")
+        return v
+
+
+class RequestChangesRequest(BaseModel):
+    """Возврат работы на доработку — причина обязательна."""
+
+    reason: Annotated[str, Field(min_length=1, max_length=1000)]
+
+    @field_validator("reason")
+    @classmethod
+    def reason_not_whitespace(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Укажите причину возврата на доработку")
+        return v
+
+
+class ReviewCreateRequest(BaseModel):
+    """Отзыв по завершённой сделке."""
+
+    rating: Annotated[int, Field(ge=1, le=5)]
+    text: Annotated[str | None, Field(max_length=1000)] = None
+
+
+class ReviewResponse(BaseModel):
+    model_config = {"from_attributes": True}
+
+    id: uuid.UUID
+    order_id: uuid.UUID
+    author_id: uuid.UUID
+    target_id: uuid.UUID
+    rating: int
+    text: str | None = None
+    created_at: datetime
 
 
 class OrderResponse(BaseModel):
@@ -38,6 +103,18 @@ class OrderResponse(BaseModel):
     payment_url: str | None = None
     payment_expires_at: datetime | None = None
     payment_reported_at: datetime | None = None
+    # Полный цикл: услуга, оффер, сроки, сдача работы, окно приёмки
+    service_type_id: uuid.UUID | None = None
+    service_type_name: str | None = None
+    offered_by: uuid.UUID | None = None
+    deadline_days: int | None = None
+    publish_at: datetime | None = None
+    accepted_at: datetime | None = None
+    deadline_at: datetime | None = None
+    work_submitted_at: datetime | None = None
+    work_result: str | None = None
+    review_deadline_at: datetime | None = None
+    decline_reason: str | None = None
     created_at: datetime
     paid_at: datetime | None = None
     blogger_confirmed_at: datetime | None = None
@@ -63,6 +140,9 @@ class OrderDetailResponse(OrderResponse):
     card_requisites: CardRequisitesPublic | None = None
     yookassa_available: bool = False
     available_actions: list[str] = []
+    # Отзывы по завершённой сделке: свой и адресованный текущему пользователю
+    my_review: ReviewResponse | None = None
+    review_of_me: ReviewResponse | None = None
 
 
 class RefundRequest(BaseModel):

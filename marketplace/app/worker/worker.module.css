@@ -1,0 +1,320 @@
+/* ═══════════════════════════════════════════════════════════
+   Кабинет воркера — статистика, реферальная ссылка, начисления
+   ═══════════════════════════════════════════════════════════ */
+
+.head {
+  padding: clamp(36px, 5vw, 64px) 0 clamp(24px, 3vw, 36px);
+}
+
+.headTitle {
+  margin-top: 14px;
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+.headSub {
+  margin-top: 12px;
+  max-width: 56ch;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+/* ── Стат-плитки ──────────────────────────────────────────── */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.statTile {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  padding: 22px 24px;
+}
+
+.statValue {
+  font-family: var(--font-mono);
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.statLabel {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* ── Реферальная ссылка (macOS-окно) ──────────────────────── */
+
+.refWin {
+  margin-bottom: 28px;
+}
+
+.refTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.refSub {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.refRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.refInput {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+}
+
+.refSteps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.refStep {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.refStepNo {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--violet-soft);
+  color: var(--violet);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.refStepText {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.refStepText strong {
+  display: block;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .refRow {
+    flex-wrap: wrap;
+  }
+
+  .refSteps {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Секции-таблицы ───────────────────────────────────────── */
+
+.section {
+  margin-bottom: 32px;
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid var(--line);
+}
+
+.table th {
+  padding: 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 14px 12px;
+  font-size: 14px;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+
+.table tr:hover td {
+  background: var(--surface-2);
+}
+
+.cellMono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.cellMuted {
+  color: var(--muted);
+}
+
+.cellRight {
+  text-align: right;
+}
+
+.cellCommission {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--green);
+  white-space: nowrap;
+}
+
+/* ── Мобильные карточки начислений ────────────────────────── */
+
+.commCards {
+  display: none;
+}
+
+.commCard {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  padding: 16px;
+  margin-bottom: 10px;
+}
+
+.commCardTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.commCardNo {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--violet);
+}
+
+.commCardDate {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.commCardClient {
+  font-family: var(--font-display);
+  font-size: 17px;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+.commCardRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13.5px;
+}
+
+.commCardKey {
+  color: var(--muted);
+}
+
+@media (max-width: 720px) {
+  .commTableWrap {
+    display: none;
+  }
+
+  .commCards {
+    display: block;
+  }
+}
+
+/* ── Плашка вывода средств ────────────────────────────────── */
+
+.payout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+  padding: clamp(20px, 3vw, 28px);
+  margin-bottom: clamp(36px, 5vw, 64px);
+}
+
+.payoutTitle {
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: var(--ink);
+}
+
+.payoutText {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 52ch;
+}
+
+/* ── Гард: не воркер ──────────────────────────────────────── */
+
+.guardWrap {
+  padding: clamp(48px, 8vw, 96px) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+}

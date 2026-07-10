@@ -87,6 +87,20 @@ def _make_order(
     order.yookassa_payment_id = None
     order.payment_url = None
     order.payment_expires_at = None
+    order.payment_reported_at = None
+    # Полный цикл: услуга, оффер, сроки, сдача работы, окно приёмки
+    order.service_type_id = None
+    order.service_type_name = None
+    order.offered_by = client_id
+    order.deadline_days = None
+    order.publish_at = None
+    order.accepted_at = None
+    order.deadline_at = None
+    order.work_submitted_at = None
+    order.work_result = None
+    order.review_deadline_at = None
+    order.decline_reason = None
+    order.blogger_confirmed_at = None
     order.created_at = datetime.now(timezone.utc)
     order.paid_at = None
     order.completed_at = None
@@ -99,7 +113,7 @@ def _make_order(
 
 @pytest.mark.asyncio
 async def test_create_order_201_success() -> None:
-    """POST /marketplace/orders creates order for client."""
+    """POST /marketplace/orders creates an offer (OFFER_PENDING) for client."""
     app = create_app()
     blogger = _make_blogger_user()
     client = _make_client_user()
@@ -120,8 +134,17 @@ async def test_create_order_201_success() -> None:
                 # BloggerProfile lookup
                 result.scalar_one_or_none = MagicMock(return_value=profile)
             elif call_count["n"] == 2:
+                # User (клиент) lookup
+                result.scalar_one_or_none = MagicMock(return_value=client)
+            elif call_count["n"] == 3:
+                # User (автор — проверка is_active) lookup
+                result.scalar_one_or_none = MagicMock(return_value=blogger)
+            elif call_count["n"] == 4:
                 # MarketplaceSettings lookup
                 result.scalar_one_or_none = MagicMock(return_value=settings)
+            else:
+                # send_message: User (получатель оффера — блогер) lookup
+                result.scalar_one_or_none = MagicMock(return_value=blogger)
             return result
 
         session.execute = mock_execute
@@ -130,21 +153,9 @@ async def test_create_order_201_success() -> None:
         session.commit = AsyncMock()
 
         async def fake_refresh(obj):
+            # Симуляция полей, заполняемых БД; остальное ставит create_offer
             obj.id = uuid.uuid4()
-            obj.status = MarketplaceOrderStatus.PENDING_PAYMENT.value
-            obj.amount_kopeks = profile.average_price_kopeks
-            obj.message = "Хочу рекламу"
-            obj.platform_commission_pct = Decimal("25.00")
-            obj.worker_commission_pct = Decimal("0.00")
-            obj.client_id = client.id
-            obj.blogger_id = blogger.id
-            obj.worker_id = None
-            obj.yookassa_payment_id = None
-            obj.payment_url = None
-            obj.payment_expires_at = None
             obj.created_at = datetime.now(timezone.utc)
-            obj.paid_at = None
-            obj.completed_at = None
             obj.updated_at = datetime.now(timezone.utc)
 
         session.refresh = fake_refresh
@@ -163,8 +174,9 @@ async def test_create_order_201_success() -> None:
             )
         assert r.status_code == 201
         data = r.json()
-        assert data["status"] == "PENDING_PAYMENT"
+        assert data["status"] == "OFFER_PENDING"
         assert data["amount_kopeks"] == 500000
+        assert data["offered_by"] == str(client.id)
     finally:
         app.dependency_overrides.clear()
 
@@ -251,8 +263,8 @@ async def test_create_order_422_message_too_long() -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_order_404_blogger_not_found() -> None:
-    """POST /marketplace/orders returns 404 if blogger profile not found."""
+async def test_create_order_400_blogger_not_found() -> None:
+    """POST /marketplace/orders returns 400 (OrderFlowError) if blogger profile not found."""
     app = create_app()
     client = _make_client_user()
     app.dependency_overrides[get_current_user] = lambda: client
@@ -275,7 +287,8 @@ async def test_create_order_404_blogger_not_found() -> None:
                     "amount_kopeks": 500000,
                 },
             )
-        assert r.status_code == 404
+        assert r.status_code == 400
+        assert "не найден" in r.json()["detail"]
     finally:
         app.dependency_overrides.clear()
 
@@ -310,7 +323,7 @@ async def test_create_order_400_blogger_inactive() -> None:
                 },
             )
         assert r.status_code == 400
-        assert "неактивен" in r.json()["detail"]
+        assert "скрыл карточку" in r.json()["detail"]
     finally:
         app.dependency_overrides.clear()
 
@@ -345,7 +358,7 @@ async def test_create_order_400_orders_disabled() -> None:
                 },
             )
         assert r.status_code == 400
-        assert "не принимает" in r.json()["detail"]
+        assert "приостановил" in r.json()["detail"]
     finally:
         app.dependency_overrides.clear()
 
@@ -373,11 +386,14 @@ async def test_list_orders_200_client() -> None:
             if call_count["n"] == 1:
                 # Count query
                 result.scalar_one = MagicMock(return_value=1)
-            else:
+            elif call_count["n"] == 2:
                 # Items query
                 scalars_mock = MagicMock()
                 scalars_mock.all = MagicMock(return_value=[order])
                 result.scalars = MagicMock(return_value=scalars_mock)
+            else:
+                # Имена сторон (client/blogger)
+                result.all = MagicMock(return_value=[])
             return result
 
         session.execute = mock_execute
@@ -453,6 +469,10 @@ async def test_get_order_200_client_owner() -> None:
         data = r.json()
         assert data["settlement_account"] is None
         assert "cancel" in data["available_actions"]
+        assert "mark_paid" in data["available_actions"]
+        # Отзывы появляются только в COMPLETED
+        assert data["my_review"] is None
+        assert data["review_of_me"] is None
     finally:
         app.dependency_overrides.clear()
 
@@ -506,12 +526,12 @@ async def test_get_order_404_not_found() -> None:
         app.dependency_overrides.clear()
 
 
-# --- PATCH /marketplace/orders/{order_id}/complete ---
+# --- PATCH /marketplace/orders/{order_id}/submit-work ---
 
 
 @pytest.mark.asyncio
-async def test_complete_order_403_non_blogger() -> None:
-    """PATCH /marketplace/orders/{id}/complete returns 403 for non-blogger."""
+async def test_submit_work_403_non_blogger() -> None:
+    """PATCH /marketplace/orders/{id}/submit-work returns 403 for non-blogger."""
     app = create_app()
     client = _make_client_user()
     app.dependency_overrides[get_current_user] = lambda: client
@@ -523,15 +543,18 @@ async def test_complete_order_403_non_blogger() -> None:
     app.dependency_overrides[get_db] = fake_db
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-            r = await ac.patch(f"/marketplace/orders/{uuid.uuid4()}/complete")
+            r = await ac.patch(
+                f"/marketplace/orders/{uuid.uuid4()}/submit-work",
+                json={"result": "https://example.com/post"},
+            )
         assert r.status_code == 403
     finally:
         app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
-async def test_complete_order_200_success() -> None:
-    """PATCH /marketplace/orders/{id}/complete transitions to BLOGGER_CONFIRMED."""
+async def test_submit_work_200_success() -> None:
+    """PATCH /marketplace/orders/{id}/submit-work transitions to BLOGGER_CONFIRMED."""
     app = create_app()
     blogger = _make_blogger_user()
     client = _make_client_user()
@@ -541,16 +564,18 @@ async def test_complete_order_200_success() -> None:
 
     async def fake_db():
         session = AsyncMock()
-        result = MagicMock()
-        result.scalar_one_or_none = MagicMock(return_value=order)
-        session.execute = AsyncMock(return_value=result)
+        order_result = MagicMock()
+        order_result.scalar_one_or_none = MagicMock(return_value=order)
+        # send_message (system) грузит получателя — клиента
+        recipient_result = MagicMock()
+        recipient_result.scalar_one_or_none = MagicMock(return_value=client)
+        session.execute = AsyncMock(side_effect=[order_result, recipient_result])
         session.add = MagicMock()
         session.flush = AsyncMock()
         session.commit = AsyncMock()
 
         async def fake_refresh(obj):
-            # After transition, status should be BLOGGER_CONFIRMED
-            obj.status = MarketplaceOrderStatus.BLOGGER_CONFIRMED.value
+            pass  # submit_work уже поставил статус и таймстемпы
 
         session.refresh = fake_refresh
         yield session
@@ -558,19 +583,25 @@ async def test_complete_order_200_success() -> None:
     app.dependency_overrides[get_db] = fake_db
 
     with patch(
-        "routers.marketplace_orders.notification_service.notify",
+        "services.marketplace_order_flow_service.notification_service.notify",
         new_callable=AsyncMock,
     ) as mock_notify:
         try:
             async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-                r = await ac.patch(f"/marketplace/orders/{order.id}/complete")
+                r = await ac.patch(
+                    f"/marketplace/orders/{order.id}/submit-work",
+                    json={"result": "https://example.com/post"},
+                )
             assert r.status_code == 200
             data = r.json()
             assert data["status"] == "BLOGGER_CONFIRMED"
+            assert data["work_result"] == "https://example.com/post"
+            assert data["work_submitted_at"] is not None
+            assert data["review_deadline_at"] is not None
             mock_notify.assert_called_once()
             call_kwargs = mock_notify.call_args.kwargs
             assert call_kwargs["user_id"] == client.id
-            assert call_kwargs["event_type"] == "blogger_confirmed"
+            assert call_kwargs["event_type"] == "work_submitted"
             assert call_kwargs["payload"]["order_id"] == str(order.id)
             assert call_kwargs["payload"]["blogger_name"] == blogger.name
         finally:
@@ -578,8 +609,8 @@ async def test_complete_order_200_success() -> None:
 
 
 @pytest.mark.asyncio
-async def test_complete_order_403_wrong_blogger() -> None:
-    """PATCH /marketplace/orders/{id}/complete returns 403 for non-assigned blogger."""
+async def test_submit_work_403_wrong_blogger() -> None:
+    """PATCH /marketplace/orders/{id}/submit-work returns 403 for non-assigned blogger."""
     app = create_app()
     blogger = _make_blogger_user()
     client = _make_client_user()
@@ -597,7 +628,10 @@ async def test_complete_order_403_wrong_blogger() -> None:
     app.dependency_overrides[get_db] = fake_db
     try:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-            r = await ac.patch(f"/marketplace/orders/{order.id}/complete")
+            r = await ac.patch(
+                f"/marketplace/orders/{order.id}/submit-work",
+                json={"result": "https://example.com/post"},
+            )
         assert r.status_code == 403
     finally:
         app.dependency_overrides.clear()
@@ -640,9 +674,12 @@ async def test_confirm_order_200_success() -> None:
 
     async def fake_db():
         session = AsyncMock()
-        result = MagicMock()
-        result.scalar_one_or_none = MagicMock(return_value=order)
-        session.execute = AsyncMock(return_value=result)
+        order_result = MagicMock()
+        order_result.scalar_one_or_none = MagicMock(return_value=order)
+        # send_system_message → send_message грузит получателя — блогера
+        recipient_result = MagicMock()
+        recipient_result.scalar_one_or_none = MagicMock(return_value=blogger)
+        session.execute = AsyncMock(side_effect=[order_result, recipient_result])
         session.commit = AsyncMock()
         session.flush = AsyncMock()
         session.add = MagicMock()
@@ -656,7 +693,7 @@ async def test_confirm_order_200_success() -> None:
     app.dependency_overrides[get_db] = fake_db
 
     with patch(
-        "routers.marketplace_orders.marketplace_escrow_service.distribute_funds",
+        "services.marketplace_escrow_service.distribute_funds",
         new_callable=AsyncMock,
     ) as mock_distribute, patch(
         "routers.marketplace_orders.notification_service.notify",

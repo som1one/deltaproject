@@ -47,6 +47,42 @@ class MarketplaceOrder(Base):
     )
     amount_kopeks: Mapped[int] = mapped_column(Integer, nullable=False)
     message: Mapped[str] = mapped_column(String(1000), nullable=False)
+    # Услуга из реестра: FK + снапшот названия на момент создания заказа
+    service_type_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("marketplace_service_types.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    service_type_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Оффер: кто предложил условия (клиент из карточки/чата или блогер из чата)
+    offered_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    # Сроки: дней на выполнение и/или конкретная дата публикации
+    deadline_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    publish_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    accepted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Дедлайн, зафиксированный в момент принятия оффера
+    deadline_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Сдача работы блогером: ссылка/комментарий + метка времени
+    work_submitted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    work_result: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    # У заказчика 3 дня на приёмку после сдачи; после — авто-подтверждение
+    review_deadline_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Причина отказа от оффера / возврата работы на доработку
+    decline_reason: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     # Commission snapshot at order creation time
     platform_commission_pct: Mapped[Decimal] = mapped_column(
         Numeric(precision=5, scale=2),

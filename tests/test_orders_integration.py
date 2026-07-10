@@ -190,17 +190,17 @@ class TestInvalidTransitions:
         ) is False
 
     def test_backward_transition_not_allowed(self) -> None:
-        """Backward transitions are never allowed."""
+        """Backward transitions are not allowed — кроме возврата работы на доработку."""
         # ESCROW_HELD → PENDING_PAYMENT
         assert validate_transition(
             MarketplaceOrderStatus.ESCROW_HELD.value,
             MarketplaceOrderStatus.PENDING_PAYMENT.value,
         ) is False
-        # BLOGGER_CONFIRMED → ESCROW_HELD
+        # BLOGGER_CONFIRMED → ESCROW_HELD: возврат на доработку РАЗРЕШЁН
         assert validate_transition(
             MarketplaceOrderStatus.BLOGGER_CONFIRMED.value,
             MarketplaceOrderStatus.ESCROW_HELD.value,
-        ) is False
+        ) is True
         # COMPLETED → BLOGGER_CONFIRMED
         assert validate_transition(
             MarketplaceOrderStatus.COMPLETED.value,

@@ -4,14 +4,16 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Clapperboard, Film, Megaphone, Tag } from "lucide-react";
 
 import { MarketShell } from "@/components/shell/shell";
-import { Portrait } from "@/components/ui/bits";
+import { Portrait, StarRating } from "@/components/ui/bits";
+import { Select } from "@/components/ui/select";
 import { Reveal } from "@/components/ui/motion";
 import { categoryLabel } from "@/components/catalog/blogger-card";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { formatAudience, formatMoney } from "@/lib/format";
+import { formatAudience, formatDate, formatMoney } from "@/lib/format";
 import type { BloggerProfileFull, Order } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
@@ -77,6 +79,12 @@ const reviewWord = (n: number): string => {
 const DEFAULT_BRIEF =
   "Здравствуйте! Хотим обсудить рекламную интеграцию: расскажу о продукте и пожеланиях к формату.";
 
+/** Пункт «своих условий» в селекте услуг. */
+const CUSTOM_SERVICE = "custom";
+
+/* Иконки для плиток прайс-листа — чередуются по кругу. */
+const PRICE_ICONS = [Clapperboard, Megaphone, Tag, Film];
+
 /* Демо-профили для карточек каталога (demo-1/demo-2) — чтобы переход из каталога
    работал и без бэкенда. Совпадают с DEMO_BLOGGERS в каталоге. */
 const DEMO_PROFILES: Record<string, BloggerProfileFull> = {
@@ -132,6 +140,30 @@ const DEMO_PROFILES: Record<string, BloggerProfileFull> = {
     avg_views: 245_000,
     posting_frequency: "3–4 ролика в месяц",
     response_time: "≈ 2 часа",
+    audience_verified_at: "2026-05-14T00:00:00Z",
+    price_list: [
+      {
+        service_type_id: "demo-1-integration",
+        code: "integration",
+        name: "Интеграция в ролик",
+        price_kopeks: 25_000_000,
+        description: "60 секунд внутри обзора, сценарий согласуем заранее",
+      },
+      {
+        service_type_id: "demo-1-review",
+        code: "review",
+        name: "Отдельный обзор",
+        price_kopeks: 45_000_000,
+        description: "Полноценный ролик 10–15 минут о вашем продукте",
+      },
+      {
+        service_type_id: "demo-1-tg-post",
+        code: "tg_post",
+        name: "Пост в Telegram",
+        price_kopeks: 6_000_000,
+        description: "Нативная рекомендация в канале с активной аудиторией",
+      },
+    ],
   },
   "demo-2": {
     id: "demo-2",
@@ -181,6 +213,23 @@ const DEMO_PROFILES: Record<string, BloggerProfileFull> = {
     avg_views: 380_000,
     posting_frequency: "2–3 стрима в неделю",
     response_time: "≈ 4 часа",
+    audience_verified_at: "2026-04-02T00:00:00Z",
+    price_list: [
+      {
+        service_type_id: "demo-2-stream",
+        code: "stream_sponsor",
+        name: "Спонсорский сегмент на стриме",
+        price_kopeks: 18_000_000,
+        description: "15 минут геймплея вашей игры в прямом эфире",
+      },
+      {
+        service_type_id: "demo-2-game-review",
+        code: "game_review",
+        name: "Обзор игры",
+        price_kopeks: 30_000_000,
+        description: "Отдельный ролик с честным разбором механик",
+      },
+    ],
   },
 };
 
@@ -216,6 +265,9 @@ export default function BloggerProfilePage() {
   const blogger = demoProfile ?? data;
 
   const [amountRub, setAmountRub] = useState("");
+  const [serviceId, setServiceId] = useState(CUSTOM_SERVICE);
+  const [deadlineDays, setDeadlineDays] = useState("");
+  const [publishDate, setPublishDate] = useState("");
   const [brief, setBrief] = useState(DEFAULT_BRIEF);
   const [formOpen, setFormOpen] = useState(false);
   const [formError, setFormError] = useState("");
@@ -227,16 +279,58 @@ export default function BloggerProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blogger]);
 
+  /* Подтверждённая админом статистика важнее «сырых» полей профиля,
+     но демо-профили держат данные в самих полях — берём и то и другое. */
+  const stats = blogger?.audience_stats;
+  const audienceAge = stats?.audience_age ?? blogger?.audience_age;
+  const audienceGender = stats?.audience_gender ?? blogger?.audience_gender;
+  const audienceGeo = stats?.audience_geo ?? blogger?.audience_geo;
+  const avgViews = stats?.avg_views ?? blogger?.avg_views;
+  const postingFrequency = stats?.posting_frequency ?? blogger?.posting_frequency;
+  const responseTime = stats?.response_time ?? blogger?.response_time;
+
+  const priceList = blogger?.price_list ?? [];
+  const serviceOptions = [
+    ...priceList.map((p) => ({ value: p.service_type_id, label: p.name })),
+    { value: CUSTOM_SERVICE, label: "Свои условия" },
+  ];
+
+  /* Выбор услуги префиллит бюджет её ценой; «свои условия» возвращают ориентир. */
+  const handleServiceChange = (next: string) => {
+    setServiceId(next);
+    const item = priceList.find((p) => p.service_type_id === next);
+    if (item) {
+      setAmountRub(String(Math.round(item.price_kopeks / 100)));
+    } else if (blogger) {
+      setAmountRub(String(Math.round(blogger.average_price_kopeks / 100)));
+    }
+  };
+
+  const goToChat = () => {
+    const target = `/chats/${blogger?.user_id ?? bloggerUserId}`;
+    router.push(isAuthenticated ? target : `/auth/login?next=${target}`);
+  };
+
   const orderMutation = useMutation({
     mutationFn: async (): Promise<Order> => {
       const rub = Number(amountRub.replace(/\s/g, "").replace(",", "."));
       if (!Number.isFinite(rub) || rub < 1) {
         throw new Error("Укажите корректную сумму сделки");
       }
+      const days = deadlineDays.trim() === "" ? null : Number(deadlineDays);
+      if (days != null && (!Number.isInteger(days) || days < 1 || days > 90)) {
+        throw new Error("Срок выполнения — целое число от 1 до 90 дней");
+      }
+      if (!brief.trim()) {
+        throw new Error("Опишите задачу для автора");
+      }
       return api.createOrder({
-        blogger_id: bloggerUserId,
+        blogger_id: blogger?.user_id ?? bloggerUserId,
         message: brief.trim(),
         amount_kopeks: Math.round(rub * 100),
+        service_type_id: serviceId === CUSTOM_SERVICE ? null : serviceId,
+        deadline_days: days,
+        publish_at: publishDate ? new Date(`${publishDate}T12:00:00`).toISOString() : null,
       });
     },
     onSuccess: (order) => {
@@ -301,7 +395,7 @@ export default function BloggerProfilePage() {
                 <div className={styles.statRow}>
                   {blogger.rating != null && (
                     <span className={styles.stat}>
-                      <span className={styles.statStar}>★</span>
+                      <StarRating value={blogger.rating} readOnly size={15} />
                       <b>{blogger.rating.toFixed(1)}</b>
                       {blogger.reviews_count ? (
                         <span className={styles.statSub}>· {blogger.reviews_count} {reviewWord(blogger.reviews_count)}</span>
@@ -337,23 +431,23 @@ export default function BloggerProfilePage() {
                     <section className={styles.block}>
                       <h2 className={styles.blockTitle}>Об авторе</h2>
                       <p className={styles.description}>{blogger.description}</p>
-                      {(blogger.avg_views != null || blogger.posting_frequency || blogger.response_time) && (
+                      {(avgViews != null || postingFrequency || responseTime) && (
                         <div className={styles.authorMeta}>
-                          {blogger.avg_views != null && (
+                          {avgViews != null && (
                             <div className={styles.authorMetaItem}>
-                              <span className={styles.authorMetaVal}>{formatAudience(blogger.avg_views)}</span>
+                              <span className={styles.authorMetaVal}>{formatAudience(avgViews)}</span>
                               <span className={styles.authorMetaKey}>средние просмотры</span>
                             </div>
                           )}
-                          {blogger.posting_frequency && (
+                          {postingFrequency && (
                             <div className={styles.authorMetaItem}>
-                              <span className={styles.authorMetaVal}>{blogger.posting_frequency}</span>
+                              <span className={styles.authorMetaVal}>{postingFrequency}</span>
                               <span className={styles.authorMetaKey}>частота выхода</span>
                             </div>
                           )}
-                          {blogger.response_time && (
+                          {responseTime && (
                             <div className={styles.authorMetaItem}>
-                              <span className={styles.authorMetaVal}>{blogger.response_time}</span>
+                              <span className={styles.authorMetaVal}>{responseTime}</span>
                               <span className={styles.authorMetaKey}>среднее время ответа</span>
                             </div>
                           )}
@@ -362,15 +456,49 @@ export default function BloggerProfilePage() {
                     </section>
                   )}
 
-                  {(blogger.audience_age || blogger.audience_gender || blogger.audience_geo) && (
+                  {priceList.length > 0 && (
                     <section className={styles.block}>
-                      <h2 className={styles.blockTitle}>Аудитория</h2>
+                      <h2 className={styles.blockTitle}>Прайс-лист</h2>
+                      <div className={styles.priceList}>
+                        {priceList.map((item, i) => {
+                          const Icon = PRICE_ICONS[i % PRICE_ICONS.length];
+                          return (
+                            <div key={item.service_type_id} className={styles.priceRow}>
+                              <span
+                                className={`${styles.priceIcon} ${i % 2 === 0 ? styles.priceIconViolet : styles.priceIconGreen}`}
+                                aria-hidden="true"
+                              >
+                                <Icon size={18} strokeWidth={1.8} />
+                              </span>
+                              <span className={styles.priceInfo}>
+                                <span className={styles.priceName}>{item.name}</span>
+                                {item.description && <span className={styles.priceDesc}>{item.description}</span>}
+                              </span>
+                              <span className={styles.priceValue}>{formatMoney(item.price_kopeks)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+
+                  {(audienceAge || audienceGender || audienceGeo) && (
+                    <section className={styles.block}>
+                      <div className={styles.blockHead}>
+                        <h2 className={styles.blockTitleBare}>Аудитория</h2>
+                        {blogger.audience_verified_at && (
+                          <span className={styles.verifiedBadge}>
+                            <VerifiedIcon />
+                            Подтверждено платформой {formatDate(blogger.audience_verified_at)}
+                          </span>
+                        )}
+                      </div>
                       <div className={styles.audiencePanel}>
-                        {blogger.audience_age && blogger.audience_age.length > 0 && (
+                        {audienceAge && audienceAge.length > 0 && (
                           <div className={styles.audienceCol}>
                             <span className={styles.audienceColTitle}>Возраст</span>
                             <ul className={styles.audienceList}>
-                              {blogger.audience_age.map((a) => (
+                              {audienceAge.map((a) => (
                                 <li key={a.label} className={styles.audienceRow}>
                                   <span className={styles.audienceLabel}>{a.label}</span>
                                   <span className={styles.audienceBar}>
@@ -382,32 +510,32 @@ export default function BloggerProfilePage() {
                             </ul>
                           </div>
                         )}
-                        {blogger.audience_gender && (
+                        {audienceGender && (
                           <div className={styles.audienceCol}>
                             <span className={styles.audienceColTitle}>Пол</span>
                             <div className={styles.genderTrack}>
-                              <span className={styles.genderFemale} style={{ width: `${blogger.audience_gender.female}%` }} />
-                              <span className={styles.genderMale} style={{ width: `${blogger.audience_gender.male}%` }} />
+                              <span className={styles.genderFemale} style={{ width: `${audienceGender.female}%` }} />
+                              <span className={styles.genderMale} style={{ width: `${audienceGender.male}%` }} />
                             </div>
                             <ul className={styles.genderLegend}>
                               <li>
                                 <span className={styles.dotFemale} />
                                 <span className={styles.audienceLabel}>Женщины</span>
-                                <span className={styles.audienceVal}>{blogger.audience_gender.female}%</span>
+                                <span className={styles.audienceVal}>{audienceGender.female}%</span>
                               </li>
                               <li>
                                 <span className={styles.dotMale} />
                                 <span className={styles.audienceLabel}>Мужчины</span>
-                                <span className={styles.audienceVal}>{blogger.audience_gender.male}%</span>
+                                <span className={styles.audienceVal}>{audienceGender.male}%</span>
                               </li>
                             </ul>
                           </div>
                         )}
-                        {blogger.audience_geo && blogger.audience_geo.length > 0 && (
+                        {audienceGeo && audienceGeo.length > 0 && (
                           <div className={styles.audienceCol}>
                             <span className={styles.audienceColTitle}>География</span>
                             <ul className={styles.audienceList}>
-                              {blogger.audience_geo.map((g) => (
+                              {audienceGeo.map((g) => (
                                 <li key={g.label} className={styles.audienceRow}>
                                   <span className={styles.audienceLabel}>{g.label}</span>
                                   <span className={styles.audienceBar}>
@@ -434,7 +562,7 @@ export default function BloggerProfilePage() {
                     </section>
                   )}
 
-                  {blogger.social_links.length > 0 && (
+                  {Boolean(blogger.social_links?.length) && (
                     <section className={styles.block}>
                       <h2 className={styles.blockTitle}>Площадки</h2>
                       <div className={styles.socialGrid}>
@@ -460,7 +588,7 @@ export default function BloggerProfilePage() {
                     </section>
                   )}
 
-                  {blogger.portfolio_links.length > 0 && (
+                  {Boolean(blogger.portfolio_links?.length) && (
                     <section className={styles.block}>
                       <h2 className={styles.blockTitle}>Портфолио публикаций</h2>
                       <div className={styles.portfolioGrid}>
@@ -505,91 +633,147 @@ export default function BloggerProfilePage() {
                       Вы вошли как автор. Сделки оформляют заказчики — ваши входящие
                       находятся в разделе «Входящие».
                     </div>
-                  ) : !blogger.orders_enabled ? (
-                    <div className={ui.notice}>
-                      Автор временно не принимает сделки. Загляните позже или выберите другого в указателе.
-                    </div>
-                  ) : !formOpen ? (
+                  ) : (
                     <>
-                      <ul className={styles.perks}>
-                        <li className={styles.perk}>
-                          <CheckIcon />
-                          Оплата в эскроу — до подтверждения публикации
-                        </li>
-                        <li className={styles.perk}>
-                          <CheckIcon />
-                          Прямой чат с автором внутри сделки
-                        </li>
-                        <li className={styles.perk}>
-                          <CheckIcon />
-                          Возврат, если публикация не вышла
-                        </li>
-                      </ul>
+                      {!blogger.orders_enabled && (
+                        <div className={ui.notice}>
+                          Автор приостановил приём заказов. Написать ему можно — обсудите
+                          условия в чате, а сделку оформите позже.
+                        </div>
+                      )}
+
+                      {blogger.orders_enabled && !formOpen && (
+                        <>
+                          <ul className={styles.perks}>
+                            <li className={styles.perk}>
+                              <CheckIcon />
+                              Оплата на счёт платформы
+                            </li>
+                            <li className={styles.perk}>
+                              <CheckIcon />
+                              Чат с автором прямо на площадке
+                            </li>
+                            <li className={styles.perk}>
+                              <CheckIcon />
+                              Возврат, если публикация не вышла
+                            </li>
+                          </ul>
+                          <button
+                            type="button"
+                            className={`${ui.btnPrimary} ${ui.btnBlock}`}
+                            onClick={() => setFormOpen(true)}
+                          >
+                            Предложить сделку
+                          </button>
+                          <p className={ui.fine} style={{ textAlign: "center" }}>
+                            Форма — 1 минута · без обязательств
+                          </p>
+                        </>
+                      )}
+
+                      {blogger.orders_enabled && formOpen && (
+                        <form className={ui.form} onSubmit={handleSubmit}>
+                          {priceList.length > 0 && (
+                            <div className={ui.field}>
+                              <span className={ui.fieldLabel}>Услуга</span>
+                              <Select
+                                value={serviceId}
+                                onChange={handleServiceChange}
+                                options={serviceOptions}
+                                ariaLabel="Услуга"
+                              />
+                            </div>
+                          )}
+                          <label className={ui.field}>
+                            <span className={ui.fieldLabel}>Бюджет, ₽</span>
+                            <span className={styles.amountRow}>
+                              <input
+                                className={ui.input}
+                                inputMode="numeric"
+                                required
+                                value={amountRub}
+                                onChange={(e) => setAmountRub(e.target.value.replace(/[^\d\s.,]/g, ""))}
+                                aria-label="Сумма в рублях"
+                              />
+                              <span className={styles.amountSuffix}>₽</span>
+                            </span>
+                          </label>
+                          <div className={styles.fieldDuo}>
+                            <label className={ui.field}>
+                              <span className={ui.fieldLabel}>Срок выполнения, дней</span>
+                              <input
+                                className={ui.input}
+                                type="number"
+                                min={1}
+                                max={90}
+                                step={1}
+                                placeholder="напр. 14"
+                                value={deadlineDays}
+                                onChange={(e) => setDeadlineDays(e.target.value)}
+                              />
+                            </label>
+                            <label className={ui.field}>
+                              <span className={ui.fieldLabel}>Дата публикации</span>
+                              <input
+                                className={ui.input}
+                                type="date"
+                                min={new Date().toISOString().slice(0, 10)}
+                                value={publishDate}
+                                onChange={(e) => setPublishDate(e.target.value)}
+                              />
+                            </label>
+                          </div>
+                          <p className={styles.fieldHint}>
+                            Срок и дата необязательны. Дата — если ролик должен выйти в конкретный день.
+                          </p>
+                          <label className={ui.field}>
+                            <span className={ui.fieldLabel}>ТЗ для автора</span>
+                            <textarea
+                              className={ui.textarea}
+                              maxLength={1000}
+                              minLength={1}
+                              required
+                              value={brief}
+                              onChange={(e) => setBrief(e.target.value)}
+                            />
+                          </label>
+                          {formError && <div className={ui.noticeDanger}>{formError}</div>}
+                          <button className={`${ui.btnPrimary} ${ui.btnBlock}`} type="submit" disabled={orderMutation.isPending}>
+                            {orderMutation.isPending
+                              ? "Отправляем предложение…"
+                              : isAuthenticated
+                                ? "Отправить предложение"
+                                : "Войти и предложить сделку"}
+                          </button>
+                          <p className={ui.fine} style={{ textAlign: "center" }}>
+                            Автор получит предложение в чат и сможет принять его или задать
+                            вопросы. Оплата — только после принятия.
+                          </p>
+                          {isHydrated && !isAuthenticated && (
+                            <p className={ui.fine} style={{ textAlign: "center" }}>
+                              Нужен аккаунт заказчика —{" "}
+                              <Link href={`/auth/register?next=/bloggers/${bloggerUserId}`} className={ui.link}>
+                                создать за минуту
+                              </Link>
+                            </p>
+                          )}
+                        </form>
+                      )}
+
                       <button
                         type="button"
-                        className={`${ui.btnPrimary} ${ui.btnBlock}`}
-                        onClick={() => setFormOpen(true)}
+                        className={`${ui.btnLine} ${ui.btnBlock} ${styles.chatBtn}`}
+                        onClick={goToChat}
                       >
-                        Обсудить сделку
+                        Написать автору
                       </button>
-                      <p className={ui.fine} style={{ textAlign: "center" }}>
-                        Форма — 1 минута · без обязательств
-                      </p>
+
                       <p className={styles.secureNote}>
                         <ShieldIcon />
                         Оплата удерживается на счёте платформы и переходит автору только
                         после того, как вы подтвердите публикацию.
                       </p>
                     </>
-                  ) : (
-                    <form className={ui.form} onSubmit={handleSubmit}>
-                      <label className={ui.field}>
-                        <span className={ui.fieldLabel}>Бюджет интеграции</span>
-                        <span className={styles.amountRow}>
-                          <input
-                            className={ui.input}
-                            inputMode="numeric"
-                            required
-                            value={amountRub}
-                            onChange={(e) => setAmountRub(e.target.value.replace(/[^\d\s.,]/g, ""))}
-                            aria-label="Сумма в рублях"
-                          />
-                          <span className={styles.amountSuffix}>₽</span>
-                        </span>
-                      </label>
-                      <label className={ui.field}>
-                        <span className={ui.fieldLabel}>Бриф для автора</span>
-                        <textarea
-                          className={ui.textarea}
-                          maxLength={1000}
-                          minLength={1}
-                          required
-                          value={brief}
-                          onChange={(e) => setBrief(e.target.value)}
-                        />
-                      </label>
-                      {formError && <div className={ui.noticeDanger}>{formError}</div>}
-                      <button className={`${ui.btnPrimary} ${ui.btnBlock}`} type="submit" disabled={orderMutation.isPending}>
-                        {orderMutation.isPending
-                          ? "Создаём сделку…"
-                          : isAuthenticated
-                            ? "Создать заказ"
-                            : "Войти и создать заказ"}
-                      </button>
-                      {isHydrated && !isAuthenticated && (
-                        <p className={ui.fine} style={{ textAlign: "center" }}>
-                          Нужен аккаунт заказчика —{" "}
-                          <Link href={`/auth/register?next=/bloggers/${bloggerUserId}`} className={ui.link}>
-                            создать за минуту
-                          </Link>
-                        </p>
-                      )}
-                      <p className={styles.secureNote}>
-                        <ShieldIcon />
-                        Оплата удерживается на счёте платформы и переходит автору только
-                        после того, как вы подтвердите публикацию.
-                      </p>
-                    </form>
                   )}
                 </aside>
               </div>

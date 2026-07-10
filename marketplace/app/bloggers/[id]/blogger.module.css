@@ -346,6 +346,122 @@
 .dotMale   { background: var(--sky); }
 
 
+/* ── Прайс-лист: строки услуг с иконкой-плиткой и моно-ценой ── */
+
+.priceList {
+  margin-top: 10px;
+}
+
+.priceRow {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 10px;
+  margin: 0 -10px;
+  border-radius: var(--r-md);
+  border-bottom: 1px solid var(--line);
+  transition: background-color var(--dur) var(--ease);
+}
+
+.priceRow:last-child {
+  border-bottom: 0;
+}
+
+.priceRow:hover {
+  background: var(--surface-2);
+}
+
+.priceIcon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.priceIconViolet {
+  background: var(--violet-soft);
+  color: var(--violet);
+}
+
+.priceIconGreen {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.priceInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.priceName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+
+.priceDesc {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.priceValue {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Шапка секции с бейджем справа (аудитория) ─────────────── */
+
+.blockHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* Та же типографика, что .blockTitle, но без собственной линии —
+   линию рисует обёртка .blockHead. */
+.blockTitleBare {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brass-ink);
+}
+
+.verifiedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px 5px 8px;
+  border-radius: var(--pill);
+  background: var(--green-soft);
+  color: var(--success-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.verifiedBadge svg {
+  flex-shrink: 0;
+  color: var(--green);
+}
+
 /* ── Форматы работы: чипы ──────────────────────────────────── */
 
 .formatChips {
@@ -790,6 +906,31 @@
   font-size: 16px;
   font-weight: 600;
   color: var(--muted);
+}
+
+/* Срок и дата публикации — парой в одну строку. */
+.fieldDuo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 420px) {
+  .fieldDuo {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fieldHint {
+  margin: -6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* «Написать автору» — вторая, тихая кнопка под основной. */
+.chatBtn {
+  margin-top: 12px;
 }
 
 /* Эскроу — зелёная плашка, как .moneyRow на главной (а не текст с разделителем). */

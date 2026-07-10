@@ -33,7 +33,9 @@ from routers import (
     marketplace_notifications,
     marketplace_orders,
     marketplace_payments,
+    marketplace_premium,
     marketplace_support,
+    marketplace_uploads,
     marketplace_withdrawals,
     marketplace_worker_dashboard,
     me,
@@ -74,6 +76,30 @@ async def _telegram_oauth_purge_loop() -> None:
             logger.exception("Ошибка при очистке Telegram OAuth state")
 
 
+async def _order_autocomplete_loop() -> None:
+    """Авто-приёмка сданных работ: заказчик молчит 3 дня → COMPLETED.
+
+    Раз в 10 минут закрывает просроченные окна приёмки и распределяет
+    средства (блогер / платформа / воркер).
+    """
+    from core.database import get_session_factory
+    from services.marketplace_order_flow_service import auto_complete_overdue_reviews
+
+    while True:
+        await asyncio.sleep(600)
+        try:
+            session_factory = get_session_factory()
+            async with session_factory() as session:
+                completed = await auto_complete_overdue_reviews(session)
+                if completed:
+                    await session.commit()
+                    logger.info("Авто-приёмка: завершено заказов — %d", completed)
+                else:
+                    await session.rollback()
+        except Exception:  # pragma: no cover
+            logger.exception("Ошибка фоновой авто-приёмки заказов")
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     setup_logging(settings.log_level)
@@ -81,14 +107,19 @@ async def lifespan(_app: FastAPI):
 
     init_db(_normalize_async_dsn(settings.database_url))
     purge_task = asyncio.create_task(_telegram_oauth_purge_loop(), name="tg-oauth-purge")
+    autocomplete_task = asyncio.create_task(
+        _order_autocomplete_loop(), name="order-autocomplete"
+    )
 
     yield
 
     purge_task.cancel()
-    try:
-        await purge_task
-    except (asyncio.CancelledError, Exception):  # pragma: no cover
-        pass
+    autocomplete_task.cancel()
+    for task in (purge_task, autocomplete_task):
+        try:
+            await task
+        except (asyncio.CancelledError, Exception):  # pragma: no cover
+            pass
     await dispose_db()
     logger.info("Приложение остановлено")
 
@@ -129,10 +160,18 @@ def create_app() -> FastAPI:
     app.include_router(marketplace_messages.router)
     app.include_router(marketplace_orders.router)
     app.include_router(marketplace_payments.router)
+    app.include_router(marketplace_premium.router)
     app.include_router(marketplace_support.router)
+    app.include_router(marketplace_uploads.router)
     app.include_router(marketplace_withdrawals.router)
     app.include_router(marketplace_notifications.router)
     app.include_router(marketplace_worker_dashboard.router)
+
+    # Загруженные изображения (аватары, скриншоты статистики)
+    from fastapi.staticfiles import StaticFiles
+    from routers.marketplace_uploads import uploads_root
+
+    app.mount("/uploads", StaticFiles(directory=str(uploads_root())), name="uploads")
     return app
 
 

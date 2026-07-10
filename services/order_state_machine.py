@@ -17,6 +17,13 @@ from models.order_status_history import OrderStatusHistory
 
 # Допустимые переходы: из текущего статуса → множество допустимых целевых статусов
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    # Оффер ждёт решения исполнителя: принять (→ оплата), отклонить,
+    # либо инициатор может отозвать предложение (→ отмена).
+    MarketplaceOrderStatus.OFFER_PENDING.value: {
+        MarketplaceOrderStatus.PENDING_PAYMENT.value,
+        MarketplaceOrderStatus.OFFER_DECLINED.value,
+        MarketplaceOrderStatus.CANCELLED.value,
+    },
     MarketplaceOrderStatus.PENDING_PAYMENT.value: {
         MarketplaceOrderStatus.ESCROW_HELD.value,
         MarketplaceOrderStatus.CANCELLED.value,
@@ -25,8 +32,11 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
         MarketplaceOrderStatus.BLOGGER_CONFIRMED.value,
         MarketplaceOrderStatus.REFUNDED.value,
     },
+    # Сдача работы: приёмка (→ завершение), возврат на доработку с причиной
+    # (→ обратно в работу), либо спор с возвратом средств.
     MarketplaceOrderStatus.BLOGGER_CONFIRMED.value: {
         MarketplaceOrderStatus.COMPLETED.value,
+        MarketplaceOrderStatus.ESCROW_HELD.value,
         MarketplaceOrderStatus.REFUNDED.value,
     },
     # Терминальные статусы — переходов нет
@@ -34,6 +44,7 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     MarketplaceOrderStatus.REFUNDED.value: set(),
     MarketplaceOrderStatus.CANCELLED.value: set(),
     MarketplaceOrderStatus.PAYMENT_FAILED.value: set(),
+    MarketplaceOrderStatus.OFFER_DECLINED.value: set(),
 }
 
 

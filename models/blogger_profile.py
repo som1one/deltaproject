@@ -70,6 +70,20 @@ class BloggerProfile(Base):
         nullable=False,
         server_default=text("true"),
     )
+    # Подтверждённая админом статистика аудитории (копия payload одобренной
+    # заявки BloggerAudienceSubmission): audience_age/gender/geo/devices,
+    # avg_views, posting_frequency, response_time.
+    audience_stats: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    audience_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Видимость блоков публичной карточки — управляется автором из кабинета.
+    show_portfolio: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+    show_socials: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

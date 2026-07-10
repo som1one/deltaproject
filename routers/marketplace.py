@@ -9,8 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from dependencies.database import get_db
 from enums.marketplace import BloggerCategory
+from models.blogger_price_item import BloggerPriceItem
 from models.blogger_profile import BloggerProfile
 from models.marketplace_hero_config import MarketplaceHeroConfig
+from models.marketplace_service_type import MarketplaceServiceType
 from models.user import User
 from schemas.marketplace import (
     BloggerCardResponse,
@@ -18,6 +20,8 @@ from schemas.marketplace import (
     BloggerProfileResponse,
     HeroConfigPublicResponse,
     MarketplaceCategoryResponse,
+    PriceItemPublic,
+    ServiceTypeResponse,
 )
 
 router = APIRouter(prefix="/marketplace", tags=["marketplace"])
@@ -58,8 +62,55 @@ def _build_card(profile: BloggerProfile, name: str) -> BloggerCardResponse:
         reviews_count=profile.reviews_count,
         platforms=_platforms_from_links(profile.social_links),
         is_active=profile.is_active,
+        orders_enabled=profile.orders_enabled,
         created_at=profile.created_at,
     )
+
+
+async def _public_price_list(
+    db: AsyncSession, profile_id: uuid.UUID
+) -> list[PriceItemPublic]:
+    """Включённые позиции прайс-листа автора для публичной карточки."""
+    rows = (
+        await db.execute(
+            select(BloggerPriceItem, MarketplaceServiceType)
+            .join(
+                MarketplaceServiceType,
+                MarketplaceServiceType.id == BloggerPriceItem.service_type_id,
+            )
+            .where(
+                BloggerPriceItem.profile_id == profile_id,
+                BloggerPriceItem.is_enabled.is_(True),
+                MarketplaceServiceType.is_active.is_(True),
+            )
+            .order_by(MarketplaceServiceType.sort_order.asc())
+        )
+    ).all()
+    return [
+        PriceItemPublic(
+            service_type_id=service_type.id,
+            code=service_type.code,
+            name=service_type.name,
+            price_kopeks=item.price_kopeks,
+            description=item.description,
+        )
+        for item, service_type in rows
+    ]
+
+
+@router.get("/service-types", response_model=list[ServiceTypeResponse])
+async def list_service_types(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> list[ServiceTypeResponse]:
+    """Реестр услуг маркетплейса (для прайс-листов и оформления заказов)."""
+    rows = (
+        await db.execute(
+            select(MarketplaceServiceType)
+            .where(MarketplaceServiceType.is_active.is_(True))
+            .order_by(MarketplaceServiceType.sort_order.asc())
+        )
+    ).scalars()
+    return [ServiceTypeResponse.model_validate(st) for st in rows]
 
 
 @router.get("/categories", response_model=list[MarketplaceCategoryResponse])
@@ -146,9 +197,12 @@ async def list_bloggers(
     audience: Literal["nano", "micro", "macro", "mega"] | None = None,
     sort: Literal["rating", "price_asc", "price_desc", "audience_desc", "newest"] = "rating",
 ) -> BloggerCatalogResponse:
+    # Карточка скрывается, когда автор её скрыл (is_active=False) или когда
+    # аккаунт деактивирован админом; пауза приёма заказов показывается
+    # бейджем, но не прячет карточку.
     conditions = [
         BloggerProfile.is_active.is_(True),
-        BloggerProfile.orders_enabled.is_(True),
+        User.is_active.is_(True),
     ]
 
     if category:
@@ -212,6 +266,7 @@ async def get_blogger(
         .where(
             BloggerProfile.user_id == blogger_user_id,
             BloggerProfile.is_active.is_(True),
+            User.is_active.is_(True),
         )
     )
     row = result.one_or_none()
@@ -238,12 +293,18 @@ async def get_blogger(
         rating=float(profile.rating) if profile.rating is not None else None,
         reviews_count=profile.reviews_count,
         description=profile.description,
-        portfolio_links=profile.portfolio_links or [],
-        social_links=profile.social_links or [],
+        # Автор управляет видимостью блоков публичной карточки
+        portfolio_links=(profile.portfolio_links or []) if profile.show_portfolio else [],
+        social_links=(profile.social_links or []) if profile.show_socials else [],
         photo_url=profile.photo_url,
         preferred_contact=profile.preferred_contact,
         is_active=profile.is_active,
         orders_enabled=profile.orders_enabled,
+        price_list=await _public_price_list(db, profile.id),
+        audience_stats=profile.audience_stats,
+        audience_verified_at=profile.audience_verified_at,
+        show_portfolio=profile.show_portfolio,
+        show_socials=profile.show_socials,
         created_at=profile.created_at,
         updated_at=profile.updated_at,
     )

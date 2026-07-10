@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from datetime import timezone as _tz
 from decimal import Decimal
 from typing import Annotated
 
@@ -30,17 +31,35 @@ from sqlalchemy.orm import aliased
 
 from dependencies.auth import get_current_admin_or_tech
 from dependencies.database import get_db
-from enums.marketplace import MarketplaceOrderStatus, SupportTicketStatus
+from enums.marketplace import (
+    AudienceSubmissionStatus,
+    MarketplaceOrderStatus,
+    PremiumRequestStatus,
+    SupportTicketStatus,
+)
 from enums.user import UserRole
+from models.blogger_audience_submission import BloggerAudienceSubmission
 from models.blogger_profile import BloggerProfile
 from models.marketplace_escrow_ledger import MarketplaceEscrowEntry
 from models.marketplace_hero_config import MarketplaceHeroConfig
 from models.marketplace_order import MarketplaceOrder
+from models.marketplace_premium_request import MarketplacePremiumRequest
+from models.marketplace_service_type import MarketplaceServiceType
 from models.marketplace_settings import MarketplaceSettings
 from models.order_status_history import OrderStatusHistory
 from models.support_ticket import SupportTicket
 from models.user import User
-from schemas.marketplace import BloggerProfileResponse, BloggerProfileUpdateRequest
+from schemas.marketplace import (
+    AudienceSubmissionAdminItem,
+    AudienceSubmissionResolveRequest,
+    BloggerProfileResponse,
+    BloggerProfileUpdateRequest,
+    PremiumRequestAdminItem,
+    PremiumRequestResolveRequest,
+    ServiceTypeCreateRequest,
+    ServiceTypeResponse,
+    ServiceTypeUpdateRequest,
+)
 from schemas.marketplace_admin import (
     AdminMarketplaceSummaryResponse,
     AdminOrderDetailResponse,
@@ -70,7 +89,7 @@ from schemas.marketplace_payment_settings import (
 )
 from schemas.marketplace_support import TicketListResponse, TicketResponse
 from schemas.settlement_account import SettlementAccountResponse, SettlementAccountUpsert
-from services import marketplace_payment_settings_service
+from services import marketplace_payment_settings_service, notification_service
 from services.marketplace_escrow_service import calculate_distribution, confirm_payment, distribute_funds, process_refund, refund_to_client
 from services.settlement_account_service import (
     get_settlement_account,
@@ -1020,3 +1039,310 @@ async def put_settlement_account_endpoint(
     await db.commit()
     await db.refresh(account)
     return SettlementAccountResponse.model_validate(account)
+
+
+# ---------------------------------------------------------------------------
+# Реестр услуг (service types)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/service-types", response_model=list[ServiceTypeResponse])
+async def admin_list_service_types(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> list[ServiceTypeResponse]:
+    """Все типы услуг реестра, включая выключенные."""
+    rows = (
+        await db.execute(
+            select(MarketplaceServiceType).order_by(
+                MarketplaceServiceType.sort_order.asc(),
+                MarketplaceServiceType.created_at.asc(),
+            )
+        )
+    ).scalars()
+    return [ServiceTypeResponse.model_validate(st) for st in rows]
+
+
+@router.post(
+    "/service-types",
+    response_model=ServiceTypeResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def admin_create_service_type(
+    body: ServiceTypeCreateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> ServiceTypeResponse:
+    """Добавить тип услуги в реестр."""
+    existing = (
+        await db.execute(
+            select(MarketplaceServiceType).where(
+                MarketplaceServiceType.code == body.code
+            )
+        )
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Тип услуги с таким кодом уже существует",
+        )
+
+    service_type = MarketplaceServiceType(
+        code=body.code,
+        name=body.name,
+        description=body.description,
+        sort_order=body.sort_order,
+        is_active=body.is_active,
+    )
+    db.add(service_type)
+    await db.commit()
+    await db.refresh(service_type)
+    return ServiceTypeResponse.model_validate(service_type)
+
+
+@router.patch("/service-types/{service_type_id}", response_model=ServiceTypeResponse)
+async def admin_update_service_type(
+    service_type_id: uuid.UUID,
+    body: ServiceTypeUpdateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> ServiceTypeResponse:
+    """Изменить тип услуги (название, описание, порядок, активность)."""
+    service_type = (
+        await db.execute(
+            select(MarketplaceServiceType).where(
+                MarketplaceServiceType.id == service_type_id
+            )
+        )
+    ).scalar_one_or_none()
+    if service_type is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Тип услуги не найден"
+        )
+
+    for field, value in body.model_dump(exclude_unset=True).items():
+        # name/sort_order/is_active — NOT NULL; явный null отбрасываем
+        if value is None and field != "description":
+            continue
+        setattr(service_type, field, value)
+
+    await db.commit()
+    await db.refresh(service_type)
+    return ServiceTypeResponse.model_validate(service_type)
+
+
+# ---------------------------------------------------------------------------
+# Модерация заявок на аудиторию
+# ---------------------------------------------------------------------------
+
+
+@router.get("/audience-submissions", response_model=list[AudienceSubmissionAdminItem])
+async def admin_list_audience_submissions(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+    submission_status: str = Query(default="pending", alias="status"),
+) -> list[AudienceSubmissionAdminItem]:
+    """Очередь заявок на подтверждение аудитории (по статусу)."""
+    conditions = []
+    if submission_status in {s.value for s in AudienceSubmissionStatus}:
+        conditions.append(BloggerAudienceSubmission.status == submission_status)
+
+    rows = (
+        await db.execute(
+            select(BloggerAudienceSubmission, BloggerProfile, User.name)
+            .join(
+                BloggerProfile,
+                BloggerProfile.id == BloggerAudienceSubmission.profile_id,
+            )
+            .join(User, User.id == BloggerProfile.user_id)
+            .where(*conditions)
+            .order_by(BloggerAudienceSubmission.created_at.asc())
+        )
+    ).all()
+
+    return [
+        AudienceSubmissionAdminItem(
+            id=submission.id,
+            profile_id=submission.profile_id,
+            status=submission.status,
+            payload=submission.payload,
+            screenshots=submission.screenshots or [],
+            review_comment=submission.review_comment,
+            created_at=submission.created_at,
+            reviewed_at=submission.reviewed_at,
+            blogger_user_id=profile.user_id,
+            blogger_name=name,
+            blogger_category=profile.category,
+            subscriber_count=profile.subscriber_count,
+        )
+        for submission, profile, name in rows
+    ]
+
+
+@router.patch(
+    "/audience-submissions/{submission_id}",
+    response_model=AudienceSubmissionAdminItem,
+)
+async def admin_resolve_audience_submission(
+    submission_id: uuid.UUID,
+    body: AudienceSubmissionResolveRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> AudienceSubmissionAdminItem:
+    """Подтвердить или отклонить заявку на аудиторию.
+
+    При подтверждении payload копируется в профиль автора
+    (audience_stats + audience_verified_at) и появляется в публичной карточке.
+    """
+    row = (
+        await db.execute(
+            select(BloggerAudienceSubmission, BloggerProfile, User)
+            .join(
+                BloggerProfile,
+                BloggerProfile.id == BloggerAudienceSubmission.profile_id,
+            )
+            .join(User, User.id == BloggerProfile.user_id)
+            .where(BloggerAudienceSubmission.id == submission_id)
+        )
+    ).one_or_none()
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена"
+        )
+
+    submission, profile, blogger = row
+
+    if submission.status != AudienceSubmissionStatus.PENDING.value:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Заявка уже обработана",
+        )
+
+    now = datetime.now(_tz.utc)
+    submission.reviewed_by = admin.id
+    submission.reviewed_at = now
+    submission.review_comment = body.comment
+
+    if body.action == "approve":
+        submission.status = AudienceSubmissionStatus.APPROVED.value
+        profile.audience_stats = submission.payload
+        profile.audience_verified_at = now
+        # Если автор указал число подписчиков — обновляем и карточку
+        subscriber_count = (submission.payload or {}).get("subscriber_count")
+        if isinstance(subscriber_count, int) and subscriber_count > 0:
+            profile.subscriber_count = subscriber_count
+        event_type = "audience_submission_approved"
+    else:
+        submission.status = AudienceSubmissionStatus.REJECTED.value
+        event_type = "audience_submission_rejected"
+
+    await notification_service.notify(
+        db=db,
+        user_id=blogger.id,
+        event_type=event_type,
+        payload={
+            "submission_id": str(submission.id),
+            "comment": body.comment,
+        },
+    )
+
+    await db.commit()
+    await db.refresh(submission)
+
+    return AudienceSubmissionAdminItem(
+        id=submission.id,
+        profile_id=submission.profile_id,
+        status=submission.status,
+        payload=submission.payload,
+        screenshots=submission.screenshots or [],
+        review_comment=submission.review_comment,
+        created_at=submission.created_at,
+        reviewed_at=submission.reviewed_at,
+        blogger_user_id=profile.user_id,
+        blogger_name=blogger.name,
+        blogger_category=profile.category,
+        subscriber_count=profile.subscriber_count,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Заявки на премиум-размещение
+# ---------------------------------------------------------------------------
+
+
+@router.get("/premium-requests", response_model=list[PremiumRequestAdminItem])
+async def admin_list_premium_requests(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+    request_status: str | None = Query(default=None, alias="status"),
+) -> list[PremiumRequestAdminItem]:
+    """Заявки авторов на премиум-размещение на главной."""
+    conditions = []
+    if request_status in {s.value for s in PremiumRequestStatus}:
+        conditions.append(MarketplacePremiumRequest.status == request_status)
+
+    rows = (
+        await db.execute(
+            select(MarketplacePremiumRequest, User.name, User.email)
+            .join(User, User.id == MarketplacePremiumRequest.user_id)
+            .where(*conditions)
+            .order_by(MarketplacePremiumRequest.created_at.desc())
+        )
+    ).all()
+
+    return [
+        PremiumRequestAdminItem(
+            id=request.id,
+            user_id=request.user_id,
+            status=request.status,
+            comment=request.comment,
+            created_at=request.created_at,
+            resolved_at=request.resolved_at,
+            blogger_name=name,
+            blogger_email=email,
+        )
+        for request, name, email in rows
+    ]
+
+
+@router.patch(
+    "/premium-requests/{request_id}", response_model=PremiumRequestAdminItem
+)
+async def admin_resolve_premium_request(
+    request_id: uuid.UUID,
+    body: PremiumRequestResolveRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> PremiumRequestAdminItem:
+    """Отметить премиум-заявку: связались / закрыта."""
+    row = (
+        await db.execute(
+            select(MarketplacePremiumRequest, User.name, User.email)
+            .join(User, User.id == MarketplacePremiumRequest.user_id)
+            .where(MarketplacePremiumRequest.id == request_id)
+        )
+    ).one_or_none()
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена"
+        )
+
+    request, name, email = row
+    request.status = body.status
+    if body.status == PremiumRequestStatus.CLOSED.value:
+        request.resolved_by = admin.id
+        request.resolved_at = datetime.now(_tz.utc)
+
+    await db.commit()
+    await db.refresh(request)
+
+    return PremiumRequestAdminItem(
+        id=request.id,
+        user_id=request.user_id,
+        status=request.status,
+        comment=request.comment,
+        created_at=request.created_at,
+        resolved_at=request.resolved_at,
+        blogger_name=name,
+        blogger_email=email,
+    )

@@ -80,6 +80,63 @@
   }
 }
 
+/* ── Фильтры-чипы по статусам ─────────────────────────────── */
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  /* мобильный паттерн проекта: лента без переносов со скрытым скроллбаром */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.filters::-webkit-scrollbar {
+  display: none;
+}
+
+.chip,
+.chipActive {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--pill);
+  background: transparent;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+.chip:hover {
+  background: var(--stone);
+}
+
+.chipActive {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.chipCount {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  opacity: 0.62;
+}
+
 /* ── Список-реестр сделок ─────────────────────────────────── */
 
 .list {
@@ -149,6 +206,70 @@
 .orderStampCell {
   display: flex;
   justify-content: flex-end;
+}
+
+.orderMetaCell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Счётчики сроков (Countdown) ──────────────────────────── */
+
+/* Полная строка на странице сделки */
+.count {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.count svg {
+  flex: 0 0 auto;
+}
+
+.countRow {
+  margin: 0 0 20px;
+}
+
+/* Компактный чип в строке реестра */
+.countChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--pill);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--ink-55);
+}
+
+/* Тональности: спокойно · меньше суток · просрочено */
+.countOk {
+  border-color: var(--hairline);
+}
+
+.countWarn {
+  background: var(--amber-soft);
+  border-color: transparent;
+  color: var(--ink);
+}
+
+.countWarn svg {
+  color: var(--amber);
+}
+
+.countDanger {
+  background: var(--danger-soft);
+  border-color: transparent;
+  color: var(--danger-ink);
 }
 
 /* ── Карточка сделки ──────────────────────────────────────── */
@@ -243,10 +364,10 @@
   color: var(--ink);
 }
 
-/* Лента штампов-шагов */
+/* Лента штампов-шагов: Предложение → Принятие → Оплата → Работа → Сдача → Завершение */
 .steps {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   border: 1px solid var(--hairline);
   border-radius: var(--r);
   overflow: hidden;
@@ -399,6 +520,36 @@
   line-height: 1.62;
   color: var(--ink);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Ссылка внутри результата работы */
+.workLink {
+  color: var(--violet-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  word-break: break-all;
+  transition: color var(--dur) var(--ease);
+}
+
+.workLink:hover {
+  color: var(--loden);
+}
+
+/* Кнопки внизу модалок действий */
+.modalActions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+/* Кнопка чата с иконкой */
+.chatBtnInner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
 }
 
 .metaGrid {
@@ -462,12 +613,13 @@
     grid-column: 1 / -1;
   }
 
-  .orderDate {
+  .orderMetaCell {
     order: 4;
+    justify-content: flex-start;
   }
 
   .orderAmount {
     order: 5;
-    text-align: left;
+    text-align: right;
   }
 }

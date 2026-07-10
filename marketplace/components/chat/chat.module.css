@@ -1,0 +1,865 @@
+/* ── Чаты: двухпанельная раскладка внутри macOS-окна ─────────
+   Разметка окна повторяет мокап главной (landing.module.css),
+   стили продублированы здесь, чтобы не трогать общий файл. */
+
+.head {
+  padding-top: 26px;
+  margin-bottom: 16px;
+}
+
+.headTitle {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 4px;
+}
+
+.headSub {
+  font-size: 14.5px;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── macOS-окно ───────────────────────────────────────────── */
+
+.win {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--nav-h) - 150px);
+  min-height: 460px;
+  margin-bottom: 40px;
+}
+
+.winBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  flex-shrink: 0;
+}
+
+.winDots {
+  display: inline-flex;
+  gap: 7px;
+}
+
+.winDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--surface-4);
+}
+
+.winDots span:nth-child(1) {
+  background: #ff5f57;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+}
+
+.winDots span:nth-child(2) {
+  background: #febc2e;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+}
+
+.winDots span:nth-child(3) {
+  background: #28c840;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+}
+
+.winUrl {
+  flex: 1;
+  padding: 7px 14px;
+  border-radius: var(--pill);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--faint);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.winBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  background: var(--surface);
+}
+
+/* ── Левая панель: треды ──────────────────────────────────── */
+
+.side {
+  width: 320px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sideHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+.sideList {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.thread {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--r-md);
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--dur) var(--ease);
+}
+
+.thread:hover {
+  background: var(--surface-2);
+}
+
+.threadActive,
+.threadActive:hover {
+  background: var(--surface-3);
+}
+
+.threadAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50% !important;
+  flex-shrink: 0;
+}
+
+.threadBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.threadTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.threadName {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.threadRole {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--faint);
+}
+
+.threadTime {
+  font-size: 11.5px;
+  color: var(--faint);
+  flex-shrink: 0;
+}
+
+.threadBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.threadPreview {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.unread {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--pill);
+  background: var(--green);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Пустой список тредов */
+.sideEmpty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.sideEmptyIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.sideEmptyTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.sideEmptyText {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 12px;
+  max-width: 26ch;
+}
+
+/* Скелет треда */
+.threadSkeleton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+}
+
+/* ── Правая панель: диалог ────────────────────────────────── */
+
+.pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+}
+
+.paneHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.backBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.backBtn:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.peerBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px 4px 4px;
+  border-radius: var(--r-md);
+  text-align: left;
+  min-width: 0;
+  transition: background var(--dur) var(--ease);
+}
+
+.peerBtn:hover {
+  background: var(--surface-2);
+}
+
+.peerAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50% !important;
+  flex-shrink: 0;
+}
+
+.peerMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.peerName {
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.peerRole {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ── Плашка безопасности ──────────────────────────────────── */
+
+.safety {
+  margin: 10px 14px 0;
+  align-items: center;
+  font-size: 13.5px;
+  flex-shrink: 0;
+}
+
+.safetyIcon {
+  flex-shrink: 0;
+  display: inline-flex;
+  margin-top: 1px;
+}
+
+.safetyClose {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+  padding: 2px;
+  display: inline-flex;
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+.safetyClose:hover {
+  opacity: 1;
+}
+
+/* ── Лента сообщений ──────────────────────────────────────── */
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dayRow {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0 8px;
+}
+
+.dayRow:first-child {
+  margin-top: 0;
+}
+
+.dayPill {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  padding: 3px 12px;
+}
+
+.msgRow {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.msgRowOut {
+  justify-content: flex-end;
+}
+
+.bubble {
+  position: relative;
+  max-width: 72%;
+  padding: 8px 52px 8px 14px;
+  border-radius: 18px;
+  font-size: 14.5px;
+  line-height: 1.42;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bubbleIn {
+  background: var(--surface-3);
+  color: var(--text);
+  border-bottom-left-radius: 6px;
+}
+
+.bubbleOut {
+  background: var(--ink);
+  color: var(--on-primary);
+  border-bottom-right-radius: 6px;
+}
+
+.bubbleTime {
+  position: absolute;
+  right: 12px;
+  bottom: 6px;
+  font-size: 10.5px;
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
+.pending {
+  opacity: 0.55;
+}
+
+/* Системное сообщение — центрированная пилюля */
+.sysRow {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0;
+}
+
+.sysPill {
+  max-width: 84%;
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 6px 14px;
+}
+
+.sysLink {
+  color: var(--ink);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Карточка-оффер в ленте ───────────────────────────────── */
+
+.offerWrap {
+  max-width: min(78%, 380px);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.offerCard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.offerWrapOut .offerCard {
+  border-bottom-right-radius: 6px;
+}
+
+.offerWrapIn .offerCard {
+  border-bottom-left-radius: 6px;
+}
+
+.offerBrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--violet);
+}
+
+.offerService {
+  font-size: 14.5px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.offerPrice {
+  font-size: 21px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.offerMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.offerBrief {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.offerBriefOpen {
+  display: block;
+  overflow: visible;
+}
+
+.offerMore {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.offerMore:hover {
+  color: var(--ink);
+}
+
+.offerActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.offerWait {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.offerLink {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.offerErr {
+  font-size: 12.5px;
+  color: var(--danger-ink);
+}
+
+.offerTime {
+  font-size: 10.5px;
+  color: var(--faint);
+  padding: 0 6px;
+}
+
+.offerWrapOut .offerTime {
+  align-self: flex-end;
+}
+
+/* ── Композер ─────────────────────────────────────────────── */
+
+.composerBox {
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.sendError {
+  margin: 10px 14px 0;
+  font-size: 13px;
+  padding: 9px 14px;
+}
+
+.composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.plusBtn {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.plusBtn:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.composerInput {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  border-radius: 19px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--text);
+  max-height: 132px;
+  overflow-y: auto;
+  outline: none;
+  transition: border-color var(--dur) var(--ease);
+}
+
+.composerInput:focus {
+  border-color: var(--ink);
+}
+
+.composerInput::placeholder {
+  color: var(--faint);
+}
+
+.sendBtn {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: none;
+  background: var(--ink);
+  color: var(--on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.sendBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.sendBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ── Плейсхолдер правой панели (/chats на десктопе) ───────── */
+
+.placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.placeholderIcon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--faint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.placeholderTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.placeholderText {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin: 0;
+  max-width: 34ch;
+}
+
+/* ── Скелеты и сервисные состояния диалога ────────────────── */
+
+.paneNotice {
+  margin: 16px;
+}
+
+.msgSkeletons {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px;
+}
+
+/* ── Модалка «Профиль» ────────────────────────────────────── */
+
+.peek {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.peekAvatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50% !important;
+  margin-bottom: 6px;
+}
+
+.peekName {
+  font-size: 18px;
+  font-weight: 750;
+  color: var(--ink);
+}
+
+.peekRole {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.peekStars {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.peekList {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.peekCta {
+  margin-top: 14px;
+}
+
+/* ── Модалка оффера ───────────────────────────────────────── */
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* ── Мобильная раскладка ──────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .head {
+    padding-top: 18px;
+    margin-bottom: 12px;
+  }
+
+  .win {
+    height: calc(100vh - var(--nav-h) - 128px);
+    min-height: 420px;
+    margin-bottom: 24px;
+  }
+
+  .side {
+    width: 100%;
+    border-right: none;
+  }
+
+  .win[data-mode="dialog"] .side {
+    display: none;
+  }
+
+  .win[data-mode="list"] .pane {
+    display: none;
+  }
+
+  .backBtn {
+    display: flex;
+  }
+
+  .bubble {
+    max-width: 86%;
+  }
+
+  .offerWrap {
+    max-width: min(92%, 380px);
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}

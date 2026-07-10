@@ -24,7 +24,7 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
   const reduceMotion = useReducedMotion() ?? false;
-  const { isHydrated, isAuthenticated, isBlogger, isClient, userName, logout } = useAuth();
+  const { isHydrated, isAuthenticated, isBlogger, isClient, isWorker, userName, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -75,21 +75,21 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
   }, [pathname]);
 
   // Верхнее меню держим коротким и стабильным: общий с гостем префикс
-  // (Главная, Каталог) не двигается при входе — просто добавляется «Мои сделки».
-  // Кабинет/Настройки/Поддержка живут в меню аккаунта (ACCOUNT_LINKS).
+  // (Главная, Каталог) не двигается при входе — просто добавляются
+  // «Чаты» и «Сделки». Кабинет/Настройки/Поддержка — в меню аккаунта.
   let navItems: NavItem[];
-  if (isHydrated && isAuthenticated && isBlogger) {
+  if (isHydrated && isAuthenticated && (isBlogger || isClient)) {
     navItems = [
       { href: "/", label: "Главная" },
       { href: "/catalog", label: "Каталог" },
-      { href: "/blogger", label: "Входящие" },
-      { href: "/orders", label: "Мои сделки" },
+      { href: "/chats", label: "Чаты" },
+      { href: "/orders", label: isBlogger ? "Сделки" : "Мои сделки" },
     ];
-  } else if (isHydrated && isAuthenticated && isClient) {
+  } else if (isHydrated && isAuthenticated && isWorker) {
     navItems = [
       { href: "/", label: "Главная" },
       { href: "/catalog", label: "Каталог" },
-      { href: "/orders", label: "Мои сделки" },
+      { href: "/worker", label: "Кабинет воркера" },
     ];
   } else {
     navItems = [
@@ -155,7 +155,9 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
                   <div className={styles.accountMenu} role="menu">
                     <div className={styles.accountMenuHead}>
                       <span className={styles.accountMenuName}>{userName ?? "Аккаунт"}</span>
-                      <span className={styles.accountMenuRole}>{isBlogger ? "автор" : "заказчик"}</span>
+                      <span className={styles.accountMenuRole}>
+                        {isBlogger ? "автор" : isWorker ? "воркер" : "заказчик"}
+                      </span>
                     </div>
                     {ACCOUNT_LINKS.map(({ href, label }) => (
                       <Link

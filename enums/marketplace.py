@@ -2,15 +2,38 @@ import enum
 
 
 class MarketplaceOrderStatus(str, enum.Enum):
-    """Order statuses for the blogger marketplace."""
+    """Order statuses for the blogger marketplace.
 
+    Полный цикл: оффер (из чата или карточки) → принятие исполнителем →
+    оплата → работа (сроки тикают) → сдача работы → 3 дня на приёмку →
+    завершение с распределением средств.
+    """
+
+    OFFER_PENDING = "OFFER_PENDING"  # предложение отправлено, ждёт принятия
+    OFFER_DECLINED = "OFFER_DECLINED"  # контрагент отклонил предложение
     PENDING_PAYMENT = "PENDING_PAYMENT"
     PAYMENT_FAILED = "PAYMENT_FAILED"
-    ESCROW_HELD = "ESCROW_HELD"
-    BLOGGER_CONFIRMED = "BLOGGER_CONFIRMED"
+    ESCROW_HELD = "ESCROW_HELD"  # оплачено, работа в процессе
+    BLOGGER_CONFIRMED = "BLOGGER_CONFIRMED"  # работа сдана, ждёт приёмки заказчиком
     COMPLETED = "COMPLETED"
     REFUNDED = "REFUNDED"
     CANCELLED = "CANCELLED"
+
+
+class AudienceSubmissionStatus(str, enum.Enum):
+    """Статусы заявки автора на подтверждение статистики аудитории."""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class PremiumRequestStatus(str, enum.Enum):
+    """Статусы заявки на премиум-размещение на главной."""
+
+    NEW = "new"
+    CONTACTED = "contacted"
+    CLOSED = "closed"
 
 
 class BloggerCategory(str, enum.Enum):

@@ -1,14 +1,14 @@
 """Роутер заказов маркетплейса блогеров.
 
-Обеспечивает создание заказов, просмотр списка/деталей,
-а также переходы статусов (complete, confirm) с атомарными проверками.
+Полный цикл: оффер (из карточки или чата) → принятие/отказ исполнителем →
+оплата на счёт платформы → работа с дедлайном → сдача работы →
+3 дня на приёмку заказчиком → завершение с распределением средств → отзывы.
 """
 
 from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -19,27 +19,59 @@ from dependencies.auth import get_current_user
 from dependencies.database import get_db
 from enums.marketplace import MarketplaceOrderStatus
 from enums.user import UserRole
-from models.blogger_profile import BloggerProfile
 from models.marketplace_order import MarketplaceOrder
-from models.marketplace_settings import MarketplaceSettings
 from models.user import User
 from schemas.marketplace_orders import (
+    OfferCreateRequest,
+    OfferDeclineRequest,
     OrderCreateRequest,
     OrderDetailResponse,
     OrderListResponse,
     OrderResponse,
+    RequestChangesRequest,
+    ReviewCreateRequest,
+    ReviewResponse,
+    SubmitWorkRequest,
 )
 from schemas.settlement_account import SettlementAccountResponse
 from services import (
-    marketplace_escrow_service,
+    marketplace_order_flow_service,
     marketplace_payment_settings_service,
+    marketplace_review_service,
     notification_service,
     settlement_account_service,
 )
-from services.marketplace_referral_service import get_worker_id_for_order
+from services.marketplace_order_flow_service import OrderFlowError
+from services.marketplace_review_service import ReviewError
 from services.order_state_machine import transition_order
 
 router = APIRouter(prefix="/marketplace/orders", tags=["marketplace-orders"])
+
+
+async def _get_order_or_404(
+    db: AsyncSession, order_id: uuid.UUID, *, for_update: bool = False
+) -> MarketplaceOrder:
+    query = select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
+    if for_update:
+        query = query.with_for_update()
+    order = (await db.execute(query)).scalar_one_or_none()
+    if order is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Заказ не найден",
+        )
+    return order
+
+
+def _ensure_participant(order: MarketplaceOrder, user: User) -> None:
+    if user.id not in (order.client_id, order.blogger_id) and user.role not in (
+        UserRole.ADMIN,
+        UserRole.TECH_ADMIN,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нет доступа к этому заказу",
+        )
 
 
 @router.post("", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
@@ -48,79 +80,95 @@ async def create_order(
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> OrderResponse:
-    """Создать заказ на маркетплейсе (только для роли Client).
+    """Создать заказ из карточки автора (только роль Client).
 
-    Валидирует сообщение (1-1000 символов), проверяет что блогер активен
-    и принимает заказы, снимает снапшот комиссий на момент создания.
+    Заказ создаётся как оффер (OFFER_PENDING): автор видит услугу, цену,
+    сроки и ТЗ в чате и решает — принять или отказать. До принятия чат
+    остаётся открытым для вопросов.
     """
-    # Only clients can create orders
     if user.role != UserRole.CLIENT:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Только клиенты могут создавать заказы",
+            detail="Только заказчики могут создавать заказы",
         )
 
-    # Find blogger profile and validate availability
-    profile_result = await db.execute(
-        select(BloggerProfile).where(BloggerProfile.user_id == body.blogger_id)
-    )
-    profile = profile_result.scalar_one_or_none()
-
-    if profile is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Профиль блогера не найден",
+    try:
+        order = await marketplace_order_flow_service.create_offer(
+            db,
+            sender=user,
+            client_id=user.id,
+            blogger_id=body.blogger_id,
+            message=body.message,
+            amount_kopeks=body.amount_kopeks,
+            service_type_id=body.service_type_id,
+            deadline_days=body.deadline_days,
+            publish_at=body.publish_at,
         )
+    except OrderFlowError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-    if not profile.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Блогер неактивен",
-        )
-
-    if not profile.orders_enabled:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Блогер не принимает заказы",
-        )
-
-    # Snapshot commission settings
-    settings_result = await db.execute(
-        select(MarketplaceSettings).where(MarketplaceSettings.id == 1)
-    )
-    settings = settings_result.scalar_one_or_none()
-
-    if settings is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Настройки маркетплейса не найдены",
-        )
-
-    platform_commission_pct = settings.platform_commission_pct
-    # Worker commission only if client was referred by a worker (Requirement 6.2, 6.4)
-    worker_id = get_worker_id_for_order(user)
-    worker_commission_pct = (
-        settings.worker_referral_commission_pct
-        if worker_id is not None
-        else Decimal("0.00")
-    )
-
-    # Create order
-    order = MarketplaceOrder(
-        client_id=user.id,
-        blogger_id=body.blogger_id,
-        worker_id=worker_id,
-        status=MarketplaceOrderStatus.PENDING_PAYMENT.value,
-        amount_kopeks=body.amount_kopeks,
-        message=body.message,
-        platform_commission_pct=platform_commission_pct,
-        worker_commission_pct=worker_commission_pct,
-    )
-    db.add(order)
-    await db.flush()
-    await db.refresh(order)
     await db.commit()
+    await db.refresh(order)
+    return OrderResponse.model_validate(order)
 
+
+@router.post("/offer", response_model=OrderResponse, status_code=status.HTTP_201_CREATED)
+async def create_offer_from_chat(
+    body: OfferCreateRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OrderResponse:
+    """Предложить услугу из чата — доступно и заказчику, и автору.
+
+    Стороны определяются ролями: клиент всегда платит, автор всегда
+    исполняет. В чат добавляется карточка-оффер с кнопками принятия.
+    """
+    if user.role not in (UserRole.CLIENT, UserRole.BLOGER):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Офферы доступны только заказчикам и авторам",
+        )
+
+    counterpart = (
+        await db.execute(select(User).where(User.id == body.counterpart_id))
+    ).scalar_one_or_none()
+    if counterpart is None or not counterpart.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Собеседник не найден"
+        )
+
+    if user.role == UserRole.CLIENT:
+        if counterpart.role != UserRole.BLOGER:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Предложить услугу можно только автору",
+            )
+        client_id, blogger_id = user.id, counterpart.id
+    else:
+        if counterpart.role != UserRole.CLIENT:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Автор может предложить услугу только заказчику",
+            )
+        client_id, blogger_id = counterpart.id, user.id
+
+    try:
+        order = await marketplace_order_flow_service.create_offer(
+            db,
+            sender=user,
+            client_id=client_id,
+            blogger_id=blogger_id,
+            message=body.message,
+            amount_kopeks=body.amount_kopeks,
+            service_type_id=body.service_type_id,
+            deadline_days=body.deadline_days,
+            publish_at=body.publish_at,
+        )
+    except OrderFlowError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    await db.commit()
+    await db.refresh(order)
     return OrderResponse.model_validate(order)
 
 
@@ -145,14 +193,11 @@ async def list_orders(
             detail="Доступно только клиентам и блогерам",
         )
 
-    # Count total
     count_query = select(func.count()).select_from(
         select(MarketplaceOrder).where(filter_condition).subquery()
     )
-    total_result = await db.execute(count_query)
-    total = total_result.scalar_one()
+    total = (await db.execute(count_query)).scalar_one()
 
-    # Fetch paginated results
     offset = (page - 1) * page_size
     items_query = (
         select(MarketplaceOrder)
@@ -161,8 +206,7 @@ async def list_orders(
         .offset(offset)
         .limit(page_size)
     )
-    result = await db.execute(items_query)
-    orders = result.scalars().all()
+    orders = (await db.execute(items_query)).scalars().all()
 
     # Имена сторон одним запросом
     user_ids = {o.client_id for o in orders} | {o.blogger_id for o in orders}
@@ -188,6 +232,44 @@ async def list_orders(
     )
 
 
+def _available_actions(order: MarketplaceOrder, user: User) -> list[str]:
+    """Кнопки, доступные пользователю в текущем статусе заказа."""
+    actions: list[str] = []
+    is_admin = user.role in (UserRole.ADMIN, UserRole.TECH_ADMIN)
+    is_client = user.id == order.client_id
+    is_blogger = user.id == order.blogger_id
+    order_status = order.status
+
+    if order_status == MarketplaceOrderStatus.OFFER_PENDING.value:
+        acceptor = marketplace_order_flow_service.acceptor_id(order)
+        if user.id == acceptor:
+            actions.extend(["accept_offer", "decline_offer"])
+        elif user.id == order.offered_by:
+            actions.append("cancel")
+
+    if order_status == MarketplaceOrderStatus.PENDING_PAYMENT.value:
+        if is_admin:
+            actions.append("confirm_payment")
+        if is_client:
+            actions.append("cancel")
+            if order.payment_reported_at is None:
+                actions.append("mark_paid")
+
+    if order_status == MarketplaceOrderStatus.ESCROW_HELD.value:
+        if is_blogger:
+            actions.append("submit_work")
+        if is_admin:
+            actions.append("refund")
+
+    if order_status == MarketplaceOrderStatus.BLOGGER_CONFIRMED.value:
+        if is_client:
+            actions.extend(["confirm", "request_changes"])
+        if is_admin:
+            actions.append("refund")
+
+    return actions
+
+
 @router.get("/{order_id}", response_model=OrderDetailResponse)
 async def get_order(
     order_id: uuid.UUID,
@@ -197,35 +279,22 @@ async def get_order(
     """Детали заказа с проверкой доступа.
 
     Доступно клиенту-владельцу заказа, назначенному блогеру или Admin.
-    Возвращает settlement_account (только для PENDING_PAYMENT) и available_actions.
+    Возвращает реквизиты оплаты (только PENDING_PAYMENT), available_actions
+    и отзывы: свой и полученный (текст отзыва видит только адресат).
     """
-    order_result = await db.execute(
-        select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
-    )
-    order = order_result.scalar_one_or_none()
+    order = await _get_order_or_404(db, order_id)
+    _ensure_participant(order, user)
 
-    if order is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Заказ не найден",
-        )
-
-    # Auth check: order client, assigned blogger, or Admin (Requirement 2.4)
-    is_admin = user.role == UserRole.ADMIN
+    is_admin = user.role in (UserRole.ADMIN, UserRole.TECH_ADMIN)
     is_client = user.id == order.client_id
-    is_blogger = user.id == order.blogger_id
 
-    if not (is_client or is_blogger or is_admin):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Нет доступа к этому заказу",
-        )
-
-    # Build payment requisites: only for PENDING_PAYMENT and only for client or Admin (Req 2.1, 2.3)
+    # Реквизиты оплаты — только в ожидании оплаты и только клиенту/админу
     sa_response: SettlementAccountResponse | None = None
     card_requisites = None
     yookassa_available = False
-    if order.status == MarketplaceOrderStatus.PENDING_PAYMENT.value and (is_client or is_admin):
+    if order.status == MarketplaceOrderStatus.PENDING_PAYMENT.value and (
+        is_client or is_admin
+    ):
         account = await settlement_account_service.get_settlement_account(db)
         if account is not None:
             sa_response = SettlementAccountResponse.model_validate(account)
@@ -234,38 +303,35 @@ async def get_order(
         creds = marketplace_payment_settings_service.effective_yookassa_from_row(payment_settings)
         yookassa_available = creds.active
 
-    # Имена сторон для карточки заказа
     names_result = await db.execute(
-        select(User.id, User.name).where(User.id.in_([order.client_id, order.blogger_id]))
+        select(User.id, User.name).where(
+            User.id.in_([order.client_id, order.blogger_id])
+        )
     )
     names = {row.id: row.name for row in names_result.all()}
 
-    # Build available_actions based on role and status (Req 2.1, 2.2, 2.3, 2.4)
-    available_actions: list[str] = []
-    order_status = order.status
+    # Отзывы: свой (my_review) и адресованный мне (review_of_me)
+    my_review = None
+    review_of_me = None
+    can_review = False
+    if order.status == MarketplaceOrderStatus.COMPLETED.value:
+        reviews = await marketplace_review_service.reviews_for_order(
+            db, order_id=order.id
+        )
+        for review in reviews:
+            if review.author_id == user.id:
+                my_review = ReviewResponse.model_validate(review)
+            if review.target_id == user.id:
+                review_of_me = ReviewResponse.model_validate(review)
+        can_review = my_review is None and user.id in (
+            order.client_id,
+            order.blogger_id,
+        )
 
-    if is_admin:
-        if order_status == MarketplaceOrderStatus.PENDING_PAYMENT.value:
-            available_actions.append("confirm_payment")
-        if order_status in (
-            MarketplaceOrderStatus.ESCROW_HELD.value,
-            MarketplaceOrderStatus.BLOGGER_CONFIRMED.value,
-        ):
-            available_actions.append("refund")
+    available_actions = _available_actions(order, user)
+    if can_review:
+        available_actions.append("review")
 
-    if is_blogger and order.blogger_id == user.id:
-        if order_status == MarketplaceOrderStatus.ESCROW_HELD.value:
-            available_actions.append("complete")
-
-    if is_client and order.client_id == user.id:
-        if order_status == MarketplaceOrderStatus.BLOGGER_CONFIRMED.value:
-            available_actions.append("confirm")
-        if order_status == MarketplaceOrderStatus.PENDING_PAYMENT.value:
-            available_actions.append("cancel")
-            if order.payment_reported_at is None:
-                available_actions.append("mark_paid")
-
-    # Construct response
     response = OrderDetailResponse.model_validate(order)
     response.settlement_account = sa_response
     response.card_requisites = card_requisites
@@ -273,8 +339,57 @@ async def get_order(
     response.blogger_name = names.get(order.blogger_id)
     response.client_name = names.get(order.client_id)
     response.available_actions = available_actions
+    response.my_review = my_review
+    response.review_of_me = review_of_me
 
     return response
+
+
+@router.patch("/{order_id}/accept", response_model=OrderResponse)
+async def accept_offer(
+    order_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OrderResponse:
+    """Принять оффер: OFFER_PENDING → PENDING_PAYMENT.
+
+    Принять может только получатель предложения (автор — если предложил
+    заказчик, и наоборот). С момента принятия фиксируются сроки.
+    """
+    order = await _get_order_or_404(db, order_id, for_update=True)
+    _ensure_participant(order, user)
+
+    try:
+        order = await marketplace_order_flow_service.accept_offer(db, order, user)
+    except OrderFlowError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+    await db.commit()
+    await db.refresh(order)
+    return OrderResponse.model_validate(order)
+
+
+@router.patch("/{order_id}/decline", response_model=OrderResponse)
+async def decline_offer(
+    order_id: uuid.UUID,
+    body: OfferDeclineRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OrderResponse:
+    """Отклонить оффер: OFFER_PENDING → OFFER_DECLINED (терминальный)."""
+    order = await _get_order_or_404(db, order_id, for_update=True)
+    _ensure_participant(order, user)
+
+    try:
+        order = await marketplace_order_flow_service.decline_offer(
+            db, order, user, body.reason
+        )
+    except OrderFlowError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+    await db.commit()
+    await db.refresh(order)
+    return OrderResponse.model_validate(order)
 
 
 @router.patch("/{order_id}/mark-paid", response_model=OrderResponse)
@@ -295,18 +410,7 @@ async def mark_order_paid(
             detail="Только клиенты могут сообщать об оплате",
         )
 
-    order_result = await db.execute(
-        select(MarketplaceOrder)
-        .where(MarketplaceOrder.id == order_id)
-        .with_for_update()
-    )
-    order = order_result.scalar_one_or_none()
-
-    if order is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Заказ не найден",
-        )
+    order = await _get_order_or_404(db, order_id, for_update=True)
 
     if order.client_id != user.id:
         raise HTTPException(
@@ -323,7 +427,6 @@ async def mark_order_paid(
     if order.payment_reported_at is None:
         order.payment_reported_at = datetime.now(timezone.utc)
 
-        # Уведомляем администраторов о необходимости проверить поступление
         admins_result = await db.execute(
             select(User.id).where(User.role == UserRole.ADMIN, User.is_active.is_(True))
         )
@@ -345,61 +448,70 @@ async def mark_order_paid(
     return OrderResponse.model_validate(order)
 
 
-@router.patch("/{order_id}/complete", response_model=OrderResponse)
-async def complete_order(
+@router.patch("/{order_id}/submit-work", response_model=OrderResponse)
+async def submit_work(
     order_id: uuid.UUID,
+    body: SubmitWorkRequest,
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> OrderResponse:
-    """Блогер отмечает заказ выполненным.
+    """Блогер сдаёт работу: ESCROW_HELD → BLOGGER_CONFIRMED.
 
-    Переход: ESCROW_HELD → BLOGGER_CONFIRMED.
-    Только назначенный блогер может выполнить это действие.
-    Устанавливает blogger_confirmed_at и уведомляет заказчика.
+    Обязательна ссылка на публикацию или комментарий. У заказчика
+    появляется 3 дня на приёмку; после — авто-подтверждение.
     """
-    # Verify user is a blogger
     if user.role != UserRole.BLOGER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Только блогеры могут отмечать заказы выполненными",
+            detail="Сдать работу может только автор",
         )
 
-    # Fetch order
-    order_result = await db.execute(
-        select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
-    )
-    order = order_result.scalar_one_or_none()
+    order = await _get_order_or_404(db, order_id, for_update=True)
 
-    if order is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Заказ не найден",
-        )
-
-    # Check that the user is the assigned blogger (Requirement 4.3)
     if order.blogger_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Вы не являетесь исполнителем этого заказа",
         )
 
-    # Transition via state machine (validates ESCROW_HELD → BLOGGER_CONFIRMED)
-    order = await transition_order(
-        db, order, MarketplaceOrderStatus.BLOGGER_CONFIRMED, user.id
+    order = await marketplace_order_flow_service.submit_work(
+        db, order, user, body.result
     )
 
-    # Set blogger_confirmed_at timestamp
-    order.blogger_confirmed_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(order)
+    return OrderResponse.model_validate(order)
 
-    # Notify the client that blogger confirmed completion (Requirement 14.2)
-    await notification_service.notify(
-        db=db,
-        user_id=order.client_id,
-        event_type="blogger_confirmed",
-        payload={
-            "order_id": str(order.id),
-            "blogger_name": user.name,
-        },
+
+@router.patch("/{order_id}/request-changes", response_model=OrderResponse)
+async def request_changes(
+    order_id: uuid.UUID,
+    body: RequestChangesRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OrderResponse:
+    """Заказчик возвращает работу на доработку с обязательной причиной.
+
+    BLOGGER_CONFIRMED → ESCROW_HELD. Просто так отменить оплаченный заказ
+    заказчик не может — деньги остаются на счёте платформы, спорные
+    ситуации решает поддержка.
+    """
+    if user.role != UserRole.CLIENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Вернуть работу на доработку может только заказчик",
+        )
+
+    order = await _get_order_or_404(db, order_id, for_update=True)
+
+    if order.client_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Вы не являетесь владельцем этого заказа",
+        )
+
+    order = await marketplace_order_flow_service.request_changes(
+        db, order, user, body.reason
     )
 
     await db.commit()
@@ -413,56 +525,39 @@ async def confirm_order(
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> OrderResponse:
-    """Клиент подтверждает получение услуги.
+    """Клиент подтверждает приёмку работы.
 
     Переход: BLOGGER_CONFIRMED → COMPLETED.
-    Только клиент-владелец заказа может выполнить это действие.
-    После подтверждения:
-    - Устанавливается completed_at
-    - Вызывается distribute_funds для распределения средств
-    - Отправляются уведомления блогеру и воркеру (если привязан)
+    После подтверждения вызывается distribute_funds: доли блогера,
+    платформы и воркера (если заказчика привёл воркер) зачисляются
+    на балансы, отправляются уведомления.
     """
-    # Verify user is a client (Requirement 4.6)
     if user.role != UserRole.CLIENT:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Только клиенты могут подтверждать получение",
         )
 
-    # Fetch order
-    order_result = await db.execute(
-        select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
-    )
-    order = order_result.scalar_one_or_none()
+    order = await _get_order_or_404(db, order_id, for_update=True)
 
-    if order is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Заказ не найден",
-        )
-
-    # Check ownership: only the client who created the order (Requirement 4.6)
     if order.client_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Вы не являетесь владельцем этого заказа",
         )
 
-    # Transition via state machine (validates BLOGGER_CONFIRMED → COMPLETED)
     order = await transition_order(
         db, order, MarketplaceOrderStatus.COMPLETED, user.id
     )
-
-    # Set completed_at timestamp
     order.completed_at = datetime.now(timezone.utc)
 
-    # Distribute funds (Requirement 4.7)
+    from services import marketplace_escrow_service
+
     await marketplace_escrow_service.distribute_funds(
         order_id=order.id,
         db=db,
     )
 
-    # Notify blogger about order completion (Requirement 14.3)
     await notification_service.notify(
         db=db,
         user_id=order.blogger_id,
@@ -474,7 +569,6 @@ async def confirm_order(
         },
     )
 
-    # Notify worker about commission if worker is attached (Requirement 14.3)
     if order.worker_id is not None:
         await notification_service.notify(
             db=db,
@@ -487,6 +581,13 @@ async def confirm_order(
             },
         )
 
+    await marketplace_order_flow_service.send_system_message(
+        db,
+        order=order,
+        actor_id=user.id,
+        text="Работа принята — сделка завершена. Спасибо! Не забудьте оставить отзыв.",
+    )
+
     await db.commit()
     await db.refresh(order)
     return OrderResponse.model_validate(order)
@@ -498,43 +599,83 @@ async def cancel_order(
     user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> OrderResponse:
-    """Клиент отменяет заказ.
+    """Отмена до оплаты.
 
-    Переход: PENDING_PAYMENT → CANCELLED.
-    Только клиент-владелец заказа может отменить его.
-    Использует transition_order для валидации перехода и записи в историю.
+    OFFER_PENDING → CANCELLED (инициатором оффера) или
+    PENDING_PAYMENT → CANCELLED (клиентом). Оплаченный заказ отменить
+    нельзя — только возврат через поддержку.
     """
-    # Verify user is a client
-    if user.role != UserRole.CLIENT:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Только клиенты могут отменять заказы",
-        )
+    order = await _get_order_or_404(db, order_id, for_update=True)
+    _ensure_participant(order, user)
 
-    # Fetch order
-    order_result = await db.execute(
-        select(MarketplaceOrder).where(MarketplaceOrder.id == order_id)
-    )
-    order = order_result.scalar_one_or_none()
+    if order.status == MarketplaceOrderStatus.OFFER_PENDING.value:
+        if user.id != order.offered_by:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Отозвать предложение может только его автор",
+            )
+    elif order.status == MarketplaceOrderStatus.PENDING_PAYMENT.value:
+        if user.id != order.client_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Отменить заказ может только заказчик",
+            )
+    # Прочие статусы отклонит стейт-машина
+    was_offer = order.status == MarketplaceOrderStatus.OFFER_PENDING.value
 
-    if order is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Заказ не найден",
-        )
-
-    # Check ownership
-    if order.client_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Вы не являетесь владельцем этого заказа",
-        )
-
-    # Transition via state machine (validates PENDING_PAYMENT → CANCELLED)
     order = await transition_order(
         db, order, MarketplaceOrderStatus.CANCELLED, user.id
+    )
+
+    # Контрагент видит отмену в чате — offer-карточка обновит статус
+    await marketplace_order_flow_service.send_system_message(
+        db,
+        order=order,
+        actor_id=user.id,
+        text="Предложение отозвано." if was_offer else "Заказ отменён.",
     )
 
     await db.commit()
     await db.refresh(order)
     return OrderResponse.model_validate(order)
+
+
+@router.post(
+    "/{order_id}/review",
+    response_model=ReviewResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_review(
+    order_id: uuid.UUID,
+    body: ReviewCreateRequest,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ReviewResponse:
+    """Оставить отзыв по завершённой сделке.
+
+    Текст отзыва увидит только адресат; звёзды идут в публичный рейтинг.
+    """
+    order = await _get_order_or_404(db, order_id)
+    _ensure_participant(order, user)
+
+    try:
+        review = await marketplace_review_service.create_review(
+            db,
+            order=order,
+            author_id=user.id,
+            rating=body.rating,
+            text=body.text,
+        )
+    except ReviewError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    await notification_service.notify(
+        db=db,
+        user_id=review.target_id,
+        event_type="review_received",
+        payload={"order_id": str(order.id), "rating": body.rating},
+    )
+
+    await db.commit()
+    await db.refresh(review)
+    return ReviewResponse.model_validate(review)

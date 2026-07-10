@@ -26,6 +26,8 @@ export type UserMeRead = {
 };
 
 export type OrderStatus =
+  | "OFFER_PENDING"
+  | "OFFER_DECLINED"
   | "PENDING_PAYMENT"
   | "PAYMENT_FAILED"
   | "ESCROW_HELD"
@@ -33,6 +35,65 @@ export type OrderStatus =
   | "COMPLETED"
   | "REFUNDED"
   | "CANCELLED";
+
+/** Тип услуги из реестра (правится в админке главного сайта). */
+export type ServiceType = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+  is_active: boolean;
+};
+
+/** Позиция прайс-листа автора в публичной карточке. */
+export type PriceItemPublic = {
+  service_type_id: string;
+  code: string;
+  name: string;
+  price_kopeks: number;
+  description: string | null;
+};
+
+/** Позиция прайс-листа в кабинете автора. */
+export type PriceItemFull = PriceItemPublic & {
+  id: string;
+  is_enabled: boolean;
+};
+
+/** Данные аудитории (заполняются автором, подтверждаются админом). */
+export type AudienceStats = {
+  audience_age?: AudienceGroup[] | null;
+  audience_gender?: { female: number; male: number } | null;
+  audience_geo?: AudienceGroup[] | null;
+  audience_devices?: AudienceGroup[] | null;
+  avg_views?: number | null;
+  posting_frequency?: string | null;
+  response_time?: string | null;
+  subscriber_count?: number | null;
+};
+
+export type AudienceSubmissionStatus = "pending" | "approved" | "rejected";
+
+export type AudienceSubmission = {
+  id: string;
+  profile_id: string;
+  status: AudienceSubmissionStatus;
+  payload: AudienceStats;
+  screenshots: string[];
+  review_comment: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+};
+
+export type PremiumRequest = {
+  id: string;
+  user_id: string;
+  status: "new" | "contacted" | "closed";
+  comment: string | null;
+  created_at: string;
+  resolved_at: string | null;
+};
 
 export type BloggerCard = {
   id: string;
@@ -48,6 +109,7 @@ export type BloggerCard = {
   reviews_count?: number;
   platforms?: string[];
   is_active: boolean;
+  orders_enabled?: boolean;
   created_at: string;
 };
 
@@ -90,6 +152,19 @@ export type BloggerProfileFull = BloggerCard & {
   posting_frequency?: string | null;
   /** Среднее время ответа автора, свободный текст: «≈ 2 часа». */
   response_time?: string | null;
+  /** Прайс-лист по типам услуг из реестра (включённые позиции). */
+  price_list?: PriceItemPublic[];
+  /** Подтверждённая админом статистика аудитории. */
+  audience_stats?: AudienceStats | null;
+  audience_verified_at?: string | null;
+  show_portfolio?: boolean;
+  show_socials?: boolean;
+};
+
+/** Профиль в кабинете автора: полный прайс и статус заявки на аудиторию. */
+export type BloggerSelfProfile = BloggerProfileFull & {
+  price_list_full: PriceItemFull[];
+  latest_audience_submission: AudienceSubmission | null;
 };
 
 export type CatalogResponse = {
@@ -113,6 +188,18 @@ export type Order = {
   payment_url: string | null;
   payment_expires_at: string | null;
   payment_reported_at: string | null;
+  /** Полный цикл: услуга, оффер, сроки, сдача работы, окно приёмки. */
+  service_type_id: string | null;
+  service_type_name: string | null;
+  offered_by: string | null;
+  deadline_days: number | null;
+  publish_at: string | null;
+  accepted_at: string | null;
+  deadline_at: string | null;
+  work_submitted_at: string | null;
+  work_result: string | null;
+  review_deadline_at: string | null;
+  decline_reason: string | null;
   created_at: string;
   paid_at: string | null;
   blogger_confirmed_at: string | null;
@@ -120,6 +207,16 @@ export type Order = {
   updated_at: string;
   blogger_name: string | null;
   client_name: string | null;
+};
+
+export type Review = {
+  id: string;
+  order_id: string;
+  author_id: string;
+  target_id: string;
+  rating: number;
+  text: string | null;
+  created_at: string;
 };
 
 export type SettlementAccount = {
@@ -142,6 +239,97 @@ export type OrderDetail = Order & {
   card_requisites: CardRequisites | null;
   yookassa_available: boolean;
   available_actions: string[];
+  /** Отзывы по завершённой сделке: свой и адресованный мне. */
+  my_review: Review | null;
+  review_of_me: Review | null;
+};
+
+/* ── Чаты ──────────────────────────────────────────────────── */
+
+export type MessageKind = "text" | "offer" | "system";
+
+export type ChatMessage = {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  text: string;
+  kind: MessageKind;
+  order_id: string | null;
+  /** Снапшот условий оффера для карточки в чате. */
+  payload: {
+    order_id?: string;
+    service_type_name?: string | null;
+    amount_kopeks?: number;
+    deadline_days?: number | null;
+    publish_at?: string | null;
+    message?: string;
+    status?: string;
+  } | null;
+  is_read: boolean;
+  created_at: string;
+};
+
+export type ChatPartner = {
+  id: string;
+  name: string;
+  role: string;
+  photo_url: string | null;
+  is_blogger: boolean;
+};
+
+export type ChatThread = {
+  partner: ChatPartner;
+  last_message: ChatMessage;
+  unread_count: number;
+};
+
+export type ThreadsList = {
+  items: ChatThread[];
+  total_unread: number;
+};
+
+export type Conversation = {
+  items: ChatMessage[];
+  total: number;
+  page: number;
+  page_size: number;
+  partner: ChatPartner | null;
+};
+
+export type UserPeek = {
+  id: string;
+  name: string;
+  role: string;
+  photo_url: string | null;
+  is_blogger: boolean;
+  rating: number | null;
+  reviews_count: number;
+  completed_orders: number;
+  registered_at: string | null;
+  category: string | null;
+};
+
+/* ── Кабинет воркера ──────────────────────────────────────── */
+
+export type WorkerStats = {
+  total_earnings_kopeks: number;
+  balance_kopeks: number;
+  referral_count: number;
+};
+
+export type WorkerReferral = {
+  client_id: string;
+  client_name: string;
+  registered_at: string;
+};
+
+export type WorkerCommission = {
+  order_id: string;
+  client_name: string;
+  order_amount_kopeks: number;
+  commission_pct: number;
+  commission_amount_kopeks: number;
+  date: string;
 };
 
 export type OrdersResponse = {

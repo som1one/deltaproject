@@ -189,6 +189,8 @@ class TestSettlementAccountVisibilityProperty:
         **Validates: Requirements 2.3**
         """
         expected_non_pending = {
+            MarketplaceOrderStatus.OFFER_PENDING,
+            MarketplaceOrderStatus.OFFER_DECLINED,
             MarketplaceOrderStatus.ESCROW_HELD,
             MarketplaceOrderStatus.BLOGGER_CONFIRMED,
             MarketplaceOrderStatus.COMPLETED,

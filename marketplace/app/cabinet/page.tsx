@@ -1,111 +1,50 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ArrowUpRight, CreditCard, Gift, Settings } from "lucide-react";
+import { useEffect } from "react";
 
 import { MarketShell } from "@/components/shell/shell";
-import { CopyButton, StampBadge } from "@/components/ui/bits";
-import { api } from "@/lib/api";
+import { BloggerCabinet } from "@/components/cabinet/blogger-cabinet";
+import { ClientCabinet } from "@/components/cabinet/client-cabinet";
 import { useAuth } from "@/lib/auth-context";
-import { formatMoney } from "@/lib/format";
-import { dealNo } from "@/lib/registry";
-import type { Order, OrdersResponse, UserMeRead } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
-import s from "@/components/landing/landing.module.css";
-import styles from "./cabinet.module.css";
+import s from "@/components/cabinet/cabinet.module.css";
 
-/** Живые сделки, деньги на счёте платформы, завершённые/терминальные. */
-const ACTIVE = new Set(["PENDING_PAYMENT", "ESCROW_HELD", "BLOGGER_CONFIRMED"]);
-const IN_ESCROW = new Set(["ESCROW_HELD", "BLOGGER_CONFIRMED"]);
-const TERMINAL = new Set(["COMPLETED", "REFUNDED", "CANCELLED"]);
-
-function Row({ k, v }: { k: string; v: string }) {
-  return (
-    <div className={ui.defRow}>
-      <span className={ui.defKey}>{k}</span>
-      <span className={ui.defValue}>{v}</span>
-    </div>
-  );
-}
-
+/**
+ * /cabinet — ролевой кабинет.
+ * Автор → центр управления карточкой, заказчик → хаб по сделкам,
+ * воркер → свой кабинет /worker.
+ */
 export default function CabinetPage() {
   const router = useRouter();
-  const { isHydrated, isAuthenticated, isBlogger, userName } = useAuth();
+  const { isHydrated, isAuthenticated, isBlogger, isWorker, userRole } = useAuth();
 
   useEffect(() => {
-    if (isHydrated && !isAuthenticated) router.replace("/auth/login?next=/cabinet");
-  }, [isAuthenticated, isHydrated, router]);
+    if (!isHydrated) return;
+    if (!isAuthenticated) {
+      router.replace("/auth/login?next=/cabinet");
+      return;
+    }
+    if (isWorker) router.replace("/worker");
+  }, [isAuthenticated, isHydrated, isWorker, router]);
 
-  const authed = isHydrated && isAuthenticated;
-
-  const { data: me } = useQuery<UserMeRead>({
-    queryKey: ["marketplace-me"],
-    queryFn: api.getMe,
-    enabled: authed,
-  });
-
-  const { data: ordersResp, isLoading: ordersLoading } = useQuery<OrdersResponse>({
-    queryKey: ["marketplace-orders"],
-    queryFn: () => api.getOrders("?page_size=50"),
-    enabled: authed,
-  });
-
-  const orders = useMemo(() => {
-    const items = ordersResp?.items ?? [];
-    return [...items].sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
-  }, [ordersResp]);
-
-  const activeDeals = useMemo(() => orders.filter((o) => ACTIVE.has(o.status)), [orders]);
-  const historyDeals = useMemo(() => orders.filter((o) => TERMINAL.has(o.status)), [orders]);
-
-  const stats = useMemo(() => {
-    const escrow = orders.filter((o) => IN_ESCROW.has(o.status)).reduce((sum, o) => sum + o.amount_kopeks, 0);
-    const spent = orders.filter((o) => o.status === "COMPLETED").reduce((sum, o) => sum + o.amount_kopeks, 0);
-    const completed = orders.filter((o) => o.status === "COMPLETED").length;
-    return { escrow, spent, completed };
-  }, [orders]);
-
-  const displayName = me?.name ?? userName ?? "Аккаунт";
-
-  const statTiles: { value: string; label: string; href: string }[] = isBlogger
-    ? [
-        { value: String(activeDeals.length), label: "активных", href: "#active-placements" },
-        { value: formatMoney(me?.balance_pending_confirmation_kopeks ?? 0), label: "ожидает выплаты", href: "/orders" },
-        { value: String(stats.completed), label: "завершено", href: "#history" },
-      ]
-    : [
-        { value: String(activeDeals.length), label: "в работе", href: "#active-placements" },
-        { value: formatMoney(stats.escrow), label: "на счёте", href: "/orders" },
-        { value: formatMoney(stats.spent), label: "потрачено", href: "/orders" },
-        { value: String(stats.completed), label: "завершено", href: "#history" },
-      ];
-
-  const renderDeal = (o: Order) => (
-    <Link key={o.id} href={`/orders/${o.id}`} className={styles.dealRow}>
-      <span className={`${ui.mono} ${styles.dealNo}`}>№&nbsp;{dealNo(o.id, o.created_at)}</span>
-      <span className={styles.dealWho}>
-        <span className={styles.dealName}>{isBlogger ? o.client_name ?? "Заказчик" : o.blogger_name ?? "Автор"}</span>
-        <span className={styles.dealBrief}>{o.message}</span>
-      </span>
-      <span className={styles.dealRight}>
-        <span className={styles.dealAmount}>{formatMoney(o.amount_kopeks)}</span>
-        <StampBadge status={o.status} />
-      </span>
-    </Link>
-  );
-
-  // До гидрации/редиректа показываем мягкий скелет вместо гостевого мигания.
-  if (!authed) {
+  // Скелет: до гидрации, до редиректа и пока роль не подтянулась из /me.
+  if (!isHydrated || !isAuthenticated || isWorker || !userRole) {
     return (
       <MarketShell>
         <div className={shell.pageContainer}>
-          <div className={styles.head}>
+          <div className={s.head}>
             <div className={ui.skeleton} style={{ height: 128, width: "100%", maxWidth: 460 }} />
+          </div>
+          <div className={s.layout}>
+            <div className={s.col}>
+              <div className={ui.skeleton} style={{ height: 220 }} />
+            </div>
+            <div className={s.col}>
+              <div className={ui.skeleton} style={{ height: 160 }} />
+            </div>
           </div>
         </div>
       </MarketShell>
@@ -114,140 +53,7 @@ export default function CabinetPage() {
 
   return (
     <MarketShell>
-      <div className={shell.pageContainer}>
-        <header className={styles.head}>
-          <h1 className={styles.greeting}>
-            С возвращением, <span className={s.mark}>{displayName}</span>
-          </h1>
-          <p className={styles.sub}>
-            {isBlogger
-              ? "Входящие сделки, выплаты и всё по вашим публикациям — в одном месте."
-              : "Ваши размещения, статус денег на счёте платформы и история покупок — всё здесь."}
-          </p>
-        </header>
-
-        <nav
-          className={`${styles.statGrid} ${statTiles.length === 3 ? styles.statGrid3 : ""}`}
-          aria-label="Сводка по сделкам"
-        >
-          {statTiles.map((t) => (
-            <Link
-              key={t.label}
-              href={t.href}
-              className={styles.statItem}
-              aria-label={`${t.label}: ${t.value}. ${t.href.startsWith("#") ? "Перейти к разделу" : "Открыть реестр"}`}
-            >
-              <span className={styles.statNum}>{t.value}</span>
-              <span className={styles.statText}>{t.label}</span>
-              <ArrowUpRight className={styles.statArrow} size={14} aria-hidden="true" />
-            </Link>
-          ))}
-        </nav>
-
-        <div className={styles.layout}>
-          {/* Нынешняя реклама + история */}
-          <div className={styles.col}>
-            <section id="active-placements" className={`${ui.card} ${styles.anchorSection}`} style={{ padding: "22px 24px" }}>
-              <div className={styles.panelHead}>
-                <h2 className={styles.panelTitle}>{isBlogger ? "Активные сделки" : "Активные размещения"}</h2>
-                {activeDeals.length > 0 && <span className={styles.countPill}>{activeDeals.length}</span>}
-              </div>
-              {ordersLoading ? (
-                <div className={ui.skeleton} style={{ height: 140 }} />
-              ) : activeDeals.length === 0 ? (
-                <div style={{ padding: "4px 0 2px" }}>
-                  <p className={ui.muted} style={{ margin: "0 0 16px", fontSize: 14.5 }}>
-                    {isBlogger
-                      ? "Сейчас нет активных сделок — они появятся, когда заказчик оплатит заказ."
-                      : "Нет активных размещений. Выберите автора в каталоге и оформите сделку."}
-                  </p>
-                  {!isBlogger && (
-                    <Link href="/catalog" className={ui.btnPrimary}>
-                      Открыть каталог
-                    </Link>
-                  )}
-                </div>
-              ) : (
-                <div className={styles.dealList}>{activeDeals.slice(0, 5).map(renderDeal)}</div>
-              )}
-            </section>
-
-            <section id="history" className={`${ui.card} ${styles.anchorSection}`} style={{ padding: "22px 24px" }}>
-              <div className={styles.panelHead}>
-                <h2 className={styles.panelTitle}>{isBlogger ? "История сделок" : "История покупок"}</h2>
-                <Link href="/orders" className={styles.seeAll}>
-                  Все сделки <ArrowRight size={14} />
-                </Link>
-              </div>
-              {ordersLoading ? (
-                <div className={ui.skeleton} style={{ height: 100 }} />
-              ) : historyDeals.length === 0 ? (
-                <p className={ui.muted} style={{ margin: "2px 0", fontSize: 14 }}>
-                  Завершённых сделок пока нет.
-                </p>
-              ) : (
-                <div className={styles.dealList}>{historyDeals.slice(0, 5).map(renderDeal)}</div>
-              )}
-            </section>
-          </div>
-
-          {/* Аккаунт · реферал */}
-          <aside className={styles.col}>
-            <section className={ui.card} style={{ padding: "18px 20px" }}>
-              <h2 className={styles.panelTitle} style={{ marginBottom: 14 }}>
-                Аккаунт
-              </h2>
-              <div className={ui.defList}>
-                <Row k="Имя" v={displayName} />
-                {me?.email && <Row k="Почта" v={me.email} />}
-                {me?.nickname && <Row k="Ник" v={`@${me.nickname}`} />}
-                {me?.telegram && <Row k="Telegram" v={me.telegram} />}
-                <Row k="Роль" v={isBlogger ? "Автор" : "Заказчик"} />
-              </div>
-              {isBlogger && me?.payout_card_last4 && (
-                <div className={styles.payoutCard}>
-                  <CreditCard size={16} />
-                  <span>
-                    {me.payout_card_brand ?? "Карта"} ·· {me.payout_card_last4}
-                    {me.payout_card_bank ? ` · ${me.payout_card_bank}` : ""}
-                  </span>
-                </div>
-              )}
-              <Link
-                href="/settings"
-                className={`${ui.btnLine} ${ui.btnSmall} ${ui.btnBlock}`}
-                style={{ marginTop: 16, gap: 8 }}
-              >
-                <Settings size={15} /> Настроить аккаунт
-              </Link>
-            </section>
-
-            {me?.referral_invite_url && (
-              <section className={ui.card} style={{ padding: "18px 20px" }}>
-                <div className={styles.referralHead}>
-                  <span className={styles.referralIcon}>
-                    <Gift size={18} />
-                  </span>
-                  <h2 className={styles.panelTitle}>Пригласить друга</h2>
-                </div>
-                <p className={ui.muted} style={{ margin: "0 0 12px", fontSize: 13.5 }}>
-                  Поделитесь ссылкой — и получайте бонусы за приглашённых.
-                </p>
-                <div className={styles.referralRow}>
-                  <input
-                    className={`${ui.input} ${ui.mono}`}
-                    readOnly
-                    value={me.referral_invite_url}
-                    style={{ fontSize: 12.5 }}
-                    onFocus={(e) => e.currentTarget.select()}
-                  />
-                  <CopyButton value={me.referral_invite_url} label="Копировать" />
-                </div>
-              </section>
-            )}
-          </aside>
-        </div>
-      </div>
+      <div className={shell.pageContainer}>{isBlogger ? <BloggerCabinet /> : <ClientCabinet />}</div>
     </MarketShell>
   );
 }

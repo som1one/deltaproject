@@ -1,8 +1,10 @@
 from enums.deal import DealStatus
 from enums.ledger import LedgerEntryStatus
 from enums.marketplace import (
+    AudienceSubmissionStatus,
     BloggerCategory,
     MarketplaceOrderStatus,
+    PremiumRequestStatus,
     SupportTicketStatus,
     WithdrawalStatus,
 )
@@ -10,7 +12,9 @@ from enums.user import UserRole
 from models.admin_audit_log import AdminAuditLog
 from models.admin_payment_details import AdminPaymentDetails
 from models.base import Base
+from models.blogger_audience_submission import BloggerAudienceSubmission
 from models.blogger_finance_scheme import BloggerFinanceScheme
+from models.blogger_price_item import BloggerPriceItem
 from models.blogger_profile import BloggerProfile
 from models.blogger_stat import BloggerStat
 from models.deal import Deal
@@ -23,7 +27,10 @@ from models.marketplace_order import MarketplaceOrder
 from models.notification import Notification
 from models.order_status_history import OrderStatusHistory
 from models.marketplace_payment_settings import MarketplacePaymentSettings
+from models.marketplace_premium_request import MarketplacePremiumRequest
 from models.marketplace_referral import MarketplaceReferral
+from models.marketplace_review import MarketplaceReview
+from models.marketplace_service_type import MarketplaceServiceType
 from models.marketplace_settings import MarketplaceSettings
 from models.marketplace_withdrawal import MarketplaceWithdrawal
 from models.settlement_account import SettlementAccount
@@ -39,9 +46,12 @@ from models.worker_message_script import WorkerMessageScript
 __all__ = [
     "AdminAuditLog",
     "AdminPaymentDetails",
+    "AudienceSubmissionStatus",
     "Base",
+    "BloggerAudienceSubmission",
     "BloggerCategory",
     "BloggerFinanceScheme",
+    "BloggerPriceItem",
     "BloggerProfile",
     "BloggerStat",
     "Deal",
@@ -57,9 +67,13 @@ __all__ = [
     "Notification",
     "OrderStatusHistory",
     "MarketplacePaymentSettings",
+    "MarketplacePremiumRequest",
     "MarketplaceReferral",
+    "MarketplaceReview",
+    "MarketplaceServiceType",
     "MarketplaceSettings",
     "MarketplaceWithdrawal",
+    "PremiumRequestStatus",
     "Question",
     "ReferralLink",
     "SettlementAccount",

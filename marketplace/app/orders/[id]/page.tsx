@@ -2,21 +2,23 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { MarketShell } from "@/components/shell/shell";
-import { CopyButton, StampBadge } from "@/components/ui/bits";
+import { CopyButton, Modal, StampBadge, StarRating } from "@/components/ui/bits";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { formatCardNumber, formatDateTime, formatMoney } from "@/lib/format";
+import { formatCardNumber, formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { orderMoneyLocation } from "@/lib/order-status";
 import { dealNo } from "@/lib/registry";
-import type { OrderDetail } from "@/lib/types";
+import type { OrderDetail, Review } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
 import styles from "@/app/orders/orders.module.css";
+
+import { Countdown, pluralRu } from "../countdown";
 
 const CardIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -31,36 +33,50 @@ const BankIcon = () => (
   </svg>
 );
 
+const ChatIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+/* ── Таймлайн ──────────────────────────────────────────────── */
+
 type StepState = "done" | "active" | "todo" | "alert";
 
-const STEP_NAMES = ["Бриф", "Оплата", "Публикация", "Подтверждение", "Выплата"];
+const STEP_NAMES = ["Предложение", "Принятие", "Оплата", "Работа", "Сдача", "Завершение"];
 
 const buildSteps = (order: OrderDetail): { name: string; state: StepState; hint: string }[] => {
-  const negative = ["CANCELLED", "REFUNDED", "PAYMENT_FAILED"].includes(order.status);
+  const negative = ["OFFER_DECLINED", "CANCELLED", "REFUNDED", "PAYMENT_FAILED"].includes(order.status);
   const stageIndex: Record<string, number> = {
-    PENDING_PAYMENT: 1,
-    ESCROW_HELD: 2,
-    BLOGGER_CONFIRMED: 3,
-    COMPLETED: 5,
+    OFFER_PENDING: 1,
+    PENDING_PAYMENT: 2,
+    ESCROW_HELD: 3,
+    BLOGGER_CONFIRMED: 4,
+    COMPLETED: 6,
   };
   const current = stageIndex[order.status] ?? 0;
 
   const hints = [
     formatDateTime(order.created_at),
+    order.accepted_at != null ? formatDateTime(order.accepted_at) : "Ждём решения",
     order.paid_at != null
       ? formatDateTime(order.paid_at)
       : order.payment_reported_at != null
         ? "Ждём подтверждения"
         : "По реквизитам ниже",
-    order.blogger_confirmed_at != null ? "Отмечено автором" : "Готовится",
-    order.completed_at != null ? formatDateTime(order.completed_at) : "Ждёт подтверждения",
-    order.completed_at != null ? "Гонорар передан" : "—",
+    order.work_submitted_at != null
+      ? "Выполнена"
+      : order.deadline_at != null
+        ? `до ${formatDate(order.deadline_at)}`
+        : "После оплаты",
+    order.work_submitted_at != null ? formatDateTime(order.work_submitted_at) : "Ссылка и комментарий",
+    order.completed_at != null ? formatDateTime(order.completed_at) : "Приёмка заказчиком",
   ];
 
   return STEP_NAMES.map((name, i) => {
     let state: StepState;
     if (negative) {
-      state = i === 0 ? "done" : i === 1 && order.status === "PAYMENT_FAILED" ? "alert" : "todo";
+      state = i === 0 ? "done" : i === 2 && order.status === "PAYMENT_FAILED" ? "alert" : "todo";
     } else {
       state = i < current ? "done" : i === current ? "active" : "todo";
     }
@@ -75,12 +91,53 @@ const stepClass = (state: StepState): string => {
   return styles.stepTodo;
 };
 
+/* ── Автолинковка URL в тексте результата ──────────────────── */
+
+const URL_RE = /(https?:\/\/[^\s<>"']+)/g;
+
+const linkify = (text: string): ReactNode[] =>
+  text.split(URL_RE).map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className={styles.workLink}>
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    ),
+  );
+
+/* ── Карточка отзыва ───────────────────────────────────────── */
+
+const ReviewCard = ({ title, review, privateNote }: { title: string; review: Review; privateNote?: string }) => (
+  <section className={styles.panel}>
+    <h2 className={styles.panelTitle}>{title}</h2>
+    <StarRating value={review.rating} readOnly />
+    {review.text && <p className={styles.brief} style={{ marginTop: 12 }}>{review.text}</p>}
+    <p className={ui.fine} style={{ marginTop: 12 }}>
+      {formatDateTime(review.created_at)}
+      {privateNote ? ` · ${privateNote}` : ""}
+    </p>
+  </section>
+);
+
+type ModalKind = "accept" | "decline" | "submit" | "changes" | null;
+
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { isHydrated, isAuthenticated, isBlogger } = useAuth();
   const [notice, setNotice] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+
+  const [modal, setModal] = useState<ModalKind>(null);
+  const [declineReason, setDeclineReason] = useState("");
+  const [workResult, setWorkResult] = useState("");
+  const [changesReason, setChangesReason] = useState("");
+  const [formError, setFormError] = useState("");
+
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewError, setReviewError] = useState("");
 
   const orderId = params.id;
 
@@ -94,14 +151,48 @@ export default function OrderDetailPage() {
     queryKey: ["marketplace-order", orderId],
     queryFn: () => api.getOrder(orderId),
     enabled: isHydrated && isAuthenticated && Boolean(orderId),
-    refetchInterval: (query) =>
-      query.state.data?.status === "PENDING_PAYMENT" ? 15_000 : false,
+    // Ждём внешнего события: решения по офферу, оплаты, сдачи работы,
+    // приёмки — поллим раз в 15 секунд, пока сделка живая.
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      return status === "OFFER_PENDING" ||
+        status === "PENDING_PAYMENT" ||
+        status === "ESCROW_HELD" ||
+        status === "BLOGGER_CONFIRMED"
+        ? 15_000
+        : false;
+    },
   });
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["marketplace-order", orderId] });
     queryClient.invalidateQueries({ queryKey: ["marketplace-orders"] });
   };
+
+  const closeModal = () => {
+    setModal(null);
+    setFormError("");
+  };
+
+  const acceptMutation = useMutation({
+    mutationFn: () => api.acceptOffer(orderId),
+    onSuccess: () => {
+      closeModal();
+      setNotice({ tone: "success", text: "Предложение принято. Сроки зафиксированы — дальше оплата." });
+      invalidate();
+    },
+    onError: (err: Error) => setFormError(err.message),
+  });
+
+  const declineMutation = useMutation({
+    mutationFn: () => api.declineOffer(orderId, declineReason.trim() || undefined),
+    onSuccess: () => {
+      closeModal();
+      setNotice({ tone: "success", text: "Предложение отклонено." });
+      invalidate();
+    },
+    onError: (err: Error) => setFormError(err.message),
+  });
 
   const markPaidMutation = useMutation({
     mutationFn: () => api.markOrderPaid(orderId),
@@ -112,10 +203,32 @@ export default function OrderDetailPage() {
     onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
   });
 
+  const submitWorkMutation = useMutation({
+    mutationFn: () => api.submitWork(orderId, workResult.trim()),
+    onSuccess: () => {
+      closeModal();
+      setWorkResult("");
+      setNotice({ tone: "success", text: "Работа сдана. У заказчика 3 дня на проверку, дальше — автоприёмка." });
+      invalidate();
+    },
+    onError: (err: Error) => setFormError(err.message),
+  });
+
+  const requestChangesMutation = useMutation({
+    mutationFn: () => api.requestChanges(orderId, changesReason.trim()),
+    onSuccess: () => {
+      closeModal();
+      setChangesReason("");
+      setNotice({ tone: "success", text: "Сделка возвращена на доработку — автор получил вашу причину." });
+      invalidate();
+    },
+    onError: (err: Error) => setFormError(err.message),
+  });
+
   const confirmMutation = useMutation({
     mutationFn: () => api.confirmOrder(orderId),
     onSuccess: () => {
-      setNotice({ tone: "success", text: "Сделка завершена. Гонорар передан автору." });
+      setNotice({ tone: "success", text: "Работа принята. Сделка завершена, гонорар передан автору." });
       invalidate();
     },
     onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
@@ -130,15 +243,6 @@ export default function OrderDetailPage() {
     onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
   });
 
-  const completeMutation = useMutation({
-    mutationFn: () => api.completeOrder(orderId),
-    onSuccess: () => {
-      setNotice({ tone: "success", text: "Отмечено. Заказчик получил уведомление и подтвердит публикацию." });
-      invalidate();
-    },
-    onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
-  });
-
   const payOnlineMutation = useMutation({
     mutationFn: () => api.createPayment(orderId),
     onSuccess: (data) => {
@@ -147,11 +251,29 @@ export default function OrderDetailPage() {
     onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
   });
 
+  const reviewMutation = useMutation({
+    mutationFn: () => api.createReview(orderId, { rating: reviewRating, text: reviewText.trim() || null }),
+    onSuccess: () => {
+      setNotice({ tone: "success", text: "Спасибо! Оценка появится в профиле, текст увидит только контрагент." });
+      setReviewRating(0);
+      setReviewText("");
+      setReviewError("");
+      invalidate();
+    },
+    onError: (err: Error) => setReviewError(err.message),
+  });
+
   const actions = order?.available_actions ?? [];
-  const canMarkPaid = actions.includes("mark_paid");
-  const canConfirm = actions.includes("confirm");
+  const canAcceptOffer = actions.includes("accept_offer");
+  const canDeclineOffer = actions.includes("decline_offer");
   const canCancel = actions.includes("cancel");
-  const canComplete = actions.includes("complete");
+  const canMarkPaid = actions.includes("mark_paid");
+  const canSubmitWork = actions.includes("submit_work");
+  const canRequestChanges = actions.includes("request_changes");
+  const canConfirm = actions.includes("confirm");
+  const canReview = actions.includes("review");
+
+  const hasSideActions = canAcceptOffer || canDeclineOffer || canCancel || canSubmitWork || canRequestChanges || canConfirm;
 
   const showPayment =
     order != null &&
@@ -159,7 +281,38 @@ export default function OrderDetailPage() {
     !isBlogger &&
     (order.card_requisites != null || order.settlement_account != null || order.yookassa_available);
 
-  const negative = order != null && ["CANCELLED", "REFUNDED", "PAYMENT_FAILED"].includes(order.status);
+  const negative =
+    order != null && ["OFFER_DECLINED", "CANCELLED", "REFUNDED", "PAYMENT_FAILED"].includes(order.status);
+
+  const counterpartId = order == null ? null : isBlogger ? order.client_id : order.blogger_id;
+  const serviceName = order?.service_type_name ?? "Индивидуальные условия";
+
+  const handleSubmitWork = () => {
+    if (!workResult.trim()) {
+      setFormError("Добавьте ссылку на публикацию и комментарий — без этого работу не сдать.");
+      return;
+    }
+    setFormError("");
+    submitWorkMutation.mutate();
+  };
+
+  const handleRequestChanges = () => {
+    if (!changesReason.trim()) {
+      setFormError("Опишите, что нужно доработать, — автор увидит эту причину.");
+      return;
+    }
+    setFormError("");
+    requestChangesMutation.mutate();
+  };
+
+  const handleReview = () => {
+    if (reviewRating < 1) {
+      setReviewError("Поставьте оценку — от одной до пяти звёзд.");
+      return;
+    }
+    setReviewError("");
+    reviewMutation.mutate();
+  };
 
   return (
     <MarketShell>
@@ -212,6 +365,17 @@ export default function OrderDetailPage() {
                   <span className={styles.moneyValue}>{orderMoneyLocation(order.status)}</span>
                 </div>
 
+                {order.status === "ESCROW_HELD" && order.deadline_at && (
+                  <div className={styles.countRow}>
+                    <Countdown deadline={order.deadline_at} mode="work" />
+                  </div>
+                )}
+                {order.status === "BLOGGER_CONFIRMED" && order.review_deadline_at && (
+                  <div className={styles.countRow}>
+                    <Countdown deadline={order.review_deadline_at} mode="review" />
+                  </div>
+                )}
+
                 <div className={styles.steps}>
                   {buildSteps(order).map((step, i) => (
                     <div key={step.name} className={`${styles.step} ${stepClass(step.state)}`}>
@@ -234,10 +398,29 @@ export default function OrderDetailPage() {
 
               {negative && (
                 <div className={ui.noticeDanger} style={{ marginBottom: 22 }}>
-                  {order.status === "CANCELLED" && "Сделка отменена."}
-                  {order.status === "REFUNDED" && "По сделке оформлен возврат средств заказчику."}
+                  {order.status === "OFFER_DECLINED" &&
+                    (order.decline_reason
+                      ? `Предложение отклонено. Причина: ${order.decline_reason}`
+                      : "Предложение отклонено.")}
+                  {order.status === "CANCELLED" && "Сделка отменена до оплаты."}
+                  {order.status === "REFUNDED" &&
+                    (order.decline_reason
+                      ? `По сделке оформлен возврат средств заказчику. Причина: ${order.decline_reason}`
+                      : "По сделке оформлен возврат средств заказчику.")}
                   {order.status === "PAYMENT_FAILED" &&
                     "Оплата не прошла. Создайте сделку заново или обратитесь в поддержку."}
+                </div>
+              )}
+
+              {order.status === "ESCROW_HELD" && order.decline_reason && (
+                <div className={ui.noticeWarning} style={{ marginBottom: 22 }}>
+                  Возвращено на доработку: {order.decline_reason}
+                </div>
+              )}
+
+              {order.status === "OFFER_PENDING" && !canAcceptOffer && (
+                <div className={ui.notice} style={{ marginBottom: 22 }}>
+                  Предложение отправлено — ждём решения контрагента. Чат по сделке открыт для вопросов.
                 </div>
               )}
 
@@ -245,6 +428,13 @@ export default function OrderDetailPage() {
                 <div className={ui.noticeWarning} style={{ marginBottom: 22 }}>
                   Вы сообщили об оплате {formatDateTime(order.payment_reported_at)}. Платформа проверит
                   поступление и переведёт сделку в работу.
+                </div>
+              )}
+
+              {order.status === "PENDING_PAYMENT" && isBlogger && (
+                <div className={ui.notice} style={{ marginBottom: 22 }}>
+                  Ждём оплату от заказчика — реквизиты уже у него. Как только платформа подтвердит
+                  поступление, сделка перейдёт в работу.
                 </div>
               )}
 
@@ -357,17 +547,63 @@ export default function OrderDetailPage() {
                         )}
                         <p className={ui.fine}>
                           После перевода нажмите «Я перевёл оплату» — платформа проверит поступление
-                          и переведёт сделку в работу. Деньги удерживаются до подтверждения публикации.
+                          и переведёт сделку в работу. Деньги удерживаются до приёмки работы.
                         </p>
                       </div>
                     </section>
                   )}
 
-                  {/* ── Бриф ── */}
+                  {/* ── Результат работы ── */}
+                  {order.work_result && (
+                    <section className={styles.panel}>
+                      <h2 className={styles.panelTitle}>Результат работы</h2>
+                      <p className={styles.brief}>{linkify(order.work_result)}</p>
+                      {order.work_submitted_at && (
+                        <p className={ui.fine} style={{ marginTop: 14 }}>
+                          Сдано {formatDateTime(order.work_submitted_at)}
+                        </p>
+                      )}
+                    </section>
+                  )}
+
+                  {/* ── Условия сделки ── */}
                   <section className={styles.panel}>
-                    <h2 className={styles.panelTitle}>Бриф</h2>
+                    <h2 className={styles.panelTitle}>Условия сделки</h2>
+                    <div className={ui.defList}>
+                      <div className={ui.defRow}>
+                        <span className={ui.defKey}>Услуга</span>
+                        <span className={ui.defValue}>{serviceName}</span>
+                      </div>
+                      <div className={ui.defRow}>
+                        <span className={ui.defKey}>Сумма</span>
+                        <span className={`${ui.defValue} ${ui.mono}`}>{formatMoney(order.amount_kopeks)}</span>
+                      </div>
+                      <div className={ui.defRow}>
+                        <span className={ui.defKey}>Срок работы</span>
+                        <span className={ui.defValue}>
+                          {order.deadline_days != null
+                            ? `${order.deadline_days} ${pluralRu(order.deadline_days, "день", "дня", "дней")} после принятия`
+                            : "Не зафиксирован"}
+                        </span>
+                      </div>
+                      <div className={ui.defRow}>
+                        <span className={ui.defKey}>Дата публикации</span>
+                        <span className={ui.defValue}>
+                          {order.publish_at ? formatDate(order.publish_at) : "По готовности"}
+                        </span>
+                      </div>
+                      {order.deadline_at && (
+                        <div className={ui.defRow}>
+                          <span className={ui.defKey}>Дедлайн работы</span>
+                          <span className={`${ui.defValue} ${ui.mono}`}>{formatDateTime(order.deadline_at)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <hr className={ui.hr} style={{ margin: "22px 0" }} />
                     <p className={styles.brief}>{order.message}</p>
                     <hr className={ui.hr} style={{ margin: "22px 0" }} />
+
                     <div className={styles.metaGrid}>
                       <div className={ui.defRow}>
                         <span className={ui.defKey}>Создана</span>
@@ -389,25 +625,81 @@ export default function OrderDetailPage() {
                       </div>
                     </div>
                   </section>
+
+                  {/* ── Отзыв: форма ── */}
+                  {canReview && (
+                    <section className={styles.panel}>
+                      <h2 className={styles.panelTitle}>Оставить отзыв</h2>
+                      <p className={ui.muted} style={{ margin: "0 0 14px", fontSize: 14 }}>
+                        Звёзды видны всем в профиле, текст увидит только контрагент.
+                      </p>
+                      <StarRating value={reviewRating} onChange={setReviewRating} size={24} />
+                      <div className={ui.field} style={{ marginTop: 16 }}>
+                        <label className={ui.fieldLabel} htmlFor="review-text">
+                          Комментарий (необязательно)
+                        </label>
+                        <textarea
+                          id="review-text"
+                          className={ui.textarea}
+                          rows={4}
+                          placeholder="Как прошла сделка? Текст увидит только контрагент."
+                          value={reviewText}
+                          onChange={(e) => setReviewText(e.target.value)}
+                        />
+                      </div>
+                      {reviewError && (
+                        <div className={ui.noticeDanger} style={{ marginTop: 12 }}>
+                          {reviewError}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        className={ui.btnPrimary}
+                        style={{ marginTop: 14 }}
+                        onClick={handleReview}
+                        disabled={reviewMutation.isPending}
+                      >
+                        {reviewMutation.isPending ? "Сохраняем…" : "Отправить отзыв"}
+                      </button>
+                    </section>
+                  )}
+
+                  {/* ── Отзывы по завершённой сделке ── */}
+                  {order.my_review && <ReviewCard title="Ваш отзыв" review={order.my_review} />}
+                  {order.review_of_me && (
+                    <ReviewCard title="Отзыв о вас" review={order.review_of_me} privateNote="Текст виден только вам" />
+                  )}
                 </div>
 
                 <aside className={styles.sideCol}>
-                  {(canConfirm || canCancel || canComplete) && (
+                  {hasSideActions && (
                     <section className={styles.panel}>
                       <h2 className={styles.panelTitle}>Действия по сделке</h2>
                       <div className={styles.actionsCol}>
-                        {canComplete && (
+                        {canAcceptOffer && (
                           <>
-                            <button
-                              type="button"
-                              className={ui.btnPrimary}
-                              onClick={() => completeMutation.mutate()}
-                              disabled={completeMutation.isPending}
-                            >
-                              {completeMutation.isPending ? "Сохраняем…" : "Отметить публикацию"}
+                            <button type="button" className={ui.btnPrimary} onClick={() => setModal("accept")}>
+                              Принять предложение
                             </button>
                             <p className={ui.fine}>
-                              Отмечайте после выхода интеграции — заказчик получит уведомление.
+                              После принятия условия и сроки фиксируются, сделка перейдёт к оплате.
+                            </p>
+                          </>
+                        )}
+                        {canDeclineOffer && (
+                          <button type="button" className={ui.btnLine} onClick={() => setModal("decline")}>
+                            Отказаться
+                          </button>
+                        )}
+                        {canSubmitWork && (
+                          <>
+                            <button type="button" className={ui.btnPrimary} onClick={() => setModal("submit")}>
+                              Сдать работу
+                            </button>
+                            <p className={ui.fine}>
+                              {order.publish_at
+                                ? `Сдайте работу в день публикации ролика — ${formatDate(order.publish_at)}.`
+                                : "Приложите ссылку на публикацию и короткий комментарий."}
                             </p>
                           </>
                         )}
@@ -416,13 +708,31 @@ export default function OrderDetailPage() {
                             <button
                               type="button"
                               className={ui.btnPrimary}
-                              onClick={() => confirmMutation.mutate()}
+                              onClick={() => {
+                                if (window.confirm("Принять работу? Сделка завершится, гонорар будет передан автору.")) {
+                                  confirmMutation.mutate();
+                                }
+                              }}
                               disabled={confirmMutation.isPending}
                             >
-                              {confirmMutation.isPending ? "Подтверждаем…" : "Подтвердить публикацию"}
+                              {confirmMutation.isPending ? "Подтверждаем…" : "Принять работу"}
                             </button>
                             <p className={ui.fine}>
-                              Подтверждение завершает сделку и передаёт гонорар автору.
+                              Приёмка завершает сделку и передаёт гонорар автору.
+                            </p>
+                          </>
+                        )}
+                        {canRequestChanges && (
+                          <>
+                            <button type="button" className={ui.btnLine} onClick={() => setModal("changes")}>
+                              Вернуть на доработку
+                            </button>
+                            <p className={ui.fine}>
+                              Просто отменить оплаченный заказ нельзя — спорные случаи решает{" "}
+                              <Link href={`/support?order=${order.id}`} className={ui.link}>
+                                поддержка
+                              </Link>
+                              .
                             </p>
                           </>
                         )}
@@ -431,16 +741,40 @@ export default function OrderDetailPage() {
                             type="button"
                             className={ui.btnDanger}
                             onClick={() => {
-                              if (window.confirm("Отменить сделку? Действие необратимо.")) {
+                              if (window.confirm(
+                                order.status === "OFFER_PENDING"
+                                  ? "Отозвать предложение? Действие необратимо."
+                                  : "Отменить сделку? Действие необратимо.",
+                              )) {
                                 cancelMutation.mutate();
                               }
                             }}
                             disabled={cancelMutation.isPending}
                           >
-                            {cancelMutation.isPending ? "Отменяем…" : "Отменить сделку"}
+                            {cancelMutation.isPending
+                              ? "Отменяем…"
+                              : order.status === "OFFER_PENDING"
+                                ? "Отозвать предложение"
+                                : "Отменить сделку"}
                           </button>
                         )}
                       </div>
+                    </section>
+                  )}
+
+                  {counterpartId && (
+                    <section className={styles.panel}>
+                      <h2 className={styles.panelTitle}>Связь</h2>
+                      <p className={ui.muted} style={{ margin: "0 0 16px", fontSize: 14 }}>
+                        Вопросы по условиям, срокам и материалам удобнее решать в чате — переписка
+                        останется при сделке.
+                      </p>
+                      <Link href={`/chats/${counterpartId}`} className={`${ui.btnLine} ${ui.btnBlock}`}>
+                        <span className={styles.chatBtnInner}>
+                          <ChatIcon />
+                          Открыть чат по сделке
+                        </span>
+                      </Link>
                     </section>
                   )}
 
@@ -458,6 +792,172 @@ export default function OrderDetailPage() {
                   )}
                 </aside>
               </div>
+
+              {/* ── Модалка: принять предложение ── */}
+              <Modal open={modal === "accept"} onClose={closeModal} title="Принять предложение" maxWidth={520}>
+                <div className={ui.defList}>
+                  <div className={ui.defRow}>
+                    <span className={ui.defKey}>Услуга</span>
+                    <span className={ui.defValue}>{serviceName}</span>
+                  </div>
+                  <div className={ui.defRow}>
+                    <span className={ui.defKey}>Сумма</span>
+                    <span className={`${ui.defValue} ${ui.mono}`}>{formatMoney(order.amount_kopeks)}</span>
+                  </div>
+                  <div className={ui.defRow}>
+                    <span className={ui.defKey}>Срок работы</span>
+                    <span className={ui.defValue}>
+                      {order.deadline_days != null
+                        ? `${order.deadline_days} ${pluralRu(order.deadline_days, "день", "дня", "дней")} после принятия`
+                        : "Не зафиксирован"}
+                    </span>
+                  </div>
+                  <div className={ui.defRow}>
+                    <span className={ui.defKey}>Дата публикации</span>
+                    <span className={ui.defValue}>
+                      {order.publish_at ? formatDate(order.publish_at) : "По готовности"}
+                    </span>
+                  </div>
+                </div>
+                <p className={ui.fine} style={{ marginTop: 16 }}>
+                  После принятия сроки фиксируются: заказчик оплачивает на счёт платформы, деньги
+                  удерживаются до приёмки работы.
+                </p>
+                {formError && (
+                  <div className={ui.noticeDanger} style={{ marginTop: 12 }}>{formError}</div>
+                )}
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={ui.btnPrimary}
+                    onClick={() => acceptMutation.mutate()}
+                    disabled={acceptMutation.isPending}
+                  >
+                    {acceptMutation.isPending ? "Принимаем…" : "Принимаю условия"}
+                  </button>
+                  <button type="button" className={ui.btnLine} onClick={closeModal}>
+                    Отмена
+                  </button>
+                </div>
+              </Modal>
+
+              {/* ── Модалка: отказаться от предложения ── */}
+              <Modal open={modal === "decline"} onClose={closeModal} title="Отказаться от предложения" maxWidth={520}>
+                <div className={ui.field}>
+                  <label className={ui.fieldLabel} htmlFor="decline-reason">
+                    Причина (необязательно)
+                  </label>
+                  <textarea
+                    id="decline-reason"
+                    className={ui.textarea}
+                    rows={4}
+                    placeholder="Например: не подходит бюджет или сроки"
+                    value={declineReason}
+                    onChange={(e) => setDeclineReason(e.target.value)}
+                  />
+                </div>
+                <p className={ui.fine} style={{ marginTop: 10 }}>
+                  Причину увидит контрагент — так проще договориться о новых условиях в чате.
+                </p>
+                {formError && (
+                  <div className={ui.noticeDanger} style={{ marginTop: 12 }}>{formError}</div>
+                )}
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={ui.btnDanger}
+                    onClick={() => declineMutation.mutate()}
+                    disabled={declineMutation.isPending}
+                  >
+                    {declineMutation.isPending ? "Отправляем…" : "Отказаться"}
+                  </button>
+                  <button type="button" className={ui.btnLine} onClick={closeModal}>
+                    Отмена
+                  </button>
+                </div>
+              </Modal>
+
+              {/* ── Модалка: сдать работу ── */}
+              <Modal open={modal === "submit"} onClose={closeModal} title="Сдать работу" maxWidth={560}>
+                {order.publish_at && (
+                  <div className={ui.notice} style={{ marginBottom: 16 }}>
+                    Сдайте работу в день публикации ролика — {formatDate(order.publish_at)}.
+                  </div>
+                )}
+                <div className={ui.field}>
+                  <label className={ui.fieldLabel} htmlFor="work-result">
+                    Ссылка на публикацию и комментарий
+                  </label>
+                  <textarea
+                    id="work-result"
+                    className={ui.textarea}
+                    rows={5}
+                    placeholder={"https://…\nКоротко: что сделано и на что обратить внимание"}
+                    value={workResult}
+                    onChange={(e) => setWorkResult(e.target.value)}
+                  />
+                </div>
+                <p className={ui.fine} style={{ marginTop: 10 }}>
+                  После сдачи у заказчика будет 3 дня на проверку — дальше работа принимается
+                  автоматически.
+                </p>
+                {formError && (
+                  <div className={ui.noticeDanger} style={{ marginTop: 12 }}>{formError}</div>
+                )}
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={ui.btnPrimary}
+                    onClick={handleSubmitWork}
+                    disabled={submitWorkMutation.isPending}
+                  >
+                    {submitWorkMutation.isPending ? "Отправляем…" : "Сдать работу"}
+                  </button>
+                  <button type="button" className={ui.btnLine} onClick={closeModal}>
+                    Отмена
+                  </button>
+                </div>
+              </Modal>
+
+              {/* ── Модалка: вернуть на доработку ── */}
+              <Modal open={modal === "changes"} onClose={closeModal} title="Вернуть на доработку" maxWidth={560}>
+                <div className={ui.field}>
+                  <label className={ui.fieldLabel} htmlFor="changes-reason">
+                    Что нужно доработать
+                  </label>
+                  <textarea
+                    id="changes-reason"
+                    className={ui.textarea}
+                    rows={5}
+                    placeholder="Опишите конкретно: что не так и каким должен быть результат"
+                    value={changesReason}
+                    onChange={(e) => setChangesReason(e.target.value)}
+                  />
+                </div>
+                <p className={ui.fine} style={{ marginTop: 10 }}>
+                  Просто отменить оплаченный заказ нельзя — спорные случаи решает{" "}
+                  <Link href={`/support?order=${order.id}`} className={ui.link}>
+                    поддержка
+                  </Link>
+                  .
+                </p>
+                {formError && (
+                  <div className={ui.noticeDanger} style={{ marginTop: 12 }}>{formError}</div>
+                )}
+                <div className={styles.modalActions}>
+                  <button
+                    type="button"
+                    className={ui.btnPrimary}
+                    onClick={handleRequestChanges}
+                    disabled={requestChangesMutation.isPending}
+                  >
+                    {requestChangesMutation.isPending ? "Отправляем…" : "Вернуть на доработку"}
+                  </button>
+                  <button type="button" className={ui.btnLine} onClick={closeModal}>
+                    Отмена
+                  </button>
+                </div>
+              </Modal>
             </>
           )}
         </div>
