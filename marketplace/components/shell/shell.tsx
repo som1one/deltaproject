@@ -81,6 +81,7 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
   if (isHydrated && isAuthenticated && isBlogger) {
     navItems = [
       { href: "/", label: "Главная" },
+      { href: "/catalog", label: "Каталог" },
       { href: "/blogger", label: "Входящие" },
       { href: "/orders", label: "Мои сделки" },
     ];
