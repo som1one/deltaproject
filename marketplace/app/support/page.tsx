@@ -163,7 +163,7 @@ function SupportContent() {
               <div className={ui.skeleton} style={{ height: 140 }} />
             ) : !tickets || tickets.items.length === 0 ? (
               <p className={ui.muted} style={{ margin: 0, fontSize: 14.5 }}>
-                Обращений пока нет — надеемся, так и останется.
+                Обращений пока нет — надеемся, так и останется 🙂
               </p>
             ) : (
               <div className={ui.defList}>
