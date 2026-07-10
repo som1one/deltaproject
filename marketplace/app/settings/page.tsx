@@ -110,6 +110,9 @@ export default function SettingsPage() {
           <h1 className={styles.title}>
             <span className={s.mark}>Настройки аккаунта</span>
           </h1>
+          <p className={styles.sub}>
+            Профиль и безопасность: обновите имя, почту и Telegram или смените пароль.
+          </p>
         </header>
 
         <div className={styles.sections}>
