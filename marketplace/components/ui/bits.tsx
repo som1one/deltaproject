@@ -29,12 +29,28 @@ export const CopyButton = ({ value, label = "Копировать" }: { value: s
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
+    let ok = false;
     try {
       await navigator.clipboard.writeText(value);
+      ok = true;
+    } catch {
+      // Fallback для http-контекстов и старых браузеров
+      try {
+        const area = document.createElement("textarea");
+        area.value = value;
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+        ok = document.execCommand("copy");
+        area.remove();
+      } catch {
+        ok = false;
+      }
+    }
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
-    } catch {
-      /* clipboard может быть недоступен — молча игнорируем */
     }
   };
 

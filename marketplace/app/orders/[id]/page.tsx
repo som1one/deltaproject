@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { MarketShell } from "@/components/shell/shell";
-import { CopyButton, Modal, StampBadge, StarRating } from "@/components/ui/bits";
+import { CopyButton, Modal, Portrait, StampBadge, StarRating } from "@/components/ui/bits";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { formatCardNumber, formatDate, formatDateTime, formatMoney } from "@/lib/format";
@@ -343,15 +343,27 @@ export default function OrderDetailPage() {
               {/* ── Постоянная панель статуса ── */}
               <section className={styles.statusPanel}>
                 <div className={styles.statusTop}>
-                  <div>
-                    <div className={styles.statusDealNo}>№&nbsp;{dealNo(order.id, order.created_at)}</div>
-                    <h1 className={styles.statusParty}>
-                      {isBlogger
-                        ? `Заказчик · ${order.client_name ?? "—"}`
-                        : `Автор · ${order.blogger_name ?? "—"}`}
-                    </h1>
-                    <div style={{ marginTop: 14 }}>
-                      <StampBadge status={order.status} />
+                  <div className={styles.statusWho}>
+                    <Portrait
+                      name={(isBlogger ? order.client_name : order.blogger_name) ?? "?"}
+                      className={styles.statusAvatar}
+                      monoSize={22}
+                    />
+                    <div>
+                      <div className={styles.statusDealNo}>
+                        №&nbsp;{dealNo(order.id, order.created_at)}
+                        {/* Номер понадобится при обращении в поддержку */}
+                        <CopyButton value={dealNo(order.id, order.created_at)} />
+                      </div>
+                      <h1 className={styles.statusParty}>
+                        <span className={styles.statusRole}>
+                          {isBlogger ? "Заказчик" : "Автор"}
+                        </span>
+                        {(isBlogger ? order.client_name : order.blogger_name) ?? "—"}
+                      </h1>
+                      <div style={{ marginTop: 12 }}>
+                        <StampBadge status={order.status} />
+                      </div>
                     </div>
                   </div>
                   <div>
