@@ -1114,3 +1114,87 @@
   border-radius: var(--r-md);
   background: var(--panel-ink);
 }
+
+/* ── Вкладки кабинета автора ──────────────────────────────── */
+
+.tabBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabBar::-webkit-scrollbar {
+  display: none;
+}
+
+.tabBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition:
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.tabBtn:hover {
+  color: var(--ink);
+  border-color: var(--surface-4);
+}
+
+.tabBtnActive,
+.tabBtnActive:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--on-primary);
+}
+
+.tabHint {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: var(--pill);
+  background: var(--surface-3);
+  color: var(--muted);
+}
+
+.tabBtnActive .tabHint {
+  background: color-mix(in srgb, var(--on-primary) 18%, transparent);
+  color: var(--on-primary);
+}
+
+.tabDot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.tabDotGreen {
+  background: var(--green);
+}
+
+.tabDotAmber {
+  background: var(--amber);
+}
+
+@media (max-width: 640px) {
+  .tabBar {
+    margin-inline: calc(-1 * var(--page-pad));
+    padding-inline: var(--page-pad);
+  }
+}

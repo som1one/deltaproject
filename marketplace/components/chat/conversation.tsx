@@ -319,7 +319,8 @@ export function Conversation({ partnerId }: { partnerId: string }) {
           </div>
         </div>
       ) : (
-        <div className={st.scroll} ref={scrollRef} onScroll={handleScroll}>
+        // data-lenis-prevent: глобальный плавный скролл не перехватывает колесо над лентой
+        <div className={st.scroll} ref={scrollRef} onScroll={handleScroll} data-lenis-prevent>
           {items.length === 0 && (
             <div className={st.placeholder}>
               <p className={st.placeholderTitle}>Сообщений пока нет</p>
@@ -383,6 +384,7 @@ export function Conversation({ partnerId }: { partnerId: string }) {
             className={st.composerInput}
             rows={1}
             maxLength={2000}
+            data-lenis-prevent
             value={text}
             placeholder="Сообщение…"
             onChange={(e) => setText(e.target.value)}

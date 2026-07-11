@@ -71,7 +71,7 @@ export function ThreadList({ activePartnerId }: { activePartnerId?: string }) {
           )}
         </div>
       ) : (
-        <nav className={st.sideList} aria-label="Диалоги">
+        <nav className={st.sideList} aria-label="Диалоги" data-lenis-prevent>
           {threads.map((t) => {
             const active = t.partner.id === activePartnerId;
             const fromMe = t.last_message.sender_id !== t.partner.id;

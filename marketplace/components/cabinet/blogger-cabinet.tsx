@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, Settings, Wallet } from "lucide-react";
 
@@ -24,6 +24,77 @@ import { ProfileEditor } from "./profile-editor";
 import s from "./cabinet.module.css";
 
 const is404 = (e: unknown) => e instanceof ApiError && e.status === 404;
+
+type CabinetTab = "profile" | "prices" | "audience";
+
+/**
+ * Главная колонка кабинета: редакторы разведены по вкладкам, чтобы
+ * страница не была свалкой форм. Неактивные вкладки скрываются через
+ * hidden (не размонтируются) — несохранённые черновики переживают
+ * переключение.
+ */
+export function AuthorPanels({
+  profile,
+  serviceTypes,
+}: {
+  profile: BloggerSelfProfile;
+  serviceTypes: ServiceType[];
+}) {
+  const [tab, setTab] = useState<CabinetTab>("profile");
+
+  const enabledPrices = (profile.price_list_full ?? []).filter((i) => i.is_enabled).length;
+  const audiencePending = profile.latest_audience_submission?.status === "pending";
+  const audienceVerified = Boolean(profile.audience_verified_at);
+
+  const tabs: { key: CabinetTab; label: string; hint?: string; dot?: "green" | "amber" }[] = [
+    { key: "profile", label: "Профиль" },
+    { key: "prices", label: "Прайс-лист", hint: enabledPrices > 0 ? String(enabledPrices) : undefined },
+    {
+      key: "audience",
+      label: "Аудитория",
+      dot: audienceVerified ? "green" : audiencePending ? "amber" : undefined,
+    },
+  ];
+
+  return (
+    <>
+      <div className={s.tabBar} role="tablist" aria-label="Разделы кабинета">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            className={`${s.tabBtn} ${tab === t.key ? s.tabBtnActive : ""}`.trim()}
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+            {t.hint && <span className={s.tabHint}>{t.hint}</span>}
+            {t.dot && <span className={`${s.tabDot} ${t.dot === "green" ? s.tabDotGreen : s.tabDotAmber}`} />}
+          </button>
+        ))}
+      </div>
+
+      <div hidden={tab !== "profile"}>
+        {/* key по id: локальные черновики форм переживают фоновые рефетчи */}
+        <ProfileEditor key={`profile-${profile.id}`} profile={profile} />
+      </div>
+      <div hidden={tab !== "prices"}>
+        <PriceListEditor
+          key={`prices-${profile.id}-${serviceTypes.length}`}
+          serviceTypes={serviceTypes}
+          priceList={profile.price_list_full}
+        />
+      </div>
+      <div hidden={tab !== "audience"}>
+        <AudienceSection
+          key={`audience-${profile.latest_audience_submission?.id ?? "none"}`}
+          profile={profile}
+        />
+      </div>
+    </>
+  );
+}
 
 /** Кабинет автора: центр управления карточкой в каталоге. */
 export function BloggerCabinet() {
@@ -67,7 +138,6 @@ export function BloggerCabinet() {
       <header className={s.head}>
         <div className={s.headRow}>
           <div>
-            <span className={ui.brow}>Кабинет автора</span>
             <h1 className={s.greeting}>
               С возвращением, <span className={land.mark}>{displayName}</span>
             </h1>
@@ -107,17 +177,7 @@ export function BloggerCabinet() {
         <div className={s.layout}>
           <div className={s.col}>
             <CardControls profile={profile} />
-            {/* key по id: локальные черновики форм переживают фоновые рефетчи */}
-            <ProfileEditor key={`profile-${profile.id}`} profile={profile} />
-            <PriceListEditor
-              key={`prices-${profile.id}-${(serviceTypes ?? []).length}`}
-              serviceTypes={serviceTypes ?? []}
-              priceList={profile.price_list_full}
-            />
-            <AudienceSection
-              key={`audience-${profile.latest_audience_submission?.id ?? "none"}`}
-              profile={profile}
-            />
+            <AuthorPanels profile={profile} serviceTypes={serviceTypes ?? []} />
           </div>
 
           <aside className={s.col}>

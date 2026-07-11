@@ -140,6 +140,7 @@ export function Select({ value, onChange, options, ariaLabel, className, leading
             role="listbox"
             id={listId}
             aria-label={ariaLabel}
+            data-lenis-prevent
             data-up={coords.up || undefined}
             style={{
               left: coords.left,

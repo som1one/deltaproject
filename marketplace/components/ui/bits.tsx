@@ -163,10 +163,12 @@ export const Modal = ({
 
   return (
     <div className={ui.modalOverlay} role="dialog" aria-modal="true" aria-label={title} onClick={onClose}>
+      {/* data-lenis-prevent: колесо над модалкой скроллит её содержимое, а не страницу */}
       <div
         className={ui.modalCard}
         style={maxWidth ? { maxWidth } : undefined}
         onClick={(e) => e.stopPropagation()}
+        data-lenis-prevent
       >
         <div className={ui.modalBar}>
           <span className={ui.modalDots} aria-hidden="true">
