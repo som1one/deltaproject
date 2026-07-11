@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { MarketShell } from "@/components/shell/shell";
-import { StampBadge } from "@/components/ui/bits";
+import { Portrait, StampBadge } from "@/components/ui/bits";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { formatDateTime, formatMoney } from "@/lib/format";
@@ -126,7 +126,7 @@ export default function OrdersPage() {
           <div className={styles.list}>
             {Array.from({ length: 4 }, (_, i) => (
               <div key={i} className={styles.orderRow} aria-hidden="true">
-                <span className={ui.skeleton} style={{ height: 16, width: 110 }} />
+                <span className={ui.skeleton} style={{ width: 42, height: 42, borderRadius: "50%" }} />
                 <span className={ui.skeleton} style={{ height: 20, width: "50%" }} />
                 <span />
                 <span className={ui.skeleton} style={{ height: 16, width: 90 }} />
@@ -160,26 +160,33 @@ export default function OrdersPage() {
           </div>
         ) : (
           <div className={styles.list}>
-            {visible.map((order) => (
-              <Link key={order.id} href={`/orders/${order.id}`} className={styles.orderRow}>
-                <span className={styles.orderNum}>№&nbsp;{dealNo(order.id, order.created_at)}</span>
-                <span className={styles.orderWho}>
-                  <span className={styles.orderName}>
-                    {isBlogger ? order.client_name ?? "Заказчик" : order.blogger_name ?? "Автор"}
+            {visible.map((order) => {
+              const counterpart = isBlogger
+                ? order.client_name ?? "Заказчик"
+                : order.blogger_name ?? "Автор";
+              return (
+                <Link key={order.id} href={`/orders/${order.id}`} className={styles.orderRow}>
+                  <Portrait name={counterpart} className={styles.orderAvatar} monoSize={16} />
+                  <span className={styles.orderWho}>
+                    <span className={styles.orderName}>{counterpart}</span>
+                    <span className={styles.orderBrief}>
+                      <span className={styles.orderNum}>№&nbsp;{dealNo(order.id, order.created_at)}</span>
+                      <span className={styles.orderDotSep} aria-hidden="true">
+                        ·
+                      </span>
+                      {order.service_type_name ?? "Индивидуальные условия"}
+                    </span>
                   </span>
-                  <span className={styles.orderBrief}>
-                    {order.service_type_name ?? "Индивидуальные условия"}
+                  <span className={styles.orderMetaCell}>
+                    <RowDeadline order={order} />
                   </span>
-                </span>
-                <span className={styles.orderMetaCell}>
-                  <RowDeadline order={order} />
-                </span>
-                <span className={styles.orderAmount}>{formatMoney(order.amount_kopeks)}</span>
-                <span className={styles.orderStampCell}>
-                  <StampBadge status={order.status} />
-                </span>
-              </Link>
-            ))}
+                  <span className={styles.orderAmount}>{formatMoney(order.amount_kopeks)}</span>
+                  <span className={styles.orderStampCell}>
+                    <StampBadge status={order.status} />
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
