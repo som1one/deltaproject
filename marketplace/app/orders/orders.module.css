@@ -715,3 +715,61 @@
     align-self: center;
   }
 }
+
+/* ── Статус-баннеры: иконка-плитка + заголовок + пояснение ── */
+
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+  margin-bottom: 22px;
+}
+
+.bannerIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 12px;
+}
+
+.bannerNeutral .bannerIcon {
+  background: var(--violet-soft);
+  color: var(--violet);
+}
+
+.bannerWarning .bannerIcon {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.bannerDanger .bannerIcon {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.bannerBody {
+  min-width: 0;
+  align-self: center;
+}
+
+.bannerTitle {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.bannerText {
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}

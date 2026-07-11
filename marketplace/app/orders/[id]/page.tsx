@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { Clock3, Hourglass, RotateCcw, Undo2, Wallet, XCircle } from "lucide-react";
+
 import { MarketShell } from "@/components/shell/shell";
 import { CopyButton, Modal, Portrait, StampBadge, StarRating } from "@/components/ui/bits";
 import { api } from "@/lib/api";
@@ -118,6 +120,36 @@ const ReviewCard = ({ title, review, privateNote }: { title: string; review: Rev
       {privateNote ? ` · ${privateNote}` : ""}
     </p>
   </section>
+);
+
+/* ── Статус-баннер: иконка-плитка + заголовок + пояснение ──── */
+
+type BannerTone = "neutral" | "warning" | "danger";
+
+const BANNER_TONE_CLASS: Record<BannerTone, string> = {
+  neutral: styles.bannerNeutral,
+  warning: styles.bannerWarning,
+  danger: styles.bannerDanger,
+};
+
+const StateBanner = ({
+  tone,
+  icon,
+  title,
+  children,
+}: {
+  tone: BannerTone;
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) => (
+  <div className={`${styles.banner} ${BANNER_TONE_CLASS[tone]}`} role="status">
+    <span className={styles.bannerIcon}>{icon}</span>
+    <div className={styles.bannerBody}>
+      <div className={styles.bannerTitle}>{title}</div>
+      <div className={styles.bannerText}>{children}</div>
+    </div>
+  </div>
 );
 
 type ModalKind = "accept" | "decline" | "submit" | "changes" | null;
@@ -408,46 +440,56 @@ export default function OrderDetailPage() {
                 </div>
               )}
 
-              {negative && (
-                <div className={ui.noticeDanger} style={{ marginBottom: 22 }}>
-                  {order.status === "OFFER_DECLINED" &&
-                    (order.decline_reason
-                      ? `Предложение отклонено. Причина: ${order.decline_reason}`
-                      : "Предложение отклонено.")}
-                  {order.status === "CANCELLED" && "Сделка отменена до оплаты."}
-                  {order.status === "REFUNDED" &&
-                    (order.decline_reason
-                      ? `По сделке оформлен возврат средств заказчику. Причина: ${order.decline_reason}`
-                      : "По сделке оформлен возврат средств заказчику.")}
-                  {order.status === "PAYMENT_FAILED" &&
-                    "Оплата не прошла. Создайте сделку заново или обратитесь в поддержку."}
-                </div>
+              {order.status === "OFFER_DECLINED" && (
+                <StateBanner tone="danger" icon={<XCircle size={18} />} title="Предложение отклонено">
+                  {order.decline_reason
+                    ? `Причина: ${order.decline_reason}`
+                    : "Контрагент не принял условия. Обсудите детали в чате и предложите новые."}
+                </StateBanner>
+              )}
+              {order.status === "CANCELLED" && (
+                <StateBanner tone="danger" icon={<XCircle size={18} />} title="Сделка отменена">
+                  Отмена произошла до оплаты — деньги не переводились.
+                </StateBanner>
+              )}
+              {order.status === "REFUNDED" && (
+                <StateBanner tone="danger" icon={<Undo2 size={18} />} title="Оформлен возврат">
+                  {order.decline_reason
+                    ? `Деньги возвращаются заказчику. Причина: ${order.decline_reason}`
+                    : "Деньги возвращаются заказчику. Вопросы по возврату — в поддержку."}
+                </StateBanner>
+              )}
+              {order.status === "PAYMENT_FAILED" && (
+                <StateBanner tone="danger" icon={<XCircle size={18} />} title="Оплата не прошла">
+                  Создайте сделку заново или обратитесь в поддержку — номер сделки выше.
+                </StateBanner>
               )}
 
               {order.status === "ESCROW_HELD" && order.decline_reason && (
-                <div className={ui.noticeWarning} style={{ marginBottom: 22 }}>
-                  Возвращено на доработку: {order.decline_reason}
-                </div>
+                <StateBanner tone="warning" icon={<RotateCcw size={18} />} title="Возвращена на доработку">
+                  {order.decline_reason}
+                </StateBanner>
               )}
 
               {order.status === "OFFER_PENDING" && !canAcceptOffer && (
-                <div className={ui.notice} style={{ marginBottom: 22 }}>
-                  Предложение отправлено — ждём решения контрагента. Чат по сделке открыт для вопросов.
-                </div>
+                <StateBanner tone="neutral" icon={<Hourglass size={18} />} title="Ждём решения контрагента">
+                  Предложение отправлено. Чат по сделке уже открыт — можно обсудить детали, пока
+                  контрагент думает.
+                </StateBanner>
               )}
 
               {order.payment_reported_at && order.status === "PENDING_PAYMENT" && (
-                <div className={ui.noticeWarning} style={{ marginBottom: 22 }}>
-                  Вы сообщили об оплате {formatDateTime(order.payment_reported_at)}. Платформа проверит
+                <StateBanner tone="warning" icon={<Clock3 size={18} />} title="Оплата на проверке">
+                  Вы сообщили об оплате {formatDateTime(order.payment_reported_at)}. Платформа сверит
                   поступление и переведёт сделку в работу.
-                </div>
+                </StateBanner>
               )}
 
               {order.status === "PENDING_PAYMENT" && isBlogger && (
-                <div className={ui.notice} style={{ marginBottom: 22 }}>
-                  Ждём оплату от заказчика — реквизиты уже у него. Как только платформа подтвердит
-                  поступление, сделка перейдёт в работу.
-                </div>
+                <StateBanner tone="neutral" icon={<Wallet size={18} />} title="Заказчик оплачивает сделку">
+                  Реквизиты для оплаты уже у заказчика. Как только платформа подтвердит поступление
+                  денег, сделка перейдёт в работу — вам придёт уведомление, ничего делать не нужно.
+                </StateBanner>
               )}
 
               <div className={styles.detailLayout}>
@@ -590,13 +632,19 @@ export default function OrderDetailPage() {
                         <span className={ui.defKey}>Сумма</span>
                         <span className={`${ui.defValue} ${ui.mono}`}>{formatMoney(order.amount_kopeks)}</span>
                       </div>
+                      {/* До принятия дедлайна ещё нет — показываем срок в днях;
+                          после принятия дата фиксируется и срок дублирует её */}
                       <div className={ui.defRow}>
-                        <span className={ui.defKey}>Срок работы</span>
-                        <span className={ui.defValue}>
-                          {order.deadline_days != null
-                            ? `${order.deadline_days} ${pluralRu(order.deadline_days, "день", "дня", "дней")} после принятия`
-                            : "Не зафиксирован"}
-                        </span>
+                        <span className={ui.defKey}>Дедлайн работы</span>
+                        {order.deadline_at ? (
+                          <span className={`${ui.defValue} ${ui.mono}`}>{formatDateTime(order.deadline_at)}</span>
+                        ) : (
+                          <span className={ui.defValue}>
+                            {order.deadline_days != null
+                              ? `${order.deadline_days} ${pluralRu(order.deadline_days, "день", "дня", "дней")} после принятия`
+                              : "Не зафиксирован"}
+                          </span>
+                        )}
                       </div>
                       <div className={ui.defRow}>
                         <span className={ui.defKey}>Дата публикации</span>
@@ -604,12 +652,6 @@ export default function OrderDetailPage() {
                           {order.publish_at ? formatDate(order.publish_at) : "По готовности"}
                         </span>
                       </div>
-                      {order.deadline_at && (
-                        <div className={ui.defRow}>
-                          <span className={ui.defKey}>Дедлайн работы</span>
-                          <span className={`${ui.defValue} ${ui.mono}`}>{formatDateTime(order.deadline_at)}</span>
-                        </div>
-                      )}
                     </div>
 
                     <hr className={ui.hr} style={{ margin: "22px 0" }} />
