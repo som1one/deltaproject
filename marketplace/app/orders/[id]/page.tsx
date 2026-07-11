@@ -405,7 +405,7 @@ export default function OrderDetailPage() {
                 </div>
 
                 <div className={styles.money}>
-                  <span className={styles.moneyLabel}>Деньги</span>
+                  <span className={styles.moneyLabel}>Оплата</span>
                   <span className={styles.moneyValue}>{orderMoneyLocation(order.status)}</span>
                 </div>
 
@@ -658,15 +658,8 @@ export default function OrderDetailPage() {
                     <p className={styles.brief}>{order.message}</p>
                     <hr className={ui.hr} style={{ margin: "22px 0" }} />
 
-                    <div className={styles.metaGrid}>
-                      <div className={ui.defRow}>
-                        <span className={ui.defKey}>Создана</span>
-                        <span className={`${ui.defValue} ${ui.mono}`}>{formatDateTime(order.created_at)}</span>
-                      </div>
-                      <div className={ui.defRow}>
-                        <span className={ui.defKey}>№ сделки</span>
-                        <span className={`${ui.defValue} ${ui.mono}`}>{dealNo(order.id, order.created_at)}</span>
-                      </div>
+                    {/* Один столбец: все значения по правому краю, как выше */}
+                    <div className={ui.defList}>
                       <div className={ui.defRow}>
                         <span className={ui.defKey}>{isBlogger ? "Заказчик" : "Автор"}</span>
                         <span className={ui.defValue}>
@@ -674,9 +667,19 @@ export default function OrderDetailPage() {
                         </span>
                       </div>
                       <div className={ui.defRow}>
-                        <span className={ui.defKey}>Оплачена</span>
-                        <span className={`${ui.defValue} ${ui.mono}`}>{formatDateTime(order.paid_at)}</span>
+                        <span className={ui.defKey}>№ сделки</span>
+                        <span className={`${ui.defValue} ${ui.mono}`}>{dealNo(order.id, order.created_at)}</span>
                       </div>
+                      <div className={ui.defRow}>
+                        <span className={ui.defKey}>Создана</span>
+                        <span className={`${ui.defValue} ${ui.mono}`}>{formatDateTime(order.created_at)}</span>
+                      </div>
+                      {order.paid_at && (
+                        <div className={ui.defRow}>
+                          <span className={ui.defKey}>Оплачена</span>
+                          <span className={`${ui.defValue} ${ui.mono}`}>{formatDateTime(order.paid_at)}</span>
+                        </div>
+                      )}
                     </div>
                   </section>
 
@@ -823,7 +826,7 @@ export default function OrderDetailPage() {
                         Вопросы по условиям, срокам и материалам удобнее решать в чате — переписка
                         останется при сделке.
                       </p>
-                      <Link href={`/chats/${counterpartId}`} className={`${ui.btnLine} ${ui.btnBlock}`}>
+                      <Link href={`/chats/${counterpartId}`} className={`${ui.btnPrimary} ${ui.btnBlock}`}>
                         <span className={styles.chatBtnInner}>
                           <ChatIcon />
                           Открыть чат по сделке

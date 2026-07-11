@@ -409,10 +409,11 @@
 
 .money {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
   margin: 20px 0;
-  padding: 12px 16px;
+  padding: 14px 18px;
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: var(--r);
@@ -439,8 +440,10 @@
 }
 
 .moneyValue {
-  font-family: var(--font-mono);
   font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
   color: var(--ink);
 }
 
@@ -467,7 +470,8 @@
 
 .stepNo {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--faint);
 }
 
@@ -641,18 +645,6 @@
   gap: 9px;
 }
 
-.metaGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 32px;
-}
-
-@media (max-width: 600px) {
-  .metaGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* ── Responsive ───────────────────────────────────────────── */
 
 @media (max-width: 940px) {
@@ -668,6 +660,7 @@
     flex-direction: row;
     align-items: baseline;
     gap: 12px;
+    padding: 13px 16px;
     border-right: none;
     border-bottom: 1px solid var(--line);
   }
@@ -676,9 +669,78 @@
     border-bottom: none;
   }
 
+  .stepNo {
+    font-size: 13px;
+    min-width: 24px;
+  }
+
   .stepHint {
     margin-left: auto;
     text-align: right;
+  }
+}
+
+/* Мобильная полировка карточки сделки */
+@media (max-width: 640px) {
+  .detailWrap {
+    padding-top: 18px;
+  }
+
+  .backLink {
+    margin-bottom: 16px;
+  }
+
+  .statusPanel {
+    padding: 18px 16px;
+    margin-bottom: 16px;
+  }
+
+  /* Сумма — под контрагентом, по левому краю, без «прыжков» вправо */
+  .statusTop {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .statusAmountLabel {
+    text-align: left;
+  }
+
+  .statusAvatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  .statusWho {
+    gap: 13px;
+  }
+
+  .money {
+    padding: 12px 14px;
+    margin: 16px 0;
+  }
+
+  .banner {
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+
+  .bannerIcon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .detailLayout {
+    gap: 16px;
+  }
+
+  .mainCol,
+  .sideCol {
+    gap: 16px;
+  }
+
+  .panel {
+    padding: 18px 16px;
   }
 }
 
