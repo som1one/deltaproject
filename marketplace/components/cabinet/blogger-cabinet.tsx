@@ -3,7 +3,17 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Settings, Wallet } from "lucide-react";
+import {
+  ChartPie,
+  ExternalLink,
+  Handshake,
+  Settings,
+  SlidersHorizontal,
+  Sparkles,
+  Tags,
+  UserRound,
+  Wallet,
+} from "lucide-react";
 
 import { api, ApiError } from "@/lib/api";
 import { appConfig } from "@/lib/config";
@@ -25,80 +35,12 @@ import s from "./cabinet.module.css";
 
 const is404 = (e: unknown) => e instanceof ApiError && e.status === 404;
 
-type CabinetTab = "profile" | "prices" | "audience";
+type Section = "controls" | "profile" | "prices" | "audience" | "deals" | "premium" | "balance";
 
-/**
- * Главная колонка кабинета: редакторы разведены по вкладкам, чтобы
- * страница не была свалкой форм. Неактивные вкладки скрываются через
- * hidden (не размонтируются) — несохранённые черновики переживают
- * переключение.
- */
-export function AuthorPanels({
-  profile,
-  serviceTypes,
-}: {
-  profile: BloggerSelfProfile;
-  serviceTypes: ServiceType[];
-}) {
-  const [tab, setTab] = useState<CabinetTab>("profile");
-
-  const enabledPrices = (profile.price_list_full ?? []).filter((i) => i.is_enabled).length;
-  const audiencePending = profile.latest_audience_submission?.status === "pending";
-  const audienceVerified = Boolean(profile.audience_verified_at);
-
-  const tabs: { key: CabinetTab; label: string; hint?: string; dot?: "green" | "amber" }[] = [
-    { key: "profile", label: "Профиль" },
-    { key: "prices", label: "Прайс-лист", hint: enabledPrices > 0 ? String(enabledPrices) : undefined },
-    {
-      key: "audience",
-      label: "Аудитория",
-      dot: audienceVerified ? "green" : audiencePending ? "amber" : undefined,
-    },
-  ];
-
-  return (
-    <>
-      <div className={s.tabBar} role="tablist" aria-label="Разделы кабинета">
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.key}
-            className={`${s.tabBtn} ${tab === t.key ? s.tabBtnActive : ""}`.trim()}
-            onClick={() => setTab(t.key)}
-          >
-            {t.label}
-            {t.hint && <span className={s.tabHint}>{t.hint}</span>}
-            {t.dot && <span className={`${s.tabDot} ${t.dot === "green" ? s.tabDotGreen : s.tabDotAmber}`} />}
-          </button>
-        ))}
-      </div>
-
-      <div hidden={tab !== "profile"}>
-        {/* key по id: локальные черновики форм переживают фоновые рефетчи */}
-        <ProfileEditor key={`profile-${profile.id}`} profile={profile} />
-      </div>
-      <div hidden={tab !== "prices"}>
-        <PriceListEditor
-          key={`prices-${profile.id}-${serviceTypes.length}`}
-          serviceTypes={serviceTypes}
-          priceList={profile.price_list_full}
-        />
-      </div>
-      <div hidden={tab !== "audience"}>
-        <AudienceSection
-          key={`audience-${profile.latest_audience_submission?.id ?? "none"}`}
-          profile={profile}
-        />
-      </div>
-    </>
-  );
-}
-
-/** Кабинет автора: центр управления карточкой в каталоге. */
+/** Кабинет автора: разделы в macOS-окне с боковой навигацией. */
 export function BloggerCabinet() {
   const { userName } = useAuth();
+  const [section, setSection] = useState<Section>("controls");
 
   const {
     data: profile,
@@ -133,6 +75,46 @@ export function BloggerCabinet() {
 
   const displayName = profile?.name ?? userName ?? "автор";
 
+  /* Статус-метки в навигации: видно состояние, не заходя в раздел */
+  const enabledPrices = (profile?.price_list_full ?? []).filter((i) => i.is_enabled).length;
+  const audienceVerified = Boolean(profile?.audience_verified_at);
+  const audiencePending = profile?.latest_audience_submission?.status === "pending";
+  const cardLive = Boolean(profile?.is_active);
+  const ordersOn = Boolean(profile?.orders_enabled);
+
+  const nav: {
+    group: string;
+    items: { key: Section; label: string; icon: typeof UserRound; dot?: "green" | "amber" | "gray"; count?: number; gold?: boolean }[];
+  }[] = [
+    {
+      group: "Карточка",
+      items: [
+        {
+          key: "controls",
+          label: "Управление",
+          icon: SlidersHorizontal,
+          dot: !cardLive ? "gray" : ordersOn ? "green" : "amber",
+        },
+        { key: "profile", label: "Профиль", icon: UserRound },
+        { key: "prices", label: "Прайс-лист", icon: Tags, count: enabledPrices || undefined },
+        {
+          key: "audience",
+          label: "Аудитория",
+          icon: ChartPie,
+          dot: audienceVerified ? "green" : audiencePending ? "amber" : undefined,
+        },
+      ],
+    },
+    {
+      group: "Платформа",
+      items: [
+        { key: "deals", label: "Сделки", icon: Handshake, count: activeDeals.length || undefined },
+        { key: "premium", label: "Премиум", icon: Sparkles, gold: true },
+        { key: "balance", label: "Баланс и выплаты", icon: Wallet },
+      ],
+    },
+  ];
+
   return (
     <>
       <header className={s.head}>
@@ -154,14 +136,27 @@ export function BloggerCabinet() {
       </header>
 
       {profileLoading ? (
-        <div className={s.layout}>
-          <div className={s.col}>
-            <div className={ui.skeleton} style={{ height: 180 }} />
-            <div className={ui.skeleton} style={{ height: 320 }} />
+        <div className={s.win} aria-hidden="true">
+          <div className={s.winBar}>
+            <span className={s.winDots}>
+              <span className={s.winDot} />
+              <span className={s.winDot} />
+              <span className={s.winDot} />
+            </span>
+            <span className={s.winUrl}>marketplace.looneymoon.ru/cabinet</span>
           </div>
-          <div className={s.col}>
-            <div className={ui.skeleton} style={{ height: 160 }} />
-            <div className={ui.skeleton} style={{ height: 140 }} />
+          <div className={s.winBody}>
+            <div className={s.wnav}>
+              {Array.from({ length: 6 }, (_, i) => (
+                <span key={i} className={ui.skeleton} style={{ height: 36, borderRadius: 10, margin: "2px 10px" }} />
+              ))}
+            </div>
+            <div className={s.pane}>
+              <div className={s.paneInner}>
+                <span className={ui.skeleton} style={{ height: 180 }} />
+                <span className={ui.skeleton} style={{ height: 260 }} />
+              </div>
+            </div>
           </div>
         </div>
       ) : noProfile ? (
@@ -174,41 +169,104 @@ export function BloggerCabinet() {
           </div>
         </div>
       ) : profile ? (
-        <div className={s.layout}>
-          <div className={s.col}>
-            <CardControls profile={profile} />
-            <AuthorPanels profile={profile} serviceTypes={serviceTypes ?? []} />
+        <div className={s.win}>
+          <div className={s.winBar}>
+            <span className={s.winDots}>
+              <span className={s.winDot} />
+              <span className={s.winDot} />
+              <span className={s.winDot} />
+            </span>
+            <span className={s.winUrl}>marketplace.looneymoon.ru/cabinet</span>
           </div>
 
-          <aside className={s.col}>
-            <PremiumCard />
-
-            <section className={`${ui.card} ${s.panel}`}>
-              <div className={s.balanceCard}>
-                <span className={s.balanceIcon}>
-                  <Wallet size={18} />
-                </span>
-                <div className={s.balanceText}>
-                  <span className={s.balanceTitle}>Баланс и выплаты</span>
-                  Начисления за завершённые сделки и вывод средств — в кабинете на основной платформе looney
-                  moon.
-                  <div style={{ marginTop: 12 }}>
-                    <a
-                      href={`${appConfig.mainAppUrl}/cabinet`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`${ui.btnLine} ${ui.btnSmall}`}
-                      style={{ gap: 7 }}
+          <div className={s.winBody}>
+            <nav className={s.wnav} aria-label="Разделы кабинета" data-lenis-prevent>
+              {nav.map((group) => (
+                <div key={group.group} className={s.wnavSection}>
+                  <span className={s.wnavGroup}>{group.group}</span>
+                  {group.items.map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={`${s.wnavItem} ${section === item.key ? s.wnavItemActive : ""}`.trim()}
+                      aria-current={section === item.key || undefined}
+                      onClick={() => setSection(item.key)}
                     >
-                      <ExternalLink size={14} /> Открыть кабинет выплат
-                    </a>
-                  </div>
+                      <item.icon
+                        size={16}
+                        strokeWidth={2}
+                        className={item.gold && section !== item.key ? s.wnavGold : undefined}
+                      />
+                      <span className={s.wnavLabel}>{item.label}</span>
+                      {item.count != null && <span className={s.wnavCount}>{item.count}</span>}
+                      {item.dot && (
+                        <span
+                          className={`${s.wnavDot} ${
+                            item.dot === "green" ? s.wnavDotGreen : item.dot === "amber" ? s.wnavDotAmber : s.wnavDotGray
+                          }`}
+                        />
+                      )}
+                    </button>
+                  ))}
                 </div>
-              </div>
-            </section>
+              ))}
+            </nav>
 
-            <DealsMini orders={activeDeals} isLoading={ordersLoading} isBlogger limit={3} />
-          </aside>
+            {/* Разделы скрываются, а не размонтируются: черновики форм
+                переживают переключение между пунктами навигации */}
+            <div className={s.pane} data-lenis-prevent>
+              <div hidden={section !== "controls"} className={s.paneInner}>
+                <CardControls profile={profile} />
+              </div>
+              <div hidden={section !== "profile"} className={s.paneInner}>
+                <ProfileEditor key={`profile-${profile.id}`} profile={profile} />
+              </div>
+              <div hidden={section !== "prices"} className={s.paneInner}>
+                <PriceListEditor
+                  key={`prices-${profile.id}-${(serviceTypes ?? []).length}`}
+                  serviceTypes={serviceTypes ?? []}
+                  priceList={profile.price_list_full}
+                />
+              </div>
+              <div hidden={section !== "audience"} className={s.paneInner}>
+                <AudienceSection
+                  key={`audience-${profile.latest_audience_submission?.id ?? "none"}`}
+                  profile={profile}
+                />
+              </div>
+              <div hidden={section !== "deals"} className={s.paneInner}>
+                <DealsMini orders={activeDeals} isLoading={ordersLoading} isBlogger limit={8} />
+              </div>
+              <div hidden={section !== "premium"} className={s.paneInner}>
+                <PremiumCard />
+              </div>
+              <div hidden={section !== "balance"} className={s.paneInner}>
+                <section className={`${ui.card} ${s.panel}`}>
+                  <div className={s.balanceCard}>
+                    <span className={s.balanceIcon}>
+                      <Wallet size={18} />
+                    </span>
+                    <div className={s.balanceText}>
+                      <span className={s.balanceTitle}>Баланс и выплаты</span>
+                      Начисления за завершённые сделки и вывод средств — в кабинете на основной
+                      платформе looney moon.
+                      <div style={{ marginTop: 12 }}>
+                        <a
+                          href={`${appConfig.mainAppUrl}/cabinet`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`${ui.btnLine} ${ui.btnSmall}`}
+                          style={{ gap: 7 }}
+                        >
+                          <ExternalLink size={14} /> Открыть кабинет выплат
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className={s.layout}>
