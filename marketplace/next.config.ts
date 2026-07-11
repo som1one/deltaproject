@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   // `localhost`, and `marketplace.localhost` so that the marketplace app
   // works correctly both directly and via subdomain proxy in development.
   allowedDevOrigins: ["127.0.0.1", "localhost", "marketplace.localhost"],
+  // Плавающая кнопка Next.js Dev Tools в углу мешает — скрываем
+  devIndicators: false,
 };
 
 export default nextConfig;

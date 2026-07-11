@@ -14,11 +14,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
+  BadgeCheck,
+  CalendarDays,
+  Handshake,
   Loader2,
   PackagePlus,
   Paperclip,
   SendHorizontal,
   ShieldAlert,
+  UserRound,
   X,
 } from "lucide-react";
 
@@ -30,7 +34,6 @@ import { dayKey, dayLabel, plural, roleCaption, timeShort } from "@/components/c
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { resolveUploadUrl } from "@/lib/config";
-import { formatDate } from "@/lib/format";
 import type { ChatMessage, Conversation as ConversationData, UserPeek } from "@/lib/types";
 
 import ui from "@/components/ui/ui.module.css";
@@ -513,35 +516,69 @@ function PeekModal({
         <div className={ui.noticeDanger}>Не удалось загрузить профиль. Попробуйте ещё раз.</div>
       ) : (
         <div className={st.peek}>
+          {/* Градиентный баннер, аватар с кольцом ложится на его кромку */}
+          <div className={st.peekHero} aria-hidden="true" />
           <Portrait
             name={data.name}
             photoUrl={data.photo_url}
             className={st.peekAvatar}
-            monoSize={30}
+            monoSize={32}
           />
           <span className={st.peekName}>{data.name}</span>
-          <span className={st.peekRole}>
+          <span className={st.peekRoleChip}>
+            {data.is_blogger ? (
+              <BadgeCheck size={13} strokeWidth={2.2} />
+            ) : (
+              <UserRound size={13} strokeWidth={2.2} />
+            )}
             {data.is_blogger ? "Автор" : "Заказчик"}
             {data.category ? ` · ${categoryLabel(data.category)}` : ""}
           </span>
-          <span className={st.peekStars}>
-            <StarRating value={data.rating ?? 0} readOnly size={16} />
-            <span>
-              {data.reviews_count} {plural(data.reviews_count, ["отзыв", "отзыва", "отзывов"])}
+
+          {data.reviews_count > 0 ? (
+            <span className={st.peekStars}>
+              <StarRating value={data.rating ?? 0} readOnly size={16} />
+              <span>
+                {data.reviews_count} {plural(data.reviews_count, ["отзыв", "отзыва", "отзывов"])}
+              </span>
             </span>
-          </span>
-          <div className={`${ui.defList} ${st.peekList}`}>
-            <div className={ui.defRow}>
-              <span className={ui.defKey}>Завершённых сделок</span>
-              <span className={ui.defValue}>{data.completed_orders}</span>
+          ) : (
+            <span className={st.peekNoReviews}>Отзывов пока нет</span>
+          )}
+
+          <div className={st.peekTiles}>
+            <div className={st.peekTile}>
+              <span className={`${st.peekTileIcon} ${st.peekTileGreen}`}>
+                <Handshake size={17} strokeWidth={2} />
+              </span>
+              <span className={st.peekTileMeta}>
+                <span className={st.peekTileValue}>{data.completed_orders}</span>
+                <span className={st.peekTileLabel}>
+                  {plural(data.completed_orders, [
+                    "сделка завершена",
+                    "сделки завершено",
+                    "сделок завершено",
+                  ])}
+                </span>
+              </span>
             </div>
-            <div className={ui.defRow}>
-              <span className={ui.defKey}>На платформе</span>
-              <span className={ui.defValue}>
-                {data.registered_at ? `с ${formatDate(data.registered_at)}` : "—"}
+            <div className={st.peekTile}>
+              <span className={`${st.peekTileIcon} ${st.peekTileViolet}`}>
+                <CalendarDays size={17} strokeWidth={2} />
+              </span>
+              <span className={st.peekTileMeta}>
+                <span className={st.peekTileValue}>
+                  {data.registered_at
+                    ? new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" })
+                        .format(new Date(data.registered_at))
+                        .replace(" г.", "")
+                    : "недавно"}
+                </span>
+                <span className={st.peekTileLabel}>на платформе</span>
               </span>
             </div>
           </div>
+
           {data.is_blogger && (
             <Link href={`/bloggers/${data.id}`} className={`${ui.btnPrimary} ${st.peekCta}`}>
               Открыть карточку

@@ -7,6 +7,11 @@ import { MessageSquareText } from "lucide-react";
 import { MarketShell } from "@/components/shell/shell";
 import { ThreadList } from "@/components/chat/thread-list";
 import { useAuth } from "@/lib/auth-context";
+import {
+  chatNotifyFlag,
+  notificationsSupported,
+  requestChatNotifications,
+} from "@/lib/chat-notifications";
 
 import shell from "@/components/shell/shell.module.css";
 import ui from "@/components/ui/ui.module.css";
@@ -37,6 +42,15 @@ export function ChatsShell({
   }, [isAuthenticated, isHydrated, nextPath, router]);
 
   const authed = isHydrated && isAuthenticated;
+
+  // Пользуется чатом — спрашиваем разрешение на уведомления о сообщениях
+  // (один раз; выключить/включить можно в настройках аккаунта).
+  useEffect(() => {
+    if (!authed || !notificationsSupported()) return;
+    if (Notification.permission === "default" && chatNotifyFlag() !== "0") {
+      void requestChatNotifications();
+    }
+  }, [authed]);
   // Роль подтягивается асинхронно: пока null — показываем каркас, не отказ.
   const denied = authed && userRole !== null && !isBlogger && !isClient;
 

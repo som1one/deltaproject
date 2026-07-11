@@ -7,8 +7,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 
 import { MarketShell } from "@/components/shell/shell";
+import { Switch } from "@/components/ui/bits";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import {
+  chatNotificationsActive,
+  notificationsSupported,
+  requestChatNotifications,
+  setChatNotifyFlag,
+} from "@/lib/chat-notifications";
 import type { UserMeRead } from "@/lib/types";
 
 import shell from "@/components/shell/shell.module.css";
@@ -37,6 +44,36 @@ export default function SettingsPage() {
     queryFn: api.getMe,
     enabled: authed,
   });
+
+  // ── Уведомления чата ──
+  const [notifySupported, setNotifySupported] = useState(true);
+  const [notifyOn, setNotifyOn] = useState(false);
+  const [notifyNotice, setNotifyNotice] = useState<Notice>(null);
+
+  useEffect(() => {
+    setNotifySupported(notificationsSupported());
+    setNotifyOn(chatNotificationsActive());
+  }, []);
+
+  const toggleNotify = async (next: boolean) => {
+    setNotifyNotice(null);
+    if (!next) {
+      setChatNotifyFlag(false);
+      setNotifyOn(false);
+      return;
+    }
+    const permission = await requestChatNotifications();
+    if (permission === "granted") {
+      setChatNotifyFlag(true);
+      setNotifyOn(true);
+    } else {
+      setNotifyOn(false);
+      setNotifyNotice({
+        tone: "danger",
+        text: "Браузер запретил уведомления для этого сайта. Разрешите их в настройках браузера (значок замка в адресной строке) и включите переключатель ещё раз.",
+      });
+    }
+  };
 
   // ── Профиль ──
   const [form, setForm] = useState({ name: "", email: "", telegram: "" });
@@ -219,6 +256,40 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </section>
+
+          {/* Уведомления */}
+          <section className={styles.section}>
+            <div>
+              <h2 className={styles.sectionTitle}>Уведомления</h2>
+              <p className={styles.sectionDesc}>
+                Браузерные уведомления, когда вкладка не перед глазами.
+              </p>
+            </div>
+            <div className={styles.sectionBody}>
+              {notifyNotice && (
+                <div className={ui.noticeDanger} style={{ marginBottom: 16 }}>
+                  {notifyNotice.text}
+                </div>
+              )}
+              {notifySupported ? (
+                <div className={styles.toggleRow}>
+                  <div className={styles.toggleText}>
+                    <span className={styles.toggleTitle}>Сообщения в чате</span>
+                    <span className={styles.toggleHint}>
+                      Показывать уведомление о новых сообщениях, пока вы в другой вкладке.
+                    </span>
+                  </div>
+                  <Switch
+                    checked={notifyOn}
+                    onChange={(next) => void toggleNotify(next)}
+                    ariaLabel="Уведомления о сообщениях в чате"
+                  />
+                </div>
+              ) : (
+                <div className={ui.notice}>Ваш браузер не поддерживает уведомления.</div>
+              )}
             </div>
           </section>
         </div>

@@ -98,3 +98,32 @@
     max-width: none;
   }
 }
+
+/* ── Тумблер уведомлений ──────────────────────────────────── */
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.toggleText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.toggleTitle {
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.toggleHint {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}

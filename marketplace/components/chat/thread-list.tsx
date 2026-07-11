@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MessagesSquare } from "lucide-react";
 
@@ -8,6 +9,7 @@ import { Portrait } from "@/components/ui/bits";
 import { previewText, roleCaption, threadTime } from "@/components/chat/chat-utils";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { showChatNotification } from "@/lib/chat-notifications";
 import type { ThreadsList as ThreadsListData } from "@/lib/types";
 
 import ui from "@/components/ui/ui.module.css";
@@ -26,6 +28,26 @@ export function ThreadList({ activePartnerId }: { activePartnerId?: string }) {
   });
 
   const threads = data?.items ?? [];
+
+  // Уведомления о новых входящих: сравниваем id последнего сообщения
+  // с прошлым снимком. Первый снимок только запоминаем — иначе при
+  // открытии страницы прилетит залп по всем непрочитанным тредам.
+  const seenRef = useRef<Map<string, string> | null>(null);
+  useEffect(() => {
+    if (!data) return;
+    const prev = seenRef.current;
+    const next = new Map<string, string>();
+    for (const t of data.items) next.set(t.partner.id, t.last_message.id);
+    seenRef.current = next;
+    if (!prev) return;
+    for (const t of data.items) {
+      const msg = t.last_message;
+      const isIncoming = msg.sender_id === t.partner.id;
+      if (!isIncoming || msg.is_read) continue;
+      if (prev.get(t.partner.id) === msg.id) continue; // уже видели
+      showChatNotification(t.partner.name, previewText(msg), t.partner.id);
+    }
+  }, [data]);
 
   return (
     <>
