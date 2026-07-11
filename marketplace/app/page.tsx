@@ -579,7 +579,6 @@ export default function HomePage() {
       {/* ── Преимущества ── */}
       <section className={`${s.section} ${shell.pageContainer}`} id="how">
         <div className={s.head}>
-          <span className={ui.brow}>Как это работает</span>
           <h2 className={`${ui.h2} ${s.headTitle}`}>Всё, что нужно для спокойной сделки</h2>
           <p className={s.headSub}>Выбрали автора, согласовали бриф, оплатили — деньги под защитой до результата.</p>
         </div>
