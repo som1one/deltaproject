@@ -179,9 +179,10 @@
 .accountTrigger {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   height: 44px;
-  padding: 0 12px 0 7px;
+  min-width: 176px;
+  padding: 0 14px 0 8px;
   border: 1px solid var(--line);
   border-radius: var(--pill);
   background: var(--surface);
@@ -219,7 +220,7 @@
   font-weight: 650;
   line-height: 1.1;
   color: var(--ink);
-  max-width: 130px;
+  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -233,6 +234,8 @@
 }
 
 .accountCaret {
+  flex-shrink: 0;
+  margin-left: auto;
   color: var(--faint);
   transition: transform var(--dur) var(--ease);
 }
@@ -241,14 +244,14 @@
   transform: rotate(180deg);
 }
 
-/* Комфортная ширина независимо от длины ника: у коротких («Delta») плашка
-   не сжимается до нечитаемой, у длинных — не распирает. Привязка к правому краю. */
+/* Меню повторяет ширину плашки (min-width: 100%), но не уже читаемого
+   минимума и не шире разумного максимума. Привязка к правому краю. */
 .accountMenu {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 210px;
-  max-width: 280px;
+  min-width: max(100%, 224px);
+  max-width: 320px;
   padding: 6px;
   background: var(--surface);
   border: 1px solid var(--line);
