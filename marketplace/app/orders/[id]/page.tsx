@@ -729,6 +729,22 @@ export default function OrderDetailPage() {
                 </div>
 
                 <aside className={styles.sideCol}>
+                  {counterpartId && (
+                    <section className={styles.panel}>
+                      <h2 className={styles.panelTitle}>Связь</h2>
+                      <p className={ui.muted} style={{ margin: "0 0 16px", fontSize: 14 }}>
+                        Вопросы по условиям, срокам и материалам удобнее решать в чате — переписка
+                        останется при сделке.
+                      </p>
+                      <Link href={`/chats/${counterpartId}`} className={`${ui.btnPrimary} ${ui.btnBlock}`}>
+                        <span className={styles.chatBtnInner}>
+                          <ChatIcon />
+                          Открыть чат по сделке
+                        </span>
+                      </Link>
+                    </section>
+                  )}
+
                   {hasSideActions && (
                     <section className={styles.panel}>
                       <h2 className={styles.panelTitle}>Действия по сделке</h2>
@@ -816,22 +832,6 @@ export default function OrderDetailPage() {
                           </button>
                         )}
                       </div>
-                    </section>
-                  )}
-
-                  {counterpartId && (
-                    <section className={styles.panel}>
-                      <h2 className={styles.panelTitle}>Связь</h2>
-                      <p className={ui.muted} style={{ margin: "0 0 16px", fontSize: 14 }}>
-                        Вопросы по условиям, срокам и материалам удобнее решать в чате — переписка
-                        останется при сделке.
-                      </p>
-                      <Link href={`/chats/${counterpartId}`} className={`${ui.btnPrimary} ${ui.btnBlock}`}>
-                        <span className={styles.chatBtnInner}>
-                          <ChatIcon />
-                          Открыть чат по сделке
-                        </span>
-                      </Link>
                     </section>
                   )}
 
