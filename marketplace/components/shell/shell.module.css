@@ -179,9 +179,9 @@
 .accountTrigger {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 12px 0 6px;
+  gap: 9px;
+  height: 44px;
+  padding: 0 12px 0 7px;
   border: 1px solid var(--line);
   border-radius: var(--pill);
   background: var(--surface);
@@ -195,28 +195,41 @@
   background: var(--surface-2);
 }
 
-.avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
+/* Аватар — фото или градиентная монограмма (Portrait) */
+.accountAvatar {
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--violet), var(--sky));
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+/* Имя над ролью — двухстрочная плашка аккаунта */
+.accountText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
 }
 
 .accountName {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.1;
   color: var(--ink);
   max-width: 130px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.accountRole {
+  font-size: 11px;
+  font-weight: 550;
+  line-height: 1;
+  color: var(--muted);
 }
 
 .accountCaret {

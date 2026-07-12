@@ -17,6 +17,7 @@ type AuthContextValue = {
   isWorker: boolean;
   userRole: UserRole | null;
   userName: string | null;
+  userPhoto: string | null;
   setSession: (accessToken: string, refreshToken: string) => void;
   clearSession: () => void;
   logout: () => Promise<void>;
@@ -24,6 +25,7 @@ type AuthContextValue = {
 
 const ROLE_KEY = "delta_user_role";
 const NAME_KEY = "delta_user_name";
+const PHOTO_KEY = "delta_user_photo";
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -34,6 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [refreshToken, setRefreshToken] = useState("");
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userPhoto, setUserPhoto] = useState<string | null>(null);
 
   // Fetch user profile to determine role
   const fetchProfile = useCallback(async (token: string) => {
@@ -46,10 +49,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         window.localStorage.setItem(ROLE_KEY, me.role);
         window.localStorage.setItem(NAME_KEY, me.name);
       }
+      // Фото живёт в профиле автора; у заказчиков и воркеров его нет
+      if (me.role === "Bloger") {
+        try {
+          const profile = await api.getSelfProfile();
+          setUserPhoto(profile.photo_url ?? null);
+          if (typeof window !== "undefined") {
+            if (profile.photo_url) window.localStorage.setItem(PHOTO_KEY, profile.photo_url);
+            else window.localStorage.removeItem(PHOTO_KEY);
+          }
+        } catch {
+          // Профиль ещё не создан — остаёмся на монограмме
+        }
+      } else {
+        setUserPhoto(null);
+        if (typeof window !== "undefined") window.localStorage.removeItem(PHOTO_KEY);
+      }
     } catch {
       // Token might be expired — clear cached role
       setUserRole(null);
       setUserName(null);
+      setUserPhoto(null);
     }
   }, []);
 
@@ -63,8 +83,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (typeof window !== "undefined" && nextAccessToken) {
       const cachedRole = window.localStorage.getItem(ROLE_KEY) as UserRole | null;
       const cachedName = window.localStorage.getItem(NAME_KEY);
+      const cachedPhoto = window.localStorage.getItem(PHOTO_KEY);
       if (cachedRole) setUserRole(cachedRole);
       if (cachedName) setUserName(cachedName);
+      if (cachedPhoto) setUserPhoto(cachedPhoto);
       // Also fetch fresh profile in background
       fetchProfile(nextAccessToken);
     }
@@ -86,9 +108,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRefreshToken("");
     setUserRole(null);
     setUserName(null);
+    setUserPhoto(null);
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(ROLE_KEY);
       window.localStorage.removeItem(NAME_KEY);
+      window.localStorage.removeItem(PHOTO_KEY);
     }
     queryClient.clear();
   };
@@ -113,11 +137,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isWorker: userRole === "Worker",
       userRole,
       userName,
+      userPhoto,
       setSession,
       clearSession,
       logout,
     }),
-    [accessToken, isHydrated, refreshToken, userRole, userName],
+    [accessToken, isHydrated, refreshToken, userRole, userName, userPhoto],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

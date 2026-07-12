@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { ChevronDown } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
+import { Portrait } from "@/components/ui/bits";
 import { ThemeToggle } from "./theme-toggle";
 
 import styles from "./shell.module.css";
@@ -24,7 +25,8 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
   const router = useRouter();
   const reduceMotion = useReducedMotion() ?? false;
-  const { isHydrated, isAuthenticated, isBlogger, isClient, isWorker, userName, logout } = useAuth();
+  const { isHydrated, isAuthenticated, isBlogger, isClient, isWorker, userName, userPhoto, logout } =
+    useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -106,7 +108,7 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
   };
 
   const authed = isHydrated && isAuthenticated;
-  const initial = (userName?.trim()?.charAt(0) || "А").toUpperCase();
+  const roleLabel = isBlogger ? "Автор" : isWorker ? "Воркер" : "Заказчик";
 
   return (
     <div className={styles.shell}>
@@ -147,17 +149,23 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
                   aria-haspopup="menu"
                   aria-expanded={acctOpen}
                 >
-                  <span className={styles.avatar} aria-hidden="true">{initial}</span>
-                  <span className={styles.accountName}>{userName ?? "Аккаунт"}</span>
+                  <Portrait
+                    name={userName ?? "Аккаунт"}
+                    photoUrl={userPhoto}
+                    className={styles.accountAvatar}
+                    monoSize={13}
+                  />
+                  <span className={styles.accountText}>
+                    <span className={styles.accountName}>{userName ?? "Аккаунт"}</span>
+                    <span className={styles.accountRole}>{roleLabel}</span>
+                  </span>
                   <ChevronDown size={15} className={styles.accountCaret} data-open={acctOpen} />
                 </button>
                 {acctOpen && (
                   <div className={styles.accountMenu} role="menu">
                     <div className={styles.accountMenuHead}>
                       <span className={styles.accountMenuName}>{userName ?? "Аккаунт"}</span>
-                      <span className={styles.accountMenuRole}>
-                        {isBlogger ? "автор" : isWorker ? "воркер" : "заказчик"}
-                      </span>
+                      <span className={styles.accountMenuRole}>{roleLabel}</span>
                     </div>
                     {ACCOUNT_LINKS.map(({ href, label }) => (
                       <Link
