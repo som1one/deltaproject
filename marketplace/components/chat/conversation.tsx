@@ -15,8 +15,6 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   BadgeCheck,
-  CalendarDays,
-  Handshake,
   Loader2,
   PackagePlus,
   Paperclip,
@@ -507,17 +505,15 @@ function PeekModal({
     <Modal open={open} onClose={onClose} title="Профиль" maxWidth={420}>
       {isLoading ? (
         <div className={st.peek} aria-hidden="true">
-          <span className={ui.skeleton} style={{ width: 76, height: 76, borderRadius: "50%" }} />
-          <span className={ui.skeleton} style={{ height: 18, width: 140, marginTop: 8 }} />
-          <span className={ui.skeleton} style={{ height: 13, width: 90 }} />
-          <span className={ui.skeleton} style={{ height: 60, width: "100%", marginTop: 12 }} />
+          <span className={ui.skeleton} style={{ width: 84, height: 84, borderRadius: "50%" }} />
+          <span className={ui.skeleton} style={{ height: 20, width: 150, marginTop: 16 }} />
+          <span className={ui.skeleton} style={{ height: 14, width: 110, marginTop: 8 }} />
+          <span className={ui.skeleton} style={{ height: 48, width: "100%", marginTop: 24 }} />
         </div>
       ) : error || !data ? (
         <div className={ui.noticeDanger}>Не удалось загрузить профиль. Попробуйте ещё раз.</div>
       ) : (
         <div className={st.peek}>
-          {/* Градиентный баннер, аватар с кольцом ложится на его кромку */}
-          <div className={st.peekHero} aria-hidden="true" />
           <Portrait
             name={data.name}
             photoUrl={data.photo_url}
@@ -525,14 +521,18 @@ function PeekModal({
             monoSize={32}
           />
           <span className={st.peekName}>{data.name}</span>
-          <span className={st.peekRoleChip}>
+          <span
+            className={data.is_blogger ? `${st.peekRole} ${st.peekRoleAuthor}` : st.peekRole}
+          >
             {data.is_blogger ? (
-              <BadgeCheck size={13} strokeWidth={2.2} />
+              <BadgeCheck size={14} strokeWidth={2.2} />
             ) : (
-              <UserRound size={13} strokeWidth={2.2} />
+              <UserRound size={14} strokeWidth={2.2} />
             )}
-            {data.is_blogger ? "Автор" : "Заказчик"}
-            {data.category ? ` · ${categoryLabel(data.category)}` : ""}
+            <span>{data.is_blogger ? "Автор" : "Заказчик"}</span>
+            {data.category && (
+              <span className={st.peekRoleDim}>· {categoryLabel(data.category)}</span>
+            )}
           </span>
 
           {data.reviews_count > 0 ? (
@@ -546,36 +546,37 @@ function PeekModal({
             <span className={st.peekNoReviews}>Отзывов пока нет</span>
           )}
 
-          <div className={st.peekTiles}>
-            <div className={st.peekTile}>
-              <span className={`${st.peekTileIcon} ${st.peekTileGreen}`}>
-                <Handshake size={17} strokeWidth={2} />
+          <div className={st.peekRule} aria-hidden="true" />
+
+          <div className={st.peekStats}>
+            <div className={st.peekStat}>
+              <span
+                className={
+                  data.completed_orders === 0
+                    ? `${st.peekStatValue} ${st.peekStatZero}`
+                    : st.peekStatValue
+                }
+              >
+                {data.completed_orders}
               </span>
-              <span className={st.peekTileMeta}>
-                <span className={st.peekTileValue}>{data.completed_orders}</span>
-                <span className={st.peekTileLabel}>
-                  {plural(data.completed_orders, [
-                    "сделка завершена",
-                    "сделки завершено",
-                    "сделок завершено",
-                  ])}
-                </span>
+              <span className={st.peekStatLabel}>
+                {plural(data.completed_orders, [
+                  "сделка завершена",
+                  "сделки завершено",
+                  "сделок завершено",
+                ])}
               </span>
             </div>
-            <div className={st.peekTile}>
-              <span className={`${st.peekTileIcon} ${st.peekTileViolet}`}>
-                <CalendarDays size={17} strokeWidth={2} />
+            <span className={st.peekStatDivider} aria-hidden="true" />
+            <div className={st.peekStat}>
+              <span className={st.peekStatValue}>
+                {data.registered_at
+                  ? new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" })
+                      .format(new Date(data.registered_at))
+                      .replace(" г.", "")
+                  : "недавно"}
               </span>
-              <span className={st.peekTileMeta}>
-                <span className={st.peekTileValue}>
-                  {data.registered_at
-                    ? new Intl.DateTimeFormat("ru-RU", { month: "long", year: "numeric" })
-                        .format(new Date(data.registered_at))
-                        .replace(" г.", "")
-                    : "недавно"}
-                </span>
-                <span className={st.peekTileLabel}>на платформе</span>
-              </span>
+              <span className={st.peekStatLabel}>на платформе</span>
             </div>
           </div>
 
