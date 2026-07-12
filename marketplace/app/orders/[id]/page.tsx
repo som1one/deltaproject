@@ -306,6 +306,9 @@ export default function OrderDetailPage() {
   const canReview = actions.includes("review");
 
   const hasSideActions = canAcceptOffer || canDeclineOffer || canCancel || canSubmitWork || canRequestChanges || canConfirm;
+  const showDispute = order != null && ["ESCROW_HELD", "BLOGGER_CONFIRMED"].includes(order.status);
+  // Правая колонка нужна только под действия и спор; чат теперь живёт полосой под шапкой
+  const hasSideContent = hasSideActions || showDispute;
 
   const showPayment =
     order != null &&
@@ -431,6 +434,27 @@ export default function OrderDetailPage() {
                 </div>
               </section>
 
+              {counterpartId && (
+                <section className={styles.chatBar}>
+                  <span className={styles.chatBarIcon} aria-hidden="true">
+                    <ChatIcon />
+                  </span>
+                  <div className={styles.chatBarBody}>
+                    <div className={styles.chatBarTitle}>Связь по сделке</div>
+                    <p className={styles.chatBarText}>
+                      Вопросы по условиям, срокам и материалам удобнее решать в чате — переписка
+                      останется при сделке.
+                    </p>
+                  </div>
+                  <Link
+                    href={`/chats/${counterpartId}`}
+                    className={`${ui.btnPrimary} ${styles.chatBarBtn}`}
+                  >
+                    Открыть чат по сделке
+                  </Link>
+                </section>
+              )}
+
               {notice && (
                 <div
                   className={notice.tone === "success" ? ui.noticeSuccess : ui.noticeDanger}
@@ -492,7 +516,7 @@ export default function OrderDetailPage() {
                 </StateBanner>
               )}
 
-              <div className={styles.detailLayout}>
+              <div className={styles.detailLayout} data-single={hasSideContent ? undefined : "true"}>
                 <div className={styles.mainCol}>
                   {/* ── Оплата ── */}
                   {showPayment && (
@@ -728,23 +752,8 @@ export default function OrderDetailPage() {
                   )}
                 </div>
 
-                <aside className={styles.sideCol}>
-                  {counterpartId && (
-                    <section className={styles.panel}>
-                      <h2 className={styles.panelTitle}>Связь</h2>
-                      <p className={ui.muted} style={{ margin: "0 0 16px", fontSize: 14 }}>
-                        Вопросы по условиям, срокам и материалам удобнее решать в чате — переписка
-                        останется при сделке.
-                      </p>
-                      <Link href={`/chats/${counterpartId}`} className={`${ui.btnPrimary} ${ui.btnBlock}`}>
-                        <span className={styles.chatBtnInner}>
-                          <ChatIcon />
-                          Открыть чат по сделке
-                        </span>
-                      </Link>
-                    </section>
-                  )}
-
+                {hasSideContent && (
+                  <aside className={styles.sideCol}>
                   {hasSideActions && (
                     <section className={styles.panel}>
                       <h2 className={styles.panelTitle}>Действия по сделке</h2>
@@ -835,7 +844,7 @@ export default function OrderDetailPage() {
                     </section>
                   )}
 
-                  {["ESCROW_HELD", "BLOGGER_CONFIRMED"].includes(order.status) && (
+                  {showDispute && (
                     <section className={styles.panel}>
                       <h2 className={styles.panelTitle}>Спорная ситуация</h2>
                       <p className={ui.muted} style={{ margin: "0 0 16px", fontSize: 14 }}>
@@ -848,6 +857,7 @@ export default function OrderDetailPage() {
                     </section>
                   )}
                 </aside>
+                )}
               </div>
 
               {/* ── Модалка: принять предложение ── */}

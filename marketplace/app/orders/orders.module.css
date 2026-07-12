@@ -526,6 +526,66 @@
   align-items: start;
 }
 
+/* Когда справа нечего показывать (нет действий и спора) — одна колонка */
+.detailLayout[data-single="true"] {
+  grid-template-columns: 1fr;
+}
+
+/* ── Полоса «Связь» под шапкой сделки ─────────────────────── */
+.chatBar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: clamp(18px, 2.4vw, 22px) clamp(20px, 3vw, 26px);
+  margin-bottom: 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.chatBarIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: var(--violet-soft);
+  color: var(--violet);
+}
+
+.chatBarIcon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.chatBarBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.chatBarTitle {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.chatBarText {
+  margin: 3px 0 0;
+  max-width: 64ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.chatBarBtn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .mainCol,
 .sideCol {
   display: flex;
@@ -637,14 +697,6 @@
   margin-top: 20px;
 }
 
-/* Кнопка чата с иконкой */
-.chatBtnInner {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-}
-
 /* ── Responsive ───────────────────────────────────────────── */
 
 @media (max-width: 940px) {
@@ -684,6 +736,20 @@
 @media (max-width: 640px) {
   .detailWrap {
     padding-top: 18px;
+  }
+
+  /* Полоса «Связь» складывается в столбик, кнопка — на всю ширину */
+  .chatBar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 16px;
+    margin-bottom: 16px;
+  }
+
+  .chatBarBtn {
+    width: 100%;
+    text-align: center;
   }
 
   .backLink {
