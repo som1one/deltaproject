@@ -401,9 +401,18 @@ export default function OrderDetailPage() {
                       </div>
                     </div>
                   </div>
-                  <div>
+                  <div className={styles.statusAside}>
                     <div className={styles.statusAmountLabel}>Сумма сделки</div>
                     <div className={styles.statusAmountValue}>{formatMoney(order.amount_kopeks)}</div>
+                    {counterpartId && (
+                      <Link
+                        href={`/chats/${counterpartId}`}
+                        className={`${ui.btnPrimary} ${styles.statusChatBtn}`}
+                      >
+                        <ChatIcon />
+                        Открыть чат
+                      </Link>
+                    )}
                   </div>
                 </div>
 
@@ -433,27 +442,6 @@ export default function OrderDetailPage() {
                   ))}
                 </div>
               </section>
-
-              {counterpartId && (
-                <section className={styles.chatBar}>
-                  <span className={styles.chatBarIcon} aria-hidden="true">
-                    <ChatIcon />
-                  </span>
-                  <div className={styles.chatBarBody}>
-                    <div className={styles.chatBarTitle}>Связь по сделке</div>
-                    <p className={styles.chatBarText}>
-                      Вопросы по условиям, срокам и материалам удобнее решать в чате — переписка
-                      останется при сделке.
-                    </p>
-                  </div>
-                  <Link
-                    href={`/chats/${counterpartId}`}
-                    className={`${ui.btnPrimary} ${styles.chatBarBtn}`}
-                  >
-                    Открыть чат по сделке
-                  </Link>
-                </section>
-              )}
 
               {notice && (
                 <div
