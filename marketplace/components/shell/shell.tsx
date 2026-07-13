@@ -257,6 +257,7 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
             >
               <span className={styles.burgerLine} />
               <span className={styles.burgerLine} />
+              <span className={styles.burgerLine} />
             </button>
           </div>
         </div>

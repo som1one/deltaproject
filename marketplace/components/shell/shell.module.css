@@ -363,12 +363,18 @@
   transition: transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
 }
 
-.burger[data-open="true"] .burgerLine:first-child {
-  transform: translateY(3.5px) rotate(45deg);
+/* Три полоски → крестик: верхняя опускается и вращается, средняя гаснет,
+   нижняя поднимается. Смещение = высота полоски (2) + gap (5) = 7px. */
+.burger[data-open="true"] .burgerLine:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
 }
 
-.burger[data-open="true"] .burgerLine:last-child {
-  transform: translateY(-3.5px) rotate(-45deg);
+.burger[data-open="true"] .burgerLine:nth-child(2) {
+  opacity: 0;
+}
+
+.burger[data-open="true"] .burgerLine:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
 }
 
 /* Панель раскрывается под шапкой (height анимируется), поэтому клипит
