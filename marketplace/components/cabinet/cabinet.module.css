@@ -419,20 +419,22 @@
 }
 
 .addLink {
-  align-self: flex-start;
-  display: inline-flex;
+  align-self: stretch;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 7px;
   margin-top: 2px;
-  padding: 7px 12px;
+  padding: 12px 14px;
   border: 1px dashed var(--line-strong);
   border-radius: var(--r);
   background: transparent;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--muted);
   cursor: pointer;
-  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    background-color var(--dur) var(--ease);
 }
 
 .addLink:hover {
@@ -532,12 +534,12 @@
 
 .priceInputWrap {
   position: relative;
-  width: 128px;
+  width: 112px;
 }
 
 .priceInputWrap input {
   width: 100%;
-  padding-right: 30px;
+  padding-right: 26px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
@@ -572,10 +574,11 @@
     grid-template-columns: auto minmax(0, 1fr);
   }
 
+  /* Цена и тумблер — отдельной строкой во всю ширину, по правому краю */
   .priceControls {
-    grid-column: 2;
-    justify-content: flex-start;
-    flex-wrap: wrap;
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    margin-top: 6px;
   }
 
   .priceCondRow {
@@ -771,6 +774,85 @@
 }
 
 /* ── Премиум-размещение (тёмная CTA) ──────────────────────── */
+
+/* ── Премиум: компактная строка-баннер (встроена в кабинет) ── */
+.premiumBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-xs);
+}
+
+.premiumBarIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.premiumBarText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.premiumBarTitle {
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.premiumBarSub {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.premiumBarBtn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.premiumBarBadge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--pill);
+  background: var(--amber-soft);
+  color: var(--warning-ink);
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .premiumBar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .premiumBarBtn,
+  .premiumBarBadge {
+    width: 100%;
+    justify-content: center;
+  }
+}
 
 .premium {
   position: relative;

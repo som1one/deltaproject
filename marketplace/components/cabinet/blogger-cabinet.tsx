@@ -8,7 +8,6 @@ import {
   ExternalLink,
   Handshake,
   SlidersHorizontal,
-  Sparkles,
   Tags,
   UserRound,
   Wallet,
@@ -34,7 +33,7 @@ import s from "./cabinet.module.css";
 
 const is404 = (e: unknown) => e instanceof ApiError && e.status === 404;
 
-type Section = "controls" | "profile" | "prices" | "audience" | "deals" | "premium" | "balance";
+type Section = "controls" | "profile" | "prices" | "audience" | "deals" | "balance";
 
 /** Кабинет автора: разделы в macOS-окне с боковой навигацией. */
 export function BloggerCabinet() {
@@ -108,7 +107,6 @@ export function BloggerCabinet() {
       group: "Платформа",
       items: [
         { key: "deals", label: "Сделки", icon: Handshake, count: activeDeals.length || undefined },
-        { key: "premium", label: "Премиум", icon: Sparkles, gold: true },
         { key: "balance", label: "Баланс и выплаты", icon: Wallet },
       ],
     },
@@ -206,6 +204,7 @@ export function BloggerCabinet() {
                 переживают переключение между пунктами навигации */}
             <div className={s.pane} data-lenis-prevent>
               <div hidden={section !== "controls"} className={s.paneInner}>
+                <PremiumCard compact />
                 <CardControls profile={profile} />
               </div>
               <div hidden={section !== "profile"} className={s.paneInner}>
@@ -226,9 +225,6 @@ export function BloggerCabinet() {
               </div>
               <div hidden={section !== "deals"} className={s.paneInner}>
                 <DealsMini orders={activeDeals} isLoading={ordersLoading} isBlogger limit={8} />
-              </div>
-              <div hidden={section !== "premium"} className={s.paneInner}>
-                <PremiumCard />
               </div>
               <div hidden={section !== "balance"} className={s.paneInner}>
                 <section className={`${ui.card} ${s.panel}`}>

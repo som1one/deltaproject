@@ -21,9 +21,10 @@ const PORTFOLIO_MAX = 5;
 const cleanLinks = (links: string[]) => links.map((l) => l.trim()).filter(Boolean);
 
 /**
- * «Профиль»: аватар, описание, категория, соцсети, портфолио
- * и предпочтительный контакт. Аватар сохраняется сразу после
- * загрузки, остальное — кнопкой «Сохранить профиль».
+ * «Профиль»: аватар, описание, категория, соцсети и портфолио.
+ * Аватар сохраняется сразу после загрузки, остальное — кнопкой
+ * «Сохранить профиль». Связь с заказчиком идёт через чат сделки,
+ * поэтому отдельного поля контакта нет.
  */
 export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
   const queryClient = useQueryClient();
@@ -37,7 +38,6 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
   const [showSocials, setShowSocials] = useState(profile.show_socials ?? true);
   const [portfolio, setPortfolio] = useState<string[]>(profile.portfolio_links);
   const [showPortfolio, setShowPortfolio] = useState(profile.show_portfolio ?? true);
-  const [contact, setContact] = useState(profile.preferred_contact ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -80,7 +80,6 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
         category: category || undefined,
         social_links: cleanLinks(socials),
         portfolio_links: cleanLinks(portfolio),
-        preferred_contact: contact.trim() || null,
         show_socials: showSocials,
         show_portfolio: showPortfolio,
       }),
@@ -210,15 +209,6 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
           />
         </div>
 
-        <div className={ui.field}>
-          <span className={ui.fieldLabel}>Предпочтительный контакт</span>
-          <input
-            className={ui.input}
-            value={contact}
-            placeholder="Например: Telegram @nickname"
-            onChange={(e) => setContact(e.target.value)}
-          />
-        </div>
       </div>
 
       {error && <p className={ui.inputError}>{error}</p>}
