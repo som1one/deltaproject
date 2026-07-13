@@ -41,7 +41,7 @@ export function CardControls({ profile }: { profile: BloggerSelfProfile }) {
 
   return (
     <section className={`${ui.card} ${s.panel}`}>
-      <div className={s.panelHead}>
+      <div className={`${s.panelHead} ${s.panelHeadStack}`}>
         <h2 className={s.panelTitle}>Управление карточкой</h2>
         <span className={s.statusLine}>
           <span className={`${s.statusDot} ${status.dot}`} aria-hidden="true" />

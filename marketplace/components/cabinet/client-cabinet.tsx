@@ -85,21 +85,12 @@ export function ClientCabinet() {
   return (
     <>
       <header className={s.head}>
-        <div className={s.headRow}>
-          <div>
-            <h1 className={s.greeting}>
-              С возвращением, <span className={land.mark}>{displayName}</span>
-            </h1>
-            <p className={s.sub}>
-              Ваши размещения, статус денег на счёте платформы и история покупок — всё здесь.
-            </p>
-          </div>
-          <div className={s.headAction}>
-            <Link href="/settings" className={`${ui.btnLine} ${ui.btnSmall}`} style={{ gap: 7 }}>
-              <Settings size={14} /> Настройки аккаунта
-            </Link>
-          </div>
-        </div>
+        <h1 className={s.greeting}>
+          С возвращением, <span className={land.mark}>{displayName}</span>
+        </h1>
+        <p className={s.sub}>
+          Ваши размещения, статус денег на счёте платформы и история покупок — всё здесь.
+        </p>
       </header>
 
       <nav className={s.statGrid} aria-label="Сводка по сделкам">

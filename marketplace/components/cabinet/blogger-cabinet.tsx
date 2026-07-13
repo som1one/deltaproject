@@ -7,7 +7,6 @@ import {
   ChartPie,
   ExternalLink,
   Handshake,
-  Settings,
   SlidersHorizontal,
   Sparkles,
   Tags,
@@ -118,21 +117,12 @@ export function BloggerCabinet() {
   return (
     <>
       <header className={s.head}>
-        <div className={s.headRow}>
-          <div>
-            <h1 className={s.greeting}>
-              С возвращением, <span className={land.mark}>{displayName}</span>
-            </h1>
-            <p className={s.sub}>
-              Карточка в каталоге, прайс-лист и статистика аудитории — всё управление в одном месте.
-            </p>
-          </div>
-          <div className={s.headAction}>
-            <Link href="/settings" className={`${ui.btnLine} ${ui.btnSmall}`} style={{ gap: 7 }}>
-              <Settings size={14} /> Настройки аккаунта
-            </Link>
-          </div>
-        </div>
+        <h1 className={s.greeting}>
+          С возвращением, <span className={land.mark}>{displayName}</span>
+        </h1>
+        <p className={s.sub}>
+          Карточка в каталоге, прайс-лист и статистика аудитории — всё управление в одном месте.
+        </p>
       </header>
 
       {profileLoading ? (

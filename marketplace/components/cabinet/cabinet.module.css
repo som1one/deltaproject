@@ -11,15 +11,7 @@
   padding: clamp(30px, 4.5vw, 56px) 0 clamp(20px, 3vw, 32px);
 }
 
-.headRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
 .greeting {
-  margin-top: 14px;
   font-family: var(--font-display);
   font-size: clamp(28px, 4.4vw, 46px);
   line-height: 1.08;
@@ -33,22 +25,6 @@
   font-size: 15.5px;
   line-height: 1.55;
   color: var(--muted);
-}
-
-/* Кнопка «Настройки аккаунта» в углу шапки */
-.headAction {
-  flex-shrink: 0;
-  margin-top: 6px;
-}
-
-@media (max-width: 640px) {
-  .headRow {
-    flex-direction: column;
-  }
-
-  .headAction {
-    margin-top: 0;
-  }
 }
 
 /* ── Раскладка ────────────────────────────────────────────── */
@@ -107,6 +83,20 @@
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--muted);
+}
+
+/* «Управление карточкой»: на узких экранах длинная статус-плашка уходит
+   под заголовок — иначе оба сжимаются в нечитаемый столбик текста */
+@media (max-width: 560px) {
+  .panelHeadStack {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .panelHeadStack .statusLine {
+    max-width: 100%;
+  }
 }
 
 .seeAll {
