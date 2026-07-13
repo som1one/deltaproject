@@ -371,45 +371,221 @@
   transform: translateY(-3.5px) rotate(-45deg);
 }
 
+/* Панель раскрывается под шапкой (height анимируется), поэтому клипит
+   переполнение, а вся набивка и собственный скролл — на .mobileInner. */
 .mobilePanel {
   overflow: hidden;
   border-top: 1px solid var(--line);
   background: var(--surface);
 }
 
-.mobileList {
-  padding: 12px var(--page-pad) 22px;
+.mobileInner {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  /* Тело-скролл залочен при открытом меню, поэтому длинный список
+     (идентичность + навигация + аккаунт + выход) скроллится внутри панели,
+     а не уезжает за край экрана. */
+  max-height: calc(100dvh - var(--nav-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px var(--page-pad) calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
-.mobileLink {
-  display: block;
-  padding: 13px 12px;
+/* Идентичность — компенсирует скрытую на мобильном плашку аккаунта */
+.mobileIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.mobileIdentityAvatar {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.mobileIdentityText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mobileIdentityName {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobileIdentityRole {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Группа строк (общий сброс для навигации и аккаунт-секции) */
+.mobileGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Строка: иконка слева + подпись. Активная — заливка + черта --primary слева. */
+.mobileRow,
+.mobileRowActive {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
   border-radius: var(--r-sm);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.mobileRow:hover {
+  background: var(--surface-2);
   color: var(--ink);
 }
 
-.mobileLink:hover {
-  background: var(--surface-3);
+.mobileRow:hover .mobileRowIcon {
+  color: var(--ink);
 }
 
+.mobileRow:active,
+.mobileRowActive:active {
+  transform: scale(0.99);
+}
+
+.mobileRowActive {
+  background: var(--surface-3);
+  color: var(--ink);
+  font-weight: 600;
+  /* Тонкая вертикальная черта слева — монохромный акцент, клипится радиусом */
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.mobileRowActive .mobileRowIcon {
+  color: var(--ink);
+}
+
+.mobileRowIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: color var(--dur) var(--ease);
+}
+
+.mobileRowLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Разделитель между навигацией и аккаунт-секцией */
+.mobileDivider {
+  height: 1px;
+  margin: 12px 12px;
+  background: var(--line);
+}
+
+/* Микролейбл раздела «Аккаунт» */
+.mobileSectionLabel {
+  margin: 0 0 4px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* Выйти — та же строчная геометрия, но опасный цвет */
 .mobileLogout {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
-  padding: 13px 12px;
+  margin-top: 6px;
+  padding: 11px 12px;
   border-radius: var(--r-sm);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--danger);
   text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.mobileLogout .mobileRowIcon {
+  color: var(--danger);
 }
 
 .mobileLogout:hover {
   background: var(--danger-soft);
+}
+
+.mobileLogout:active {
+  transform: scale(0.99);
+}
+
+/* Гость: одна полноширинная первичная кнопка вместо аккаунт-блока */
+.mobileLogin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  margin-top: 2px;
+  border-radius: var(--r-md);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  transition: background-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.mobileLogin:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobileRow:active,
+  .mobileRowActive:active,
+  .mobileLogout:active,
+  .mobileLogin:hover {
+    transform: none;
+  }
 }
 
 /* ── Content ──────────────────────────────────────────────── */

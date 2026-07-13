@@ -4,7 +4,20 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import {
+  ChevronDown,
+  Home,
+  LayoutGrid,
+  MessageSquare,
+  Handshake,
+  Briefcase,
+  LayoutDashboard,
+  Settings,
+  LifeBuoy,
+  LogOut,
+  LogIn,
+  type LucideIcon,
+} from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
 import { Portrait } from "@/components/ui/bits";
@@ -20,6 +33,50 @@ const ACCOUNT_LINKS: NavItem[] = [
   { href: "/settings", label: "Настройки" },
   { href: "/support", label: "Поддержка" },
 ];
+
+// Иконка на строку мобильного меню — по стабильному маршруту (подпись /orders
+// зависит от роли, href — нет).
+const NAV_ICONS: Record<string, LucideIcon> = {
+  "/": Home,
+  "/catalog": LayoutGrid,
+  "/chats": MessageSquare,
+  "/orders": Handshake,
+  "/worker": Briefcase,
+  "/cabinet": LayoutDashboard,
+  "/settings": Settings,
+  "/support": LifeBuoy,
+};
+
+// Одна строка мобильного меню: иконка слева, подпись, активное состояние.
+// Единый компонент и для навигации, и для аккаунт-секции.
+const MobileRow = ({
+  href,
+  label,
+  active,
+  onClick,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) => {
+  const Icon = NAV_ICONS[href] ?? Home;
+  return (
+    <li>
+      <Link
+        href={href}
+        className={active ? styles.mobileRowActive : styles.mobileRow}
+        aria-current={active ? "page" : undefined}
+        onClick={onClick}
+      >
+        <span className={styles.mobileRowIcon} aria-hidden="true">
+          <Icon size={19} strokeWidth={2} />
+        </span>
+        <span className={styles.mobileRowLabel}>{label}</span>
+      </Link>
+    </li>
+  );
+};
 
 export const MarketShell = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname();
@@ -214,37 +271,64 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
               exit={reduceMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
               transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
             >
-              <ul className={styles.mobileList}>
-                {navItems.map(({ href, label }) => (
-                  <li key={href}>
-                    <Link href={href} className={styles.mobileLink} onClick={closeMenu}>
-                      {label}
-                    </Link>
-                  </li>
-                ))}
+              <div className={styles.mobileInner}>
+                {authed && (
+                  <div className={styles.mobileIdentity}>
+                    <Portrait
+                      name={userName ?? "Аккаунт"}
+                      photoUrl={userPhoto}
+                      className={styles.mobileIdentityAvatar}
+                      monoSize={19}
+                    />
+                    <span className={styles.mobileIdentityText}>
+                      <span className={styles.mobileIdentityName}>{userName ?? "Аккаунт"}</span>
+                      <span className={styles.mobileIdentityRole}>{roleLabel}</span>
+                    </span>
+                  </div>
+                )}
+
+                <ul className={styles.mobileGroup}>
+                  {navItems.map(({ href, label }) => (
+                    <MobileRow
+                      key={href}
+                      href={href}
+                      label={label}
+                      active={pathname === href}
+                      onClick={closeMenu}
+                    />
+                  ))}
+                </ul>
+
+                <div className={styles.mobileDivider} aria-hidden="true" />
+
                 {authed ? (
                   <>
-                    {ACCOUNT_LINKS.map(({ href, label }) => (
-                      <li key={href}>
-                        <Link href={href} className={styles.mobileLink} onClick={closeMenu}>
-                          {label}
-                        </Link>
-                      </li>
-                    ))}
-                    <li>
-                      <button type="button" className={styles.mobileLogout} onClick={handleLogout}>
-                        Выйти
-                      </button>
-                    </li>
+                    <p className={styles.mobileSectionLabel}>Аккаунт</p>
+                    <ul className={styles.mobileGroup}>
+                      {ACCOUNT_LINKS.map(({ href, label }) => (
+                        <MobileRow
+                          key={href}
+                          href={href}
+                          label={label}
+                          active={pathname === href}
+                          onClick={closeMenu}
+                        />
+                      ))}
+                    </ul>
+                    <button type="button" className={styles.mobileLogout} onClick={handleLogout}>
+                      <span className={styles.mobileRowIcon} aria-hidden="true">
+                        <LogOut size={19} strokeWidth={2} />
+                      </span>
+                      <span className={styles.mobileRowLabel}>Выйти</span>
+                    </button>
                   </>
                 ) : (
-                  <li>
-                    <Link href="/auth/login" className={styles.mobileLink} onClick={closeMenu}>
-                      Войти
-                    </Link>
-                  </li>
+                  <Link href="/auth/login" className={styles.mobileLogin} onClick={closeMenu}>
+                    <LogIn size={18} strokeWidth={2.2} aria-hidden="true" />
+                    <span>Войти</span>
+                  </Link>
                 )}
-              </ul>
+              </div>
             </motion.nav>
           ) : null}
         </AnimatePresence>
