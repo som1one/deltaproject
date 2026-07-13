@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Link2, GalleryVerticalEnd } from "lucide-react";
+import { AlignLeft, Camera, ChevronDown, GalleryVerticalEnd, Link2, UserRound } from "lucide-react";
 
 import { Portrait, Switch } from "@/components/ui/bits";
 import { Select } from "@/components/ui/select";
+import { plural } from "@/components/chat/chat-utils";
 import { api } from "@/lib/api";
 import type { BloggerSelfProfile, MarketplaceCategory } from "@/lib/types";
 
@@ -20,10 +21,13 @@ const PORTFOLIO_MAX = 5;
 
 const cleanLinks = (links: string[]) => links.map((l) => l.trim()).filter(Boolean);
 
+type ProfileSection = "main" | "about" | "socials" | "portfolio";
+
 /**
- * «Профиль»: аватар, описание, категория, соцсети и портфолио.
- * Аватар сохраняется сразу после загрузки, остальное — кнопкой
- * «Сохранить профиль». Связь с заказчиком идёт через чат сделки,
+ * «Профиль»: спокойная read-only сводка (аватар, имя, категория, метрики),
+ * а редактирование спрятано в аккордеон под-разделов — раскрывается по одному.
+ * Ничего не открыто по умолчанию. Аватар меняется прямо в шапке (сохраняется
+ * сразу), остальное — кнопкой «Сохранить профиль». Связь идёт через чат сделки,
  * поэтому отдельного поля контакта нет.
  */
 export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
@@ -41,6 +45,16 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  // Какой под-раздел раскрыт (null = всё свёрнуто, чистая сводка).
+  const [open, setOpen] = useState<ProfileSection | null>(null);
+  const toggle = (k: ProfileSection) => setOpen((p) => (p === k ? null : k));
+  const uid = useId();
+  const openBodyRef = useRef<HTMLDivElement>(null);
+  // Раскрытая секция подтягивается в зону видимости (важно на узкой ширине).
+  useEffect(() => {
+    if (open) openBodyRef.current?.scrollIntoView({ block: "nearest" });
+  }, [open]);
+
   const { data: categories } = useQuery<MarketplaceCategory[]>({
     queryKey: ["marketplace-categories"],
     queryFn: api.getCategories,
@@ -49,7 +63,6 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
 
   const categoryOptions = useMemo(() => {
     const options = (categories ?? []).map((c) => ({ value: c.value, label: c.label }));
-    // Текущая категория могла уйти из справочника — не теряем её в селекте.
     if (category && !options.some((o) => o.value === category)) {
       options.unshift({ value: category, label: category });
     }
@@ -104,117 +117,221 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
     save.mutate();
   };
 
+  // «Сохранить»: раскрываем первую невалидную группу, затем прежняя валидация.
+  const submit = () => {
+    if (!description.trim()) setOpen("about");
+    else if (cleanLinks(socials).length === 0) setOpen("socials");
+    handleSave();
+  };
+
+  // ── Производные значения для сводки и summary-строк ──
+  const categoryLabel =
+    categoryOptions.find((o) => o.value === category)?.label || category || "Категория не выбрана";
+
+  const socialCount = cleanLinks(socials).length;
+  const portfolioCount = cleanLinks(portfolio).length;
+  const socialSummary =
+    (socialCount ? `${socialCount} ${plural(socialCount, ["ссылка", "ссылки", "ссылок"])}` : "Не добавлены") +
+    ` · ${showSocials ? "видно" : "скрыто"} в карточке`;
+  const portfolioSummary =
+    (portfolioCount ? `${portfolioCount} ${plural(portfolioCount, ["работа", "работы", "работ"])}` : "Пусто") +
+    ` · ${showPortfolio ? "видно" : "скрыто"} в карточке`;
+
+  const nf = new Intl.NumberFormat("ru-RU", { notation: "compact", maximumFractionDigits: 1 });
+  const stats: string[] = [];
+  if (profile.subscriber_count) stats.push(`${nf.format(profile.subscriber_count)} подписчиков`);
+  if (profile.rating) stats.push(`★ ${profile.rating.toFixed(1)}`);
+  if (profile.reviews_count)
+    stats.push(`${profile.reviews_count} ${plural(profile.reviews_count, ["отзыв", "отзыва", "отзывов"])}`);
+
+  const hid = (k: ProfileSection) => `${uid}-${k}-h`;
+  const bid = (k: ProfileSection) => `${uid}-${k}-b`;
+
+  const groups: { key: ProfileSection; title: string; summary: string; icon: typeof UserRound; empty?: boolean }[] = [
+    { key: "main", title: "Основное", summary: "Фото и категория", icon: UserRound },
+    {
+      key: "about",
+      title: "О себе",
+      summary: description.trim() || "Пока не заполнено",
+      icon: AlignLeft,
+      empty: !description.trim(),
+    },
+    { key: "socials", title: "Соцсети", summary: socialSummary, icon: Link2 },
+    { key: "portfolio", title: "Портфолио", summary: portfolioSummary, icon: GalleryVerticalEnd },
+  ];
+
   return (
     <section className={`${ui.card} ${s.panel}`}>
       <div className={s.panelHead}>
         <h2 className={s.panelTitle}>Профиль</h2>
       </div>
-      <p className={s.panelSub}>Эти данные видят заказчики в вашей публичной карточке.</p>
+      <p className={s.panelSub}>Так ваша карточка выглядит для заказчиков. Меняйте по разделам ниже.</p>
 
-      <div className={s.avatarRow}>
-        <div className={s.avatarPortrait}>
-          <Portrait name={profile.name} photoUrl={photoUrl} monoSize={30} />
-        </div>
-        <div className={s.avatarMeta}>
-          <button
-            type="button"
-            className={`${ui.btnLine} ${ui.btnSmall}`}
-            style={{ gap: 7 }}
-            disabled={uploading}
-            onClick={() => fileRef.current?.click()}
-          >
-            <Camera size={14} /> {uploading ? "Загружаем…" : photoUrl ? "Заменить фото" : "Загрузить фото"}
-          </button>
-          <p className={s.avatarHint}>JPG или PNG, лучше квадратное — сохраняется сразу.</p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            hidden
-            aria-label="Загрузить фото профиля"
-            onChange={(e) => handleAvatar(e.target.files?.[0])}
-          />
-        </div>
-      </div>
-
-      <div className={ui.form}>
-        <div className={ui.field}>
-          <span className={ui.fieldLabel}>Категория</span>
-          <Select
-            value={category}
-            onChange={setCategory}
-            options={categoryOptions.length ? categoryOptions : [{ value: "", label: "Загружаем…" }]}
-            ariaLabel="Категория контента"
-          />
-        </div>
-
-        <div className={ui.field}>
-          <span className={ui.fieldLabel}>
-            О себе{" "}
-            <span className={s.counter}>
-              {description.length}/{DESCRIPTION_MAX}
-            </span>
+      {/* ── Сводка «кто вы» (только чтение; фото меняется по клику) ── */}
+      <div className={s.idHead}>
+        <button
+          type="button"
+          className={s.idAvatarBtn}
+          data-uploading={uploading || undefined}
+          disabled={uploading}
+          onClick={() => fileRef.current?.click()}
+          aria-label={photoUrl ? "Заменить фото профиля" : "Загрузить фото профиля"}
+        >
+          <Portrait name={profile.name} photoUrl={photoUrl} className={s.idAvatarImg} monoSize={24} />
+          <span className={s.idAvatarOverlay} aria-hidden="true">
+            <Camera size={16} />
           </span>
-          <textarea
-            className={ui.textarea}
-            rows={4}
-            maxLength={DESCRIPTION_MAX}
-            value={description}
-            placeholder="Чем вы полезны бренду: тематика, форматы, чем гордитесь."
-            onChange={(e) => setDescription(e.target.value)}
-          />
+        </button>
+        <div className={s.idInfo}>
+          <span className={s.idName}>{profile.name}</span>
+          <span className={s.idCat}>{categoryLabel}</span>
+          {stats.length > 0 && (
+            <div className={s.idStats}>
+              {stats.map((t, i) => (
+                <span key={i} className={s.idStat}>
+                  {i > 0 && (
+                    <span className={s.idDot} aria-hidden="true">
+                      ·
+                    </span>
+                  )}
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
-
-        <div>
-          <div className={s.toggleHead}>
-            <span className={s.toggleHeadLabel}>
-              <Link2 size={14} /> Соцсети
-            </span>
-            <span className={s.toggleHeadRight}>
-              Показывать в карточке
-              <Switch checked={showSocials} onChange={setShowSocials} ariaLabel="Показывать соцсети в карточке" />
-            </span>
-          </div>
-          <LinkListEditor
-            items={socials}
-            onChange={setSocials}
-            max={SOCIALS_MAX}
-            placeholder="https://t.me/ваш_канал"
-            addLabel="Добавить соцсеть"
-            ariaLabel="Соцсети"
-          />
-        </div>
-
-        <div>
-          <div className={s.toggleHead}>
-            <span className={s.toggleHeadLabel}>
-              <GalleryVerticalEnd size={14} /> Портфолио
-            </span>
-            <span className={s.toggleHeadRight}>
-              Показывать в карточке
-              <Switch
-                checked={showPortfolio}
-                onChange={setShowPortfolio}
-                ariaLabel="Показывать портфолио в карточке"
-              />
-            </span>
-          </div>
-          <LinkListEditor
-            items={portfolio}
-            onChange={setPortfolio}
-            max={PORTFOLIO_MAX}
-            placeholder="https://ссылка-на-публикацию"
-            addLabel="Добавить работу"
-            ariaLabel="Портфолио"
-          />
-        </div>
-
       </div>
 
-      {error && <p className={ui.inputError}>{error}</p>}
+      {/* Единый скрытый input — доступен и из шапки, и из «Основное» */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        hidden
+        aria-label="Загрузить фото профиля"
+        onChange={(e) => handleAvatar(e.target.files?.[0])}
+      />
+
+      {/* ── Аккордеон под-разделов: редактирование спрятано ── */}
+      <div className={s.acc}>
+        {groups.map((g) => (
+          <div key={g.key} className={`${s.accGroup} ${open === g.key ? s.accGroupOpen : ""}`.trim()}>
+            <button
+              type="button"
+              className={s.accHead}
+              id={hid(g.key)}
+              aria-expanded={open === g.key}
+              aria-controls={bid(g.key)}
+              onClick={() => toggle(g.key)}
+            >
+              <span className={s.accIcon}>
+                <g.icon size={17} />
+              </span>
+              <span className={s.accText}>
+                <span className={s.accTitle}>{g.title}</span>
+                <span className={`${s.accSummary} ${g.empty ? s.accSummaryEmpty : ""}`.trim()}>{g.summary}</span>
+              </span>
+              <ChevronDown
+                size={18}
+                className={`${s.accChev} ${open === g.key ? s.accChevOpen : ""}`.trim()}
+                aria-hidden="true"
+              />
+            </button>
+
+            {open === g.key && (
+              <div className={s.accBody} id={bid(g.key)} role="region" aria-labelledby={hid(g.key)} ref={openBodyRef}>
+                {g.key === "main" && (
+                  <>
+                    <div className={s.mainPhoto}>
+                      <button
+                        type="button"
+                        className={`${ui.btnLine} ${ui.btnSmall}`}
+                        style={{ gap: 7 }}
+                        disabled={uploading}
+                        onClick={() => fileRef.current?.click()}
+                      >
+                        <Camera size={14} />{" "}
+                        {uploading ? "Загружаем…" : photoUrl ? "Заменить фото" : "Загрузить фото"}
+                      </button>
+                      <span className={s.avatarHint}>JPG или PNG, лучше квадратное — сохраняется сразу.</span>
+                    </div>
+                    <div className={ui.field}>
+                      <span className={ui.fieldLabel}>Категория</span>
+                      <Select
+                        value={category}
+                        onChange={setCategory}
+                        options={categoryOptions.length ? categoryOptions : [{ value: "", label: "Загружаем…" }]}
+                        ariaLabel="Категория контента"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {g.key === "about" && (
+                  <>
+                    <textarea
+                      className={ui.textarea}
+                      rows={4}
+                      maxLength={DESCRIPTION_MAX}
+                      value={description}
+                      placeholder="Чем вы полезны бренду: тематика, форматы, чем гордитесь."
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                    <div className={s.charRow}>
+                      <span className={s.counter}>
+                        {description.length}/{DESCRIPTION_MAX}
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                {g.key === "socials" && (
+                  <>
+                    <div className={s.visRow}>
+                      <span className={s.visLabel}>Показывать в карточке</span>
+                      <Switch checked={showSocials} onChange={setShowSocials} ariaLabel="Показывать соцсети в карточке" />
+                    </div>
+                    <LinkListEditor
+                      items={socials}
+                      onChange={setSocials}
+                      max={SOCIALS_MAX}
+                      placeholder="https://t.me/ваш_канал"
+                      addLabel="Добавить соцсеть"
+                      ariaLabel="Соцсети"
+                    />
+                  </>
+                )}
+
+                {g.key === "portfolio" && (
+                  <>
+                    <div className={s.visRow}>
+                      <span className={s.visLabel}>Показывать в карточке</span>
+                      <Switch
+                        checked={showPortfolio}
+                        onChange={setShowPortfolio}
+                        ariaLabel="Показывать портфолио в карточке"
+                      />
+                    </div>
+                    <LinkListEditor
+                      items={portfolio}
+                      onChange={setPortfolio}
+                      max={PORTFOLIO_MAX}
+                      placeholder="https://ссылка-на-публикацию"
+                      addLabel="Добавить работу"
+                      ariaLabel="Портфолио"
+                    />
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {error && <p className={ui.noticeDanger} style={{ marginTop: 14 }}>{error}</p>}
 
       <div className={s.saveRow}>
-        <button type="button" className={ui.btnPrimary} disabled={save.isPending} onClick={handleSave}>
+        <button type="button" className={ui.btnPrimary} disabled={save.isPending} onClick={submit}>
           {save.isPending ? "Сохраняем…" : "Сохранить профиль"}
         </button>
         {saved && <span className={s.savedMsg}>Сохранено</span>}

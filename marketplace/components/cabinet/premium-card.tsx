@@ -128,7 +128,7 @@ export function PremiumCard({ compact = false }: { compact?: boolean } = {}) {
             className={`${ui.btnPrimary} ${ui.btnSmall} ${s.premiumBarBtn}`}
             onClick={() => setOpen(true)}
           >
-            <Sparkles size={14} /> Подключить
+            Подключить
           </button>
         )}
         {modal}

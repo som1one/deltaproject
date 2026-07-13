@@ -457,6 +457,256 @@
   color: var(--green);
 }
 
+/* ── Профиль: сводка «кто вы» + аккордеон под-разделов ────── */
+
+/* Read-only шапка: аватар (клик = сменить фото) + имя + категория + метрики */
+.idHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 2px 2px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.idAvatarBtn {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  background: none;
+  cursor: pointer;
+}
+
+.idAvatarBtn[disabled] {
+  cursor: default;
+}
+
+.idAvatarImg {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 16px !important;
+}
+
+.idAvatarOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.46);
+  color: #fff;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease);
+}
+
+.idAvatarBtn:hover .idAvatarOverlay,
+.idAvatarBtn:focus-visible .idAvatarOverlay,
+.idAvatarBtn[data-uploading="true"] .idAvatarOverlay {
+  opacity: 1;
+}
+
+.idAvatarBtn:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 2px;
+}
+
+.idInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.idName {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.idCat {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.idStats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.idStat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.idDot {
+  opacity: 0.6;
+}
+
+/* Аккордеон — тонкие строки-разделители (не карточки-кнопки) */
+.acc {
+  display: flex;
+  flex-direction: column;
+}
+
+.accGroup {
+  border-bottom: 1px solid var(--line);
+}
+
+.accHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 2px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.accHead:focus-visible {
+  outline: 2px solid var(--violet);
+  outline-offset: 2px;
+}
+
+.accIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--surface-3);
+  color: var(--muted);
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.accGroupOpen .accIcon {
+  background: var(--ink);
+  color: var(--on-primary);
+}
+
+.accText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.accTitle {
+  font-size: 14.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.accSummary {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accSummaryEmpty {
+  color: var(--faint);
+  font-style: italic;
+}
+
+.accChev {
+  flex-shrink: 0;
+  color: var(--faint);
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.accChevOpen {
+  transform: rotate(180deg);
+  color: var(--muted);
+}
+
+/* Тело раскрытой группы: сдвинуто под текст (мимо иконки) */
+.accBody {
+  padding: 2px 2px 18px 48px;
+  animation: accReveal 170ms var(--ease);
+}
+
+@keyframes accReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mainPhoto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.visRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.visLabel {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.charRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+@media (max-width: 480px) {
+  .accBody {
+    padding-left: 12px;
+  }
+
+  .visRow {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accBody {
+    animation: none;
+  }
+}
+
 /* ── Прайс-лист ───────────────────────────────────────────── */
 
 .priceRows {
@@ -775,28 +1025,27 @@
 
 /* ── Премиум-размещение (тёмная CTA) ──────────────────────── */
 
-/* ── Премиум: компактная строка-баннер (встроена в кабинет) ── */
+/* ── Премиум: янтарный алерт-колаут (встроен в кабинет) ── */
 .premiumBar {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 15px 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  background: var(--surface);
-  box-shadow: var(--shadow-xs);
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--amber) 22%, transparent);
+  border-radius: var(--r-md);
+  background: var(--amber-soft);
 }
 
 .premiumBarIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
-  border-radius: 12px;
-  background: var(--amber-soft);
-  color: var(--amber);
+  border-radius: 9px;
+  background: var(--amber);
+  color: #fff;
 }
 
 .premiumBarText {
@@ -804,12 +1053,12 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .premiumBarTitle {
   font-family: var(--font-display);
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--ink);
@@ -817,7 +1066,7 @@
 
 .premiumBarSub {
   font-size: 12.5px;
-  line-height: 1.45;
+  line-height: 1.4;
   color: var(--muted);
 }
 
@@ -833,24 +1082,23 @@
   gap: 6px;
   padding: 7px 12px;
   border-radius: var(--pill);
-  background: var(--amber-soft);
-  color: var(--warning-ink);
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--amber) 22%, transparent);
+  color: var(--ink);
   font-size: 12.5px;
   font-weight: 650;
   white-space: nowrap;
 }
 
-@media (max-width: 560px) {
+/* Узкие экраны: остаётся горизонтальным алертом, кнопка компактная (не full-width) */
+@media (max-width: 480px) {
   .premiumBar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
+    padding: 11px 12px;
   }
 
-  .premiumBarBtn,
-  .premiumBarBadge {
-    width: 100%;
-    justify-content: center;
+  .premiumBarSub {
+    display: none;
   }
 }
 
@@ -1393,7 +1641,9 @@
     width: 100%;
     flex-direction: row;
     align-items: center;
-    gap: 6px;
+    /* Зазор между группами (12) больше, чем между пунктами внутри (6):
+       подписи групп на узком скрыты, так две группы не сливаются в одну ленту */
+    gap: 12px;
     padding: 10px 12px;
     border-right: none;
     border-bottom: 1px solid var(--line);
@@ -1405,9 +1655,12 @@
     display: none;
   }
 
+  /* Без flex-shrink:0 браузер ужимает секции под ширину экрана, и их
+     нессжимаемые пункты наезжают друг на друга («склеиваются») */
   .wnavSection {
     flex-direction: row;
     gap: 6px;
+    flex-shrink: 0;
   }
 
   .wnavGroup {
