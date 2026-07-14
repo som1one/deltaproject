@@ -86,7 +86,8 @@
 }
 
 /* «Управление карточкой»: на узких экранах длинная статус-плашка уходит
-   под заголовок — иначе оба сжимаются в нечитаемый столбик текста */
+   под заголовок и растягивается на всю ширину аккуратной полосой —
+   иначе и заголовок, и плашка сжимаются в нечитаемый столбик текста */
 @media (max-width: 560px) {
   .panelHeadStack {
     flex-direction: column;
@@ -95,7 +96,13 @@
   }
 
   .panelHeadStack .statusLine {
-    max-width: 100%;
+    align-self: stretch;
+    justify-content: flex-start;
+    gap: 7px;
+    padding: 8px 10px;
+    border-radius: var(--r);
+    font-size: 12px;
+    line-height: 1.35;
   }
 }
 
@@ -314,6 +321,25 @@
   border-top: 1px solid var(--line);
 }
 
+.cardLinkHint {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* Узкие экраны: подпись сбоку рвётся на три строки — кнопка на всю ширину,
+   подпись по центру под ней */
+@media (max-width: 480px) {
+  .cardLinkRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .cardLinkHint {
+    text-align: center;
+  }
+}
+
 /* ── Профиль: аватар, ссылки, счётчики ────────────────────── */
 
 .avatarRow {
@@ -455,6 +481,13 @@
   font-size: 13.5px;
   font-weight: 600;
   color: var(--green);
+}
+
+/* Вариант с кнопкой на всю ширину карточки; «Сохранено» уходит под неё. */
+.saveRowWide {
+  composes: saveRow;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* ── Профиль: сводка «кто вы» + аккордеон под-разделов ────── */
@@ -1026,17 +1059,35 @@
 /* ── Премиум-размещение (тёмная CTA) ──────────────────────── */
 
 /* ── Премиум: янтарный алерт-колаут (встроен в кабинет) ── */
+/* Премиум = тёмная плашка (как крупная .premium), а не жёлтый алерт —
+   так баннер живёт в одной палитре с чёрными кнопками и белыми карточками. */
 .premiumBar {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--amber) 22%, transparent);
+  padding: 13px 15px;
   border-radius: var(--r-md);
-  background: var(--amber-soft);
+  background: var(--panel-ink);
+  color: #fff;
+}
+
+/* Приглушённый фирменный отсвет — эхо крупной плашки, чтобы фон не был плоским. */
+.premiumBar::after {
+  content: "";
+  position: absolute;
+  inset: -60% -8% auto auto;
+  width: 240px;
+  height: 200px;
+  pointer-events: none;
+  background: radial-gradient(140px 120px at 80% 20%, rgba(109, 94, 246, 0.4), transparent 72%);
+  filter: blur(8px);
+  opacity: 0.55;
 }
 
 .premiumBarIcon {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1044,11 +1095,12 @@
   height: 32px;
   flex-shrink: 0;
   border-radius: 9px;
-  background: var(--amber);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
 }
 
 .premiumBarText {
+  position: relative;
   flex: 1;
   min-width: 0;
   display: flex;
@@ -1061,44 +1113,78 @@
   font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: var(--ink);
+  color: #fff;
 }
 
 .premiumBarSub {
   font-size: 12.5px;
   line-height: 1.4;
-  color: var(--muted);
+  color: rgba(255, 255, 255, 0.62);
 }
 
+/* Белая пилюля на тёмном — тот же приём, что у кнопки крупной плашки. */
 .premiumBarBtn {
+  position: relative;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--pill);
+  background: #fff;
+  color: #0b0b0d;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 700;
   white-space: nowrap;
+  cursor: pointer;
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.premiumBarBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
 }
 
 .premiumBarBadge {
+  position: relative;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 7px 12px;
   border-radius: var(--pill);
-  background: var(--surface);
-  border: 1px solid color-mix(in srgb, var(--amber) 22%, transparent);
-  color: var(--ink);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
   font-size: 12.5px;
   font-weight: 650;
   white-space: nowrap;
 }
 
-/* Узкие экраны: остаётся горизонтальным алертом, кнопка компактная (не full-width) */
+/* Узкие экраны: иконка+заголовок занимают первую строку целиком, а бейдж/кнопка
+   аккуратно уходят на вторую строку под заголовок — иначе широкий бейдж
+   «Заявка отправлена» сплющивает заголовок в узкий столбик из 4 строк */
 @media (max-width: 480px) {
   .premiumBar {
+    flex-wrap: wrap;
     gap: 10px;
-    padding: 11px 12px;
+    padding: 12px 13px;
   }
 
   .premiumBarSub {
     display: none;
+  }
+
+  .premiumBarText {
+    flex-basis: calc(100% - 42px);
+  }
+
+  .premiumBarBadge,
+  .premiumBarBtn {
+    margin-left: 42px;
   }
 }
 
@@ -1528,12 +1614,13 @@
   gap: 2px;
 }
 
+/* Как остальные надзаголовки приложения (Manrope + капс), без моно —
+   моноширинная кириллица на этом кегле смотрелась чужеродно */
 .wnavGroup {
   padding: 12px 12px 6px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.09em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--faint);
 }
@@ -1631,58 +1718,93 @@
   gap: 18px;
 }
 
-/* Мобильные: навигация — горизонтальная лента, контент ниже */
+/* Текст только для скринридера (контекст кнопки-переключателя) */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Мобильный переключатель разделов: показывается вместо сайдбара ≤900px */
+.wnavMobile {
+  display: none;
+}
+
+/* Мобильные: сайдбар прячется, разделы переключает строка с раскрывающимся
+   списком — лента-скролл прятала большинство пунктов за краем экрана */
 @media (max-width: 900px) {
   .winBody {
     flex-direction: column;
   }
 
   .wnav {
-    width: 100%;
-    flex-direction: row;
-    align-items: center;
-    /* Зазор между группами (12) больше, чем между пунктами внутри (6):
-       подписи групп на узком скрыты, так две группы не сливаются в одну ленту */
-    gap: 12px;
-    padding: 10px 12px;
-    border-right: none;
+    display: none;
+  }
+
+  .wnavMobile {
+    display: block;
     border-bottom: 1px solid var(--line);
-    overflow-x: auto;
-    scrollbar-width: none;
+    background: var(--surface-2);
   }
 
-  .wnav::-webkit-scrollbar {
-    display: none;
+  .wnavMobileTrigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    cursor: pointer;
   }
 
-  /* Без flex-shrink:0 браузер ужимает секции под ширину экрана, и их
-     нессжимаемые пункты наезжают друг на друга («склеиваются») */
-  .wnavSection {
-    flex-direction: row;
-    gap: 6px;
+  .wnavMobileLabel {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .wnavMobileChevron {
     flex-shrink: 0;
+    color: var(--muted);
+    transition: transform var(--dur) var(--ease);
   }
 
-  .wnavGroup {
-    display: none;
+  .wnavMobileChevronOpen {
+    transform: rotate(180deg);
   }
 
-  .wnavItem {
-    width: auto;
-    flex-shrink: 0;
-    padding: 8px 13px;
-    border-radius: var(--pill);
-    border: 1px solid var(--line);
-    background: var(--surface);
+  /* Раскрытый список — те же строки и группы, что в сайдбаре на десктопе */
+  .wnavMobileList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 10px 12px;
+    border-top: 1px solid var(--line);
   }
 
-  .wnavItemActive,
-  .wnavItemActive:hover {
-    border-color: var(--ink);
+  /* Чуть выше строки — комфортнее попадать пальцем */
+  .wnavMobileList .wnavItem {
+    padding: 11px 12px;
   }
 
-  .wnavLabel {
-    overflow: visible;
+  /* --faint на 10.5px не добирает AA-контраст; на десктопе подписи крупнее не станут,
+     но там сайдбар — привычный контекст, а здесь список открывается по требованию */
+  .wnavMobileList .wnavGroup {
+    color: var(--muted);
   }
 
   .pane {

@@ -112,7 +112,7 @@ export function PremiumCard({ compact = false }: { compact?: boolean } = {}) {
           <span className={s.premiumBarSub}>
             {alive
               ? alive.status === "new"
-                ? `Заявка от ${formatDate(alive.created_at)} принята — скоро свяжемся.`
+                ? `Заявка от ${formatDate(alive.created_at)} отправлена — скоро свяжемся.`
                 : `На связи по заявке от ${formatDate(alive.created_at)} — обсуждаем размещение.`
               : "Ваша карточка на первом экране у каждого заказчика платформы."}
           </span>
@@ -120,12 +120,12 @@ export function PremiumCard({ compact = false }: { compact?: boolean } = {}) {
         {alive ? (
           <span className={s.premiumBarBadge}>
             {alive.status === "new" ? <Clock3 size={14} /> : <PhoneCall size={14} />}
-            {alive.status === "new" ? "Заявка принята" : "На связи"}
+            {alive.status === "new" ? "Заявка отправлена" : "На связи"}
           </span>
         ) : (
           <button
             type="button"
-            className={`${ui.btnPrimary} ${ui.btnSmall} ${s.premiumBarBtn}`}
+            className={s.premiumBarBtn}
             onClick={() => setOpen(true)}
           >
             Подключить
@@ -163,7 +163,7 @@ export function PremiumCard({ compact = false }: { compact?: boolean } = {}) {
           {alive.status === "new" ? <Clock3 size={15} /> : <PhoneCall size={15} />}
           <span>
             {alive.status === "new"
-              ? `Заявка от ${formatDate(alive.created_at)} принята — мы скоро свяжемся с вами.`
+              ? `Заявка от ${formatDate(alive.created_at)} отправлена — мы скоро свяжемся с вами.`
               : `Мы на связи по заявке от ${formatDate(alive.created_at)} — обсуждаем размещение.`}
           </span>
         </div>

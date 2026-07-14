@@ -177,8 +177,8 @@ export function PriceListEditor({
 
       {error && <p className={ui.inputError}>{error}</p>}
 
-      <div className={s.saveRow}>
-        <button type="button" className={ui.btnPrimary} disabled={save.isPending} onClick={handleSave}>
+      <div className={s.saveRowWide}>
+        <button type="button" className={`${ui.btnPrimary} ${ui.btnBlock}`} disabled={save.isPending} onClick={handleSave}>
           {save.isPending ? "Сохраняем…" : "Сохранить прайс-лист"}
         </button>
         {saved && <span className={s.savedMsg}>Сохранено</span>}

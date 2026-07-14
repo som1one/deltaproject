@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChartPie,
+  ChevronDown,
   ExternalLink,
   Handshake,
   SlidersHorizontal,
@@ -39,6 +40,9 @@ type Section = "controls" | "profile" | "prices" | "audience" | "deals" | "balan
 export function BloggerCabinet() {
   const { userName } = useAuth();
   const [section, setSection] = useState<Section>("controls");
+  // Мобильный переключатель разделов: раскрыт ли список (на десктопе не рендерится)
+  const [navOpen, setNavOpen] = useState(false);
+  const navTriggerRef = useRef<HTMLButtonElement>(null);
 
   const {
     data: profile,
@@ -112,6 +116,44 @@ export function BloggerCabinet() {
     },
   ];
 
+  type NavItem = (typeof nav)[number]["items"][number];
+
+  const activeItem = nav.flatMap((g) => g.items).find((i) => i.key === section) ?? nav[0].items[0];
+  const ActiveIcon = activeItem.icon;
+
+  const selectSection = (key: Section) => {
+    setSection(key);
+    // Выбор из раскрытого списка размонтирует нажатую кнопку — возвращаем
+    // фокус на триггер, иначе клавиатура/скринридер выпадают в <body>
+    if (navOpen) {
+      setNavOpen(false);
+      navTriggerRef.current?.focus();
+    }
+  };
+
+  const dotClass = (dot: NonNullable<NavItem["dot"]>) =>
+    `${s.wnavDot} ${dot === "green" ? s.wnavDotGreen : dot === "amber" ? s.wnavDotAmber : s.wnavDotGray}`;
+
+  /* Одна строка навигации — общая для сайдбара (десктоп) и раскрытого списка (мобайл) */
+  const renderNavItem = (item: NavItem) => (
+    <button
+      key={item.key}
+      type="button"
+      className={`${s.wnavItem} ${section === item.key ? s.wnavItemActive : ""}`.trim()}
+      aria-current={section === item.key || undefined}
+      onClick={() => selectSection(item.key)}
+    >
+      <item.icon
+        size={16}
+        strokeWidth={2}
+        className={item.gold && section !== item.key ? s.wnavGold : undefined}
+      />
+      <span className={s.wnavLabel}>{item.label}</span>
+      {item.count != null && <span className={s.wnavCount}>{item.count}</span>}
+      {item.dot && <span className={dotClass(item.dot)} />}
+    </button>
+  );
+
   return (
     <>
       <header className={s.head}>
@@ -134,6 +176,10 @@ export function BloggerCabinet() {
             <span className={s.winUrl}>marketplace.looneymoon.ru/cabinet</span>
           </div>
           <div className={s.winBody}>
+            {/* Мобайл: плейсхолдер строки-переключателя, чтобы контент не прыгал после загрузки */}
+            <div className={s.wnavMobile}>
+              <span className={ui.skeleton} style={{ display: "block", height: 22, borderRadius: 8, margin: "14px 16px" }} />
+            </div>
             <div className={s.wnav}>
               {Array.from({ length: 6 }, (_, i) => (
                 <span key={i} className={ui.skeleton} style={{ height: 36, borderRadius: 10, margin: "2px 10px" }} />
@@ -168,34 +214,52 @@ export function BloggerCabinet() {
           </div>
 
           <div className={s.winBody}>
+            {/* Мобайл: строка с текущим разделом, тап раскрывает полный список.
+                Лента-скролл прятала 4 из 6 разделов за краем экрана. */}
+            <div
+              className={s.wnavMobile}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && navOpen) {
+                  setNavOpen(false);
+                  navTriggerRef.current?.focus();
+                }
+              }}
+            >
+              <button
+                ref={navTriggerRef}
+                type="button"
+                className={s.wnavMobileTrigger}
+                aria-expanded={navOpen}
+                onClick={() => setNavOpen((open) => !open)}
+              >
+                <ActiveIcon size={16} strokeWidth={2} />
+                <span className={s.srOnly}>Раздел кабинета:</span>
+                <span className={s.wnavMobileLabel}>{activeItem.label}</span>
+                {activeItem.count != null && <span className={s.wnavCount}>{activeItem.count}</span>}
+                {activeItem.dot && <span className={dotClass(activeItem.dot)} />}
+                <ChevronDown
+                  size={17}
+                  strokeWidth={2}
+                  className={`${s.wnavMobileChevron} ${navOpen ? s.wnavMobileChevronOpen : ""}`.trim()}
+                />
+              </button>
+              {navOpen && (
+                <nav className={s.wnavMobileList} aria-label="Разделы кабинета">
+                  {nav.map((group) => (
+                    <div key={group.group} className={s.wnavSection}>
+                      <span className={s.wnavGroup}>{group.group}</span>
+                      {group.items.map(renderNavItem)}
+                    </div>
+                  ))}
+                </nav>
+              )}
+            </div>
+
             <nav className={s.wnav} aria-label="Разделы кабинета" data-lenis-prevent>
               {nav.map((group) => (
                 <div key={group.group} className={s.wnavSection}>
                   <span className={s.wnavGroup}>{group.group}</span>
-                  {group.items.map((item) => (
-                    <button
-                      key={item.key}
-                      type="button"
-                      className={`${s.wnavItem} ${section === item.key ? s.wnavItemActive : ""}`.trim()}
-                      aria-current={section === item.key || undefined}
-                      onClick={() => setSection(item.key)}
-                    >
-                      <item.icon
-                        size={16}
-                        strokeWidth={2}
-                        className={item.gold && section !== item.key ? s.wnavGold : undefined}
-                      />
-                      <span className={s.wnavLabel}>{item.label}</span>
-                      {item.count != null && <span className={s.wnavCount}>{item.count}</span>}
-                      {item.dot && (
-                        <span
-                          className={`${s.wnavDot} ${
-                            item.dot === "green" ? s.wnavDotGreen : item.dot === "amber" ? s.wnavDotAmber : s.wnavDotGray
-                          }`}
-                        />
-                      )}
-                    </button>
-                  ))}
+                  {group.items.map(renderNavItem)}
                 </div>
               ))}
             </nav>

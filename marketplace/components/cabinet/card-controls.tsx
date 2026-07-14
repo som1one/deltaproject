@@ -85,9 +85,7 @@ export function CardControls({ profile }: { profile: BloggerSelfProfile }) {
         <Link href={`/bloggers/${profile.user_id}`} className={`${ui.btnLine} ${ui.btnSmall}`} style={{ gap: 7 }}>
           <ExternalLink size={14} /> Открыть мою карточку
         </Link>
-        <span className={ui.muted} style={{ fontSize: 12.5 }}>
-          Так вас видят заказчики
-        </span>
+        <span className={`${ui.muted} ${s.cardLinkHint}`}>Так вас видят заказчики</span>
       </div>
     </section>
   );
