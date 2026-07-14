@@ -265,8 +265,9 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
             </button>
           </div>
         </div>
+      </header>
 
-        <AnimatePresence>
+      <AnimatePresence>
           {menuOpen ? (
             <motion.nav
               className={styles.mobilePanel}
@@ -337,7 +338,6 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
             </motion.nav>
           ) : null}
         </AnimatePresence>
-      </header>
 
       <main className={styles.content}>{children}</main>
 

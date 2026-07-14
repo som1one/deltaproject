@@ -33,13 +33,13 @@
    прозрачность, чтобы контент страницы просвечивал сквозь панель. Стекло
    держим на шапке (один backdrop-filter поверх реального контента), а саму
    .mobilePanel делаем прозрачной — вложенный blur дал бы мутный двойной слой. */
+/* Верхняя полоса шапки при открытом меню = то же стекло, что и панель ниже,
+   чтобы бар и оверлей читались одной поверхностью. */
 .headerMenuOpen {
   background: color-mix(in srgb, var(--surface) 66%, transparent);
   backdrop-filter: blur(26px) saturate(185%);
-  box-shadow: 0 22px 50px -24px rgba(0, 0, 0, 0.35);
-  /* Стекло включаем мгновенно: базовый transition на background-color/box-shadow
-     при открытии меню «залипает» на старом значении (перерисовки framer-motion),
-     поэтому в открытом состоянии переходы отключаем. */
+  /* Стекло включаем мгновенно: базовый transition на background-color
+     при открытии «залипает» на старом значении (перерисовки framer-motion). */
   transition: none;
 }
 
@@ -393,11 +393,20 @@
 
 /* Панель раскрывается под шапкой (height анимируется), поэтому клипит
    переполнение, а вся набивка и собственный скролл — на .mobileInner. */
+/* Меню — стеклянный оверлей поверх контента: fixed, поэтому не двигает
+   страницу вниз. Вынесена из <header> (см. shell.tsx) — иначе backdrop-filter
+   внутри backdrop-filter шапки не видит контент страницы и стекло «слепнет». */
 .mobilePanel {
+  position: fixed;
+  top: var(--nav-h);
+  left: 0;
+  right: 0;
+  z-index: 39;
   overflow: hidden;
   border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
-  /* Прозрачна — стекло даёт .headerMenuOpen на шапке */
-  background: transparent;
+  background: color-mix(in srgb, var(--surface) 66%, transparent);
+  backdrop-filter: blur(26px) saturate(185%);
+  box-shadow: 0 22px 50px -24px rgba(0, 0, 0, 0.35);
 }
 
 .mobileInner {
