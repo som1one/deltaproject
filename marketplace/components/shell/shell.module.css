@@ -29,6 +29,20 @@
   box-shadow: var(--shadow-xs);
 }
 
+/* Меню открыто — шапка превращается в «жидкое стекло»: сильнее размытие и
+   прозрачность, чтобы контент страницы просвечивал сквозь панель. Стекло
+   держим на шапке (один backdrop-filter поверх реального контента), а саму
+   .mobilePanel делаем прозрачной — вложенный blur дал бы мутный двойной слой. */
+.headerMenuOpen {
+  background: color-mix(in srgb, var(--surface) 66%, transparent);
+  backdrop-filter: blur(26px) saturate(185%);
+  box-shadow: 0 22px 50px -24px rgba(0, 0, 0, 0.35);
+  /* Стекло включаем мгновенно: базовый transition на background-color/box-shadow
+     при открытии меню «залипает» на старом значении (перерисовки framer-motion),
+     поэтому в открытом состоянии переходы отключаем. */
+  transition: none;
+}
+
 .headerRow {
   width: 100%;
   max-width: var(--page-max);
@@ -381,8 +395,9 @@
    переполнение, а вся набивка и собственный скролл — на .mobileInner. */
 .mobilePanel {
   overflow: hidden;
-  border-top: 1px solid var(--line);
-  background: var(--surface);
+  border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+  /* Прозрачна — стекло даёт .headerMenuOpen на шапке */
+  background: transparent;
 }
 
 .mobileInner {
@@ -404,9 +419,10 @@
   gap: 12px;
   margin-bottom: 14px;
   padding: 12px 14px;
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, var(--line) 65%, transparent);
   border-radius: var(--r-md);
-  background: var(--surface-2);
+  /* Полупрозрачная плашка-чип поверх стекла */
+  background: color-mix(in srgb, var(--surface) 45%, transparent);
 }
 
 .mobileIdentityAvatar {

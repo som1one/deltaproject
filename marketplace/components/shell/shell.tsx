@@ -169,7 +169,11 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
 
   return (
     <div className={styles.shell}>
-      <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}>
+      <header
+        className={`${styles.header} ${scrolled ? styles.headerScrolled : ""} ${
+          menuOpen ? styles.headerMenuOpen : ""
+        }`}
+      >
         <div className={styles.headerRow}>
           <Link href="/" className={styles.brand} onClick={closeMenu}>
             <span className={styles.brandMoon} aria-hidden="true">
