@@ -47,8 +47,11 @@ import {
 import styles from "@/components/admin/admin.module.css";
 import { CopyButton } from "@/components/common/copy-button";
 import { PayoutCardInput } from "@/components/common/payout-card-input";
+import { AdminMarketplacePanel, type AdminMarketplaceTab } from "@/components/admin/marketplace-panel";
 
-type AdminSection = "overview" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "deals" | "ledger" | "schemes" | "finance" | "finance-requisites" | "finance-analytics" | "scripts" | "telegram";
+type AdminSection =
+  | "overview" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "deals" | "ledger" | "schemes" | "finance" | "finance-requisites" | "finance-analytics" | "scripts" | "telegram"
+  | "mp-dashboard" | "mp-orders" | "mp-payments" | "mp-settings" | "mp-tickets" | "mp-bloggers" | "mp-services" | "mp-moderation" | "mp-premium" | "mp-hero";
 
 type AdminModalState =
   | { kind: "delete-user"; user: AdminUserRead }
@@ -160,6 +163,56 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
     label: "Карта партнёра",
     title: "Карта партнёра",
     lead: "Номер карты (13–19 цифр). Сохраняются только последние 4 цифры.",
+  },
+  "mp-dashboard": {
+    label: "Дашборд",
+    title: "Маркетплейс — сводка",
+    lead: "Заказы, выручка, активные авторы и клиенты биржи.",
+  },
+  "mp-orders": {
+    label: "Заказы",
+    title: "Заказы маркетплейса",
+    lead: "Подтверждение оплаты, решение споров и возвраты.",
+  },
+  "mp-payments": {
+    label: "Оплата",
+    title: "Приём оплаты",
+    lead: "Карта, СБП, расчётный счёт и онлайн-оплата через ЮKassa.",
+  },
+  "mp-settings": {
+    label: "Комиссии",
+    title: "Комиссии маркетплейса",
+    lead: "Процент платформы и реферальная комиссия воркера.",
+  },
+  "mp-tickets": {
+    label: "Тикеты",
+    title: "Тикеты поддержки",
+    lead: "Обращения по заказам — решение в пользу заказчика или автора.",
+  },
+  "mp-bloggers": {
+    label: "Авторы",
+    title: "Авторы маркетплейса",
+    lead: "Активность в каталоге, ER и рейтинг авторов.",
+  },
+  "mp-services": {
+    label: "Услуги",
+    title: "Реестр услуг",
+    lead: "Единый список услуг, на которые авторы задают цены.",
+  },
+  "mp-moderation": {
+    label: "Модерация",
+    title: "Модерация аудитории",
+    lead: "Заявки авторов на подтверждение данных аудитории.",
+  },
+  "mp-premium": {
+    label: "Премиум",
+    title: "Премиум-размещение",
+    lead: "Заявки авторов на премиум и их статусы.",
+  },
+  "mp-hero": {
+    label: "Витрина",
+    title: "Витрина лендинга",
+    lead: "Ниши и авторы, которые показываются на главной странице.",
   },
 };
 
@@ -296,6 +349,14 @@ export const AdminDashboard = () => {
       router.replace("/cabinet");
     }
   }, [meQuery.data, router]);
+
+  useEffect(() => {
+    // Дип-линк вида /admin?section=mp-payments (используется редиректом со старого /admin/marketplace).
+    const requested = new URLSearchParams(window.location.search).get("section");
+    if (requested && requested in sectionMeta) {
+      setSection(requested as AdminSection);
+    }
+  }, []);
 
   useEffect(() => {
     if (!selectedUserId && usersQuery.data?.items.length) {
@@ -2639,14 +2700,18 @@ export const AdminDashboard = () => {
       );
     }
 
+    if (section.startsWith("mp-")) {
+      return <AdminMarketplacePanel tab={section.slice(3) as AdminMarketplaceTab} />;
+    }
+
     return null;
   };
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<"users" | "deals" | "finance" | "tools" | null>(null);
+  const [activeMenu, setActiveMenu] = useState<"users" | "deals" | "finance" | "marketplace" | "tools" | null>(null);
   const hoverTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const openMenu = (menu: "users" | "deals" | "finance" | "tools") => {
+  const openMenu = (menu: "users" | "deals" | "finance" | "marketplace" | "tools") => {
     if (hoverTimeout.current) { clearTimeout(hoverTimeout.current); hoverTimeout.current = null; }
     setActiveMenu(menu);
     setDrawerOpen(true);
@@ -2843,6 +2908,113 @@ export const AdminDashboard = () => {
               >
                 <span className={styles.dropdownItemLabel}>Леджер и выплаты</span>
                 <span className={styles.dropdownItemDesc}>Начисления, запросы на выплаты, подтверждения.</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Маркетплейс — dropdown */}
+        <div
+          className={styles.headerDropdownWrap}
+          onMouseEnter={() => openMenu("marketplace")}
+          onMouseLeave={closeMenu}
+        >
+          <button
+            type="button"
+            className={`${styles.headerSection}${section.startsWith("mp-") ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "marketplace" ? ` ${styles.headerSectionHover}` : ""}`}
+            onClick={() => { activeMenu === "marketplace" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("marketplace"); }}
+          >
+            Маркетплейс
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className={activeMenu === "marketplace" ? styles.chevronOpen : undefined}>
+              <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          {activeMenu === "marketplace" && (
+            <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
+              <p className={styles.dropdownGroupTitle}>Продажи</p>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "mp-dashboard" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("mp-dashboard"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Сводка</span>
+                <span className={styles.dropdownItemDesc}>Заказы, выручка, авторы и клиенты биржи.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "mp-orders" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("mp-orders"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Заказы</span>
+                <span className={styles.dropdownItemDesc}>Подтверждение оплаты, споры, возвраты.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "mp-tickets" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("mp-tickets"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Тикеты</span>
+                <span className={styles.dropdownItemDesc}>Обращения по заказам от заказчиков и авторов.</span>
+              </button>
+              <div className={styles.dropdownDivider} />
+              <p className={styles.dropdownGroupTitle}>Настройки</p>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "mp-payments" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("mp-payments"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Оплата и ЮKassa</span>
+                <span className={styles.dropdownItemDesc}>Карта, СБП, расчётный счёт, онлайн-оплата.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "mp-settings" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("mp-settings"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Комиссии</span>
+                <span className={styles.dropdownItemDesc}>Процент платформы и комиссия воркера.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "mp-services" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("mp-services"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Реестр услуг</span>
+                <span className={styles.dropdownItemDesc}>Единый список услуг для всех авторов.</span>
+              </button>
+              <div className={styles.dropdownDivider} />
+              <p className={styles.dropdownGroupTitle}>Авторы и витрина</p>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "mp-bloggers" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("mp-bloggers"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Авторы</span>
+                <span className={styles.dropdownItemDesc}>Активность в каталоге, ER и рейтинг.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "mp-moderation" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("mp-moderation"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Модерация</span>
+                <span className={styles.dropdownItemDesc}>Заявки на подтверждение данных аудитории.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "mp-premium" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("mp-premium"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Премиум</span>
+                <span className={styles.dropdownItemDesc}>Заявки авторов на премиум-размещение.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "mp-hero" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("mp-hero"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Витрина</span>
+                <span className={styles.dropdownItemDesc}>Ниши и авторы на главной странице.</span>
               </button>
             </div>
           )}

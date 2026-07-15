@@ -1,65 +1,63 @@
 /* =========================================================
-   Admin Marketplace Management — Olive green theme
+   Admin Marketplace Panel — встроен в основную админку.
+   Токены --mp-* замаплены на глобальную тёмную тему.
    ========================================================= */
 
 .container {
-  max-width: 1100px;
-  margin: 0 auto;
+  --mp-bg:            var(--surface-inset);
+  --mp-surface:       var(--surface-raised);
+  --mp-surface-inset: var(--surface-hover);
+  --mp-border:        var(--border);
+  --mp-border-strong: var(--border-strong);
+  --mp-text:          var(--text);
+  --mp-text-strong:   var(--text-strong);
+  --mp-text-muted:    var(--text-muted);
+  --mp-primary:       var(--accent);
+  --mp-primary-ink:   var(--accent-ink);
+  --mp-primary-faint: var(--accent-faint);
+  --mp-primary-soft:  var(--accent-soft);
+  --mp-radius:        var(--radius-md);
+  --mp-radius-pill:   var(--radius-pill);
+  --mp-shadow-lg:     var(--shadow-strong);
+
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.4rem, 3vw, 1.8rem);
-  font-weight: 700;
-  color: var(--mp-text-strong);
-}
-
-.subtitle {
-  margin: 0;
-  font-size: 0.92rem;
-  color: var(--mp-text-muted);
-}
-
-/* Tabs */
-.tabs {
-  display: flex;
-  gap: 0.25rem;
-  border-bottom: 2px solid var(--mp-border);
-  overflow-x: auto;
-}
-
+/* Chip-toggles (используются на «Витрине» для выбора ниш) */
 .tab {
-  padding: 0.75rem 1.2rem;
-  border: none;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--mp-border-strong);
+  border-radius: var(--mp-radius-pill);
   background: transparent;
   color: var(--mp-text-muted);
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  min-height: 44px;
+  min-height: 40px;
   white-space: nowrap;
-  border-bottom: 3px solid transparent;
-  margin-bottom: -2px;
-  transition: color 200ms ease, border-color 200ms ease;
+  transition: color 200ms ease, border-color 200ms ease, background 200ms ease;
 }
 
 .tab:hover {
-  color: var(--mp-primary);
+  color: var(--mp-text-strong);
+  border-color: var(--mp-primary);
+}
+
+.tab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .tabActive {
-  color: var(--mp-primary);
-  border-bottom-color: var(--mp-primary);
+  background: var(--mp-primary);
+  border-color: var(--mp-primary);
+  color: var(--mp-primary-ink);
+}
+
+.tabActive:hover {
+  color: var(--mp-primary-ink);
 }
 
 /* Dashboard stats */
@@ -90,7 +88,7 @@
 .statValue {
   font-size: 1.4rem;
   font-weight: 700;
-  color: var(--mp-primary);
+  color: var(--mp-text-strong);
 }
 
 /* Section card */
@@ -121,7 +119,7 @@
 
 .filterSelect {
   padding: 0.6rem 0.8rem;
-  border: 2px solid var(--mp-border-strong);
+  border: 1px solid var(--mp-border-strong);
   border-radius: var(--mp-radius);
   background: var(--mp-bg);
   color: var(--mp-text-strong);
@@ -137,7 +135,7 @@
 
 .filterInput {
   padding: 0.6rem 0.8rem;
-  border: 2px solid var(--mp-border-strong);
+  border: 1px solid var(--mp-border-strong);
   border-radius: var(--mp-radius);
   background: var(--mp-bg);
   color: var(--mp-text-strong);
@@ -186,36 +184,38 @@
   border-radius: var(--mp-radius-pill);
   font-size: 0.72rem;
   font-weight: 600;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--mp-text);
 }
 
 .statusEscrow {
-  background: rgba(33, 150, 243, 0.1);
-  color: #1565c0;
+  background: rgba(126, 168, 210, 0.14);
+  color: #a9c8e6;
 }
 
 .statusConfirmed {
-  background: rgba(156, 39, 176, 0.1);
-  color: #7b1fa2;
+  background: rgba(180, 150, 205, 0.14);
+  color: #cdb3e0;
 }
 
 .statusCompleted {
-  background: rgba(76, 175, 80, 0.1);
-  color: #2e7d32;
+  background: var(--status-completed-soft);
+  color: var(--status-completed);
 }
 
 .statusFailed {
-  background: rgba(229, 57, 53, 0.1);
-  color: #c62828;
+  background: var(--status-danger-soft);
+  color: var(--status-danger);
 }
 
 .statusPending {
-  background: rgba(255, 152, 0, 0.1);
-  color: #e65100;
+  background: var(--status-warning-soft);
+  color: var(--status-warning);
 }
 
 .statusRefunded {
-  background: rgba(158, 158, 158, 0.1);
-  color: #616161;
+  background: rgba(158, 158, 158, 0.14);
+  color: #b0b0b0;
 }
 
 .resolveBtn {
@@ -243,7 +243,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -253,6 +253,7 @@
 
 .modal {
   background: var(--mp-surface);
+  border: 1px solid var(--mp-border-strong);
   border-radius: var(--mp-radius);
   box-shadow: var(--mp-shadow-lg);
   padding: 2rem;
@@ -299,12 +300,13 @@
   font-size: 0.9rem;
   cursor: pointer;
   min-height: 44px;
+  color: var(--mp-text);
 }
 
 .textarea {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 2px solid var(--mp-border-strong);
+  border: 1px solid var(--mp-border-strong);
   border-radius: var(--mp-radius);
   background: var(--mp-bg);
   color: var(--mp-text-strong);
@@ -350,19 +352,20 @@
 
 .btnCancel {
   padding: 0.75rem 1.4rem;
-  border: 2px solid var(--mp-border-strong);
+  border: 1px solid var(--mp-border-strong);
   border-radius: var(--mp-radius);
-  background: var(--mp-surface);
+  background: transparent;
   color: var(--mp-text-muted);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
-  transition: border-color 200ms ease;
+  transition: border-color 200ms ease, color 200ms ease;
 }
 
 .btnCancel:hover {
   border-color: var(--mp-primary);
+  color: var(--mp-text-strong);
 }
 
 /* Commission settings */
@@ -389,7 +392,7 @@
 .settingsInput {
   width: 100px;
   padding: 0.6rem 0.8rem;
-  border: 2px solid var(--mp-border-strong);
+  border: 1px solid var(--mp-border-strong);
   border-radius: var(--mp-radius);
   background: var(--mp-bg);
   color: var(--mp-text-strong);
@@ -477,9 +480,9 @@
 
 .toggleBtn {
   padding: 0.4rem 0.8rem;
-  border: 2px solid var(--mp-border-strong);
+  border: 1px solid var(--mp-border-strong);
   border-radius: var(--mp-radius);
-  background: var(--mp-surface);
+  background: transparent;
   color: var(--mp-text);
   font-size: 0.78rem;
   font-weight: 600;
@@ -491,12 +494,21 @@
 
 .toggleBtn:hover {
   border-color: var(--mp-primary);
-  color: var(--mp-primary);
+  color: var(--mp-text-strong);
+}
+
+.toggleBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .toggleBtnActive {
   background: var(--mp-primary);
   border-color: var(--mp-primary);
+  color: var(--mp-primary-ink);
+}
+
+.toggleBtnActive:hover {
   color: var(--mp-primary-ink);
 }
 
@@ -513,9 +525,9 @@
   min-width: 44px;
   min-height: 44px;
   padding: 0.5rem 0.8rem;
-  border: 2px solid var(--mp-border-strong);
+  border: 1px solid var(--mp-border-strong);
   border-radius: var(--mp-radius);
-  background: var(--mp-surface);
+  background: transparent;
   color: var(--mp-text);
   font-size: 0.9rem;
   font-weight: 600;
@@ -528,7 +540,7 @@
 
 .pageBtn:hover:not(:disabled) {
   border-color: var(--mp-primary);
-  color: var(--mp-primary);
+  color: var(--mp-text-strong);
 }
 
 .pageBtn:disabled {
@@ -539,18 +551,18 @@
 .errorMsg {
   padding: 0.75rem 1rem;
   border-radius: var(--mp-radius);
-  background: rgba(211, 47, 47, 0.08);
-  border: 1px solid rgba(211, 47, 47, 0.2);
-  color: #d32f2f;
+  background: var(--status-danger-soft);
+  border: 1px solid var(--status-danger-edge);
+  color: var(--status-danger);
   font-size: 0.88rem;
 }
 
 .successMsg {
   padding: 0.75rem 1rem;
   border-radius: var(--mp-radius);
-  background: rgba(76, 175, 80, 0.08);
-  border: 1px solid rgba(76, 175, 80, 0.2);
-  color: #2e7d32;
+  background: var(--status-success-soft);
+  border: 1px solid var(--status-success-edge);
+  color: var(--status-success);
   font-size: 0.88rem;
 }
 
