@@ -9,6 +9,7 @@ import { Check, Search, Star, TrendingUp, Users } from "lucide-react";
 import { MarketShell } from "@/components/shell/shell";
 import { CountUp, Reveal } from "@/components/ui/motion";
 import { api } from "@/lib/api";
+import { resolveUploadUrl } from "@/lib/config";
 import { formatAudience, formatMoney } from "@/lib/format";
 import { DEFAULT_MARKETPLACE_CATEGORIES, fetchMarketplaceCategories } from "@/lib/marketplace-categories";
 import type { BloggerCard, CatalogResponse, HeroConfigResponse } from "@/lib/types";
@@ -150,10 +151,30 @@ const bloggerToHeroVM = (a: BloggerCard, label: string): HeroVM => {
     rating: a.rating != null ? a.rating.toFixed(1) : "—",
     grad: av.grad,
     color: av.color,
-    photoUrl: a.photo_url,
+    // Загруженные фото приходят относительным /uploads/... — дополняем до URL API
+    photoUrl: resolveUploadUrl(a.photo_url),
     bars: heroBars(a.id),
     platforms: a.platforms ?? [],
   };
+};
+
+/** Аватар карточки витрины: фото автора, при ошибке загрузки — инициал на градиенте. */
+const HeroAvatar = ({ card }: { card: HeroVM }) => {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className={s.caAvatar} style={{ background: card.grad }}>
+      {card.photoUrl && !failed ? (
+        <img
+          src={card.photoUrl}
+          alt=""
+          style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        card.name.charAt(0)
+      )}
+    </span>
+  );
 };
 
 const BENEFITS = [
@@ -367,17 +388,7 @@ export default function HomePage() {
                     {heroCards.map((c) => (
                       <div key={c.id} className={s.creatorCard}>
                         <div className={s.caTop}>
-                          <span className={s.caAvatar} style={{ background: c.grad }}>
-                            {c.photoUrl ? (
-                              <img
-                                src={c.photoUrl}
-                                alt=""
-                                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
-                              />
-                            ) : (
-                              c.name.charAt(0)
-                            )}
-                          </span>
+                          <HeroAvatar card={c} />
                           <div className={s.caHead}>
                             <span className={s.caName}>
                               {c.name} {I.verified()}
