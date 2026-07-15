@@ -160,6 +160,13 @@ async function request<T>(path: string, init: RequestInitWithAuth = {}): Promise
   return handleResponse<T>(response);
 }
 
+/**
+ * Универсальный запрос к API для экранов без обёртки в `api.*`.
+ * Даёт то же, что и остальная админка: свежий токен из tokenStorage,
+ * авто-refresh на 401 с повтором и человекочитаемые ошибки (ApiError).
+ */
+export const apiRequest = request;
+
 export const api = {
   getTelegramConfig: () => request<TelegramOAuthConfigResponse>("/auth/telegram/config"),
   exchangeTelegramTicket: (ticket: string) =>

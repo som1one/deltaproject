@@ -3,8 +3,8 @@
 import { useState, type CSSProperties } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { apiRequest, ApiError } from "@/lib/api";
 import { appConfig } from "@/lib/config";
-import { useAuth } from "@/lib/auth-context";
 import { formatDateTime } from "@/lib/format";
 import { LoadingSpinner } from "@/components/marketplace/loading-spinner";
 
@@ -189,36 +189,28 @@ const ORDER_STATUSES = [
 /* ---------- Panel (встраивается разделом в админку) ---------- */
 
 export function AdminMarketplacePanel({ tab }: { tab: AdminMarketplaceTab }) {
-  const { accessToken } = useAuth();
-
   return (
     <div className={styles.container}>
-      {tab === "dashboard" && <DashboardTab accessToken={accessToken} />}
-      {tab === "orders" && <OrdersTab accessToken={accessToken} />}
-      {tab === "payments" && <PaymentsTab accessToken={accessToken} />}
-      {tab === "settings" && <SettingsTab accessToken={accessToken} />}
-      {tab === "tickets" && <TicketsTab accessToken={accessToken} />}
-      {tab === "bloggers" && <BloggersTab accessToken={accessToken} />}
-      {tab === "services" && <ServicesTab accessToken={accessToken} />}
-      {tab === "moderation" && <ModerationTab accessToken={accessToken} />}
-      {tab === "premium" && <PremiumTab accessToken={accessToken} />}
-      {tab === "hero" && <HeroTab accessToken={accessToken} />}
+      {tab === "dashboard" && <DashboardTab />}
+      {tab === "orders" && <OrdersTab />}
+      {tab === "payments" && <PaymentsTab />}
+      {tab === "settings" && <SettingsTab />}
+      {tab === "tickets" && <TicketsTab />}
+      {tab === "bloggers" && <BloggersTab />}
+      {tab === "services" && <ServicesTab />}
+      {tab === "moderation" && <ModerationTab />}
+      {tab === "premium" && <PremiumTab />}
+      {tab === "hero" && <HeroTab />}
     </div>
   );
 }
 
 /* ---------- Dashboard Tab ---------- */
 
-function DashboardTab({ accessToken }: { accessToken: string }) {
+function DashboardTab() {
   const { data, isLoading } = useQuery<DashboardStats>({
     queryKey: ["admin-marketplace-dashboard"],
-    queryFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/dashboard`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!res.ok) throw new Error("Ошибка");
-      return res.json();
-    },
+    queryFn: () => apiRequest<DashboardStats>("/admin/marketplace/dashboard", { auth: true }),
   });
 
   if (isLoading) return <LoadingSpinner size="small" />;
@@ -247,7 +239,7 @@ function DashboardTab({ accessToken }: { accessToken: string }) {
 
 /* ---------- Orders Tab ---------- */
 
-function OrdersTab({ accessToken }: { accessToken: string }) {
+function OrdersTab() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
@@ -257,20 +249,11 @@ function OrdersTab({ accessToken }: { accessToken: string }) {
   const [actionError, setActionError] = useState("");
 
   const confirmPaymentMutation = useMutation({
-    mutationFn: async (orderId: string) => {
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/admin/marketplace/orders/${orderId}/confirm-payment`,
-        {
-          method: "PATCH",
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось подтвердить оплату");
-      }
-      return res.json();
-    },
+    mutationFn: (orderId: string) =>
+      apiRequest(`/admin/marketplace/orders/${orderId}/confirm-payment`, {
+        method: "PATCH",
+        auth: true,
+      }),
     onSuccess: () => {
       setActionError("");
       queryClient.invalidateQueries({ queryKey: ["admin-marketplace-orders"] });
@@ -279,24 +262,12 @@ function OrdersTab({ accessToken }: { accessToken: string }) {
   });
 
   const refundMutation = useMutation({
-    mutationFn: async ({ orderId, reason }: { orderId: string; reason: string }) => {
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/admin/marketplace/orders/${orderId}/refund`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ reason }),
-        }
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось оформить возврат");
-      }
-      return res.json();
-    },
+    mutationFn: ({ orderId, reason }: { orderId: string; reason: string }) =>
+      apiRequest(`/admin/marketplace/orders/${orderId}/refund`, {
+        method: "PATCH",
+        auth: true,
+        body: JSON.stringify({ reason }),
+      }),
     onSuccess: () => {
       setActionError("");
       queryClient.invalidateQueries({ queryKey: ["admin-marketplace-orders"] });
@@ -319,19 +290,16 @@ function OrdersTab({ accessToken }: { accessToken: string }) {
 
   const { data, isLoading } = useQuery<AdminOrdersResponse>({
     queryKey: ["admin-marketplace-orders", page, statusFilter, dateFrom, dateTo],
-    queryFn: async () => {
+    queryFn: () => {
       const params = new URLSearchParams();
       params.set("page", String(page));
       if (statusFilter) params.set("status", statusFilter);
       if (dateFrom) params.set("from", `${dateFrom}T00:00:00`);
       if (dateTo) params.set("to", `${dateTo}T23:59:59`);
-
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/admin/marketplace/orders?${params.toString()}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+      return apiRequest<AdminOrdersResponse>(
+        `/admin/marketplace/orders?${params.toString()}`,
+        { auth: true },
       );
-      if (!res.ok) throw new Error("Ошибка");
-      return res.json();
     },
   });
 
@@ -477,7 +445,6 @@ function OrdersTab({ accessToken }: { accessToken: string }) {
       {resolveOrder && (
         <ResolveOrderModal
           order={resolveOrder}
-          accessToken={accessToken}
           onClose={() => setResolveOrder(null)}
           onResolved={() => {
             setResolveOrder(null);
@@ -493,12 +460,10 @@ function OrdersTab({ accessToken }: { accessToken: string }) {
 
 function ResolveOrderModal({
   order,
-  accessToken,
   onClose,
   onResolved,
 }: {
   order: AdminOrder;
-  accessToken: string;
   onClose: () => void;
   onResolved: () => void;
 }) {
@@ -511,22 +476,11 @@ function ResolveOrderModal({
       if (reason.trim().length < 1 || reason.trim().length > 500) {
         throw new Error("Причина должна быть от 1 до 500 символов");
       }
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/admin/marketplace/orders/${order.id}/resolve`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ decision, reason: reason.trim() }),
-        }
-      );
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(typeof data.detail === "string" ? data.detail : "Ошибка");
-      }
-      return res.json();
+      return apiRequest(`/admin/marketplace/orders/${order.id}/resolve`, {
+        method: "PATCH",
+        auth: true,
+        body: JSON.stringify({ decision, reason: reason.trim() }),
+      });
     },
     onSuccess: () => onResolved(),
     onError: (err: Error) => setError(err.message),
@@ -602,7 +556,7 @@ function ResolveOrderModal({
 
 /* ---------- Payments Tab (реквизиты + ЮKassa) ---------- */
 
-function PaymentsTab({ accessToken }: { accessToken: string }) {
+function PaymentsTab() {
   const queryClient = useQueryClient();
 
   // Карта + ЮKassa
@@ -616,14 +570,10 @@ function PaymentsTab({ accessToken }: { accessToken: string }) {
   const [accError, setAccError] = useState("");
   const [accSuccess, setAccSuccess] = useState("");
 
-  const { isLoading: reqLoading } = useQuery<PaymentSettings>({
+  const { isLoading: reqLoading, error: reqLoadError } = useQuery<PaymentSettings>({
     queryKey: ["admin-marketplace-payment-requisites"],
     queryFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/payment-requisites`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!res.ok) throw new Error("Ошибка загрузки реквизитов");
-      const d: PaymentSettings = await res.json();
+      const d = await apiRequest<PaymentSettings>("/admin/marketplace/payment-requisites", { auth: true });
       setCard({
         card_number: d.card_number ?? "",
         card_holder: d.card_holder ?? "",
@@ -638,24 +588,25 @@ function PaymentsTab({ accessToken }: { accessToken: string }) {
   const { isLoading: accLoading } = useQuery<SettlementAccount | null>({
     queryKey: ["admin-settlement-account"],
     queryFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/settlement-account`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error("Ошибка загрузки р/с");
-      const d: SettlementAccount = await res.json();
-      setAccount({
-        account_number: d.account_number,
-        bic: d.bic,
-        bank_name: d.bank_name,
-        recipient_name: d.recipient_name,
-      });
-      return d;
+      try {
+        const d = await apiRequest<SettlementAccount>("/admin/settlement-account", { auth: true });
+        setAccount({
+          account_number: d.account_number,
+          bic: d.bic,
+          bank_name: d.bank_name,
+          recipient_name: d.recipient_name,
+        });
+        return d;
+      } catch (err) {
+        // 404 = реквизиты ещё не настроены
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
     },
   });
 
   const saveRequisites = useMutation({
-    mutationFn: async () => {
+    mutationFn: () => {
       const body: Record<string, unknown> = {
         card_number: card.card_number,
         card_holder: card.card_holder,
@@ -666,22 +617,11 @@ function PaymentsTab({ accessToken }: { accessToken: string }) {
       };
       // Пустое поле секрета = не менять сохранённый ключ
       if (yk.secret_key.trim() !== "") body.yookassa_secret_key = yk.secret_key.trim();
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/payment-requisites`, {
+      return apiRequest("/admin/marketplace/payment-requisites", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        auth: true,
         body: JSON.stringify(body),
       });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        const detail = Array.isArray(d.detail)
-          ? d.detail.map((x: { msg?: string }) => x.msg).filter(Boolean).join("; ")
-          : d.detail;
-        throw new Error(typeof detail === "string" && detail ? detail : "Ошибка сохранения");
-      }
-      return res.json();
     },
     onSuccess: () => {
       setReqSuccess("Реквизиты сохранены. Заказчики увидят их при оплате.");
@@ -696,24 +636,12 @@ function PaymentsTab({ accessToken }: { accessToken: string }) {
   });
 
   const saveAccount = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/settlement-account`, {
+    mutationFn: () =>
+      apiRequest("/admin/settlement-account", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        auth: true,
         body: JSON.stringify(account),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        const detail = Array.isArray(d.detail)
-          ? d.detail.map((x: { msg?: string }) => x.msg).filter(Boolean).join("; ")
-          : d.detail;
-        throw new Error(typeof detail === "string" && detail ? detail : "Ошибка сохранения р/с");
-      }
-      return res.json();
-    },
+      }),
     onSuccess: () => {
       setAccSuccess("Реквизиты р/с сохранены.");
       setAccError("");
@@ -735,6 +663,7 @@ function PaymentsTab({ accessToken }: { accessToken: string }) {
           Эти реквизиты видит заказчик на странице заказа. Пустой номер карты скрывает способ «перевод на карту».
         </p>
 
+        {reqLoadError && <p className={styles.errorMsg}>Не удалось загрузить реквизиты: {reqLoadError.message}</p>}
         {reqError && <p className={styles.errorMsg}>{reqError}</p>}
         {reqSuccess && <p className={styles.successMsg}>{reqSuccess}</p>}
 
@@ -909,7 +838,7 @@ function PaymentsTab({ accessToken }: { accessToken: string }) {
 
 /* ---------- Settings Tab ---------- */
 
-function SettingsTab({ accessToken }: { accessToken: string }) {
+function SettingsTab() {
   const queryClient = useQueryClient();
   const [platformPct, setPlatformPct] = useState("");
   const [workerPct, setWorkerPct] = useState("");
@@ -919,11 +848,7 @@ function SettingsTab({ accessToken }: { accessToken: string }) {
   const { isLoading } = useQuery<CommissionSettings>({
     queryKey: ["admin-marketplace-settings"],
     queryFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/settings`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!res.ok) throw new Error("Ошибка");
-      const d = await res.json();
+      const d = await apiRequest<CommissionSettings>("/admin/marketplace/settings", { auth: true });
       setPlatformPct(d.platform_commission_pct);
       setWorkerPct(d.worker_referral_commission_pct);
       return d;
@@ -931,24 +856,15 @@ function SettingsTab({ accessToken }: { accessToken: string }) {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/settings`, {
+    mutationFn: () =>
+      apiRequest("/admin/marketplace/settings", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        auth: true,
         body: JSON.stringify({
           platform_commission_pct: platformPct,
           worker_referral_commission_pct: workerPct,
         }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d.detail === "string" ? d.detail : "Ошибка сохранения");
-      }
-      return res.json();
-    },
+      }),
     onSuccess: () => {
       setSuccess("Настройки сохранены!");
       setError("");
@@ -1015,19 +931,13 @@ function SettingsTab({ accessToken }: { accessToken: string }) {
 
 /* ---------- Tickets Tab ---------- */
 
-function TicketsTab({ accessToken }: { accessToken: string }) {
+function TicketsTab() {
   const queryClient = useQueryClient();
   const [resolveTicket, setResolveTicket] = useState<SupportTicket | null>(null);
 
   const { data, isLoading } = useQuery<TicketsResponse>({
     queryKey: ["admin-marketplace-tickets"],
-    queryFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/support/tickets`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!res.ok) throw new Error("Ошибка");
-      return res.json();
-    },
+    queryFn: () => apiRequest<TicketsResponse>("/admin/marketplace/support/tickets", { auth: true }),
   });
 
   if (isLoading) return <LoadingSpinner size="small" />;
@@ -1067,7 +977,6 @@ function TicketsTab({ accessToken }: { accessToken: string }) {
       {resolveTicket && (
         <ResolveTicketModal
           ticket={resolveTicket}
-          accessToken={accessToken}
           onClose={() => setResolveTicket(null)}
           onResolved={() => {
             setResolveTicket(null);
@@ -1083,12 +992,10 @@ function TicketsTab({ accessToken }: { accessToken: string }) {
 
 function ResolveTicketModal({
   ticket,
-  accessToken,
   onClose,
   onResolved,
 }: {
   ticket: SupportTicket;
-  accessToken: string;
   onClose: () => void;
   onResolved: () => void;
 }) {
@@ -1101,22 +1008,11 @@ function ResolveTicketModal({
       if (reason.trim().length < 1 || reason.trim().length > 1000) {
         throw new Error("Причина должна быть от 1 до 1000 символов");
       }
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/admin/marketplace/support/tickets/${ticket.id}/resolve`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ decision, reason: reason.trim() }),
-        }
-      );
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(typeof data.detail === "string" ? data.detail : "Ошибка");
-      }
-      return res.json();
+      return apiRequest(`/admin/marketplace/support/tickets/${ticket.id}/resolve`, {
+        method: "PATCH",
+        auth: true,
+        body: JSON.stringify({ decision, reason: reason.trim() }),
+      });
     },
     onSuccess: () => onResolved(),
     onError: (err: Error) => setError(err.message),
@@ -1195,33 +1091,21 @@ function ResolveTicketModal({
 
 /* ---------- Bloggers Tab ---------- */
 
-function BloggerMetricEditor({
-  blogger,
-  accessToken,
-}: {
-  blogger: BloggerAdmin;
-  accessToken: string;
-}) {
+function BloggerMetricEditor({ blogger }: { blogger: BloggerAdmin }) {
   const queryClient = useQueryClient();
   const [er, setEr] = useState(blogger.engagement_rate != null ? String(blogger.engagement_rate) : "");
   const [rating, setRating] = useState(blogger.rating != null ? String(blogger.rating) : "");
 
   const save = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/bloggers/${blogger.id}`, {
+    mutationFn: () =>
+      apiRequest(`/admin/marketplace/bloggers/${blogger.id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        auth: true,
         body: JSON.stringify({
           engagement_rate: er.trim() === "" ? null : Number(er),
           rating: rating.trim() === "" ? null : Number(rating),
         }),
-      });
-      if (!res.ok) throw new Error("Ошибка");
-      return res.json();
-    },
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-marketplace-bloggers"] }),
   });
 
@@ -1263,36 +1147,21 @@ function BloggerMetricEditor({
   );
 }
 
-function BloggersTab({ accessToken }: { accessToken: string }) {
+function BloggersTab() {
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery<BloggersResponse>({
     queryKey: ["admin-marketplace-bloggers"],
-    queryFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/bloggers`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!res.ok) throw new Error("Ошибка");
-      return res.json();
-    },
+    queryFn: () => apiRequest<BloggersResponse>("/admin/marketplace/bloggers", { auth: true }),
   });
 
   const toggleMutation = useMutation({
-    mutationFn: async ({ bloggerId, isActive }: { bloggerId: string; isActive: boolean }) => {
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/admin/marketplace/bloggers/${bloggerId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ is_active: isActive }),
-        }
-      );
-      if (!res.ok) throw new Error("Ошибка");
-      return res.json();
-    },
+    mutationFn: ({ bloggerId, isActive }: { bloggerId: string; isActive: boolean }) =>
+      apiRequest(`/admin/marketplace/bloggers/${bloggerId}`, {
+        method: "PATCH",
+        auth: true,
+        body: JSON.stringify({ is_active: isActive }),
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-marketplace-bloggers"] });
     },
@@ -1333,7 +1202,7 @@ function BloggersTab({ accessToken }: { accessToken: string }) {
                 </span>
               </div>
               <div className={styles.bloggerActions}>
-                <BloggerMetricEditor blogger={blogger} accessToken={accessToken} />
+                <BloggerMetricEditor blogger={blogger} />
                 <button
                   type="button"
                   className={`${styles.toggleBtn} ${blogger.is_active ? styles.toggleBtnActive : ""}`}
@@ -1423,13 +1292,10 @@ function HeroAuthorPicker({
 
   const { data: results } = useQuery<{ items: HeroAuthor[] }>({
     queryKey: ["hero-author-search", q],
-    queryFn: async () => {
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/marketplace/bloggers?page_size=8&q=${encodeURIComponent(q)}`,
-      );
-      if (!res.ok) throw new Error("Ошибка");
-      return res.json();
-    },
+    queryFn: () =>
+      apiRequest<{ items: HeroAuthor[] }>(
+        `/marketplace/bloggers?page_size=8&q=${encodeURIComponent(q)}`,
+      ),
     enabled: q.length >= 2,
     staleTime: 30_000,
   });
@@ -1496,7 +1362,7 @@ function HeroAuthorPicker({
   );
 }
 
-function HeroTab({ accessToken }: { accessToken: string }) {
+function HeroTab() {
   const queryClient = useQueryClient();
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -1506,19 +1372,13 @@ function HeroTab({ accessToken }: { accessToken: string }) {
 
   const { data: allCategories } = useQuery<HeroCategory[]>({
     queryKey: ["hero-all-categories"],
-    queryFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/marketplace/categories`);
-      if (!res.ok) throw new Error("Ошибка");
-      return res.json();
-    },
+    queryFn: () => apiRequest<HeroCategory[]>("/marketplace/categories"),
   });
 
   const { isLoading } = useQuery<HeroConfigPublic>({
     queryKey: ["hero-config-admin-load"],
     queryFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/marketplace/hero-config`);
-      if (!res.ok) throw new Error("Ошибка");
-      const d: HeroConfigPublic = await res.json();
+      const d = await apiRequest<HeroConfigPublic>("/marketplace/hero-config");
       setCategories(d.categories.map((c) => c.value));
       setAuthorsAll(d.authors_all ?? []);
       setByCategory(d.authors_by_category ?? {});
@@ -1535,7 +1395,7 @@ function HeroTab({ accessToken }: { accessToken: string }) {
   };
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: () => {
       const body = {
         featured_categories: categories,
         featured_all: authorsAll.map((a) => a.user_id),
@@ -1543,19 +1403,11 @@ function HeroTab({ accessToken }: { accessToken: string }) {
           categories.map((c) => [c, (byCategory[c] ?? []).map((a) => a.user_id)]),
         ),
       };
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/hero-config`, {
+      return apiRequest("/admin/marketplace/hero-config", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        auth: true,
         body: JSON.stringify(body),
       });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d.detail === "string" ? d.detail : "Ошибка сохранения");
-      }
-      return res.json();
     },
     onSuccess: () => {
       setSuccess("Витрина сохранена!");
@@ -1637,11 +1489,9 @@ function HeroTab({ accessToken }: { accessToken: string }) {
 
 function ServiceTypeRow({
   service,
-  accessToken,
   onError,
 }: {
   service: ServiceType;
-  accessToken: string;
   onError: (msg: string) => void;
 }) {
   const queryClient = useQueryClient();
@@ -1650,24 +1500,12 @@ function ServiceTypeRow({
   const [sortOrder, setSortOrder] = useState(String(service.sort_order));
 
   const patchMutation = useMutation({
-    mutationFn: async (body: Record<string, unknown>) => {
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/admin/marketplace/service-types/${service.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(body),
-        }
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось сохранить услугу");
-      }
-      return res.json();
-    },
+    mutationFn: (body: Record<string, unknown>) =>
+      apiRequest(`/admin/marketplace/service-types/${service.id}`, {
+        method: "PATCH",
+        auth: true,
+        body: JSON.stringify(body),
+      }),
     onSuccess: () => {
       onError("");
       queryClient.invalidateQueries({ queryKey: ["admin-marketplace-service-types"] });
@@ -1756,35 +1594,26 @@ function ServiceTypeRow({
   );
 }
 
-function ServicesTab({ accessToken }: { accessToken: string }) {
+function ServicesTab() {
   const queryClient = useQueryClient();
   const [error, setError] = useState("");
   const [form, setForm] = useState({ code: "", name: "", description: "", sort_order: "0" });
 
   const { data, isLoading } = useQuery<ServiceType[]>({
     queryKey: ["admin-marketplace-service-types"],
-    queryFn: async () => {
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/service-types`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (!res.ok) throw new Error("Ошибка");
-      return res.json();
-    },
+    queryFn: () => apiRequest<ServiceType[]>("/admin/marketplace/service-types", { auth: true }),
   });
 
   const createMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: () => {
       const code = form.code.trim().toLowerCase();
       if (!/^[a-z0-9_-]+$/.test(code)) {
         throw new Error("Код: только латиница в нижнем регистре, цифры, «_» и «-»");
       }
       if (!form.name.trim()) throw new Error("Укажите название услуги");
-      const res = await fetch(`${appConfig.apiBaseUrl}/admin/marketplace/service-types`, {
+      return apiRequest("/admin/marketplace/service-types", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        auth: true,
         body: JSON.stringify({
           code,
           name: form.name.trim(),
@@ -1793,11 +1622,6 @@ function ServicesTab({ accessToken }: { accessToken: string }) {
           is_active: true,
         }),
       });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось добавить услугу");
-      }
-      return res.json();
     },
     onSuccess: () => {
       setError("");
@@ -1897,7 +1721,7 @@ function ServicesTab({ accessToken }: { accessToken: string }) {
             </thead>
             <tbody>
               {data.map((s) => (
-                <ServiceTypeRow key={s.id} service={s} accessToken={accessToken} onError={setError} />
+                <ServiceTypeRow key={s.id} service={s} onError={setError} />
               ))}
             </tbody>
           </table>
@@ -1958,34 +1782,20 @@ function screenshotUrl(path: string): string {
 
 function AudienceSubmissionCard({
   submission,
-  accessToken,
   onError,
 }: {
   submission: AudienceSubmission;
-  accessToken: string;
   onError: (msg: string) => void;
 }) {
   const queryClient = useQueryClient();
 
   const resolveMutation = useMutation({
-    mutationFn: async ({ action, comment }: { action: "approve" | "reject"; comment?: string }) => {
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/admin/marketplace/audience-submissions/${submission.id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify(comment ? { action, comment } : { action }),
-        }
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось обработать заявку");
-      }
-      return res.json();
-    },
+    mutationFn: ({ action, comment }: { action: "approve" | "reject"; comment?: string }) =>
+      apiRequest(`/admin/marketplace/audience-submissions/${submission.id}`, {
+        method: "PATCH",
+        auth: true,
+        body: JSON.stringify(comment ? { action, comment } : { action }),
+      }),
     onSuccess: () => {
       onError("");
       queryClient.invalidateQueries({ queryKey: ["admin-marketplace-audience-submissions"] });
@@ -2094,20 +1904,17 @@ function AudienceSubmissionCard({
   );
 }
 
-function ModerationTab({ accessToken }: { accessToken: string }) {
+function ModerationTab() {
   const [statusFilter, setStatusFilter] = useState("pending");
   const [error, setError] = useState("");
 
   const { data, isLoading } = useQuery<AudienceSubmission[]>({
     queryKey: ["admin-marketplace-audience-submissions", statusFilter],
-    queryFn: async () => {
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/admin/marketplace/audience-submissions?status=${statusFilter}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      if (!res.ok) throw new Error("Ошибка");
-      return res.json();
-    },
+    queryFn: () =>
+      apiRequest<AudienceSubmission[]>(
+        `/admin/marketplace/audience-submissions?status=${statusFilter}`,
+        { auth: true },
+      ),
   });
 
   return (
@@ -2136,7 +1943,6 @@ function ModerationTab({ accessToken }: { accessToken: string }) {
         <AudienceSubmissionCard
           key={submission.id}
           submission={submission}
-          accessToken={accessToken}
           onError={setError}
         />
       ))}
@@ -2162,43 +1968,26 @@ function formatPremiumStatus(status: string): string {
   }
 }
 
-function PremiumTab({ accessToken }: { accessToken: string }) {
+function PremiumTab() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("new");
   const [error, setError] = useState("");
 
   const { data, isLoading } = useQuery<PremiumRequest[]>({
     queryKey: ["admin-marketplace-premium-requests", statusFilter],
-    queryFn: async () => {
+    queryFn: () => {
       const qs = statusFilter ? `?status=${statusFilter}` : "";
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/admin/marketplace/premium-requests${qs}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      if (!res.ok) throw new Error("Ошибка");
-      return res.json();
+      return apiRequest<PremiumRequest[]>(`/admin/marketplace/premium-requests${qs}`, { auth: true });
     },
   });
 
   const resolveMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: "contacted" | "closed" }) => {
-      const res = await fetch(
-        `${appConfig.apiBaseUrl}/admin/marketplace/premium-requests/${id}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ status }),
-        }
-      );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d.detail === "string" ? d.detail : "Не удалось обновить заявку");
-      }
-      return res.json();
-    },
+    mutationFn: ({ id, status }: { id: string; status: "contacted" | "closed" }) =>
+      apiRequest(`/admin/marketplace/premium-requests/${id}`, {
+        method: "PATCH",
+        auth: true,
+        body: JSON.stringify({ status }),
+      }),
     onSuccess: () => {
       setError("");
       queryClient.invalidateQueries({ queryKey: ["admin-marketplace-premium-requests"] });
