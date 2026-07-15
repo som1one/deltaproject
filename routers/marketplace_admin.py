@@ -65,6 +65,8 @@ from schemas.marketplace_admin import (
     AdminOrderDetailResponse,
     AdminOrderListResponse,
     AdminOrderResponse,
+    AdminTicketItem,
+    AdminTicketListResponse,
     CommissionSettingsRequest,
     CommissionSettingsResponse,
     DashboardResponse,
@@ -75,6 +77,7 @@ from schemas.marketplace_admin import (
     OrderCountByStatus,
     OrderResolveRequest,
     StatusHistoryEntry,
+    TicketResolveRequest,
 )
 from schemas.marketplace_orders import (
     CommissionSettingsReadResponse,
@@ -87,7 +90,7 @@ from schemas.marketplace_payment_settings import (
     PaymentSettingsResponse,
     PaymentSettingsUpsert,
 )
-from schemas.marketplace_support import TicketListResponse, TicketResponse
+from schemas.marketplace_support import TicketResponse
 from schemas.settlement_account import SettlementAccountResponse, SettlementAccountUpsert
 from services import marketplace_payment_settings_service, notification_service
 from services.marketplace_escrow_service import calculate_distribution, confirm_payment, distribute_funds, process_refund, refund_to_client
@@ -714,13 +717,13 @@ async def update_commission_settings(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/support/tickets", response_model=TicketListResponse)
+@router.get("/support/tickets", response_model=AdminTicketListResponse)
 async def get_marketplace_support_tickets(
     db: Annotated[AsyncSession, Depends(get_db)],
     _admin: Annotated[User, Depends(get_current_admin_or_tech)],
     page: Annotated[int, Query(ge=1)] = 1,
-) -> TicketListResponse:
-    """Список открытых тикетов поддержки маркетплейса."""
+) -> AdminTicketListResponse:
+    """Список открытых тикетов поддержки: тема, автор обращения, привязанная сделка."""
 
     page_size = 50
     offset = (page - 1) * page_size
@@ -733,18 +736,42 @@ async def get_marketplace_support_tickets(
     )
     total = count_result.scalar_one()
 
-    # Get paginated open tickets
+    # Get paginated open tickets with submitter name and linked order (if any)
     result = await db.execute(
-        select(SupportTicket)
+        select(
+            SupportTicket,
+            User.name,
+            MarketplaceOrder.status,
+            MarketplaceOrder.amount_kopeks,
+        )
+        .join(User, User.id == SupportTicket.submitter_id)
+        .outerjoin(MarketplaceOrder, MarketplaceOrder.id == SupportTicket.order_id)
         .where(SupportTicket.status == SupportTicketStatus.OPEN.value)
         .order_by(SupportTicket.created_at.desc())
         .offset(offset)
         .limit(page_size)
     )
-    tickets = result.scalars().all()
+    rows = result.all()
 
-    return TicketListResponse(
-        items=[TicketResponse.model_validate(t) for t in tickets],
+    items = [
+        AdminTicketItem(
+            id=ticket.id,
+            subject=ticket.subject,
+            message=ticket.message,
+            status=ticket.status,
+            created_at=ticket.created_at,
+            submitter_id=ticket.submitter_id,
+            submitter_name=submitter_name,
+            submitter_role=ticket.submitter_role,
+            order_id=ticket.order_id,
+            order_status=order_status,
+            order_amount_kopeks=order_amount_kopeks,
+        )
+        for ticket, submitter_name, order_status, order_amount_kopeks in rows
+    ]
+
+    return AdminTicketListResponse(
+        items=items,
         total=total,
         page=page,
         page_size=page_size,
@@ -754,13 +781,15 @@ async def get_marketplace_support_tickets(
 @router.patch("/support/tickets/{ticket_id}/resolve", response_model=TicketResponse)
 async def resolve_marketplace_support_ticket(
     ticket_id: uuid.UUID,
-    body: OrderResolveRequest,
+    body: TicketResolveRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
     admin: Annotated[User, Depends(get_current_admin_or_tech)],
 ) -> TicketResponse:
-    """Разрешить тикет поддержки с решением и причиной.
+    """Закрыть тикет поддержки.
 
-    Также выполняет действие по заказу:
+    Без decision — просто закрывает обращение с комментарием (вопросы без
+    сделки и споры по уже закрытым сделкам). С decision — разрешение спора,
+    двигающее эскроу по заказу:
     - favor_client → возврат средств, статус заказа REFUNDED
     - favor_blogger → распределение средств, статус заказа COMPLETED
     """
@@ -783,39 +812,46 @@ async def resolve_marketplace_support_ticket(
             detail="Тикет уже разрешён",
         )
 
-    # Fetch the associated order with lock
-    order_result = await db.execute(
-        select(MarketplaceOrder)
-        .where(MarketplaceOrder.id == ticket.order_id)
-        .with_for_update()
-    )
-    order = order_result.scalar_one_or_none()
+    if body.decision is not None:
+        if ticket.order_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="У тикета нет привязанной сделки — закройте его без вердикта",
+            )
 
-    if order is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Связанный заказ не найден",
+        # Fetch the associated order with lock
+        order_result = await db.execute(
+            select(MarketplaceOrder)
+            .where(MarketplaceOrder.id == ticket.order_id)
+            .with_for_update()
         )
+        order = order_result.scalar_one_or_none()
 
-    # Only allow resolution for orders in ESCROW_HELD or BLOGGER_CONFIRMED
-    allowed_statuses = [
-        MarketplaceOrderStatus.ESCROW_HELD.value,
-        MarketplaceOrderStatus.BLOGGER_CONFIRMED.value,
-    ]
-    if order.status not in allowed_statuses:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Разрешение спора допускается только для заказов в статусе ESCROW_HELD или BLOGGER_CONFIRMED",
-        )
+        if order is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Связанный заказ не найден",
+            )
 
-    # Execute the resolution action on the order
-    if body.decision == "favor_client":
-        await refund_to_client(order.id, db)
-        order.status = MarketplaceOrderStatus.REFUNDED.value
-    else:  # favor_blogger
-        await distribute_funds(order.id, db)
-        order.status = MarketplaceOrderStatus.COMPLETED.value
-        order.completed_at = func.now()
+        # Only allow resolution for orders in ESCROW_HELD or BLOGGER_CONFIRMED
+        allowed_statuses = [
+            MarketplaceOrderStatus.ESCROW_HELD.value,
+            MarketplaceOrderStatus.BLOGGER_CONFIRMED.value,
+        ]
+        if order.status not in allowed_statuses:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Разрешение спора допускается только для заказов в статусе ESCROW_HELD или BLOGGER_CONFIRMED",
+            )
+
+        # Execute the resolution action on the order
+        if body.decision == "favor_client":
+            await refund_to_client(order.id, db)
+            order.status = MarketplaceOrderStatus.REFUNDED.value
+        else:  # favor_blogger
+            await distribute_funds(order.id, db)
+            order.status = MarketplaceOrderStatus.COMPLETED.value
+            order.completed_at = func.now()
 
     # Close the ticket
     ticket.status = SupportTicketStatus.RESOLVED.value

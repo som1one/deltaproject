@@ -182,6 +182,43 @@ class OrderResolveRequest(BaseModel):
     reason: Annotated[str, Field(min_length=1, max_length=500)]
 
 
+class TicketResolveRequest(BaseModel):
+    """Закрытие тикета поддержки (админ).
+
+    decision обязателен только для спора по активной сделке — он двигает деньги
+    эскроу. Обычный вопрос (payment/technical/general или спор по уже закрытой
+    сделке) закрывается без вердикта, только с комментарием.
+    """
+
+    decision: Literal["favor_client", "favor_blogger"] | None = None
+    reason: Annotated[str, Field(min_length=1, max_length=1000)]
+
+
+class AdminTicketItem(BaseModel):
+    """Тикет в админ-списке: тема, автор обращения и привязанная сделка."""
+
+    id: uuid.UUID
+    subject: str
+    message: str
+    status: str
+    created_at: datetime
+    submitter_id: uuid.UUID
+    submitter_name: str
+    submitter_role: str
+    order_id: uuid.UUID | None = None
+    order_status: str | None = None
+    order_amount_kopeks: int | None = None
+
+
+class AdminTicketListResponse(BaseModel):
+    """Список тикетов для админ-панели с пагинацией."""
+
+    items: list[AdminTicketItem]
+    total: int
+    page: int
+    page_size: int
+
+
 # ---------------------------------------------------------------------------
 # Hero (витрина лендинга)
 # ---------------------------------------------------------------------------

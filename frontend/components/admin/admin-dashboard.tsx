@@ -187,7 +187,7 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
   "mp-tickets": {
     label: "Тикеты",
     title: "Тикеты поддержки",
-    lead: "Обращения по заказам — решение в пользу заказчика или автора.",
+    lead: "Вопросы закрываются с ответом; споры по активным сделкам решаются в пользу заказчика или автора.",
   },
   "mp-bloggers": {
     label: "Авторы",

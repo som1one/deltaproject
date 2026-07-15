@@ -59,14 +59,15 @@ type CommissionSettings = {
 
 type SupportTicket = {
   id: string;
-  order_id: string;
+  subject: string;
+  order_id: string | null;
   submitter_name: string;
   submitter_role: string;
   message: string;
   status: string;
   created_at: string;
-  order_status: string;
-  order_amount_kopeks: number;
+  order_status: string | null;
+  order_amount_kopeks: number | null;
 };
 
 type TicketsResponse = {
@@ -931,6 +932,23 @@ function SettingsTab() {
 
 /* ---------- Tickets Tab ---------- */
 
+const TICKET_SUBJECT_LABELS: Record<string, string> = {
+  dispute: "Спор по сделке",
+  payment: "Оплата",
+  technical: "Технический вопрос",
+  general: "Вопрос",
+};
+
+const TICKET_ROLE_LABELS: Record<string, string> = {
+  Bloger: "автор",
+  Client: "заказчик",
+};
+
+/** Спор можно решить «в чью-то пользу», только пока деньги сделки в эскроу. */
+const isDisputeResolvable = (ticket: SupportTicket): boolean =>
+  ticket.order_id != null &&
+  (ticket.order_status === "ESCROW_HELD" || ticket.order_status === "BLOGGER_CONFIRMED");
+
 function TicketsTab() {
   const queryClient = useQueryClient();
   const [resolveTicket, setResolveTicket] = useState<SupportTicket | null>(null);
@@ -956,9 +974,15 @@ function TicketsTab() {
             {data.items.map((ticket) => (
               <div key={ticket.id} className={styles.ticketItem}>
                 <div className={styles.ticketInfo}>
+                  <span>
+                    <span className={styles.statusBadge}>
+                      {TICKET_SUBJECT_LABELS[ticket.subject] ?? ticket.subject}
+                    </span>
+                  </span>
                   <span className={styles.ticketMessage}>{ticket.message}</span>
                   <span className={styles.ticketMeta}>
-                    {ticket.submitter_name} ({ticket.submitter_role}) · {formatDateTime(ticket.created_at)} · Заказ: {formatRubles(ticket.order_amount_kopeks)}
+                    {ticket.submitter_name} ({TICKET_ROLE_LABELS[ticket.submitter_role] ?? ticket.submitter_role}) · {formatDateTime(ticket.created_at)}
+                    {ticket.order_amount_kopeks != null && ` · сделка на ${formatRubles(ticket.order_amount_kopeks)}`}
                   </span>
                 </div>
                 <button
@@ -966,7 +990,7 @@ function TicketsTab() {
                   className={styles.resolveBtn}
                   onClick={() => setResolveTicket(ticket)}
                 >
-                  Решить
+                  {isDisputeResolvable(ticket) ? "Решить спор" : "Закрыть"}
                 </button>
               </div>
             ))}
@@ -999,6 +1023,9 @@ function ResolveTicketModal({
   onClose: () => void;
   onResolved: () => void;
 }) {
+  // Вердикт «в чью-то пользу» двигает деньги эскроу, поэтому доступен только
+  // для спора по активной сделке. Остальные обращения просто закрываются с ответом.
+  const withDecision = isDisputeResolvable(ticket);
   const [decision, setDecision] = useState<"favor_client" | "favor_blogger">("favor_client");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
@@ -1006,12 +1033,16 @@ function ResolveTicketModal({
   const resolveMutation = useMutation({
     mutationFn: async () => {
       if (reason.trim().length < 1 || reason.trim().length > 1000) {
-        throw new Error("Причина должна быть от 1 до 1000 символов");
+        throw new Error("Комментарий должен быть от 1 до 1000 символов");
       }
       return apiRequest(`/admin/marketplace/support/tickets/${ticket.id}/resolve`, {
         method: "PATCH",
         auth: true,
-        body: JSON.stringify({ decision, reason: reason.trim() }),
+        body: JSON.stringify(
+          withDecision
+            ? { decision, reason: reason.trim() }
+            : { reason: reason.trim() },
+        ),
       });
     },
     onSuccess: () => onResolved(),
@@ -1021,9 +1052,10 @@ function ResolveTicketModal({
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h2 className={styles.modalTitle}>Решение тикета</h2>
+        <h2 className={styles.modalTitle}>{withDecision ? "Решение спора" : "Закрытие тикета"}</h2>
         <p style={{ fontSize: "0.88rem", color: "var(--mp-text-muted)", margin: 0 }}>
-          От: {ticket.submitter_name} ({ticket.submitter_role})
+          {TICKET_SUBJECT_LABELS[ticket.subject] ?? ticket.subject} · от {ticket.submitter_name} ({TICKET_ROLE_LABELS[ticket.submitter_role] ?? ticket.submitter_role})
+          {withDecision && ticket.order_amount_kopeks != null && ` · сделка на ${formatRubles(ticket.order_amount_kopeks)}`}
         </p>
         <p style={{ fontSize: "0.85rem", color: "var(--mp-text)", margin: 0, fontStyle: "italic" }}>
           &ldquo;{ticket.message.slice(0, 200)}{ticket.message.length > 200 ? "…" : ""}&rdquo;
@@ -1032,40 +1064,44 @@ function ResolveTicketModal({
         {error && <p className={styles.errorMsg}>{error}</p>}
 
         <div className={styles.modalForm}>
-          <div className={styles.fieldGroup}>
-            <span className={styles.label}>Решение</span>
-            <div className={styles.radioGroup}>
-              <label className={styles.radioLabel}>
-                <input
-                  type="radio"
-                  name="ticket-decision"
-                  value="favor_client"
-                  checked={decision === "favor_client"}
-                  onChange={() => setDecision("favor_client")}
-                />
-                В пользу клиента
-              </label>
-              <label className={styles.radioLabel}>
-                <input
-                  type="radio"
-                  name="ticket-decision"
-                  value="favor_blogger"
-                  checked={decision === "favor_blogger"}
-                  onChange={() => setDecision("favor_blogger")}
-                />
-                В пользу блогера
-              </label>
+          {withDecision && (
+            <div className={styles.fieldGroup}>
+              <span className={styles.label}>Решение (двигает деньги сделки)</span>
+              <div className={styles.radioGroup}>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="ticket-decision"
+                    value="favor_client"
+                    checked={decision === "favor_client"}
+                    onChange={() => setDecision("favor_client")}
+                  />
+                  В пользу заказчика (возврат)
+                </label>
+                <label className={styles.radioLabel}>
+                  <input
+                    type="radio"
+                    name="ticket-decision"
+                    value="favor_blogger"
+                    checked={decision === "favor_blogger"}
+                    onChange={() => setDecision("favor_blogger")}
+                  />
+                  В пользу автора (выплата)
+                </label>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className={styles.fieldGroup}>
-            <label className={styles.label} htmlFor="ticket-reason">Причина (1-1000 символов)</label>
+            <label className={styles.label} htmlFor="ticket-reason">
+              {withDecision ? "Причина решения (1-1000 символов)" : "Комментарий (1-1000 символов)"}
+            </label>
             <textarea
               id="ticket-reason"
               className={styles.textarea}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Укажите причину решения..."
+              placeholder={withDecision ? "Укажите причину решения..." : "Ответ или итог по обращению..."}
               maxLength={1000}
             />
           </div>
@@ -1081,7 +1117,7 @@ function ResolveTicketModal({
             onClick={() => resolveMutation.mutate()}
             disabled={resolveMutation.isPending}
           >
-            {resolveMutation.isPending ? "Сохраняем…" : "Подтвердить"}
+            {resolveMutation.isPending ? "Сохраняем…" : withDecision ? "Подтвердить решение" : "Закрыть тикет"}
           </button>
         </div>
       </div>
