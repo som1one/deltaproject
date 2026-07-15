@@ -205,6 +205,38 @@
   margin: 0.4rem 0.85rem;
 }
 
+/* Широкий дропдаун: группы колонками, а не простынёй */
+.dropdownWide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(200px, 220px));
+  gap: 0 0.6rem;
+  width: max-content;
+  max-width: min(92vw, 780px);
+}
+
+.dropdownCol {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdownCol:not(:first-child) {
+  border-left: 1px solid var(--border-faint);
+  padding-left: 0.6rem;
+}
+
+@media (max-width: 900px) {
+  .dropdownWide {
+    grid-template-columns: 1fr;
+    width: auto;
+  }
+
+  .dropdownCol:not(:first-child) {
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
 /* Chevron rotation */
 .chevronOpen {
   transform: rotate(180deg);
