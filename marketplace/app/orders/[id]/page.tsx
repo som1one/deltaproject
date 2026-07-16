@@ -159,6 +159,9 @@ export default function OrderDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { isHydrated, isAuthenticated, isBlogger } = useAuth();
+  // Вторую сторону сделки называем по роли — «контрагент» звучит канцелярски
+  const counterpart = isBlogger ? "заказчик" : "автор";
+  const counterpartGen = isBlogger ? "заказчика" : "автора";
   const [notice, setNotice] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
 
   const [modal, setModal] = useState<ModalKind>(null);
@@ -286,7 +289,7 @@ export default function OrderDetailPage() {
   const reviewMutation = useMutation({
     mutationFn: () => api.createReview(orderId, { rating: reviewRating, text: reviewText.trim() || null }),
     onSuccess: () => {
-      setNotice({ tone: "success", text: "Спасибо! Оценка появится в профиле, текст увидит только контрагент." });
+      setNotice({ tone: "success", text: `Спасибо! Оценка появится в профиле, текст увидит только ${counterpart}.` });
       setReviewRating(0);
       setReviewText("");
       setReviewError("");
@@ -320,6 +323,9 @@ export default function OrderDetailPage() {
     order != null && ["OFFER_DECLINED", "CANCELLED", "REFUNDED", "PAYMENT_FAILED"].includes(order.status);
 
   const counterpartId = order == null ? null : isBlogger ? order.client_id : order.blogger_id;
+  // Оффер отклоняет получатель; у старых сделок offered_by пуст — их офферы слал заказчик
+  const declinedByMe =
+    order != null && (order.offered_by == null ? isBlogger : order.offered_by === counterpartId);
   const serviceName = order?.service_type_name ?? "Индивидуальные условия";
 
   const handleSubmitWork = () => {
@@ -456,7 +462,9 @@ export default function OrderDetailPage() {
                 <StateBanner tone="danger" icon={<XCircle size={18} />} title="Предложение отклонено">
                   {order.decline_reason
                     ? `Причина: ${order.decline_reason}`
-                    : "Контрагент не принял условия. Обсудите детали в чате и предложите новые."}
+                    : declinedByMe
+                      ? "Вы отклонили предложение. Обсудите детали в чате — можно договориться о новых условиях."
+                      : `${isBlogger ? "Заказчик" : "Автор"} не принял условия. Обсудите детали в чате и предложите новые.`}
                 </StateBanner>
               )}
               {order.status === "CANCELLED" && (
@@ -484,9 +492,8 @@ export default function OrderDetailPage() {
               )}
 
               {order.status === "OFFER_PENDING" && !canAcceptOffer && (
-                <StateBanner tone="neutral" icon={<Hourglass size={18} />} title="Ждём решения контрагента">
-                  Предложение отправлено. Чат по сделке уже открыт — можно обсудить детали, пока
-                  контрагент думает.
+                <StateBanner tone="neutral" icon={<Hourglass size={18} />} title={`Ждём ответа ${counterpartGen}`}>
+                  Предложение отправлено. Чат по сделке уже открыт — можно обсудить детали, пока {counterpart} думает.
                 </StateBanner>
               )}
 
@@ -700,7 +707,7 @@ export default function OrderDetailPage() {
                     <section className={styles.panel}>
                       <h2 className={styles.panelTitle}>Оставить отзыв</h2>
                       <p className={ui.muted} style={{ margin: "0 0 14px", fontSize: 14 }}>
-                        Звёзды видны всем в профиле, текст увидит только контрагент.
+                        Звёзды видны всем в профиле, текст увидит только {counterpart}.
                       </p>
                       <StarRating value={reviewRating} onChange={setReviewRating} size={24} />
                       <div className={ui.field} style={{ marginTop: 16 }}>
@@ -711,7 +718,7 @@ export default function OrderDetailPage() {
                           id="review-text"
                           className={ui.textarea}
                           rows={4}
-                          placeholder="Как прошла сделка? Текст увидит только контрагент."
+                          placeholder="Как прошла сделка? Что понравилось, а что можно улучшить."
                           value={reviewText}
                           onChange={(e) => setReviewText(e.target.value)}
                         />
@@ -912,7 +919,7 @@ export default function OrderDetailPage() {
                   />
                 </div>
                 <p className={ui.fine} style={{ marginTop: 10 }}>
-                  Причину увидит контрагент — так проще договориться о новых условиях в чате.
+                  Причину увидит {counterpart} — так проще договориться о новых условиях в чате.
                 </p>
                 {formError && (
                   <div className={ui.noticeDanger} style={{ marginTop: 12 }}>{formError}</div>
