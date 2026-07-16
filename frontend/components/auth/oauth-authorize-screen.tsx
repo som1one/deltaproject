@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { nicknameIssue, normalizeNickname } from "@/lib/nickname";
 import {
   JourneyActions,
   JourneyCameraIcon,
@@ -94,7 +95,7 @@ export const OAuthAuthorizeScreen = () => {
   const loginMutation = useMutation({
     mutationFn: () =>
       api.bloggerLogin({
-        nickname: form.nickname,
+        nickname: normalizeNickname(form.nickname),
         password: form.password,
       }),
     onSuccess: async (payload) => {
@@ -104,6 +105,17 @@ export const OAuthAuthorizeScreen = () => {
     },
     onError: (nextError: Error) => setError(nextError.message),
   });
+
+  // Проверяем ник до запроса — иначе в форму прилетает сырая ошибка pydantic.
+  const handleSubmit = () => {
+    const issue = nicknameIssue(normalizeNickname(form.nickname)) ?? (form.password ? null : "Введите пароль.");
+    if (issue) {
+      setError(issue);
+      return;
+    }
+    setError("");
+    loginMutation.mutate();
+  };
 
   if (!redirectUri) {
     return (
@@ -142,12 +154,16 @@ export const OAuthAuthorizeScreen = () => {
         </JourneyLead>
 
         {phase === "idle" && (
-          <JourneyForm onSubmit={() => loginMutation.mutate()}>
+          <JourneyForm onSubmit={handleSubmit}>
             <JourneyField label="Никнейм блогера">
               <JourneyInput
                 autoComplete="username"
+                maxLength={64}
                 value={form.nickname}
-                onChange={(event) => setForm((current) => ({ ...current, nickname: event.target.value }))}
+                onChange={(event) => {
+                  setError("");
+                  setForm((current) => ({ ...current, nickname: event.target.value }));
+                }}
                 placeholder="nickname"
               />
             </JourneyField>
@@ -156,7 +172,10 @@ export const OAuthAuthorizeScreen = () => {
                 type="password"
                 autoComplete="current-password"
                 value={form.password}
-                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                onChange={(event) => {
+                  setError("");
+                  setForm((current) => ({ ...current, password: event.target.value }));
+                }}
                 placeholder="••••••••"
               />
             </JourneyField>

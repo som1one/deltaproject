@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { nicknameIssue, normalizeNickname } from "@/lib/nickname";
 import { useSessionTarget } from "@/lib/use-session-target";
 import {
   JourneyActions,
@@ -62,7 +63,7 @@ export const BloggerLoginScreen = () => {
   const loginMutation = useMutation({
     mutationFn: () =>
       api.bloggerLogin({
-        nickname: form.nickname,
+        nickname: normalizeNickname(form.nickname),
         password: form.password,
       }),
     onSuccess: (payload) => {
@@ -72,6 +73,17 @@ export const BloggerLoginScreen = () => {
     },
     onError: (nextError) => setError(nextError.message),
   });
+
+  // Проверяем ник до запроса — иначе в форму прилетает сырая ошибка pydantic.
+  const handleSubmit = () => {
+    const issue = nicknameIssue(normalizeNickname(form.nickname)) ?? (form.password ? null : "Введите пароль.");
+    if (issue) {
+      setError(issue);
+      return;
+    }
+    setError("");
+    loginMutation.mutate();
+  };
 
   // Если пользователь уже залогинен — редиректим в кабинет, не показывая форму.
   useEffect(() => {
@@ -101,12 +113,16 @@ export const BloggerLoginScreen = () => {
           платформа считает доли и переводит выплаты. Логин выдаёт администратор под ваш ник.
         </JourneyLead>
 
-        <JourneyForm onSubmit={() => loginMutation.mutate()}>
+        <JourneyForm onSubmit={handleSubmit}>
           <JourneyField label="Никнейм блогера">
             <JourneyInput
               autoComplete="username"
+              maxLength={64}
               value={form.nickname}
-              onChange={(event) => setForm((current) => ({ ...current, nickname: event.target.value }))}
+              onChange={(event) => {
+                setError("");
+                setForm((current) => ({ ...current, nickname: event.target.value }));
+              }}
               placeholder="nickname"
             />
           </JourneyField>
@@ -115,7 +131,10 @@ export const BloggerLoginScreen = () => {
               type="password"
               autoComplete="current-password"
               value={form.password}
-              onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+              onChange={(event) => {
+                setError("");
+                setForm((current) => ({ ...current, password: event.target.value }));
+              }}
               placeholder="••••••••"
             />
           </JourneyField>
