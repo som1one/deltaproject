@@ -233,6 +233,8 @@ class BloggerProfileResponse(BaseModel):
     reviews_count: int = 0
     description: str
     portfolio_links: list[str] = Field(default_factory=list)
+    # Обложки работ — параллельно portfolio_links; None = обложки нет.
+    portfolio_covers: list[str | None] = Field(default_factory=list)
     social_links: list[str]
     photo_url: str | None = None
     preferred_contact: str | None = None
@@ -256,6 +258,26 @@ class BloggerSelfProfileResponse(BloggerProfileResponse):
     latest_audience_submission: AudienceSubmissionResponse | None = None
 
 
+def _clean_portfolio_covers(v: list[str | None] | None) -> list[str | None] | None:
+    """Обложки портфолио: пустые строки → None, ссылки — /uploads/ или http(s)."""
+    if v is None:
+        return v
+    if len(v) > 5:
+        raise ValueError("Максимум 5 обложек портфолио")
+    cleaned: list[str | None] = []
+    for cover in v:
+        if cover is None or not str(cover).strip():
+            cleaned.append(None)
+            continue
+        url = str(cover).strip()
+        if len(url) > 2048:
+            raise ValueError("Слишком длинная ссылка на обложку")
+        if not url.startswith(("/uploads/", "http://", "https://")):
+            raise ValueError(f"Некорректная ссылка на обложку: {url}")
+        cleaned.append(url)
+    return cleaned
+
+
 class BloggerProfileCreateRequest(BaseModel):
     """Запрос на создание профиля блогера (онбординг)."""
 
@@ -266,8 +288,14 @@ class BloggerProfileCreateRequest(BaseModel):
     description: Annotated[str, Field(min_length=1, max_length=500)]
     social_links: Annotated[list[str], Field(min_length=1, max_length=10)]
     portfolio_links: Annotated[list[str] | None, Field(max_length=5)] = None
+    portfolio_covers: Annotated[list[str | None] | None, Field(max_length=5)] = None
     photo_url: str | None = None
     preferred_contact: Annotated[str | None, Field(max_length=100)] = None
+
+    @field_validator("portfolio_covers", mode="before")
+    @classmethod
+    def validate_portfolio_covers(cls, v: list[str | None] | None) -> list[str | None] | None:
+        return _clean_portfolio_covers(v)
 
     @field_validator("social_links", mode="before")
     @classmethod
@@ -308,12 +336,18 @@ class BloggerProfileUpdateRequest(BaseModel):
     description: Annotated[str | None, Field(min_length=1, max_length=500)] = None
     social_links: Annotated[list[str] | None, Field(min_length=1, max_length=10)] = None
     portfolio_links: Annotated[list[str] | None, Field(max_length=5)] = None
+    portfolio_covers: Annotated[list[str | None] | None, Field(max_length=5)] = None
     photo_url: str | None = None
     preferred_contact: Annotated[str | None, Field(max_length=100)] = None
     is_active: bool | None = None
     orders_enabled: bool | None = None
     show_portfolio: bool | None = None
     show_socials: bool | None = None
+
+    @field_validator("portfolio_covers", mode="before")
+    @classmethod
+    def validate_portfolio_covers(cls, v: list[str | None] | None) -> list[str | None] | None:
+        return _clean_portfolio_covers(v)
 
     @field_validator("social_links", mode="before")
     @classmethod

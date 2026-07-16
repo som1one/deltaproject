@@ -30,6 +30,10 @@ type RequestInitWithAuth = RequestInit & {
   auth?: boolean;
 };
 
+/** Лимит загрузки изображений — совпадает с MAX_UPLOAD_BYTES бэкенда. */
+export const MAX_UPLOAD_MB = 15;
+export const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
 export class ApiError extends Error {
   status: number;
 
@@ -205,6 +209,7 @@ export type ProfileUpdateBody = Partial<{
   description: string;
   social_links: string[];
   portfolio_links: string[];
+  portfolio_covers: (string | null)[];
   photo_url: string | null;
   preferred_contact: string | null;
   is_active: boolean;
@@ -329,6 +334,9 @@ export const api = {
     }),
 
   uploadImage: async (file: File): Promise<{ url: string }> => {
+    if (file.size > MAX_UPLOAD_BYTES) {
+      throw new ApiError(`Файл больше ${MAX_UPLOAD_MB} МБ — сожмите изображение и попробуйте снова.`, 413);
+    }
     const doUpload = async (token: string) => {
       const formData = new FormData();
       formData.append("file", file);

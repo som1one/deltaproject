@@ -57,6 +57,12 @@ class BloggerProfile(Base):
         nullable=False,
         server_default=text("'[]'::json"),
     )
+    # Обложки работ — параллельный portfolio_links массив (None = без обложки).
+    portfolio_covers: Mapped[list] = mapped_column(
+        JSON,
+        nullable=False,
+        server_default=text("'[]'::json"),
+    )
     social_links: Mapped[list] = mapped_column(JSON, nullable=False)
     photo_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     preferred_contact: Mapped[str | None] = mapped_column(String(100), nullable=True)

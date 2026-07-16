@@ -29,7 +29,7 @@ import { categoryLabel } from "@/components/catalog/blogger-card";
 import { OfferCard } from "@/components/chat/offer-card";
 import { OfferModal } from "@/components/chat/offer-modal";
 import { dayKey, dayLabel, plural, roleCaption, timeShort } from "@/components/chat/chat-utils";
-import { api } from "@/lib/api";
+import { api, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { resolveUploadUrl } from "@/lib/config";
 import type { ChatMessage, Conversation as ConversationData, UserPeek } from "@/lib/types";
@@ -210,8 +210,8 @@ export function Conversation({ partnerId }: { partnerId: string }) {
       setSendError("Можно отправлять только изображения: JPEG, PNG, WebP, GIF.");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setSendError("Файл больше 5 МБ — сожмите изображение и попробуйте снова.");
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setSendError(`Файл больше ${MAX_UPLOAD_MB} МБ — сожмите изображение и попробуйте снова.`);
       return;
     }
     setSendError(null);

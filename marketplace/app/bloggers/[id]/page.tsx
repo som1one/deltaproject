@@ -13,6 +13,7 @@ import { Reveal } from "@/components/ui/motion";
 import { categoryLabel } from "@/components/catalog/blogger-card";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { resolveUploadUrl } from "@/lib/config";
 import { formatAudience, formatDate, formatMoney } from "@/lib/format";
 import type { BloggerProfileFull, Order } from "@/lib/types";
 
@@ -113,6 +114,11 @@ const DEMO_PROFILES: Record<string, BloggerProfileFull> = {
     portfolio_titles: [
       "Обзор iPhone 15 Pro: год спустя — стоит ли брать?",
       "MacBook Air M3 против ThinkPad — рабочая машина без компромиссов",
+    ],
+    // Первая работа с обложкой, вторая — плиткой площадки (оба варианта витрины)
+    portfolio_covers: [
+      "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=640&q=80&auto=format&fit=crop",
+      null,
     ],
     audience_age: [
       { label: "25–34", percent: 44 },
@@ -595,9 +601,22 @@ export default function BloggerProfilePage() {
                         {blogger.portfolio_links.map((link, i) => {
                           const s = detectSocial(link);
                           const title = blogger.portfolio_titles?.[i] ?? `Публикация ${i + 1}`;
+                          const cover = blogger.portfolio_covers?.[i] ?? null;
                           return (
                             <a key={link} href={link} target="_blank" rel="noreferrer" className={styles.portfolioItem}>
-                              <span className={styles.portfolioCover} style={s ? { background: s.color } : undefined}>
+                              <span
+                                className={styles.portfolioCover}
+                                style={!cover && s ? { background: s.color } : undefined}
+                              >
+                                {cover && (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    className={styles.portfolioCoverImg}
+                                    src={resolveUploadUrl(cover) ?? cover}
+                                    alt=""
+                                    loading="lazy"
+                                  />
+                                )}
                                 <svg className={styles.portfolioLogo} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                                   <path d={s?.path ?? GLOBE_PATH} />
                                 </svg>

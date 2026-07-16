@@ -132,6 +132,8 @@ export type BloggerProfileFull = BloggerCard & {
   portfolio_links: string[];
   /** Названия публикаций из портфолио, параллельно portfolio_links. */
   portfolio_titles?: string[] | null;
+  /** Обложки работ, параллельно portfolio_links; null — без обложки. */
+  portfolio_covers?: (string | null)[] | null;
   social_links: string[];
   preferred_contact: string | null;
   orders_enabled: boolean;

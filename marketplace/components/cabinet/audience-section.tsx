@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BadgeCheck, ImagePlus, Plus, X } from "lucide-react";
 
 import { Modal } from "@/components/ui/bits";
-import { api } from "@/lib/api";
+import { api, MAX_UPLOAD_MB } from "@/lib/api";
 import { resolveUploadUrl } from "@/lib/config";
 import { formatAudience, formatDate } from "@/lib/format";
 import type { AudienceGroup, AudienceStats, BloggerSelfProfile } from "@/lib/types";
@@ -31,6 +31,28 @@ const toGroups = (rows: GroupRow[]): AudienceGroup[] =>
 const groupsToText = (groups: AudienceGroup[] | null | undefined): string | null => {
   if (!groups || groups.length === 0) return null;
   return groups.map((g) => `${g.label} — ${g.percent}%`).join(" · ");
+};
+
+const parsePct = (value: string) => Number(value.replace(",", "."));
+const fmtPct = (value: number) => String(Math.round(value * 10) / 10);
+
+/** Быстрая проверка рядов «группа + процент»: полнота, диапазон, сумма ≤ 100. */
+const groupRowsIssue = (rows: GroupRow[]): string | null => {
+  let sum = 0;
+  for (const row of rows) {
+    const label = row.label.trim();
+    const hasPct = row.percent.trim().length > 0;
+    if (!label && !hasPct) continue; // пустая строка не мешает
+    if (!label) return "У группы с процентом не заполнено название.";
+    if (!hasPct) return `У группы «${label}» не указан процент.`;
+    const pct = parsePct(row.percent);
+    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+      return `Процент «${label}» — число от 0 до 100.`;
+    }
+    sum += pct;
+  }
+  if (sum > 100.001) return `Сумма процентов ${fmtPct(sum)}% — больше 100%.`;
+  return null;
 };
 
 /** Редактор рядов «группа + процент» для модалки. */
@@ -146,14 +168,42 @@ export function AudienceSection({ profile }: { profile: BloggerSelfProfile }) {
     onError: (e) => setError(e instanceof Error ? e.message : "Не удалось отправить заявку"),
   });
 
+  // ── Живая валидация: подсказки появляются под секцией по мере ввода ──
+  const mainIssue = useMemo(() => {
+    if (subscribers.trim() && Number(subscribers) === 0) return "Подписчиков не может быть 0.";
+    if (avgViews.trim() && Number(avgViews) === 0) return "Средние просмотры не могут быть 0.";
+    return null;
+  }, [subscribers, avgViews]);
+
+  const genderIssue = useMemo(() => {
+    if (!female.trim() && !male.trim()) return null;
+    if (!female.trim() || !male.trim()) return "Заполните оба поля — либо оставьте раздел пустым.";
+    const f = parsePct(female);
+    const m = parsePct(male);
+    if (!Number.isFinite(f) || !Number.isFinite(m) || f < 0 || m < 0 || f > 100 || m > 100) {
+      return "Проценты — числа от 0 до 100.";
+    }
+    if (Math.abs(f + m - 100) > 0.001) return `Сумма должна быть 100% — сейчас ${fmtPct(f + m)}%.`;
+    return null;
+  }, [female, male]);
+
+  const agesIssue = useMemo(() => groupRowsIssue(ages), [ages]);
+  const geoIssue = useMemo(() => groupRowsIssue(geo), [geo]);
+  const devicesIssue = useMemo(() => groupRowsIssue(devices), [devices]);
+  const firstIssue = mainIssue ?? genderIssue ?? agesIssue ?? geoIssue ?? devicesIssue;
+
   const handleSubmit = () => {
     setError(null);
+    if (firstIssue) {
+      setError(firstIssue);
+      return;
+    }
     if (screenshots.length === 0) {
       setError("Приложите хотя бы один скриншот статистики — без него платформа не сможет подтвердить данные.");
       return;
     }
-    const femaleNum = Number(female.replace(",", "."));
-    const maleNum = Number(male.replace(",", "."));
+    const femaleNum = parsePct(female);
+    const maleNum = parsePct(male);
     const payload: AudienceStats = {
       audience_age: toGroups(ages).length ? toGroups(ages) : null,
       audience_geo: toGroups(geo).length ? toGroups(geo) : null,
@@ -286,6 +336,7 @@ export function AudienceSection({ profile }: { profile: BloggerSelfProfile }) {
               />
             </label>
           </div>
+          {mainIssue && <p className={ui.errorText}>{mainIssue}</p>}
         </div>
 
         <div className={s.modalSection}>
@@ -312,18 +363,21 @@ export function AudienceSection({ profile }: { profile: BloggerSelfProfile }) {
               />
             </label>
           </div>
+          {genderIssue && <p className={ui.errorText}>{genderIssue}</p>}
         </div>
 
         <div className={s.modalSection}>
           <div className={s.modalSectionTitle}>Возраст</div>
           <div className={s.modalSectionHint}>До {AGE_MAX} групп, например «18–24».</div>
           <GroupRowsEditor rows={ages} onChange={setAges} max={AGE_MAX} labelPlaceholder="18–24" ariaLabel="Возраст" />
+          {agesIssue && <p className={ui.errorText}>{agesIssue}</p>}
         </div>
 
         <div className={s.modalSection}>
           <div className={s.modalSectionTitle}>География</div>
           <div className={s.modalSectionHint}>До {GEO_MAX} регионов или стран.</div>
           <GroupRowsEditor rows={geo} onChange={setGeo} max={GEO_MAX} labelPlaceholder="Россия" ariaLabel="География" />
+          {geoIssue && <p className={ui.errorText}>{geoIssue}</p>}
         </div>
 
         <div className={s.modalSection}>
@@ -336,12 +390,14 @@ export function AudienceSection({ profile }: { profile: BloggerSelfProfile }) {
             labelPlaceholder="Mobile"
             ariaLabel="Устройства"
           />
+          {devicesIssue && <p className={ui.errorText}>{devicesIssue}</p>}
         </div>
 
         <div className={s.modalSection}>
           <div className={s.modalSectionTitle}>Скриншоты статистики</div>
           <div className={s.modalSectionHint}>
-            Хотя бы один — из кабинета площадки, чтобы платформа могла сверить цифры.
+            Хотя бы один — из кабинета площадки, чтобы платформа могла сверить цифры. JPG, PNG или WebP до{" "}
+            {MAX_UPLOAD_MB} МБ.
           </div>
           <div className={s.shotsGrid}>
             {screenshots.map((url) => (
@@ -379,7 +435,7 @@ export function AudienceSection({ profile }: { profile: BloggerSelfProfile }) {
           />
         </div>
 
-        {error && <p className={ui.inputError}>{error}</p>}
+        {error && <p className={ui.errorText}>{error}</p>}
 
         <div className={s.modalActions}>
           <button type="button" className={ui.btnLine} onClick={() => setOpen(false)}>

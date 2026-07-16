@@ -444,6 +444,60 @@
   border-color: var(--line-strong);
 }
 
+/* ── Обложка работы в строке портфолио ────────────────────── */
+
+.pfCover {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.pfCoverPick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: pointer;
+  overflow: hidden;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+
+.pfCoverPick:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.pfCoverPick[data-uploading] {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.pfCoverPick img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pfCoverClear {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(11, 11, 13, 0.72);
+  color: #fff;
+  cursor: pointer;
+}
+
 .addLink {
   align-self: stretch;
   display: flex;

@@ -37,6 +37,7 @@ def _make_profile(user_id: uuid.UUID) -> BloggerProfile:
     profile.reviews_count = 0
     profile.description = "Тестовый блогер"
     profile.portfolio_links = ["https://example.com/portfolio"]
+    profile.portfolio_covers = [None]
     profile.social_links = ["https://instagram.com/test"]
     profile.photo_url = None
     profile.preferred_contact = "telegram"

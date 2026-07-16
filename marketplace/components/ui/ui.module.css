@@ -320,6 +320,21 @@
   color: var(--text);
 }
 
+/* Подсказка под полем */
+.fieldHint {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* Текст ошибки под полем/секцией формы */
+.errorText {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--danger-ink);
+}
+
 .input,
 .textarea,
 .select {
@@ -653,6 +668,12 @@
   border: 1px solid var(--line);
   background: var(--surface);
   box-shadow: var(--shadow-lg);
+  /* Прокрутка есть, полосы не видно — как у лент фильтров */
+  scrollbar-width: none;
+}
+
+.modalCard::-webkit-scrollbar {
+  display: none;
 }
 
 .modalBar {

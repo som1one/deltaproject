@@ -101,6 +101,11 @@ async def _latest_submission(
     return AudienceSubmissionResponse.model_validate(submission)
 
 
+def _align_covers(covers: list[str | None], links: list[str]) -> list[str | None]:
+    """Обложки строго параллельны ссылкам: обрезаем лишнее, добиваем None."""
+    return (list(covers) + [None] * len(links))[: len(links)]
+
+
 async def _self_profile_response(
     db: AsyncSession, profile: BloggerProfile, user: User
 ) -> BloggerSelfProfileResponse:
@@ -120,6 +125,7 @@ async def _self_profile_response(
         reviews_count=profile.reviews_count,
         description=profile.description,
         portfolio_links=profile.portfolio_links or [],
+        portfolio_covers=profile.portfolio_covers or [],
         social_links=profile.social_links or [],
         photo_url=profile.photo_url,
         preferred_contact=profile.preferred_contact,
@@ -168,6 +174,8 @@ async def create_profile(
             detail="Профиль маркетплейса уже существует",
         )
 
+    links = body.portfolio_links or []
+    covers = _align_covers(body.portfolio_covers or [], links)
     profile = BloggerProfile(
         user_id=user.id,
         category=body.category,
@@ -176,7 +184,8 @@ async def create_profile(
         average_price_kopeks=body.average_price_kopeks,
         description=body.description,
         social_links=body.social_links,
-        portfolio_links=body.portfolio_links or [],
+        portfolio_links=links,
+        portfolio_covers=covers,
         photo_url=body.photo_url,
         preferred_contact=body.preferred_contact,
     )
@@ -213,6 +222,7 @@ async def update_profile(
         "description",
         "social_links",
         "portfolio_links",
+        "portfolio_covers",
         "is_active",
         "orders_enabled",
         "show_portfolio",
@@ -223,6 +233,13 @@ async def update_profile(
         for field, value in update_data.items()
         if not (value is None and field in non_nullable)
     }
+
+    # Обложки всегда параллельны ссылкам — независимо от того, что из пары
+    # пришло в этом PATCH (лишнее обрезаем, недостающее добиваем None).
+    if "portfolio_links" in update_data or "portfolio_covers" in update_data:
+        links = update_data.get("portfolio_links", profile.portfolio_links or [])
+        covers = update_data.get("portfolio_covers", profile.portfolio_covers or [])
+        update_data["portfolio_covers"] = _align_covers(covers, links)
 
     # Число подписчиков после подтверждения аудитории фиксирует админ;
     # самостоятельное изменение снимает бейдж «подтверждено».

@@ -12,12 +12,20 @@ import type { BloggerSelfProfile, MarketplaceCategory } from "@/lib/types";
 
 import ui from "@/components/ui/ui.module.css";
 import { SELF_PROFILE_KEY } from "./keys";
-import { LinkListEditor } from "./link-list";
+import { LinkListEditor, PortfolioListEditor, type PortfolioItem } from "./link-list";
 import s from "./cabinet.module.css";
 
 const DESCRIPTION_MAX = 500;
 const SOCIALS_MAX = 10;
 const PORTFOLIO_MAX = 5;
+
+// Значения совпадают с BloggerGender бэкенда и фильтром «Автор» в каталоге.
+const GENDER_OPTIONS = [
+  { value: "", label: "Не указан" },
+  { value: "female", label: "Женский" },
+  { value: "male", label: "Мужской" },
+  { value: "other", label: "Другое" },
+];
 
 const cleanLinks = (links: string[]) => links.map((l) => l.trim()).filter(Boolean);
 
@@ -38,9 +46,12 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
   const [uploading, setUploading] = useState(false);
   const [description, setDescription] = useState(profile.description ?? "");
   const [category, setCategory] = useState(profile.category ?? "");
+  const [gender, setGender] = useState(profile.gender ?? "");
   const [socials, setSocials] = useState<string[]>(profile.social_links.length ? profile.social_links : [""]);
   const [showSocials, setShowSocials] = useState(profile.show_socials ?? true);
-  const [portfolio, setPortfolio] = useState<string[]>(profile.portfolio_links);
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>(() =>
+    profile.portfolio_links.map((url, i) => ({ url, cover: profile.portfolio_covers?.[i] ?? null })),
+  );
   const [showPortfolio, setShowPortfolio] = useState(profile.show_portfolio ?? true);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -87,15 +98,22 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
   };
 
   const save = useMutation({
-    mutationFn: () =>
-      api.updateSelfProfile({
+    mutationFn: () => {
+      // Пустые строки выбрасываем парой «ссылка + обложка», чтобы массивы не разъехались
+      const works = portfolio
+        .map((it) => ({ url: it.url.trim(), cover: it.cover }))
+        .filter((it) => it.url);
+      return api.updateSelfProfile({
         description: description.trim(),
         category: category || undefined,
+        gender: gender || null,
         social_links: cleanLinks(socials),
-        portfolio_links: cleanLinks(portfolio),
+        portfolio_links: works.map((it) => it.url),
+        portfolio_covers: works.map((it) => it.cover),
         show_socials: showSocials,
         show_portfolio: showPortfolio,
-      }),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SELF_PROFILE_KEY });
       setSaved(true);
@@ -129,7 +147,7 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
     categoryOptions.find((o) => o.value === category)?.label || category || "Категория не выбрана";
 
   const socialCount = cleanLinks(socials).length;
-  const portfolioCount = cleanLinks(portfolio).length;
+  const portfolioCount = portfolio.filter((it) => it.url.trim()).length;
   const socialSummary =
     (socialCount ? `${socialCount} ${plural(socialCount, ["ссылка", "ссылки", "ссылок"])}` : "Не добавлены") +
     ` · ${showSocials ? "видно" : "скрыто"} в карточке`;
@@ -148,7 +166,7 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
   const bid = (k: ProfileSection) => `${uid}-${k}-b`;
 
   const groups: { key: ProfileSection; title: string; summary: string; icon: typeof UserRound; empty?: boolean }[] = [
-    { key: "main", title: "Основное", summary: "Фото и категория", icon: UserRound },
+    { key: "main", title: "Основное", summary: "Фото, категория и пол", icon: UserRound },
     {
       key: "about",
       title: "О себе",
@@ -264,6 +282,16 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
                         ariaLabel="Категория контента"
                       />
                     </div>
+                    <div className={ui.field}>
+                      <span className={ui.fieldLabel}>Пол</span>
+                      <Select
+                        value={gender}
+                        onChange={setGender}
+                        options={GENDER_OPTIONS}
+                        ariaLabel="Пол автора"
+                      />
+                      <span className={ui.fieldHint}>По нему работает фильтр «Автор» в каталоге.</span>
+                    </div>
                   </>
                 )}
 
@@ -312,14 +340,16 @@ export function ProfileEditor({ profile }: { profile: BloggerSelfProfile }) {
                         ariaLabel="Показывать портфолио в карточке"
                       />
                     </div>
-                    <LinkListEditor
+                    <PortfolioListEditor
                       items={portfolio}
                       onChange={setPortfolio}
                       max={PORTFOLIO_MAX}
-                      placeholder="https://ссылка-на-публикацию"
-                      addLabel="Добавить работу"
-                      ariaLabel="Портфолио"
+                      onError={setError}
                     />
+                    <span className={ui.fieldHint}>
+                      Квадрат слева — обложка работы: с ней публикация в карточке выглядит как превью, а не
+                      ссылка.
+                    </span>
                   </>
                 )}
               </div>

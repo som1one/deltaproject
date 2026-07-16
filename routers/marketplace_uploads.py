@@ -2,7 +2,7 @@
 
 Файлы сохраняются в локальную директорию (settings.uploads_dir) и
 раздаются приложением по /uploads/... Ограничения: только изображения,
-до 5 МБ.
+до 15 МБ.
 """
 
 from __future__ import annotations
@@ -20,7 +20,8 @@ from models.user import User
 
 router = APIRouter(prefix="/marketplace/uploads", tags=["marketplace-uploads"])
 
-MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+# 15 МБ: скриншоты статистики с ретины и телефонов спокойно весят 6–10 МБ
+MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 _ALLOWED_TYPES: dict[str, str] = {
     "image/jpeg": ".jpg",
     "image/png": ".png",
@@ -65,7 +66,7 @@ async def upload_image(
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="Файл больше 5 МБ",
+            detail="Файл больше 15 МБ",
         )
     if not data:
         raise HTTPException(
