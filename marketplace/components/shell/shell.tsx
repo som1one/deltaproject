@@ -19,7 +19,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { useQuery } from "@tanstack/react-query";
+
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import type { ThreadsList } from "@/lib/types";
 import { Portrait } from "@/components/ui/bits";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -53,11 +57,13 @@ const MobileRow = ({
   href,
   label,
   active,
+  badge,
   onClick,
 }: {
   href: string;
   label: string;
   active: boolean;
+  badge?: string;
   onClick: () => void;
 }) => {
   const Icon = NAV_ICONS[href] ?? Home;
@@ -73,6 +79,11 @@ const MobileRow = ({
           <Icon size={19} strokeWidth={2} />
         </span>
         <span className={styles.mobileRowLabel}>{label}</span>
+        {badge != null && (
+          <span className={styles.mobileRowBadge} aria-label={`непрочитанные: ${badge}`}>
+            {badge}
+          </span>
+        )}
       </Link>
     </li>
   );
@@ -89,6 +100,18 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
   const [scrolled, setScrolled] = useState(false);
   const acctRef = useRef<HTMLDivElement>(null);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+  // Непрочитанные чаты для бейджа на «Чаты». Ключ общий со списком тредов:
+  // на /chats он же поллится каждые 5 с, а прочтение диалога инвалидирует
+  // кэш — бейдж гаснет сразу, без ожидания следующего опроса.
+  const { data: threads } = useQuery<ThreadsList>({
+    queryKey: ["chat-threads"],
+    queryFn: api.getThreads,
+    enabled: isHydrated && isAuthenticated && (isBlogger || isClient),
+    refetchInterval: 30_000,
+  });
+  const unreadChats = threads?.total_unread ?? 0;
+  const unreadLabel = unreadChats > 99 ? "99+" : String(unreadChats);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -195,6 +218,11 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
                 className={pathname === href ? styles.navLinkActive : styles.navLink}
               >
                 {label}
+                {href === "/chats" && unreadChats > 0 && (
+                  <span className={styles.navBadge} aria-label={`непрочитанные: ${unreadChats}`}>
+                    {unreadLabel}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
@@ -262,6 +290,9 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
               <span className={styles.burgerLine} />
               <span className={styles.burgerLine} />
               <span className={styles.burgerLine} />
+              {unreadChats > 0 && !menuOpen && (
+                <span className={styles.burgerDot} aria-hidden="true" />
+              )}
             </button>
           </div>
         </div>
@@ -300,6 +331,7 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
                       href={href}
                       label={label}
                       active={pathname === href}
+                      badge={href === "/chats" && unreadChats > 0 ? unreadLabel : undefined}
                       onClick={closeMenu}
                     />
                   ))}
