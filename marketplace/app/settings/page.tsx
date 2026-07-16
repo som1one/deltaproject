@@ -31,7 +31,12 @@ const errText = (err: Error, fallback: string) =>
 export default function SettingsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { isHydrated, isAuthenticated } = useAuth();
+  const { isHydrated, isAuthenticated, isWorker } = useAuth();
+
+  // Блогеры и заказчики общаются только в чате платформы — контактных
+  // мессенджеров у них в профиле нет. Telegram остаётся воркерам: с ними
+  // платформа связывается напрямую.
+  const showTelegram = isWorker;
 
   useEffect(() => {
     if (isHydrated && !isAuthenticated) router.replace("/auth/login?next=/settings");
@@ -148,7 +153,9 @@ export default function SettingsPage() {
             <span className={s.mark}>Настройки аккаунта</span>
           </h1>
           <p className={styles.sub}>
-            Профиль и безопасность: обновите имя, почту и Telegram или смените пароль.
+            {showTelegram
+              ? "Профиль и безопасность: обновите имя, почту и Telegram или смените пароль."
+              : "Профиль и безопасность: обновите имя и почту или смените пароль."}
           </p>
         </header>
 
@@ -157,7 +164,11 @@ export default function SettingsPage() {
           <section className={styles.section}>
             <div>
               <h2 className={styles.sectionTitle}>Профиль</h2>
-              <p className={styles.sectionDesc}>Имя, почта и Telegram для связи по сделкам.</p>
+              <p className={styles.sectionDesc}>
+                {showTelegram
+                  ? "Имя, почта и Telegram для связи по сделкам."
+                  : "Имя и почта аккаунта. Общение по сделкам — в чате платформы."}
+              </p>
             </div>
             <div className={styles.sectionBody}>
               {profileNotice && (
@@ -192,16 +203,18 @@ export default function SettingsPage() {
                     onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                   />
                 </label>
-                <label className={ui.field}>
-                  <span className={ui.fieldLabel}>Telegram</span>
-                  <input
-                    className={ui.input}
-                    value={form.telegram}
-                    maxLength={255}
-                    placeholder="@username"
-                    onChange={(e) => setForm((p) => ({ ...p, telegram: e.target.value }))}
-                  />
-                </label>
+                {showTelegram && (
+                  <label className={ui.field}>
+                    <span className={ui.fieldLabel}>Telegram</span>
+                    <input
+                      className={ui.input}
+                      value={form.telegram}
+                      maxLength={255}
+                      placeholder="@username"
+                      onChange={(e) => setForm((p) => ({ ...p, telegram: e.target.value }))}
+                    />
+                  </label>
+                )}
                 <div className={styles.formActions}>
                   <button className={ui.btnPrimary} type="submit" disabled={profileMutation.isPending}>
                     {profileMutation.isPending ? "Сохраняем…" : "Сохранить"}

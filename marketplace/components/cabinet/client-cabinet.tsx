@@ -159,7 +159,6 @@ export function ClientCabinet() {
               <Row k="Имя" v={displayName} />
               {me?.email && <Row k="Почта" v={me.email} />}
               {me?.nickname && <Row k="Ник" v={`@${me.nickname}`} />}
-              {me?.telegram && <Row k="Telegram" v={me.telegram} />}
               <Row k="Роль" v="Заказчик" />
             </div>
             <Link

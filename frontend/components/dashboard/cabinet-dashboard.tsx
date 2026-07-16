@@ -378,7 +378,7 @@ const DealDetailsModal = ({
   const saveMutation = useMutation({
     mutationFn: () => api.patchDealFields(deal.id, buildDealPatchPayload(form, deal)),
     onSuccess: () => {
-      pushToast("Рзменения сохранены.", "success");
+      pushToast("Изменения сохранены.", "success");
       queryClient.invalidateQueries({ queryKey: ["me", "deals"] });
       queryClient.invalidateQueries({ queryKey: ["me", "stats"] });
       onSaved?.();
@@ -603,7 +603,7 @@ const DealDetailsModal = ({
                     </li>
                   ) : null}
                   <li className={styles.dealFinanceTotal}>
-                    <span className={styles.dealFinanceLabel}>Ртого по сделке</span>
+                    <span className={styles.dealFinanceLabel}>Итого по сделке</span>
                     <span className={styles.dealFinanceValue}>{formatMoney(finalPrice)}</span>
                   </li>
                 </ul>
@@ -839,7 +839,9 @@ const IdentityHeader = ({
               <code>@{me.nickname}</code>
             </span>
           ) : null}
-          {me.telegram ? (
+          {/* Контакт-мессенджер показываем только воркеру: с блогерами и
+              заказчиками платформа общается во встроенном чате */}
+          {me.telegram && me.role === "Worker" ? (
             <span className={styles.identityMeta}>
               <Icon d={ICONS.tg} />
               <code>{me.telegram}</code>
@@ -920,6 +922,10 @@ const ProfileSection = ({
 }) => {
   const [profileForm, setProfileForm] = useState(buildProfileForm(me));
 
+  // Telegram в профиле видят только воркеры; блогерам он не показывается —
+  // их общение с заказчиками идёт во встроенном чате маркетплейса.
+  const showTelegram = me.role === "Worker";
+
   useEffect(() => {
     setProfileForm(buildProfileForm(me));
   }, [me]);
@@ -927,13 +933,17 @@ const ProfileSection = ({
   return (
     <SectionCard
       title="Профиль и реквизиты"
-      lead="Рмя редактируете вы, никнейм и Telegram управляются администратором. Карта для выплат хранится в виде хеша — мы видим только последние 4 цифры."
+      lead={
+        showTelegram
+          ? "Имя редактируете вы, никнейм и Telegram управляются администратором. Карта для выплат хранится в виде хеша — мы видим только последние 4 цифры."
+          : "Имя редактируете вы, никнейм управляется администратором. Карта для выплат хранится в виде хеша — мы видим только последние 4 цифры."
+      }
     >
       <div className={styles.profileGrid}>
         <div className={styles.profileBlock}>
           <p className={styles.profileBlockTitle}>Контакты</p>
           <TwoColumn>
-            <Field label="Рмя">
+            <Field label="Имя">
               <TextInput
                 value={profileForm.name}
                 onChange={(event) => setProfileForm({ ...profileForm, name: event.target.value })}
@@ -944,13 +954,13 @@ const ProfileSection = ({
               <Field label="Никнейм">
                 <TextInput value={me.nickname} readOnly disabled />
               </Field>
-            ) : (
+            ) : showTelegram ? (
               <Field label="Telegram">
                 <TextInput value={me.telegram || "—"} readOnly disabled />
               </Field>
-            )}
+            ) : null}
           </TwoColumn>
-          {me.nickname ? (
+          {me.nickname && showTelegram ? (
             <Field label="Telegram">
               <TextInput value={me.telegram || "—"} readOnly disabled />
             </Field>
@@ -1276,7 +1286,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
 
               <SectionCard
                 title="Финансы"
-                lead="Рстория начислений, заморозок и выплат."
+                lead="История начислений, заморозок и выплат."
               >
                 <div className={styles.toolbarRow}>
                   <div className={styles.toolbarFilters}>
@@ -1298,7 +1308,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
                 ) : filteredLedger.length === 0 ? (
                   <EmptyState
                     icon={<Icon d={ICONS.finance} />}
-                    title="Рстория пуста"
+                    title="История пуста"
                     text="Здесь появятся ваши начисления и выплаты."
                   />
                 ) : (
@@ -1991,7 +2001,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                 </Stack>
               </SectionCard>
 
-              <SectionCard title="Рстория операций" lead="Начисления, заморозки, запросы и завершённые выплаты.">
+              <SectionCard title="История операций" lead="Начисления, заморозки, запросы и завершённые выплаты.">
                 <div className={styles.toolbarRow}>
                   <div className={styles.toolbarFilters}>
                     <SelectInput
@@ -2012,7 +2022,7 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
                 ) : filteredLedger.length === 0 ? (
                   <EmptyState
                     icon={<Icon d={ICONS.finance} />}
-                    title="Рстория пуста"
+                    title="История пуста"
                     text="Здесь появятся ваши начисления и выплаты."
                   />
                 ) : (

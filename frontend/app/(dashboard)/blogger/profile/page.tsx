@@ -36,7 +36,6 @@ export default function BloggerProfilePage() {
   const [priceRubles, setPriceRubles] = useState("");
   const [description, setDescription] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
-  const [preferredContact, setPreferredContact] = useState("");
   const [socialLinks, setSocialLinks] = useState<string[]>([""]);
   const [portfolioLinks, setPortfolioLinks] = useState<string[]>([""]);
   const [notice, setNotice] = useState("");
@@ -73,7 +72,6 @@ export default function BloggerProfilePage() {
     setPriceRubles(String(profile.average_price_kopeks / 100));
     setDescription(profile.description);
     setPhotoUrl(profile.photo_url ?? "");
-    setPreferredContact(profile.preferred_contact ?? "");
     setSocialLinks(profile.social_links.length ? profile.social_links : [""]);
     setPortfolioLinks(profile.portfolio_links.length ? profile.portfolio_links : [""]);
   }, [profile]);
@@ -100,7 +98,8 @@ export default function BloggerProfilePage() {
           social_links: social,
           portfolio_links: portfolio,
           photo_url: photoUrl.trim() || null,
-          preferred_contact: preferredContact.trim() || null,
+          // Контакт-мессенджеры скрыты: общение с заказчиком — в чате платформы.
+          // Поле не шлём вовсе (PATCH с exclude_unset не трогает старое значение).
         }),
       });
 
@@ -192,15 +191,6 @@ export default function BloggerProfilePage() {
                   type="number"
                   value={priceRubles}
                   onChange={(event) => setPriceRubles(event.target.value)}
-                />
-              </label>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>Предпочтительный контакт</span>
-                <input
-                  className={styles.lineInput}
-                  placeholder="@telegram или email"
-                  value={preferredContact}
-                  onChange={(event) => setPreferredContact(event.target.value)}
                 />
               </label>
             </div>

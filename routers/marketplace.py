@@ -295,9 +295,12 @@ async def get_blogger(
         description=profile.description,
         # Автор управляет видимостью блоков публичной карточки
         portfolio_links=(profile.portfolio_links or []) if profile.show_portfolio else [],
+        portfolio_covers=(profile.portfolio_covers or []) if profile.show_portfolio else [],
         social_links=(profile.social_links or []) if profile.show_socials else [],
         photo_url=profile.photo_url,
-        preferred_contact=profile.preferred_contact,
+        # Контакты автора наружу не отдаём: общение сторон — только в чате
+        # платформы. Поле остаётся в схеме ради совместимости клиентов.
+        preferred_contact=None,
         is_active=profile.is_active,
         orders_enabled=profile.orders_enabled,
         price_list=await _public_price_list(db, profile.id),
