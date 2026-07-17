@@ -244,13 +244,10 @@ class PaymentService:
             logger.warning(
                 "YooKassa create payment failed: %s %s", response.status_code, msg
             )
-            # Update order to PAYMENT_FAILED
-            await db.execute(
-                update(MarketplaceOrder)
-                .where(MarketplaceOrder.id == order_id)
-                .values(status=MarketplaceOrderStatus.PAYMENT_FAILED.value)
-            )
-            await db.commit()
+            # НЕ роняем заказ в PAYMENT_FAILED: ошибка *создания* платежа
+            # (конфиг ЮKassa, чек 54-ФЗ, сеть) не должна делать сделку
+            # терминальной. Заказ остаётся PENDING_PAYMENT — клиент видит
+            # ошибку и может повторить «Оплатить онлайн».
             raise PaymentServiceError(f"Ошибка создания платежа: {msg}")
 
         payment_id = body.get("id")

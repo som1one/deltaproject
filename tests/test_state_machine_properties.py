@@ -13,8 +13,10 @@ from services.order_state_machine import ALLOWED_TRANSITIONS, validate_transitio
 # Все значения статусов
 statuses = [s.value for s in MarketplaceOrderStatus]
 
-# Терминальные статусы — из них нет допустимых переходов
-TERMINAL_STATUSES = {"COMPLETED", "REFUNDED", "CANCELLED", "PAYMENT_FAILED"}
+# Терминальные статусы — из них нет допустимых переходов.
+# PAYMENT_FAILED сюда НЕ входит: из него можно вернуться к оплате
+# (PAYMENT_FAILED → PENDING_PAYMENT), см. ALLOWED_TRANSITIONS.
+TERMINAL_STATUSES = {"COMPLETED", "REFUNDED", "CANCELLED", "OFFER_DECLINED"}
 
 
 class TestStateMachineProperty:
@@ -50,6 +52,6 @@ class TestStateMachineProperty:
     )
     @settings(max_examples=200)
     def test_terminal_states_no_outgoing_transitions(self, current: str, target: str) -> None:
-        """Терминальные статусы (COMPLETED, REFUNDED, CANCELLED, PAYMENT_FAILED)
+        """Терминальные статусы (COMPLETED, REFUNDED, CANCELLED, OFFER_DECLINED)
         никогда не допускают переходов ни в какой другой статус."""
         assert validate_transition(current, target) is False

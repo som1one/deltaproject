@@ -255,6 +255,11 @@ def _available_actions(order: MarketplaceOrder, user: User) -> list[str]:
             if order.payment_reported_at is None:
                 actions.append("mark_paid")
 
+    if order_status == MarketplaceOrderStatus.PAYMENT_FAILED.value:
+        # Несостоявшаяся оплата — не тупик: заказчик может вернуться к оплате.
+        if is_client:
+            actions.append("retry_payment")
+
     if order_status == MarketplaceOrderStatus.ESCROW_HELD.value:
         if is_blogger:
             actions.append("submit_work")
@@ -634,6 +639,51 @@ async def cancel_order(
         actor_id=user.id,
         text="Предложение отозвано." if was_offer else "Заказ отменён.",
     )
+
+    await db.commit()
+    await db.refresh(order)
+    return OrderResponse.model_validate(order)
+
+
+@router.patch("/{order_id}/retry-payment", response_model=OrderResponse)
+async def retry_payment(
+    order_id: uuid.UUID,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OrderResponse:
+    """Вернуть несостоявшуюся оплату к оплате: PAYMENT_FAILED → PENDING_PAYMENT.
+
+    Доступно только заказчику-владельцу. Сбрасывает данные прошлой попытки
+    (payment_id / ссылка / отметка «перевёл»), чтобы можно было оплатить заново.
+    """
+    if user.role != UserRole.CLIENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Повторить оплату может только заказчик",
+        )
+
+    order = await _get_order_or_404(db, order_id, for_update=True)
+
+    if order.client_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Вы не являетесь владельцем этого заказа",
+        )
+
+    if order.status != MarketplaceOrderStatus.PAYMENT_FAILED.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Повторить оплату можно только для несостоявшейся оплаты",
+        )
+
+    order = await transition_order(
+        db, order, MarketplaceOrderStatus.PENDING_PAYMENT, user.id
+    )
+    # Чистим след прошлой попытки — новый платёж создаётся с нуля
+    order.yookassa_payment_id = None
+    order.payment_url = None
+    order.payment_expires_at = None
+    order.payment_reported_at = None
 
     await db.commit()
     await db.refresh(order)

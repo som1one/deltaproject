@@ -39,11 +39,15 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
         MarketplaceOrderStatus.ESCROW_HELD.value,
         MarketplaceOrderStatus.REFUNDED.value,
     },
+    # Оплата не прошла (онлайн-платёж отменён/просрочен) — НЕ терминал:
+    # заказчик может вернуться к оплате и попробовать снова.
+    MarketplaceOrderStatus.PAYMENT_FAILED.value: {
+        MarketplaceOrderStatus.PENDING_PAYMENT.value,
+    },
     # Терминальные статусы — переходов нет
     MarketplaceOrderStatus.COMPLETED.value: set(),
     MarketplaceOrderStatus.REFUNDED.value: set(),
     MarketplaceOrderStatus.CANCELLED.value: set(),
-    MarketplaceOrderStatus.PAYMENT_FAILED.value: set(),
     MarketplaceOrderStatus.OFFER_DECLINED.value: set(),
 }
 

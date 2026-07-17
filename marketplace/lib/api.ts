@@ -463,6 +463,12 @@ export const api = {
       auth: true,
     }),
 
+  retryPayment: (orderId: string) =>
+    request<Order>(`/marketplace/orders/${orderId}/retry-payment`, {
+      method: "PATCH",
+      auth: true,
+    }),
+
   createReview: (orderId: string, body: { rating: number; text?: string | null }) =>
     request<Review>(`/marketplace/orders/${orderId}/review`, {
       method: "POST",

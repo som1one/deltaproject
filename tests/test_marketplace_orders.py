@@ -736,3 +736,108 @@ async def test_confirm_order_403_wrong_client() -> None:
         assert r.status_code == 403
     finally:
         app.dependency_overrides.clear()
+
+
+# --- PATCH /marketplace/orders/{id}/retry-payment ---
+
+
+@pytest.mark.asyncio
+async def test_retry_payment_200_returns_to_pending() -> None:
+    """PAYMENT_FAILED → PENDING_PAYMENT для клиента-владельца; след прошлой попытки сброшен."""
+    app = create_app()
+    client = _make_client_user()
+    blogger = _make_blogger_user()
+    order = _make_order(
+        client.id, blogger.id, status=MarketplaceOrderStatus.PAYMENT_FAILED.value
+    )
+    order.yookassa_payment_id = "pay_old"
+    order.payment_url = "https://old"
+    order.payment_reported_at = datetime.now(timezone.utc)
+
+    app.dependency_overrides[get_current_user] = lambda: client
+
+    async def fake_db():
+        session = AsyncMock()
+        order_result = MagicMock()
+        order_result.scalar_one_or_none = MagicMock(return_value=order)
+        session.execute = AsyncMock(side_effect=[order_result])
+        session.commit = AsyncMock()
+        session.flush = AsyncMock()
+        session.add = MagicMock()
+
+        async def fake_refresh(obj):
+            pass
+
+        session.refresh = fake_refresh
+        yield session
+
+    app.dependency_overrides[get_db] = fake_db
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.patch(f"/marketplace/orders/{order.id}/retry-payment")
+        assert r.status_code == 200
+        assert r.json()["status"] == "PENDING_PAYMENT"
+        assert order.yookassa_payment_id is None
+        assert order.payment_url is None
+        assert order.payment_reported_at is None
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_retry_payment_400_wrong_status() -> None:
+    """retry-payment для заказа не в PAYMENT_FAILED → 400."""
+    app = create_app()
+    client = _make_client_user()
+    blogger = _make_blogger_user()
+    order = _make_order(
+        client.id, blogger.id, status=MarketplaceOrderStatus.PENDING_PAYMENT.value
+    )
+
+    app.dependency_overrides[get_current_user] = lambda: client
+
+    async def fake_db():
+        session = AsyncMock()
+        order_result = MagicMock()
+        order_result.scalar_one_or_none = MagicMock(return_value=order)
+        session.execute = AsyncMock(side_effect=[order_result])
+        session.commit = AsyncMock()
+        session.flush = AsyncMock()
+        session.add = MagicMock()
+        session.refresh = AsyncMock()
+        yield session
+
+    app.dependency_overrides[get_db] = fake_db
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.patch(f"/marketplace/orders/{order.id}/retry-payment")
+        assert r.status_code == 400
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_retry_payment_403_non_client() -> None:
+    """Не-клиент не может повторить оплату."""
+    app = create_app()
+    blogger = _make_blogger_user()
+    order = _make_order(
+        uuid.uuid4(), blogger.id, status=MarketplaceOrderStatus.PAYMENT_FAILED.value
+    )
+
+    app.dependency_overrides[get_current_user] = lambda: blogger
+
+    async def fake_db():
+        session = AsyncMock()
+        result = MagicMock()
+        result.scalar_one_or_none = MagicMock(return_value=order)
+        session.execute = AsyncMock(return_value=result)
+        yield session
+
+    app.dependency_overrides[get_db] = fake_db
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.patch(f"/marketplace/orders/{order.id}/retry-payment")
+        assert r.status_code == 403
+    finally:
+        app.dependency_overrides.clear()

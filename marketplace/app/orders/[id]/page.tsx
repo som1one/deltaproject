@@ -278,6 +278,15 @@ export default function OrderDetailPage() {
     onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
   });
 
+  const retryPaymentMutation = useMutation({
+    mutationFn: () => api.retryPayment(orderId),
+    onSuccess: () => {
+      setNotice({ tone: "success", text: "Сделка снова открыта к оплате." });
+      invalidate();
+    },
+    onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
+  });
+
   const payOnlineMutation = useMutation({
     mutationFn: () => api.createPayment(orderId),
     onSuccess: (data) => {
@@ -303,6 +312,7 @@ export default function OrderDetailPage() {
   const canDeclineOffer = actions.includes("decline_offer");
   const canCancel = actions.includes("cancel");
   const canMarkPaid = actions.includes("mark_paid");
+  const canRetryPayment = actions.includes("retry_payment");
   const canSubmitWork = actions.includes("submit_work");
   const canRequestChanges = actions.includes("request_changes");
   const canConfirm = actions.includes("confirm");
@@ -486,7 +496,23 @@ export default function OrderDetailPage() {
               )}
               {order.status === "PAYMENT_FAILED" && (
                 <StateBanner tone="danger" icon={<XCircle size={18} />} title="Оплата не прошла">
-                  Создайте сделку заново или обратитесь в поддержку — номер сделки выше.
+                  {canRetryPayment ? (
+                    <>
+                      Платёж не завершился. Можно вернуться к оплате и попробовать снова.
+                      <div style={{ marginTop: 14 }}>
+                        <button
+                          type="button"
+                          className={ui.btnPrimary}
+                          onClick={() => retryPaymentMutation.mutate()}
+                          disabled={retryPaymentMutation.isPending}
+                        >
+                          {retryPaymentMutation.isPending ? "Открываем оплату…" : "Оплатить заново"}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    "Создайте сделку заново или обратитесь в поддержку — номер сделки выше."
+                  )}
                 </StateBanner>
               )}
 
