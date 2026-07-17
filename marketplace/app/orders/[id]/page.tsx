@@ -5,13 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { Clock3, Hourglass, RotateCcw, Undo2, Wallet, XCircle } from "lucide-react";
+import { Hourglass, RotateCcw, Undo2, Wallet, XCircle } from "lucide-react";
 
 import { MarketShell } from "@/components/shell/shell";
 import { CopyButton, Modal, Portrait, StampBadge, StarRating } from "@/components/ui/bits";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { formatCardNumber, formatDate, formatDateTime, formatMoney } from "@/lib/format";
+import { formatDate, formatDateTime, formatMoney } from "@/lib/format";
 import { orderMoneyLocation } from "@/lib/order-status";
 import { dealNo } from "@/lib/registry";
 import type { OrderDetail, Review } from "@/lib/types";
@@ -21,19 +21,6 @@ import ui from "@/components/ui/ui.module.css";
 import styles from "@/app/orders/orders.module.css";
 
 import { Countdown, pluralRu } from "../countdown";
-
-const CardIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-    <line x1="1" y1="10" x2="23" y2="10" />
-  </svg>
-);
-
-const BankIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3" />
-  </svg>
-);
 
 const ChatIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -229,15 +216,6 @@ export default function OrderDetailPage() {
     onError: (err: Error) => setFormError(err.message),
   });
 
-  const markPaidMutation = useMutation({
-    mutationFn: () => api.markOrderPaid(orderId),
-    onSuccess: () => {
-      setNotice({ tone: "success", text: "Мы уведомили платформу — оплату подтвердят в ближайшее время." });
-      invalidate();
-    },
-    onError: (err: Error) => setNotice({ tone: "danger", text: err.message }),
-  });
-
   const submitWorkMutation = useMutation({
     mutationFn: () => api.submitWork(orderId, workResult.trim()),
     onSuccess: () => {
@@ -311,7 +289,6 @@ export default function OrderDetailPage() {
   const canAcceptOffer = actions.includes("accept_offer");
   const canDeclineOffer = actions.includes("decline_offer");
   const canCancel = actions.includes("cancel");
-  const canMarkPaid = actions.includes("mark_paid");
   const canRetryPayment = actions.includes("retry_payment");
   const canSubmitWork = actions.includes("submit_work");
   const canRequestChanges = actions.includes("request_changes");
@@ -324,10 +301,7 @@ export default function OrderDetailPage() {
   const hasSideContent = hasSideActions || showDispute;
 
   const showPayment =
-    order != null &&
-    order.status === "PENDING_PAYMENT" &&
-    !isBlogger &&
-    (order.card_requisites != null || order.settlement_account != null || order.yookassa_available);
+    order != null && order.status === "PENDING_PAYMENT" && !isBlogger;
 
   // На узком экране действия по сделке поднимаем над деталями — но только когда
   // в главной колонке нет «первичного» блока (оплата / результат работы). Иначе
@@ -528,17 +502,10 @@ export default function OrderDetailPage() {
                 </StateBanner>
               )}
 
-              {order.payment_reported_at && order.status === "PENDING_PAYMENT" && (
-                <StateBanner tone="warning" icon={<Clock3 size={18} />} title="Оплата на проверке">
-                  Вы сообщили об оплате {formatDateTime(order.payment_reported_at)}. Платформа сверит
-                  поступление и переведёт сделку в работу.
-                </StateBanner>
-              )}
-
               {order.status === "PENDING_PAYMENT" && isBlogger && (
                 <StateBanner tone="neutral" icon={<Wallet size={18} />} title="Заказчик оплачивает сделку">
-                  Реквизиты для оплаты уже у заказчика. Как только платформа подтвердит поступление
-                  денег, сделка перейдёт в работу — вам придёт уведомление, ничего делать не нужно.
+                  Заказчик оплачивает сделку онлайн. Как только оплата пройдёт, сделка сразу перейдёт
+                  в работу — вам придёт уведомление, ничего делать не нужно.
                 </StateBanner>
               )}
 
@@ -551,112 +518,33 @@ export default function OrderDetailPage() {
                   {/* ── Оплата ── */}
                   {showPayment && (
                     <section className={styles.panel}>
-                      <h2 className={styles.panelTitle}>Оплата по реквизитам</h2>
+                      <h2 className={styles.panelTitle}>Оплата</h2>
                       <div className={styles.payAmountLine}>
-                        <span className={styles.payAmountLabel}>Сумма к переводу</span>
+                        <span className={styles.payAmountLabel}>Сумма к оплате</span>
                         <span className={styles.payAmountValue}>{formatMoney(order.amount_kopeks)}</span>
                       </div>
 
-                      {order.card_requisites && (
-                        <div className={styles.payMethod}>
-                          <div className={styles.payMethodHead}>
-                            <CardIcon />
-                            <span className={styles.payMethodTitle}>Перевод на карту</span>
-                          </div>
-                          <div className={ui.defList}>
-                            <div className={ui.defRow}>
-                              <span className={ui.defKey}>Номер карты</span>
-                              <span className={`${ui.defValue} ${ui.mono}`}>
-                                {formatCardNumber(order.card_requisites.card_number)}{" "}
-                                <CopyButton value={order.card_requisites.card_number} />
-                              </span>
-                            </div>
-                            {order.card_requisites.card_holder && (
-                              <div className={ui.defRow}>
-                                <span className={ui.defKey}>Получатель</span>
-                                <span className={ui.defValue}>{order.card_requisites.card_holder}</span>
-                              </div>
-                            )}
-                            {order.card_requisites.card_bank && (
-                              <div className={ui.defRow}>
-                                <span className={ui.defKey}>Банк</span>
-                                <span className={ui.defValue}>{order.card_requisites.card_bank}</span>
-                              </div>
-                            )}
-                            {order.card_requisites.sbp_phone && (
-                              <div className={ui.defRow}>
-                                <span className={ui.defKey}>СБП · телефон</span>
-                                <span className={`${ui.defValue} ${ui.mono}`}>
-                                  {order.card_requisites.sbp_phone}{" "}
-                                  <CopyButton value={order.card_requisites.sbp_phone} />
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {order.settlement_account && (
-                        <div className={styles.payMethod}>
-                          <div className={styles.payMethodHead}>
-                            <BankIcon />
-                            <span className={styles.payMethodTitle}>Банковский перевод (р/с)</span>
-                          </div>
-                          <div className={ui.defList}>
-                            <div className={ui.defRow}>
-                              <span className={ui.defKey}>Расчётный счёт</span>
-                              <span className={`${ui.defValue} ${ui.mono}`}>
-                                {order.settlement_account.account_number}{" "}
-                                <CopyButton value={order.settlement_account.account_number} />
-                              </span>
-                            </div>
-                            <div className={ui.defRow}>
-                              <span className={ui.defKey}>БИК</span>
-                              <span className={`${ui.defValue} ${ui.mono}`}>{order.settlement_account.bic}</span>
-                            </div>
-                            <div className={ui.defRow}>
-                              <span className={ui.defKey}>Банк</span>
-                              <span className={ui.defValue}>{order.settlement_account.bank_name}</span>
-                            </div>
-                            <div className={ui.defRow}>
-                              <span className={ui.defKey}>Получатель</span>
-                              <span className={ui.defValue}>{order.settlement_account.recipient_name}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {!order.card_requisites && !order.settlement_account && !order.yookassa_available && (
-                        <div className={ui.notice}>
-                          Реквизиты оплаты пока не настроены. Свяжитесь с поддержкой платформы.
-                        </div>
-                      )}
-
                       <div className={styles.actionsCol} style={{ marginTop: 20 }}>
-                        {order.yookassa_available && (
-                          <button
-                            type="button"
-                            className={ui.btnLine}
-                            onClick={() => payOnlineMutation.mutate()}
-                            disabled={payOnlineMutation.isPending}
-                          >
-                            {payOnlineMutation.isPending ? "Готовим оплату…" : "Оплатить онлайн"}
-                          </button>
+                        {order.yookassa_available ? (
+                          <>
+                            <button
+                              type="button"
+                              className={ui.btnPrimary}
+                              onClick={() => payOnlineMutation.mutate()}
+                              disabled={payOnlineMutation.isPending}
+                            >
+                              {payOnlineMutation.isPending ? "Готовим оплату…" : "Оплатить онлайн"}
+                            </button>
+                            <p className={ui.fine}>
+                              Оплата картой онлайн — поступление подтверждается автоматически, сделка
+                              сразу переходит в работу. Деньги удерживаются до приёмки работы.
+                            </p>
+                          </>
+                        ) : (
+                          <div className={ui.notice}>
+                            Онлайн-оплата пока не настроена. Свяжитесь с поддержкой платформы.
+                          </div>
                         )}
-                        {canMarkPaid && (
-                          <button
-                            type="button"
-                            className={ui.btnPrimary}
-                            onClick={() => markPaidMutation.mutate()}
-                            disabled={markPaidMutation.isPending}
-                          >
-                            {markPaidMutation.isPending ? "Отправляем…" : "Я перевёл оплату"}
-                          </button>
-                        )}
-                        <p className={ui.fine}>
-                          После перевода нажмите «Я перевёл оплату» — платформа проверит поступление
-                          и переведёт сделку в работу. Деньги удерживаются до приёмки работы.
-                        </p>
                       </div>
                     </section>
                   )}

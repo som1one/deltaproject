@@ -252,8 +252,6 @@ def _available_actions(order: MarketplaceOrder, user: User) -> list[str]:
             actions.append("confirm_payment")
         if is_client:
             actions.append("cancel")
-            if order.payment_reported_at is None:
-                actions.append("mark_paid")
 
     if order_status == MarketplaceOrderStatus.PAYMENT_FAILED.value:
         # Несостоявшаяся оплата — не тупик: заказчик может вернуться к оплате.

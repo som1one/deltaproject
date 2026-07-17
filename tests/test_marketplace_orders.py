@@ -469,7 +469,8 @@ async def test_get_order_200_client_owner() -> None:
         data = r.json()
         assert data["settlement_account"] is None
         assert "cancel" in data["available_actions"]
-        assert "mark_paid" in data["available_actions"]
+        # Оплата — только онлайн; ручного «Я перевёл оплату» больше нет
+        assert "mark_paid" not in data["available_actions"]
         # Отзывы появляются только в COMPLETED
         assert data["my_review"] is None
         assert data["review_of_me"] is None
