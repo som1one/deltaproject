@@ -141,6 +141,7 @@ class PaymentService:
         amount_kopeks: int,
         return_url: str,
         *,
+        customer_email: str,
         db: AsyncSession,
     ) -> PaymentResult:
         """
@@ -150,6 +151,7 @@ class PaymentService:
             order_id: ID заказа маркетплейса.
             amount_kopeks: Сумма в копейках.
             return_url: URL для возврата клиента после оплаты.
+            customer_email: E-mail плательщика для фискального чека (54-ФЗ).
             db: Сессия БД.
 
         Returns:
@@ -174,12 +176,20 @@ class PaymentService:
                 f"Заказ {order_id} в статусе {order.status}, ожидается PENDING_PAYMENT"
             )
 
+        email = (customer_email or "").strip()
+        if not email:
+            raise PaymentServiceError(
+                "Для оплаты нужен e-mail плательщика (фискальный чек 54-ФЗ)"
+            )
+
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=PAYMENT_EXPIRATION_MINUTES)
         idempotency_key = str(uuid.uuid4())
+        amount_value = _kopeks_to_amount_str(amount_kopeks)
+        description = f"Оплата заказа маркетплейса {order_id}"
 
         payload: dict[str, Any] = {
             "amount": {
-                "value": _kopeks_to_amount_str(amount_kopeks),
+                "value": amount_value,
                 "currency": "RUB",
             },
             "confirmation": {
@@ -187,7 +197,22 @@ class PaymentService:
                 "return_url": return_url,
             },
             "capture": True,
-            "description": f"Оплата заказа маркетплейса {order_id}",
+            "description": description,
+            # Чек 54-ФЗ: ЮKassa с включённой фискализацией отклоняет платёж
+            # без receipt ("Receipt is missing or illegal").
+            "receipt": {
+                "customer": {"email": email},
+                "items": [
+                    {
+                        "description": description[:128],
+                        "quantity": "1.00",
+                        "amount": {"value": amount_value, "currency": "RUB"},
+                        "vat_code": settings.yukassa_vat_code,
+                        "payment_mode": "full_payment",
+                        "payment_subject": "service",
+                    }
+                ],
+            },
             "metadata": {
                 "order_id": str(order_id),
                 "type": "marketplace",

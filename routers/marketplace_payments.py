@@ -73,6 +73,7 @@ async def create_payment(
             order_id=order.id,
             amount_kopeks=order.amount_kopeks,
             return_url=return_url,
+            customer_email=user.email,
             db=db,
         )
     except PaymentServiceError as exc:

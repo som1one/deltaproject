@@ -241,6 +241,13 @@ class Settings(BaseSettings):
         validation_alias="YUKASSA_WEBHOOK_SECRET",
         description="Если задан — заголовок X-Yukassa-Webhook-Secret должен совпадать",
     )
+    yukassa_vat_code: int = Field(
+        default=1,
+        validation_alias="YUKASSA_VAT_CODE",
+        description="Ставка НДС в чеке 54-ФЗ при создании платежа. "
+        "1 — без НДС (по умолчанию, УСН), 2 — 0%, 3 — 10%, 4 — 20%, "
+        "5 — 10/110, 6 — 20/120.",
+    )
 
     marketplace_frontend_url: str = Field(
         default="https://marketplace.looneymoon.ru",

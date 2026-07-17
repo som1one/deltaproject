@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from enums.marketplace import MarketplaceOrderStatus
 from services.marketplace_payment_service import (
     PAYMENT_EXPIRATION_MINUTES,
     PaymentResult,
@@ -18,6 +19,48 @@ from services.marketplace_payment_service import (
     _get_auth_header,
     _kopeks_to_amount_str,
 )
+
+
+def _pending_order_db(order_status: str = MarketplaceOrderStatus.PENDING_PAYMENT.value):
+    """AsyncMock БД, где select возвращает заказ в нужном статусе."""
+    order = MagicMock()
+    order.status = order_status
+    db = AsyncMock()
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = order
+    db.execute.return_value = result
+    return db
+
+
+class _FakeResponse:
+    is_success = True
+    status_code = 200
+    reason_phrase = "OK"
+    text = ""
+
+    @staticmethod
+    def json() -> dict:
+        return {"id": "pay_1", "confirmation": {"confirmation_url": "https://pay.example"}}
+
+
+def _capturing_client(captured: dict):
+    """httpx.AsyncClient-заглушка, кладущая тело POST в captured['payload']."""
+
+    class _Client:
+        def __init__(self, *a, **k) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a) -> bool:
+            return False
+
+        async def post(self, url, json=None, headers=None):
+            captured["payload"] = json
+            return _FakeResponse()
+
+    return _Client
 
 
 # ------------------------------------------------------------------
@@ -179,3 +222,64 @@ class TestHandlePaoutWebhook:
         }
         await PaymentService.handle_payout_webhook(event, db=db)
         db.execute.assert_not_called()
+
+
+# ------------------------------------------------------------------
+# Payment creation: фискальный чек 54-ФЗ (Receipt)
+# ------------------------------------------------------------------
+
+
+class TestCreatePaymentReceipt:
+    """create_payment должен слать receipt — иначе ЮKassa отвечает
+    'Receipt is missing or illegal'."""
+
+    @pytest.mark.asyncio
+    async def test_payload_includes_receipt(self) -> None:
+        db = _pending_order_db()
+        creds = MagicMock(active=True, shop_id="shop", secret_key="secret")
+        captured: dict = {}
+
+        with patch(
+            "services.marketplace_payment_service._effective_credentials",
+            AsyncMock(return_value=creds),
+        ), patch(
+            "services.marketplace_payment_service.httpx.AsyncClient",
+            _capturing_client(captured),
+        ):
+            res = await PaymentService.create_payment(
+                order_id=uuid.uuid4(),
+                amount_kopeks=148_800,
+                return_url="https://return.example",
+                customer_email="client@example.com",
+                db=db,
+            )
+
+        assert isinstance(res, PaymentResult)
+        payload = captured["payload"]
+        receipt = payload["receipt"]
+        assert receipt["customer"]["email"] == "client@example.com"
+        assert len(receipt["items"]) == 1
+        item = receipt["items"][0]
+        assert item["amount"] == {"value": "1488.00", "currency": "RUB"}
+        assert item["vat_code"] == 1  # settings default: без НДС
+        assert item["payment_subject"] == "service"
+        # Сумма чека совпадает с суммой платежа
+        assert payload["amount"]["value"] == "1488.00"
+
+    @pytest.mark.asyncio
+    async def test_missing_email_raises(self) -> None:
+        db = _pending_order_db()
+        creds = MagicMock(active=True, shop_id="shop", secret_key="secret")
+
+        with patch(
+            "services.marketplace_payment_service._effective_credentials",
+            AsyncMock(return_value=creds),
+        ):
+            with pytest.raises(PaymentServiceError):
+                await PaymentService.create_payment(
+                    order_id=uuid.uuid4(),
+                    amount_kopeks=1000,
+                    return_url="https://return.example",
+                    customer_email="   ",
+                    db=db,
+                )
