@@ -266,6 +266,7 @@ export const api = {
     name?: string;
     email?: string;
     telegram?: string;
+    photo_url?: string;
     password?: string;
     current_password?: string;
   }) =>

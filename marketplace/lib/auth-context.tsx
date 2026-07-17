@@ -18,6 +18,8 @@ type AuthContextValue = {
   userRole: UserRole | null;
   userName: string | null;
   userPhoto: string | null;
+  /** Обновить аватар в шапке сразу после загрузки (без рефетча /me). */
+  applyUserPhoto: (url: string | null) => void;
   setSession: (accessToken: string, refreshToken: string) => void;
   clearSession: () => void;
   logout: () => Promise<void>;
@@ -49,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         window.localStorage.setItem(ROLE_KEY, me.role);
         window.localStorage.setItem(NAME_KEY, me.name);
       }
-      // Фото живёт в профиле автора; у заказчиков и воркеров его нет
+      // Фото автора живёт в профиле маркетплейса, у остальных — в аккаунте (me.photo_url)
       if (me.role === "Bloger") {
         try {
           const profile = await api.getSelfProfile();
@@ -62,8 +64,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Профиль ещё не создан — остаёмся на монограмме
         }
       } else {
-        setUserPhoto(null);
-        if (typeof window !== "undefined") window.localStorage.removeItem(PHOTO_KEY);
+        setUserPhoto(me.photo_url ?? null);
+        if (typeof window !== "undefined") {
+          if (me.photo_url) window.localStorage.setItem(PHOTO_KEY, me.photo_url);
+          else window.localStorage.removeItem(PHOTO_KEY);
+        }
       }
     } catch {
       // Token might be expired — clear cached role
@@ -93,6 +98,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     setIsHydrated(true);
   }, [fetchProfile]);
+
+  const applyUserPhoto = useCallback((url: string | null) => {
+    setUserPhoto(url);
+    if (typeof window !== "undefined") {
+      if (url) window.localStorage.setItem(PHOTO_KEY, url);
+      else window.localStorage.removeItem(PHOTO_KEY);
+    }
+  }, []);
 
   const setSession = (nextAccessToken: string, nextRefreshToken: string) => {
     tokenStorage.setTokens(nextAccessToken, nextRefreshToken);
@@ -138,11 +151,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       userRole,
       userName,
       userPhoto,
+      applyUserPhoto,
       setSession,
       clearSession,
       logout,
     }),
-    [accessToken, isHydrated, refreshToken, userRole, userName, userPhoto],
+    [accessToken, isHydrated, refreshToken, userRole, userName, userPhoto, applyUserPhoto],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

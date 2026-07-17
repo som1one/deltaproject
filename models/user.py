@@ -29,6 +29,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, nullable=False, index=True)
     nickname: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True)
     telegram: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # Аватар аккаунта (заказчики); у авторов фото живёт в BloggerProfile.photo_url
+    photo_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     hash_pass: Mapped[str] = mapped_column(String(255), nullable=False)
     percent: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     balance: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

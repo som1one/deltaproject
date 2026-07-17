@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Camera } from "lucide-react";
 
 import { MarketShell } from "@/components/shell/shell";
-import { Switch } from "@/components/ui/bits";
+import { Portrait, Switch } from "@/components/ui/bits";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -31,7 +31,7 @@ const errText = (err: Error, fallback: string) =>
 export default function SettingsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { isHydrated, isAuthenticated, isWorker } = useAuth();
+  const { isHydrated, isAuthenticated, isWorker, isClient, applyUserPhoto } = useAuth();
 
   // Блогеры и заказчики общаются только в чате платформы — контактных
   // мессенджеров у них в профиле нет. Telegram остаётся воркерам: с ними
@@ -83,6 +83,31 @@ export default function SettingsPage() {
   // ── Профиль ──
   const [form, setForm] = useState({ name: "", email: "", telegram: "" });
   const [profileNotice, setProfileNotice] = useState<Notice>(null);
+
+  // ── Аватар (только заказчик; фото автора живёт в кабинете) ──
+  const showAvatar = isClient;
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const handleAvatar = async (file: File | undefined) => {
+    if (!file) return;
+    setProfileNotice(null);
+    setUploading(true);
+    try {
+      const { url } = await api.uploadImage(file);
+      const updated = await api.updateMe({ photo_url: url });
+      queryClient.setQueryData(["marketplace-me"], updated);
+      applyUserPhoto(url);
+    } catch (err) {
+      setProfileNotice({
+        tone: "danger",
+        text: err instanceof Error && err.message ? err.message : "Не удалось загрузить фото.",
+      });
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     if (me) setForm({ name: me.name ?? "", email: me.email ?? "", telegram: me.telegram ?? "" });
@@ -155,7 +180,9 @@ export default function SettingsPage() {
           <p className={styles.sub}>
             {showTelegram
               ? "Профиль и безопасность: обновите имя, почту и Telegram или смените пароль."
-              : "Профиль и безопасность: обновите имя и почту или смените пароль."}
+              : showAvatar
+                ? "Профиль и безопасность: обновите фото, имя и почту или смените пароль."
+                : "Профиль и безопасность: обновите имя и почту или смените пароль."}
           </p>
         </header>
 
@@ -167,7 +194,9 @@ export default function SettingsPage() {
               <p className={styles.sectionDesc}>
                 {showTelegram
                   ? "Имя, почта и Telegram для связи по сделкам."
-                  : "Имя и почта аккаунта. Общение по сделкам — в чате платформы."}
+                  : showAvatar
+                    ? "Фото, имя и почта аккаунта. Фото видят авторы в чате по сделкам."
+                    : "Имя и почта аккаунта. Общение по сделкам — в чате платформы."}
               </p>
             </div>
             <div className={styles.sectionBody}>
@@ -177,6 +206,49 @@ export default function SettingsPage() {
                   style={{ marginBottom: 16 }}
                 >
                   {profileNotice.text}
+                </div>
+              )}
+              {showAvatar && (
+                <div className={styles.avatarRow}>
+                  <button
+                    type="button"
+                    className={styles.avatarBtn}
+                    data-uploading={uploading || undefined}
+                    disabled={uploading}
+                    onClick={() => fileRef.current?.click()}
+                    aria-label={me?.photo_url ? "Заменить фото профиля" : "Загрузить фото профиля"}
+                  >
+                    <Portrait
+                      name={me?.name ?? form.name}
+                      photoUrl={me?.photo_url}
+                      className={styles.avatarImg}
+                      monoSize={22}
+                    />
+                    <span className={styles.avatarOverlay} aria-hidden="true">
+                      <Camera size={15} />
+                    </span>
+                  </button>
+                  <div className={styles.avatarMeta}>
+                    <button
+                      type="button"
+                      className={`${ui.btnLine} ${ui.btnSmall}`}
+                      style={{ gap: 7 }}
+                      disabled={uploading}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      <Camera size={14} />{" "}
+                      {uploading ? "Загружаем…" : me?.photo_url ? "Заменить фото" : "Загрузить фото"}
+                    </button>
+                    <span className={styles.avatarHint}>JPG или PNG, лучше квадратное — сохраняется сразу.</span>
+                  </div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    aria-label="Загрузить фото профиля"
+                    onChange={(e) => void handleAvatar(e.target.files?.[0])}
+                  />
                 </div>
               )}
               <form className={ui.form} onSubmit={submitProfile}>

@@ -94,6 +94,7 @@ async def user_to_me_read(
         email=user.email,
         nickname=user.nickname,
         telegram=user.telegram,
+        photo_url=user.photo_url,
         role=user.role,
         linked_to=user.linked_to,
         percent=user.percent,
@@ -149,6 +150,8 @@ async def apply_me_patch(user: User, body: UserMePatch, db: AsyncSession) -> Use
         user.name = body.name
     if body.telegram is not None:
         user.telegram = body.telegram
+    if body.photo_url is not None:
+        user.photo_url = body.photo_url
     if body.email is not None:
         conflict = await db.execute(
             select(User).where(User.email == str(body.email), User.id != user.id),

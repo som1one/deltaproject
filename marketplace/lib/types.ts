@@ -12,6 +12,7 @@ export type UserMeRead = {
   email: string;
   nickname: string | null;
   telegram: string | null;
+  photo_url: string | null;
   role: UserRole;
   linked_to: string | null;
   percent: number;

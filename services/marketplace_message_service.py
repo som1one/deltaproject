@@ -253,9 +253,12 @@ async def list_threads(
 
 
 def partner_photo_url(partner: User, profile: BloggerProfile | None) -> str | None:
-    """Аватар собеседника: у авторов — фото из профиля маркетплейса."""
+    """Аватар собеседника: у авторов — фото из профиля маркетплейса,
+    у заказчиков — фото аккаунта (users.photo_url)."""
     if profile is not None and profile.photo_url:
         return profile.photo_url
+    if partner.photo_url:
+        return partner.photo_url
     return None
 
 
