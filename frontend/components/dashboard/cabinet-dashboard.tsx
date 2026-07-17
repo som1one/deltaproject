@@ -14,7 +14,6 @@ import {
   formatDealStatus,
   formatLedgerStatus,
   formatMoney,
-  formatNumber,
   formatRole,
   formatShortDate,
 } from "@/lib/format";
@@ -47,8 +46,8 @@ import {
 import { CopyButton } from "@/components/common/copy-button";
 import { PayoutCardInput } from "@/components/common/payout-card-input";
 import { useToast } from "@/components/common/toast";
-import { OverviewCharts } from "@/components/dashboard/overview-charts";
 import { MarketplaceOverview } from "@/components/dashboard/marketplace-overview";
+import { BloggerOverview } from "@/components/dashboard/blogger-overview";
 import styles from "@/components/dashboard/cabinet.module.css";
 
 /* =========================================================
@@ -1745,31 +1744,6 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
     <>
       <IdentityHeader me={me} />
 
-      <div className={styles.balanceTiles}>
-        <div className={`${styles.balanceTile} ${styles.accent}`}>
-          <p className={styles.balanceTileLabel}>Доступно к выводу</p>
-          <p className={styles.balanceTileValue}>{formatMoney(me.balance)}</p>
-          <p className={styles.balanceTileNote}>Запросите выплату в разделе «Финансы».</p>
-        </div>
-        <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>В обработке</p>
-          <p className={styles.balanceTileValue}>{formatMoney(me.balance_pending_confirmation_kopeks)}</p>
-          <p className={styles.balanceTileNote}>Подтверждается администратором.</p>
-        </div>
-        <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>Ваша ставка</p>
-          <p className={styles.balanceTileValue}>{me.percent}%</p>
-          <p className={styles.balanceTileNote}>Доля от каждой сделки.</p>
-        </div>
-        <div className={styles.balanceTile}>
-          <p className={styles.balanceTileLabel}>Новые заявки</p>
-          <p className={styles.balanceTileValue}>{formatNumber(newDealsCount)}</p>
-          <p className={styles.balanceTileNote}>
-            {newDealsCount > 0 ? "Требуют вашего принятия." : "Все заявки разобраны."}
-          </p>
-        </div>
-      </div>
-
       {toast ? <Message tone={toast.tone === "info" ? "default" : toast.tone}>{toast.text}</Message> : null}
 
       <div className={styles.shell}>
@@ -1782,13 +1756,12 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
 
         <div className={styles.workspace}>
           {tab === "overview" ? (
-            <Stack>
-              {dealsQuery.isLoading ? (
-                <SkeletonTable rows={3} />
-              ) : (
-                <OverviewCharts deals={deals} />
-              )}
-            </Stack>
+            <BloggerOverview
+              me={me}
+              deals={deals}
+              dealsLoading={dealsQuery.isLoading}
+              newDealsCount={newDealsCount}
+            />
           ) : null}
 
           {tab === "deals" ? (

@@ -1,0 +1,508 @@
+/* =========================================================
+   Blogger overview — premium balance card + marketplace CTA.
+   Монохром, тёмная «карта» как физический платёжный носитель.
+   ========================================================= */
+
+.root {
+  display: grid;
+  gap: 1.8rem;
+}
+
+.topGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 1.4rem;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .topGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   Balance card — тёмная карта с чипом, скрытием и валютами
+   ============================================================ */
+
+.card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  min-height: 15.5rem;
+  padding: 1.7rem 1.85rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  background:
+    radial-gradient(560px 240px at 84% -12%, rgba(255, 255, 255, 0.08), transparent 58%),
+    radial-gradient(460px 260px at -12% 118%, rgba(255, 255, 255, 0.04), transparent 55%),
+    linear-gradient(152deg, #121214 0%, #0a0a0b 46%, #050506 100%);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Верхняя световая грань + диагональный глянец — «стекло» карты. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 20%);
+  z-index: 0;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  top: -45%;
+  right: -18%;
+  width: 62%;
+  height: 190%;
+  transform: rotate(19deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cardBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: var(--text-soft);
+}
+
+/* Чип — серебристый (монохром), не золотой. */
+.cardChip {
+  position: relative;
+  width: 2.5rem;
+  height: 1.95rem;
+  border-radius: 6px;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.34) 46%, rgba(255, 255, 255, 0.72));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.35);
+  opacity: 0.82;
+  overflow: hidden;
+}
+
+.cardChipLines {
+  position: absolute;
+  inset: 0;
+}
+
+.cardChipLines::before,
+.cardChipLines::after {
+  content: "";
+  position: absolute;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+/* горизонтальная разделительная линия чипа */
+.cardChipLines::before {
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-0.5px);
+}
+
+/* центральный «контакт» */
+.cardChipLines::after {
+  left: 50%;
+  top: 14%;
+  bottom: 14%;
+  width: 1px;
+  transform: translateX(-0.5px);
+}
+
+.cardWaves {
+  width: 1.15rem;
+  height: 1.15rem;
+  color: var(--text-soft);
+  opacity: 0.7;
+}
+
+.eyeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base);
+}
+
+.eyeBtn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+.eyeBtn svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* ---- Body: label + big balance + pending ---- */
+
+.cardBody {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: auto;
+}
+
+.cardLabel {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.64rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.cardBalance {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2rem, 3.8vw, 2.7rem);
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.masked {
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.cardPending {
+  margin: 0.1rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  color: var(--status-success);
+  letter-spacing: -0.01em;
+}
+
+.cardPending[data-empty="true"] {
+  font-family: var(--font-body);
+  color: var(--text-soft);
+}
+
+/* ---- Currency switcher ---- */
+
+.currencyRow {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 0.2rem;
+  padding: 0.22rem;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-faint);
+}
+
+.currencyBtn {
+  min-width: 2.1rem;
+  height: 1.9rem;
+  padding: 0 0.55rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-soft);
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    color var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.currencyBtn:hover {
+  color: var(--text);
+}
+
+.currencyBtnActive {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-strong);
+  color: var(--text-strong);
+}
+
+/* ---- Footer: держатель / ставка / карта ---- */
+
+.cardFoot {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.2rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--border-faint);
+}
+
+.cardFootItem {
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+}
+
+.cardFootItemEnd {
+  margin-left: auto;
+  text-align: right;
+}
+
+.cardFootLabel {
+  font-family: var(--font-narrow);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.cardFootValue {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Marketplace CTA
+   ============================================================ */
+
+.cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  padding: 1.7rem 1.8rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(420px 220px at 112% -18%, rgba(255, 255, 255, 0.06), transparent 60%),
+    var(--surface-raised);
+  box-shadow: var(--shadow-soft);
+}
+
+.cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 26%);
+  z-index: 0;
+}
+
+.cta > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* крупная бледная стрелка-водяной знак в углу */
+.ctaGlyph {
+  position: absolute;
+  top: 1.4rem;
+  right: 1.5rem;
+  z-index: 0;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  opacity: 0.5;
+}
+
+.ctaGlyph svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.ctaTop {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ctaEyebrow {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.ctaTitle {
+  margin: 0;
+  max-width: 15ch;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--text-strong);
+}
+
+.ctaText {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 42ch;
+}
+
+.ctaPoints {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: auto;
+}
+
+.ctaPoint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.34rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-faint);
+  font-family: var(--font-narrow);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.ctaPoint::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-soft);
+}
+
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  padding: 0.72rem 1.35rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: -0.005em;
+  border: 1px solid var(--accent);
+  box-shadow: 0 4px 0 0 #b3b3b3;
+  cursor: pointer;
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.ctaBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 0 #b3b3b3;
+}
+
+.ctaBtn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 0 #b3b3b3;
+}
+
+.ctaBtn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ---- New deals hint ---- */
+
+.newDealsHint {
+  margin: 0;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-faint);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+@media (max-width: 900px) {
+  .cta {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 540px) {
+  .card {
+    padding: 1.4rem 1.4rem;
+    min-height: 0;
+    gap: 1.2rem;
+  }
+  .cardChip {
+    width: 2.2rem;
+    height: 1.7rem;
+  }
+  .cardFoot {
+    gap: 0.8rem;
+  }
+  .cardFootValue {
+    font-size: 0.82rem;
+  }
+  .cta {
+    padding: 1.4rem 1.4rem;
+  }
+  .ctaGlyph {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .cardFoot {
+    flex-wrap: wrap;
+  }
+  .cardFootItemEnd {
+    margin-left: 0;
+    text-align: left;
+  }
+}
