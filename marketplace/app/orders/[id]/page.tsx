@@ -319,6 +319,11 @@ export default function OrderDetailPage() {
     !isBlogger &&
     (order.card_requisites != null || order.settlement_account != null || order.yookassa_available);
 
+  // На узком экране действия по сделке поднимаем над деталями — но только когда
+  // в главной колонке нет «первичного» блока (оплата / результат работы). Иначе
+  // он должен остаться сверху, а действия — под ним (напр. оплата, затем «Отменить»).
+  const liftActions = order != null && hasSideActions && !showPayment && !order.work_result;
+
   const negative =
     order != null && ["OFFER_DECLINED", "CANCELLED", "REFUNDED", "PAYMENT_FAILED"].includes(order.status);
 
@@ -511,7 +516,11 @@ export default function OrderDetailPage() {
                 </StateBanner>
               )}
 
-              <div className={styles.detailLayout} data-single={hasSideContent ? undefined : "true"}>
+              <div
+                className={styles.detailLayout}
+                data-single={hasSideContent ? undefined : "true"}
+                data-actions-top={liftActions ? "true" : undefined}
+              >
                 <div className={styles.mainCol}>
                   {/* ── Оплата ── */}
                   {showPayment && (
