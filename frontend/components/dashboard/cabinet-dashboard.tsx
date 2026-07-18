@@ -976,7 +976,6 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
   const [ledgerStatusFilter, setLedgerStatusFilter] = useState<LedgerEntryStatus | "ALL">("ALL");
   const [activeLedgerId, setActiveLedgerId] = useState<string | null>(null);
 
-  const statsQuery = useQuery({ queryKey: ["me", "stats"], queryFn: api.getMeStats });
   const ledgerQuery = useQuery({ queryKey: ["me", "ledger"], queryFn: () => api.getLedger() });
   const payoutWidgetQuery = useQuery({ queryKey: ["me", "payout-widget"], queryFn: api.getPayoutWidgetConfig });
 
@@ -1035,18 +1034,9 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
     { id: "profile", label: "Профиль", iconPath: ICONS.profile },
   ];
 
-  const bloggerStats = statsQuery.data?.role === "Bloger" ? statsQuery.data : null;
-  const headerStats: IdentityStat[] | null = bloggerStats
-    ? [
-        { label: "Сделок", value: formatNumber(bloggerStats.deals) },
-        { label: "Воркеров", value: formatNumber(bloggerStats.workers) },
-        { label: "Заработано", value: formatMoney(bloggerStats.earn) },
-      ]
-    : null;
-
   return (
     <>
-      <IdentityHeader me={me} stats={headerStats} />
+      <IdentityHeader me={me} />
 
       {toast ? <Message tone={toast.tone === "info" ? "default" : toast.tone}>{toast.text}</Message> : null}
 
@@ -1232,8 +1222,6 @@ export default function CabinetDashboard() {
       setUnlockError("");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["me"] }),
-        queryClient.invalidateQueries({ queryKey: ["me", "stats"] }),
-        queryClient.invalidateQueries({ queryKey: ["me", "deals"] }),
         queryClient.invalidateQueries({ queryKey: ["me", "ledger"] }),
       ]);
     },
