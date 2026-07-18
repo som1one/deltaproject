@@ -168,6 +168,47 @@ class TestHandlePaymentWebhook:
         db.execute.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_succeeded_notifies_blogger(self) -> None:
+        """payment.succeeded: блогер получает order_confirmed (как при админ-подтверждении)."""
+        order = _pending_order()
+        order.client_id = uuid.uuid4()
+        order.blogger_id = uuid.uuid4()
+        order.amount_kopeks = 500000
+
+        client_user = MagicMock()
+        client_user.name = "Клиент"
+        db = AsyncMock()
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = client_user
+        db.execute.return_value = result
+
+        notify = AsyncMock()
+        with patch(
+            "services.marketplace_escrow_service.freeze_funds", AsyncMock()
+        ), patch("services.notification_service.notify", notify):
+            await PaymentService._handle_payment_succeeded(order, "pay_1", db=db)
+
+        notify.assert_awaited_once()
+        kwargs = notify.await_args.kwargs
+        assert kwargs["user_id"] == order.blogger_id
+        assert kwargs["event_type"] == "order_confirmed"
+        assert kwargs["payload"]["client_name"] == "Клиент"
+
+    @pytest.mark.asyncio
+    async def test_succeeded_skips_processed_order(self) -> None:
+        """Идемпотентность: заказ уже не в PENDING_PAYMENT — ничего не делаем."""
+        order = _pending_order()
+        order.status = MarketplaceOrderStatus.ESCROW_HELD.value
+        db = AsyncMock()
+
+        notify = AsyncMock()
+        with patch("services.notification_service.notify", notify):
+            await PaymentService._handle_payment_succeeded(order, "pay_1", db=db)
+
+        notify.assert_not_awaited()
+        db.execute.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_ignores_invalid_order_id(self) -> None:
         """Webhook with invalid UUID order_id is ignored."""
         db = AsyncMock()
@@ -283,3 +324,137 @@ class TestCreatePaymentReceipt:
                     customer_email="   ",
                     db=db,
                 )
+
+
+# ------------------------------------------------------------------
+# Payment status sync (fallback, если вебхук не дошёл)
+# ------------------------------------------------------------------
+
+
+def _get_client(status_value: str | Exception):
+    """httpx.AsyncClient-заглушка для GET /v3/payments/{id}."""
+
+    class _Resp:
+        is_success = True
+        status_code = 200
+
+        @staticmethod
+        def json() -> dict:
+            return {"id": "pay_1", "status": status_value}
+
+    class _Client:
+        def __init__(self, *a, **k) -> None:
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a) -> bool:
+            return False
+
+        async def get(self, url, headers=None):
+            if isinstance(status_value, Exception):
+                raise status_value
+            return _Resp()
+
+    return _Client
+
+
+def _pending_order(payment_id: str | None = "pay_1") -> MagicMock:
+    order = MagicMock()
+    order.id = uuid.uuid4()
+    order.status = MarketplaceOrderStatus.PENDING_PAYMENT.value
+    order.yookassa_payment_id = payment_id
+    return order
+
+
+class TestSyncPaymentStatus:
+    """Tests for PaymentService.sync_payment_status."""
+
+    def _creds(self, active: bool = True) -> MagicMock:
+        return MagicMock(active=active, shop_id="shop", secret_key="secret")
+
+    @pytest.mark.asyncio
+    async def test_skips_when_not_pending_payment(self) -> None:
+        order = _pending_order()
+        order.status = MarketplaceOrderStatus.ESCROW_HELD.value
+        changed = await PaymentService.sync_payment_status(order, db=AsyncMock())
+        assert changed is False
+
+    @pytest.mark.asyncio
+    async def test_skips_without_payment_id(self) -> None:
+        order = _pending_order(payment_id=None)
+        changed = await PaymentService.sync_payment_status(order, db=AsyncMock())
+        assert changed is False
+
+    @pytest.mark.asyncio
+    async def test_skips_when_yookassa_inactive(self) -> None:
+        order = _pending_order()
+        with patch(
+            "services.marketplace_payment_service._effective_credentials",
+            AsyncMock(return_value=self._creds(active=False)),
+        ):
+            changed = await PaymentService.sync_payment_status(order, db=AsyncMock())
+        assert changed is False
+
+    @pytest.mark.asyncio
+    async def test_succeeded_dispatches_transition(self) -> None:
+        order = _pending_order()
+        succeeded = AsyncMock()
+        with patch(
+            "services.marketplace_payment_service._effective_credentials",
+            AsyncMock(return_value=self._creds()),
+        ), patch(
+            "services.marketplace_payment_service.httpx.AsyncClient",
+            _get_client("succeeded"),
+        ), patch.object(PaymentService, "_handle_payment_succeeded", succeeded):
+            changed = await PaymentService.sync_payment_status(order, db=AsyncMock())
+        assert changed is True
+        succeeded.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_canceled_dispatches_transition(self) -> None:
+        order = _pending_order()
+        canceled = AsyncMock()
+        with patch(
+            "services.marketplace_payment_service._effective_credentials",
+            AsyncMock(return_value=self._creds()),
+        ), patch(
+            "services.marketplace_payment_service.httpx.AsyncClient",
+            _get_client("canceled"),
+        ), patch.object(PaymentService, "_handle_payment_canceled", canceled):
+            changed = await PaymentService.sync_payment_status(order, db=AsyncMock())
+        assert changed is True
+        canceled.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_pending_returns_false(self) -> None:
+        order = _pending_order()
+        succeeded = AsyncMock()
+        canceled = AsyncMock()
+        with patch(
+            "services.marketplace_payment_service._effective_credentials",
+            AsyncMock(return_value=self._creds()),
+        ), patch(
+            "services.marketplace_payment_service.httpx.AsyncClient",
+            _get_client("pending"),
+        ), patch.object(
+            PaymentService, "_handle_payment_succeeded", succeeded
+        ), patch.object(PaymentService, "_handle_payment_canceled", canceled):
+            changed = await PaymentService.sync_payment_status(order, db=AsyncMock())
+        assert changed is False
+        succeeded.assert_not_awaited()
+        canceled.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_network_error_returns_false(self) -> None:
+        order = _pending_order()
+        with patch(
+            "services.marketplace_payment_service._effective_credentials",
+            AsyncMock(return_value=self._creds()),
+        ), patch(
+            "services.marketplace_payment_service.httpx.AsyncClient",
+            _get_client(RuntimeError("boom")),
+        ):
+            changed = await PaymentService.sync_payment_status(order, db=AsyncMock())
+        assert changed is False

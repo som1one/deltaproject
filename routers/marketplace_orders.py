@@ -288,6 +288,18 @@ async def get_order(
     order = await _get_order_or_404(db, order_id)
     _ensure_participant(order, user)
 
+    # Ожидаем оплату — сверяем статус платежа с YooKassa (вебхук мог не дойти).
+    # Фронт поллит эту ручку каждые 15 секунд, так что оплаченный заказ
+    # перейдёт в ESCROW_HELD даже без вебхука.
+    if (
+        order.status == MarketplaceOrderStatus.PENDING_PAYMENT.value
+        and order.yookassa_payment_id
+    ):
+        from services.marketplace_payment_service import PaymentService
+
+        if await PaymentService.sync_payment_status(order, db=db):
+            await db.refresh(order)
+
     is_admin = user.role in (UserRole.ADMIN, UserRole.TECH_ADMIN)
     is_client = user.id == order.client_id
 

@@ -355,6 +355,7 @@ class PaymentService:
 
         # Import here to avoid circular imports
         from services.marketplace_escrow_service import freeze_funds
+        from services.notification_service import notify
 
         # Freeze funds via escrow service
         await freeze_funds(order_id=order.id, amount_kopeks=order.amount_kopeks, db=db)
@@ -372,6 +373,22 @@ class PaymentService:
                 paid_at=datetime.now(timezone.utc),
             )
         )
+
+        # Уведомление блогеру — как при админ-подтверждении оплаты
+        client = (
+            await db.execute(select(User).where(User.id == order.client_id))
+        ).scalar_one_or_none()
+        await notify(
+            db=db,
+            user_id=order.blogger_id,
+            event_type="order_confirmed",
+            payload={
+                "order_id": str(order.id),
+                "amount": order.amount_kopeks,
+                "client_name": client.name if client else "Неизвестный клиент",
+            },
+        )
+
         await db.commit()
 
         logger.info("Payment succeeded: order %s → ESCROW_HELD", order.id)
@@ -403,6 +420,64 @@ class PaymentService:
         await db.commit()
 
         logger.info("Payment canceled: order %s → PAYMENT_FAILED", order.id)
+
+    # ------------------------------------------------------------------
+    # Payment status sync (fallback, если вебхук не дошёл)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def sync_payment_status(order: MarketplaceOrder, *, db: AsyncSession) -> bool:
+        """
+        Сверяет статус платежа напрямую с YooKassa и применяет переход.
+
+        Вебхук может не дойти (не зарегистрирован в кабинете, сеть, 403) —
+        тогда заказ навсегда зависает в PENDING_PAYMENT, хотя деньги списаны.
+        Этот метод опрашивает GET /v3/payments/{id} и выполняет ту же
+        обработку, что и вебхук. Ошибки сети/YooKassa не пробрасываются:
+        сверка — best-effort, страница заказа не должна падать из-за неё.
+
+        Returns:
+            True, если статус заказа изменился.
+        """
+        if order.status != MarketplaceOrderStatus.PENDING_PAYMENT.value:
+            return False
+        payment_id = order.yookassa_payment_id
+        if not payment_id:
+            return False
+
+        creds = await _effective_credentials(db)
+        if not creds.active:
+            return False
+
+        headers = {"Authorization": _get_auth_header(creds.shop_id, creds.secret_key)}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    f"{YOOKASSA_PAYMENTS_URL}/{payment_id}", headers=headers
+                )
+            body = response.json()
+        except Exception as exc:
+            logger.warning("YooKassa payment sync failed for order %s: %s", order.id, exc)
+            return False
+
+        if not response.is_success or not isinstance(body, dict):
+            logger.warning(
+                "YooKassa payment sync %s: HTTP %s %s",
+                payment_id,
+                response.status_code,
+                body,
+            )
+            return False
+
+        payment_status = body.get("status")
+        if payment_status == "succeeded":
+            await PaymentService._handle_payment_succeeded(order, payment_id, db=db)
+            return True
+        if payment_status == "canceled":
+            await PaymentService._handle_payment_canceled(order, db=db)
+            return True
+        # pending / waiting_for_capture — платёж ещё не завершён
+        return False
 
     # ------------------------------------------------------------------
     # Payout creation (outgoing payouts to bloggers/workers)

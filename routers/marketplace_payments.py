@@ -64,9 +64,11 @@ async def create_payment(
             detail=f"Заказ в статусе {order.status}, оплата невозможна",
         )
 
-    # Build return URL for YooKassa redirect
+    # Build return URL for YooKassa redirect — страница сделки на фронте
+    # (/orders/{id} в Next), НЕ /marketplace/orders/{id}: этот путь nginx
+    # проксирует в FastAPI, и клиент после оплаты видел голый JSON про Bearer.
     base_url = settings.marketplace_frontend_url.rstrip("/")
-    return_url = f"{base_url}/marketplace/orders/{order_id}"
+    return_url = f"{base_url}/orders/{order_id}"
 
     try:
         payment_result = await PaymentService.create_payment(
@@ -121,6 +123,10 @@ async def get_payment_status(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Доступ запрещён: заказ принадлежит другому пользователю",
         )
+
+    # Fallback на недошедший вебхук: сверяем статус с YooKassa напрямую
+    if await PaymentService.sync_payment_status(order, db=db):
+        await db.refresh(order)
 
     # Derive payment status from order status
     if order.status == MarketplaceOrderStatus.PENDING_PAYMENT.value:
