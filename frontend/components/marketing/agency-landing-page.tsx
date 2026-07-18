@@ -137,8 +137,8 @@ const HeroMoonArt = () => (
   >
     <defs>
       <radialGradient id="lm-base" cx="32%" cy="27%" r="92%">
-        <stop offset="0%" stopColor="#fbf8f1" />
-        <stop offset="24%" stopColor="#efe9dc" />
+        <stop offset="0%" stopColor="#f4efe4" />
+        <stop offset="24%" stopColor="#e9e2d3" />
         <stop offset="46%" stopColor="#dcd4c4" />
         <stop offset="64%" stopColor="#c2baa8" />
         <stop offset="80%" stopColor="#a29a89" />
@@ -150,16 +150,16 @@ const HeroMoonArt = () => (
          not a circle with an outline. */}
       <radialGradient id="lm-term" cx="30%" cy="26%" r="104%">
         <stop offset="0%" stopColor="#0b0908" stopOpacity="0" />
-        <stop offset="40%" stopColor="#0b0908" stopOpacity="0" />
-        <stop offset="54%" stopColor="#12100c" stopOpacity="0.16" />
-        <stop offset="68%" stopColor="#0d0b09" stopOpacity="0.4" />
-        <stop offset="82%" stopColor="#080706" stopOpacity="0.62" />
-        <stop offset="100%" stopColor="#050404" stopOpacity="0.8" />
+        <stop offset="36%" stopColor="#0b0908" stopOpacity="0" />
+        <stop offset="52%" stopColor="#12100c" stopOpacity="0.2" />
+        <stop offset="66%" stopColor="#0d0b09" stopOpacity="0.46" />
+        <stop offset="82%" stopColor="#080706" stopOpacity="0.68" />
+        <stop offset="100%" stopColor="#050404" stopOpacity="0.84" />
       </radialGradient>
 
       <radialGradient id="lm-sheen" cx="30%" cy="25%" r="48%">
-        <stop offset="0%" stopColor="#fffdf6" stopOpacity="0.3" />
-        <stop offset="45%" stopColor="#fffdf6" stopOpacity="0.09" />
+        <stop offset="0%" stopColor="#fffdf6" stopOpacity="0.22" />
+        <stop offset="45%" stopColor="#fffdf6" stopOpacity="0.07" />
         <stop offset="100%" stopColor="#fffdf6" stopOpacity="0" />
       </radialGradient>
 
@@ -204,12 +204,12 @@ const HeroMoonArt = () => (
       </filter>
 
       <clipPath id="lm-clip">
-        <circle cx="260" cy="260" r="254" />
+        <circle cx="260" cy="260" r="260" />
       </clipPath>
     </defs>
 
     <g clipPath="url(#lm-clip)" style={{ isolation: "isolate" }}>
-      <circle cx="260" cy="260" r="254" fill="url(#lm-base)" />
+      <circle cx="260" cy="260" r="260" fill="url(#lm-base)" />
 
       {/* Maria — the dark plains that make the disc read as the Moon.
          Laid out loosely after the near side: Imbrium, Serenitatis,
@@ -246,8 +246,8 @@ const HeroMoonArt = () => (
       </g>
 
       {/* Sphere shading: terminator toward lower-right, sheen at the light */}
-      <circle cx="260" cy="260" r="254" fill="url(#lm-term)" />
-      <circle cx="260" cy="260" r="254" fill="url(#lm-sheen)" style={{ mixBlendMode: "screen" }} />
+      <circle cx="260" cy="260" r="260" fill="url(#lm-term)" />
+      <circle cx="260" cy="260" r="260" fill="url(#lm-sheen)" style={{ mixBlendMode: "screen" }} />
     </g>
   </svg>
 );
