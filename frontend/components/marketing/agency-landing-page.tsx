@@ -122,6 +122,137 @@ import { AgencyNav } from "@/components/marketing/agency-nav";
 import { SiteFooter } from "@/components/common/site-footer";
 
 /* =========================================================
+   Moon artwork
+   Inline SVG: base sphere -> maria -> noise relief -> craters
+   -> terminator + limb shading. Light source sits top-left,
+   matching the halo and the hero text glow.
+   ========================================================= */
+
+const HeroMoonArt = () => (
+  <svg
+    className={styles.heroMoonSvg}
+    viewBox="0 0 520 520"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <defs>
+      <radialGradient id="lm-base" cx="32%" cy="27%" r="92%">
+        <stop offset="0%" stopColor="#fbf8f1" />
+        <stop offset="24%" stopColor="#efe9dc" />
+        <stop offset="46%" stopColor="#dcd4c4" />
+        <stop offset="64%" stopColor="#c2baa8" />
+        <stop offset="80%" stopColor="#a29a89" />
+        <stop offset="100%" stopColor="#847c6c" />
+      </radialGradient>
+
+      {/* All of the "night side" comes from this directional shade —
+         the limb on the lit side stays bright so the disc reads as a sphere,
+         not a circle with an outline. */}
+      <radialGradient id="lm-term" cx="30%" cy="26%" r="104%">
+        <stop offset="0%" stopColor="#0b0908" stopOpacity="0" />
+        <stop offset="40%" stopColor="#0b0908" stopOpacity="0" />
+        <stop offset="54%" stopColor="#12100c" stopOpacity="0.16" />
+        <stop offset="68%" stopColor="#0d0b09" stopOpacity="0.4" />
+        <stop offset="82%" stopColor="#080706" stopOpacity="0.62" />
+        <stop offset="100%" stopColor="#050404" stopOpacity="0.8" />
+      </radialGradient>
+
+      <radialGradient id="lm-sheen" cx="30%" cy="25%" r="48%">
+        <stop offset="0%" stopColor="#fffdf6" stopOpacity="0.3" />
+        <stop offset="45%" stopColor="#fffdf6" stopOpacity="0.09" />
+        <stop offset="100%" stopColor="#fffdf6" stopOpacity="0" />
+      </radialGradient>
+
+      {/* Shared crater shading: shallow bowl, faint far rim */}
+      <radialGradient id="lm-crater">
+        <stop offset="0%" stopColor="#000000" stopOpacity="0.03" />
+        <stop offset="52%" stopColor="#000000" stopOpacity="0.09" />
+        <stop offset="70%" stopColor="#000000" stopOpacity="0.22" />
+        <stop offset="80%" stopColor="#000000" stopOpacity="0.1" />
+        <stop offset="86%" stopColor="#fff8e8" stopOpacity="0.16" />
+        <stop offset="100%" stopColor="#fff8e8" stopOpacity="0" />
+      </radialGradient>
+
+      {/* Maria get organic coastlines: warp the ellipses, then soften */}
+      <filter id="lm-maria" x="-30%" y="-30%" width="160%" height="160%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" seed="11" result="warp" />
+        <feDisplacementMap in="SourceGraphic" in2="warp" scale="48" xChannelSelector="R" yChannelSelector="G" />
+        <feGaussianBlur stdDeviation="7" />
+      </filter>
+
+      {/* Large-scale tonal mottling of the surface */}
+      <filter id="lm-mottle" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="4" seed="7" stitchTiles="stitch" />
+        <feColorMatrix type="saturate" values="0" />
+        <feComponentTransfer>
+          <feFuncR type="linear" slope="0.75" intercept="0.14" />
+          <feFuncG type="linear" slope="0.75" intercept="0.14" />
+          <feFuncB type="linear" slope="0.75" intercept="0.14" />
+          <feFuncA type="linear" slope="0" intercept="1" />
+        </feComponentTransfer>
+      </filter>
+
+      {/* Fine regolith relief, lit from the top-left */}
+      <filter id="lm-relief" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
+        <feTurbulence type="fractalNoise" baseFrequency="0.16" numOctaves="3" seed="21" stitchTiles="stitch" result="noise" />
+        <feDiffuseLighting in="noise" lightingColor="#ffffff" surfaceScale="1.8" diffuseConstant="0.62" result="lit">
+          <feDistantLight azimuth="225" elevation="58" />
+        </feDiffuseLighting>
+        <feComponentTransfer>
+          <feFuncA type="linear" slope="0" intercept="1" />
+        </feComponentTransfer>
+      </filter>
+
+      <clipPath id="lm-clip">
+        <circle cx="260" cy="260" r="254" />
+      </clipPath>
+    </defs>
+
+    <g clipPath="url(#lm-clip)" style={{ isolation: "isolate" }}>
+      <circle cx="260" cy="260" r="254" fill="url(#lm-base)" />
+
+      {/* Maria — the dark plains that make the disc read as the Moon.
+         Laid out loosely after the near side: Imbrium, Serenitatis,
+         Tranquillitatis, Procellarum, Nubium, Crisium, Fecunditatis. */}
+      <g filter="url(#lm-maria)" fill="#46423a" opacity="0.24" style={{ mixBlendMode: "multiply" }}>
+        <ellipse cx="175" cy="140" rx="62" ry="50" />
+        <ellipse cx="300" cy="150" rx="44" ry="38" />
+        <ellipse cx="352" cy="210" rx="40" ry="44" />
+        <ellipse cx="118" cy="258" rx="46" ry="72" />
+        <ellipse cx="200" cy="330" rx="38" ry="30" />
+        <ellipse cx="428" cy="180" rx="22" ry="18" />
+        <ellipse cx="390" cy="300" rx="28" ry="24" />
+      </g>
+
+      <rect width="520" height="520" filter="url(#lm-mottle)" opacity="0.5" style={{ mixBlendMode: "soft-light" }} />
+      <rect width="520" height="520" filter="url(#lm-relief)" opacity="0.34" style={{ mixBlendMode: "soft-light" }} />
+
+      {/* Craters — sparse, mostly toward the shaded side */}
+      <g>
+        <circle cx="296" cy="396" r="15" fill="url(#lm-crater)" />
+        <circle cx="154" cy="338" r="10" fill="url(#lm-crater)" />
+        <circle cx="238" cy="246" r="7" fill="url(#lm-crater)" />
+        <circle cx="334" cy="252" r="6.5" fill="url(#lm-crater)" />
+        <circle cx="288" cy="120" r="5.5" fill="url(#lm-crater)" />
+        <circle cx="398" cy="234" r="5" fill="url(#lm-crater)" />
+        <circle cx="350" cy="332" r="6" fill="url(#lm-crater)" />
+        <circle cx="226" cy="304" r="4.5" fill="url(#lm-crater)" />
+        <circle cx="310" cy="196" r="2.8" fill="#000000" opacity="0.08" />
+        <circle cx="162" cy="258" r="2.6" fill="#000000" opacity="0.08" />
+        <circle cx="272" cy="284" r="3" fill="#000000" opacity="0.08" />
+        <circle cx="342" cy="158" r="2.4" fill="#000000" opacity="0.08" />
+        <circle cx="242" cy="352" r="2.8" fill="#000000" opacity="0.08" />
+        <circle cx="196" cy="382" r="2.4" fill="#000000" opacity="0.08" />
+      </g>
+
+      {/* Sphere shading: terminator toward lower-right, sheen at the light */}
+      <circle cx="260" cy="260" r="254" fill="url(#lm-term)" />
+      <circle cx="260" cy="260" r="254" fill="url(#lm-sheen)" style={{ mixBlendMode: "screen" }} />
+    </g>
+  </svg>
+);
+
+/* =========================================================
    Main landing
    ========================================================= */
 
@@ -257,8 +388,7 @@ export const AgencyLandingPage = () => {
                 >
                   <div className={styles.heroMoonHalo} />
                   <div className={styles.heroMoon}>
-                    <span className={styles.heroMoonShade} />
-                    <span className={styles.heroMoonCraters} />
+                    <HeroMoonArt />
                   </div>
                 </motion.div>
               ) : null}

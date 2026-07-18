@@ -38,6 +38,7 @@ dist/
 # Frontend
 frontend/node_modules/
 frontend/.next/
+frontend/.next-preview/
 frontend/out/
 frontend/.turbo/
 
