@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { formatMoney, formatNumber, pluralRu } from "@/lib/format";
-import type { DealRead, UserMeRead } from "@/lib/types";
-import { OverviewCharts } from "@/components/dashboard/overview-charts";
+import { formatMoney } from "@/lib/format";
+import type { UserMeRead } from "@/lib/types";
 
 import styles from "./blogger-overview.module.css";
 
@@ -12,7 +11,7 @@ import styles from "./blogger-overview.module.css";
    Blogger overview — premium balance card + marketplace CTA.
    Заменяет старую сетку из 4 плиток: одна «карта» с балансом
    (скрываемым, в нескольких валютах) + призыв к работе на
-   маркетплейсе, ниже — воронка/структура сделок.
+   маркетплейсе.
    ========================================================= */
 
 type CurrencyCode = "RUB" | "USD" | "EUR" | "CNY";
@@ -119,14 +118,7 @@ const BalanceCard = ({ me }: { me: UserMeRead }) => {
   return (
     <section className={styles.card} aria-label="Баланс">
       <div className={styles.cardHead}>
-        <div className={styles.cardBrand}>
-          <span className={styles.cardChip} aria-hidden="true">
-            <span className={styles.cardChipLines} />
-          </span>
-          <svg className={styles.cardWaves} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
-            <path d="M8 8a6 6 0 0 1 0 8M12 5a10 10 0 0 1 0 14M16 2a14 14 0 0 1 0 20" />
-          </svg>
-        </div>
+        <p className={styles.cardEyebrow}>Баланс</p>
         <button
           type="button"
           className={styles.eyeBtn}
@@ -138,6 +130,18 @@ const BalanceCard = ({ me }: { me: UserMeRead }) => {
           <EyeIcon off={hidden} />
         </button>
       </div>
+
+      {/* «Номер карты» показываем только при привязанной карте выплат:
+          маскированные группы + реальные last4. Декоративный — статус
+          карты озвучивает футер. */}
+      {me.payout_card_last4 ? (
+        <p className={styles.cardNumber} aria-hidden="true">
+          <span>••••</span>
+          <span>••••</span>
+          <span>••••</span>
+          <span className={styles.cardNumberKnown}>{me.payout_card_last4}</span>
+        </p>
+      ) : null}
 
       <div className={styles.cardBody}>
         <p className={styles.cardLabel}>Доступно к выводу</p>
@@ -224,31 +228,11 @@ const MarketplaceCta = () => (
    Public component
    ========================================================= */
 
-export const BloggerOverview = ({
-  me,
-  deals,
-  dealsLoading,
-  newDealsCount,
-}: {
-  me: UserMeRead;
-  deals: readonly DealRead[];
-  dealsLoading?: boolean;
-  newDealsCount: number;
-}) => (
+export const BloggerOverview = ({ me }: { me: UserMeRead }) => (
   <div className={styles.root}>
     <div className={styles.topGrid}>
       <BalanceCard me={me} />
       <MarketplaceCta />
     </div>
-
-    {newDealsCount > 0 ? (
-      <p className={styles.newDealsHint}>
-        {formatNumber(newDealsCount)}{" "}
-        {pluralRu(newDealsCount, ["новая заявка ждёт", "новые заявки ждут", "новых заявок ждут"])}{" "}
-        принятия — загляните в раздел «Заявки».
-      </p>
-    ) : null}
-
-    {dealsLoading ? null : <OverviewCharts deals={deals} />}
   </div>
 );

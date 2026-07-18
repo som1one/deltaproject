@@ -31,6 +31,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 1.4rem;
   min-height: 15.5rem;
   padding: 1.7rem 1.85rem;
@@ -79,60 +80,15 @@
   gap: 1rem;
 }
 
-.cardBrand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.8rem;
+/* Ярлык карты — та же грамматика, что у eyebrow соседнего CTA. */
+.cardEyebrow {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
   color: var(--text-soft);
-}
-
-/* Чип — серебристый (монохром), не золотой. */
-.cardChip {
-  position: relative;
-  width: 2.5rem;
-  height: 1.95rem;
-  border-radius: 6px;
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.34) 46%, rgba(255, 255, 255, 0.72));
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.35);
-  opacity: 0.82;
-  overflow: hidden;
-}
-
-.cardChipLines {
-  position: absolute;
-  inset: 0;
-}
-
-.cardChipLines::before,
-.cardChipLines::after {
-  content: "";
-  position: absolute;
-  background: rgba(0, 0, 0, 0.22);
-}
-
-/* горизонтальная разделительная линия чипа */
-.cardChipLines::before {
-  left: 8%;
-  right: 8%;
-  top: 50%;
-  height: 1px;
-  transform: translateY(-0.5px);
-}
-
-/* центральный «контакт» */
-.cardChipLines::after {
-  left: 50%;
-  top: 14%;
-  bottom: 14%;
-  width: 1px;
-  transform: translateX(-0.5px);
-}
-
-.cardWaves {
-  width: 1.15rem;
-  height: 1.15rem;
-  color: var(--text-soft);
-  opacity: 0.7;
 }
 
 .eyeBtn {
@@ -164,12 +120,29 @@
   height: 1.05rem;
 }
 
+/* ---- «Номер карты» — маскированный PAN с last4 карты выплат.
+   Рендерится только при привязанной карте. ---- */
+
+.cardNumber {
+  display: flex;
+  gap: 1.15rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  color: var(--text-soft);
+}
+
+.cardNumberKnown {
+  color: var(--text);
+}
+
 /* ---- Body: label + big balance + pending ---- */
 
 .cardBody {
   display: grid;
   gap: 0.35rem;
-  margin-top: auto;
 }
 
 .cardLabel {
@@ -451,18 +424,6 @@
   height: 1rem;
 }
 
-/* ---- New deals hint ---- */
-
-.newDealsHint {
-  margin: 0;
-  padding: 0.85rem 1.1rem;
-  border-radius: var(--radius-md);
-  background: var(--surface-inset);
-  border: 1px solid var(--border-faint);
-  font-size: 0.88rem;
-  color: var(--text-muted);
-}
-
 /* ============================================================
    Responsive
    ============================================================ */
@@ -479,9 +440,9 @@
     min-height: 0;
     gap: 1.2rem;
   }
-  .cardChip {
-    width: 2.2rem;
-    height: 1.7rem;
+  .cardNumber {
+    font-size: 0.92rem;
+    gap: 0.85rem;
   }
   .cardFoot {
     gap: 0.8rem;

@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    Cabinet — Worker / Blogger dashboard.
    Layout: identity header + stats + sidebar tabs + workspace.
    Premium monochrome.
@@ -105,11 +105,51 @@
   color: var(--text);
 }
 
-.identityActions {
+/* Правая колонка шапки: тихая статистика с вертикальными
+   разделителями — та же типографика, что в футере карты баланса. */
+.identityStats {
   display: flex;
-  gap: 0.6rem;
   align-items: center;
-  flex-wrap: wrap;
+  margin: 0;
+}
+
+.identityStat {
+  display: grid;
+  gap: 0.55rem;
+  align-content: start;
+  padding: 0.35rem 1.8rem;
+  border-left: 1px solid var(--border-faint);
+  min-width: 0;
+}
+
+.identityStat:first-child {
+  border-left: 0;
+}
+
+.identityStat:last-child {
+  padding-right: 0.2rem;
+}
+
+.identityStat dt {
+  font-family: var(--font-narrow);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+
+.identityStat dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 @media (max-width: 720px) {
@@ -117,8 +157,18 @@
     grid-template-columns: 1fr;
     padding: 1.4rem 1.4rem;
   }
-  .identityActions {
-    justify-content: flex-start;
+  .identityStats {
+    flex-wrap: wrap;
+    row-gap: 0.8rem;
+  }
+  .identityStat {
+    padding: 0.1rem 1.1rem;
+  }
+  .identityStat:first-child {
+    padding-left: 0;
+  }
+  .identityStat dd {
+    font-size: 1.2rem;
   }
 }
 
@@ -460,145 +510,6 @@
   box-shadow: inset 1px 0 0 var(--text-strong), inset 0 1px 0 var(--border-strong), inset 0 -1px 0 var(--border-strong);
 }
 
-.shopLink {
-  color: var(--text-muted);
-  text-decoration: none;
-  border-bottom: 1px dashed currentColor;
-  transition: color var(--transition-base), border-bottom-style var(--transition-base);
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  overflow-wrap: anywhere;
-  word-break: normal;
-}
-
-.shopLink:hover {
-  color: var(--text-strong);
-  border-bottom-style: solid;
-}
-
-.itemTitle {
-  display: block;
-  font-weight: 500;
-  color: var(--text-strong);
-  margin-bottom: 0.25rem;
-  letter-spacing: -0.012em;
-}
-
-.contactCell {
-  display: grid;
-  gap: 0.2rem;
-  font-size: 0.86rem;
-}
-
-.contactCell code {
-  font-family: var(--font-mono);
-  letter-spacing: -0.01em;
-  color: var(--text);
-}
-
-.maskedCell {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-family: var(--font-narrow);
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--text-soft);
-}
-
-.maskedCell::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--text-faint);
-}
-
-.copyButton {
-  align-self: flex-start;
-}
-
-/* ---------- Mobile-friendly deal cards (used instead of tables on phones) ---------- */
-
-.dealCardList {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.dealCard {
-  display: grid;
-  gap: 0.7rem;
-  padding: 1.1rem 1.2rem;
-  border-radius: var(--radius-md);
-  background: var(--surface-inset);
-  border: 1px solid var(--border);
-  position: relative;
-  overflow: hidden;
-  transition: border-color var(--transition-base), transform var(--transition-base);
-}
-
-.dealCard:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-1px);
-}
-
-.dealCardHead {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.7rem;
-}
-
-.dealCardTitle {
-  display: grid;
-  gap: 0.2rem;
-  min-width: 0;
-}
-
-.dealCardTitle .itemTitle {
-  font-size: 1.0rem;
-}
-
-.dealCardMeta {
-  display: grid;
-  gap: 0.35rem;
-  font-size: 0.86rem;
-  color: var(--text-muted);
-}
-
-.dealCardMetaRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-}
-
-.dealCardMetaLabel {
-  font-family: var(--font-narrow);
-  font-size: 0.66rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-}
-
-.dealCardMetaValue {
-  font-family: var(--font-mono);
-  color: var(--text);
-  font-size: 0.86rem;
-  text-align: right;
-  overflow-wrap: anywhere;
-  word-break: normal;
-}
-
-.dealCardActions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: 0.2rem;
-}
-
 /* ---------- Script cards ---------- */
 
 .scriptGrid {
@@ -665,77 +576,6 @@
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-  margin-top: 0.2rem;
-}
-
-/* ---------- Referral card ---------- */
-
-.referralCard {
-  display: grid;
-  gap: 1rem;
-  padding: 1.7rem 1.9rem;
-  border-radius: var(--radius-lg);
-  background:
-    radial-gradient(420px 180px at 12% 0%, rgba(255, 255, 255, 0.06), transparent 60%),
-    radial-gradient(420px 180px at 100% 100%, rgba(255, 255, 255, 0.03), transparent 60%),
-    linear-gradient(135deg, #0a0a0a, #131313);
-  color: var(--text-strong);
-  box-shadow: var(--shadow-soft);
-  border: 1px solid var(--border-strong);
-  position: relative;
-  overflow: hidden;
-}
-
-.referralCard::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 32%);
-  border-radius: inherit;
-}
-
-.referralCardArt {
-  position: absolute;
-  right: 1.4rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 96px;
-  height: 96px;
-  opacity: 0.18;
-  pointer-events: none;
-  filter: grayscale(1);
-}
-
-.referralLabel {
-  margin: 0;
-  font-family: var(--font-narrow);
-  font-size: 0.64rem;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--text-soft);
-}
-
-.referralValue {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: clamp(0.95rem, 1.6vw, 1.18rem);
-  font-weight: 500;
-  letter-spacing: -0.005em;
-  color: var(--text-strong);
-  /* break-all ломает обычные слова в самой неожиданной точке.
-     anywhere переносит только при необходимости и любит длинные URL. */
-  overflow-wrap: anywhere;
-  word-break: normal;
-  padding-right: 6rem;
-  line-height: 1.4;
-}
-
-.referralActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
   margin-top: 0.2rem;
 }
 
@@ -883,18 +723,6 @@
 }
 
 @media (max-width: 720px) {
-  .referralCard {
-    padding: 1.4rem 1.4rem;
-  }
-  .referralCardArt {
-    width: 72px;
-    height: 72px;
-    right: 0.9rem;
-    opacity: 0.16;
-  }
-  .referralValue {
-    padding-right: 4.5rem;
-  }
   .unlockCard {
     padding: 1.7rem;
   }
@@ -1021,58 +849,12 @@
   gap: 0.75rem 1.2rem;
 }
 
-.dealModalPrice {
-  font-family: var(--font-mono);
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--text-strong);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
-
 .dealModalCreated {
   font-family: var(--font-narrow);
   font-size: 0.7rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--text-soft);
-}
-
-/* ---- Tabs ---- */
-
-.dealModalTabs {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0.4rem;
-  margin-top: 0.4rem;
-  padding-top: 0.4rem;
-  overflow-x: auto;
-  border-top: 1px solid var(--border-faint);
-}
-
-.dealModalTab {
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: var(--text-soft);
-  font: inherit;
-  font-size: 0.86rem;
-  font-weight: 500;
-  padding: 0.85rem 0.4rem;
-  margin-bottom: -1px;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  white-space: nowrap;
-  transition: color var(--transition-base), border-color var(--transition-base);
-}
-
-.dealModalTab:hover {
-  color: var(--text);
-}
-
-.dealModalTabActive {
-  color: var(--text-strong);
-  border-bottom-color: var(--text-strong);
 }
 
 /* ---- Body ---- */
@@ -1095,18 +877,6 @@
   font-size: 0.94rem;
   color: var(--text);
   line-height: 1.55;
-}
-
-.dealModalEmpty {
-  margin: 0;
-  font-size: 0.88rem;
-  color: var(--text-soft);
-  line-height: 1.55;
-  padding: 1.2rem 1.3rem;
-  border-radius: var(--radius-md);
-  background: var(--surface-inset);
-  border: 1px dashed var(--border);
-  text-align: center;
 }
 
 /* ---- Meta grid (Сводка) ---- */
@@ -1148,137 +918,6 @@
   word-break: break-word;
 }
 
-/* ---- Finance list ---- */
-
-.dealFinanceList {
-  list-style: none;
-  margin: 0;
-  padding: 1.1rem 1.2rem;
-  display: grid;
-  gap: 0.4rem;
-  border-radius: var(--radius-md);
-  background: var(--surface-inset);
-  border: 1px solid var(--border-faint);
-}
-
-.dealFinanceList li {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.8rem;
-  padding: 0.55rem 0;
-  border-bottom: 1px solid var(--border-faint);
-}
-
-.dealFinanceList li:last-child {
-  border-bottom: none;
-}
-
-.dealFinanceTotal {
-  margin-top: 0.2rem;
-  padding-top: 0.7rem !important;
-  border-top: 1px solid var(--border);
-}
-
-.dealFinanceTotal .dealFinanceLabel {
-  color: var(--text-strong);
-}
-
-.dealFinanceTotal .dealFinanceValue {
-  font-size: 1rem;
-  color: var(--text-strong);
-}
-
-.dealFinanceLabel {
-  font-family: var(--font-narrow);
-  font-size: 0.66rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-}
-
-.dealFinanceValue {
-  font-family: var(--font-mono);
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---- Contacts list ---- */
-
-.dealContactRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.95rem 1.1rem;
-  border-radius: var(--radius-md);
-  background: var(--surface-inset);
-  border: 1px solid var(--border-faint);
-}
-
-.dealContactInfo {
-  min-width: 0;
-}
-
-.dealContactLabel {
-  margin: 0 0 0.2rem;
-  font-family: var(--font-narrow);
-  font-size: 0.6rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--text-soft);
-}
-
-.dealContactValue {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  color: var(--text-strong);
-  overflow-wrap: anywhere;
-  word-break: normal;
-  letter-spacing: -0.005em;
-}
-
-.dealContactActions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-shrink: 0;
-}
-
-.dealLinkButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border-strong);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-strong);
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 0.82rem;
-  letter-spacing: 0.005em;
-  text-decoration: none;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background var(--transition-base),
-    border-color var(--transition-base),
-    transform var(--transition-base),
-    color var(--transition-base);
-}
-
-.dealLinkButton:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.22);
-  transform: translateY(-1px);
-}
-
 /* ---- Footer ---- */
 
 .dealModalFooter {
@@ -1312,95 +951,16 @@
   .dealModalFooter > * {
     flex: 1 1 auto;
   }
-  .dealContactRow {
-    grid-template-columns: 1fr;
-  }
-  .dealContactActions {
-    justify-content: flex-start;
-  }
 }
 
 
 /* =========================================================
-   Mobile-first cards for the deals list (replace the table).
-   Используются только на ≤720px; на десктопе спрятаны.
+   Обёртка десктопной таблицы (финансы): на ≤720px прячется,
+   вместо неё показывается ledgerMobileList.
    ========================================================= */
-
-.dealsMobileList {
-  display: none;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  gap: 0.55rem;
-}
 
 .dealsDesktopTable {
   display: block;
-}
-
-.dealMobileCard {
-  display: grid;
-  gap: 0.5rem;
-  padding: 0.85rem 0.95rem;
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  border: 1px solid var(--border-faint);
-  cursor: pointer;
-  transition: background var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
-}
-
-.dealMobileCard:hover,
-.dealMobileCard:focus-visible {
-  outline: none;
-  border-color: var(--border-strong);
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.dealMobileTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
-  min-width: 0;
-}
-
-.dealMobileTitle {
-  font-size: 0.94rem;
-  font-weight: 500;
-  color: var(--text-strong);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: -0.005em;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.dealMobileFoot {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  min-width: 0;
-}
-
-.dealMobilePrice {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.dealMobileDate {
-  font-family: var(--font-narrow);
-  font-size: 0.72rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-}
-
-.dealMobileAction {
-  margin-left: auto;
 }
 
 /* =========================================================
@@ -1477,10 +1037,7 @@
     width: 100%;
   }
 
-  /* --- Deals: mobile list visible, desktop table hidden --- */
-  .dealsMobileList {
-    display: grid;
-  }
+  /* --- Финансы: десктопная таблица скрыта, работает мобильный список --- */
   .dealsDesktopTable {
     display: none;
   }
@@ -1503,24 +1060,11 @@
   .actionRow > * {
     flex: 1 1 auto;
   }
-
-  /* --- Deal card sub-row in cabinet --- */
-  .dealCardList {
-    gap: 0.55rem;
-  }
-}
-
-/* В очень узких телефонах прячем колонку «дата» в карточке сделок,
-   чтобы тайтл не жался. */
-@media (max-width: 380px) {
-  .dealMobileDate {
-    display: none;
-  }
 }
 
 
 /* =========================================================
-   Ledger mobile list (mirror of dealsMobileList).
+   Ledger mobile list.
    ========================================================= */
 
 .ledgerMobileList {
