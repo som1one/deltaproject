@@ -185,6 +185,8 @@ class TestHandlePaymentWebhook:
         notify = AsyncMock()
         with patch(
             "services.marketplace_escrow_service.freeze_funds", AsyncMock()
+        ), patch(
+            "services.marketplace_order_flow_service.send_system_message", AsyncMock()
         ), patch("services.notification_service.notify", notify):
             await PaymentService._handle_payment_succeeded(order, "pay_1", db=db)
 
@@ -193,6 +195,35 @@ class TestHandlePaymentWebhook:
         assert kwargs["user_id"] == order.blogger_id
         assert kwargs["event_type"] == "order_confirmed"
         assert kwargs["payload"]["client_name"] == "Клиент"
+
+    @pytest.mark.asyncio
+    async def test_succeeded_posts_system_chat_message(self) -> None:
+        """payment.succeeded: в чат сделки уходит system-сообщение об оплате."""
+        order = _pending_order()
+        order.client_id = uuid.uuid4()
+        order.blogger_id = uuid.uuid4()
+        order.amount_kopeks = 500000
+
+        db = AsyncMock()
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = MagicMock(name="Клиент")
+        db.execute.return_value = result
+
+        system_message = AsyncMock()
+        with patch(
+            "services.marketplace_escrow_service.freeze_funds", AsyncMock()
+        ), patch(
+            "services.marketplace_order_flow_service.send_system_message",
+            system_message,
+        ), patch("services.notification_service.notify", AsyncMock()):
+            await PaymentService._handle_payment_succeeded(order, "pay_1", db=db)
+
+        system_message.assert_awaited_once()
+        kwargs = system_message.await_args.kwargs
+        assert kwargs["actor_id"] == order.client_id
+        assert "Оплата получена" in kwargs["text"]
+        # payload system-сообщения несёт статус заказа — уже новый
+        assert kwargs["order"].status == MarketplaceOrderStatus.ESCROW_HELD.value
 
     @pytest.mark.asyncio
     async def test_succeeded_skips_processed_order(self) -> None:

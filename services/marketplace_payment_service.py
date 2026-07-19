@@ -355,6 +355,7 @@ class PaymentService:
 
         # Import here to avoid circular imports
         from services.marketplace_escrow_service import freeze_funds
+        from services.marketplace_order_flow_service import send_system_message
         from services.notification_service import notify
 
         # Freeze funds via escrow service
@@ -372,6 +373,18 @@ class PaymentService:
                 yookassa_payment_id=str(payment_id),
                 paid_at=datetime.now(timezone.utc),
             )
+        )
+        # Bulk-UPDATE не трогает in-memory объект, а system-сообщение кладёт
+        # order.status в payload — должен уйти уже новый статус
+        order.status = MarketplaceOrderStatus.ESCROW_HELD.value
+
+        # Системное сообщение в чат сделки: обе стороны видят переход
+        # «в работу», у автора срабатывает браузерный пуш о новом сообщении
+        await send_system_message(
+            db,
+            order=order,
+            actor_id=order.client_id,
+            text="Оплата получена. Сделка в работе — можно приступать.",
         )
 
         # Уведомление блогеру — как при админ-подтверждении оплаты
