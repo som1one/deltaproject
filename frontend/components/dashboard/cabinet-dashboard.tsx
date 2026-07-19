@@ -1045,7 +1045,6 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
           tabs={tabs}
           active={tab}
           onSelect={(id) => setTab(id as BloggerTab)}
-          helpText="Следите за балансом, запрашивайте выплаты, берите заказы на маркетплейсе."
         />
 
         <div className={styles.workspace}>
