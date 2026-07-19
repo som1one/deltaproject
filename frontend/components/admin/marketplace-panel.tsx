@@ -7,6 +7,7 @@ import { apiRequest, ApiError } from "@/lib/api";
 import { appConfig } from "@/lib/config";
 import { formatDateTime } from "@/lib/format";
 import { LoadingSpinner } from "@/components/marketplace/loading-spinner";
+import { MarketplaceStatsTab } from "@/components/admin/marketplace-stats";
 
 import styles from "./marketplace-panel.module.css";
 
@@ -152,6 +153,7 @@ type AdminWithdrawalsResponse = {
 
 export type AdminMarketplaceTab =
   | "dashboard"
+  | "stats"
   | "orders"
   | "payments"
   | "settings"
@@ -216,6 +218,7 @@ export function AdminMarketplacePanel({ tab }: { tab: AdminMarketplaceTab }) {
   return (
     <div className={styles.container}>
       {tab === "dashboard" && <DashboardTab />}
+      {tab === "stats" && <MarketplaceStatsTab />}
       {tab === "orders" && <OrdersTab />}
       {tab === "payments" && <PaymentsTab />}
       {tab === "settings" && <SettingsTab />}

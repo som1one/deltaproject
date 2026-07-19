@@ -53,7 +53,7 @@ import { AdminMarketplacePanel, type AdminMarketplaceTab } from "@/components/ad
 
 type AdminSection =
   | "overview" | "stats" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "deals" | "ledger" | "schemes" | "finance" | "finance-requisites" | "finance-analytics" | "scripts" | "telegram"
-  | "mp-dashboard" | "mp-orders" | "mp-payments" | "mp-settings" | "mp-tickets" | "mp-bloggers" | "mp-services" | "mp-moderation" | "mp-premium" | "mp-hero" | "mp-withdrawals";
+  | "mp-dashboard" | "mp-stats" | "mp-orders" | "mp-payments" | "mp-settings" | "mp-tickets" | "mp-bloggers" | "mp-services" | "mp-moderation" | "mp-premium" | "mp-hero" | "mp-withdrawals";
 
 type AdminModalState =
   | { kind: "delete-user"; user: AdminUserRead }
@@ -207,6 +207,11 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
     label: "Дашборд",
     title: "Маркетплейс — сводка",
     lead: "Заказы, выручка, активные авторы и клиенты биржи.",
+  },
+  "mp-stats": {
+    label: "Статистика",
+    title: "Маркетплейс — статистика",
+    lead: "Оборот, воронка, топы, активность и обслуживание — вся аналитика биржи.",
   },
   "mp-orders": {
     label: "Заказы",
@@ -3522,6 +3527,14 @@ export const AdminDashboard = () => {
                 >
                   <span className={styles.dropdownItemLabel}>Сводка</span>
                   <span className={styles.dropdownItemDesc}>Заказы, выручка, авторы и клиенты биржи.</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.dropdownItem}${section === "mp-stats" ? ` ${styles.dropdownItemActive}` : ""}`}
+                  onClick={() => { setSection("mp-stats"); setActiveMenu(null); setDrawerOpen(false); }}
+                >
+                  <span className={styles.dropdownItemLabel}>Статистика</span>
+                  <span className={styles.dropdownItemDesc}>Графики оборота, воронка, топы и активность.</span>
                 </button>
                 <button
                   type="button"

@@ -68,6 +68,338 @@
   text-transform: uppercase;
 }
 
+.barSoft {
+  fill: var(--accent, #fff);
+  fill-opacity: 0.34;
+  transition: fill-opacity 120ms ease;
+}
+
+/* Area-график */
+
+.areaFill {
+  fill: var(--accent, #fff);
+  fill-opacity: 0.09;
+}
+
+.areaLine {
+  fill: none;
+  stroke: var(--accent, #fff);
+  stroke-width: 1.6;
+  stroke-opacity: 0.92;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.areaDot {
+  fill: var(--accent, #fff);
+}
+
+.hoverCol {
+  fill: transparent;
+}
+
+.hoverCol:hover {
+  fill: rgba(255, 255, 255, 0.05);
+}
+
+/* Легенда серий */
+
+.legendRow {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-narrow, inherit);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft, rgba(255, 255, 255, 0.55));
+}
+
+.legendSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--accent, #fff);
+  flex: none;
+}
+
+.legendSwatchSoft {
+  opacity: 0.34;
+}
+
+/* Донат */
+
+.donutWrap {
+  display: flex;
+  gap: 1.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.donutSvg {
+  width: 170px;
+  height: 170px;
+  flex: none;
+  color: var(--text-strong, #fff);
+}
+
+.donutTrack {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+}
+
+.donutArc {
+  fill: none;
+  stroke: var(--accent, #fff);
+  transform: rotate(-90deg);
+  transform-origin: 80px 80px;
+}
+
+.donutCenterValue {
+  fill: var(--text-strong, #fff);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.donutCenterLabel {
+  fill: var(--text-soft, rgba(255, 255, 255, 0.55));
+  font-family: var(--font-narrow, inherit);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.donutLegend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.donutLegendItem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+
+.donutLegendItem .legendSwatch {
+  align-self: center;
+}
+
+.donutLegendLabel {
+  color: var(--text-strong, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.donutLegendValue {
+  margin-left: auto;
+  color: var(--text-soft, rgba(255, 255, 255, 0.55));
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Горизонтальные бары */
+
+.hbarList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.hbarRow {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.hbarHead {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.hbarLabel {
+  color: var(--text-strong, #fff);
+  font-size: 0.84rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.hbarHint {
+  color: var(--text-soft, rgba(255, 255, 255, 0.5));
+  font-size: 0.74rem;
+}
+
+.hbarValue {
+  margin-left: auto;
+  color: var(--text-soft, rgba(255, 255, 255, 0.65));
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.hbarTrack {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.hbarFill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent, #fff);
+  opacity: 0.82;
+  transition: width 300ms ease;
+}
+
+.hbarRow:hover .hbarFill {
+  opacity: 1;
+}
+
+/* Воронка */
+
+.funnelList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.funnelRow {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.funnelLabel {
+  font-family: var(--font-narrow, inherit);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft, rgba(255, 255, 255, 0.55));
+}
+
+.funnelTrack {
+  height: 14px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.funnelFill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent, #fff);
+  opacity: 0.85;
+  transition: width 300ms ease;
+}
+
+.funnelRow:hover .funnelFill {
+  opacity: 1;
+}
+
+.funnelValue {
+  color: var(--text-strong, #fff);
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.funnelShare {
+  color: var(--text-soft, rgba(255, 255, 255, 0.5));
+  font-size: 0.72rem;
+}
+
+/* Теплокарта */
+
+.heatCell {
+  fill: var(--accent, #fff);
+}
+
+.heatCell:hover {
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-width: 1;
+}
+
+.heatCellEmpty {
+  fill: rgba(255, 255, 255, 0.04);
+}
+
+.heatCellEmpty:hover {
+  fill: rgba(255, 255, 255, 0.09);
+}
+
+/* Пустые состояния текстом */
+
+.chartEmptyText {
+  margin: 0;
+  padding: 1.2rem 0;
+  color: var(--text-soft, rgba(255, 255, 255, 0.5));
+  font-size: 0.84rem;
+}
+
+/* Сетки раскладки раздела статистики */
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.updatedNote {
+  margin-left: auto;
+  font-family: var(--font-narrow, inherit);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-soft, rgba(255, 255, 255, 0.45));
+}
+
+.rangeHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.sectionLead {
+  margin: -0.4rem 0 0;
+  color: var(--text-soft, rgba(255, 255, 255, 0.55));
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.statHint {
+  font-size: 0.72rem;
+  color: var(--text-soft, rgba(255, 255, 255, 0.5));
+}
+
 /* Переключатель периода */
 
 .rangeRow {
