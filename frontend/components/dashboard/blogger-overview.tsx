@@ -28,14 +28,14 @@ const MarketplaceCta = () => (
   <section className={styles.cta} aria-label="Маркетплейс">
     <div className={styles.ctaTop}>
       <p className={styles.ctaEyebrow}>Маркетплейс</p>
-      <h3 className={styles.ctaTitle}>Больше заказов — на&nbsp;маркетплейсе</h3>
+      <h3 className={styles.ctaTitle}>Больше заказов&nbsp;— на&nbsp;маркетплейсе</h3>
       <p className={styles.ctaText}>
         Берите рекламные интеграции с прямой оплатой через площадку. Деньги
         держатся в эскроу и приходят после выполнения — без переписок о предоплате.
       </p>
     </div>
     <ul className={styles.ctaPoints}>
-      <li className={styles.ctaPoint}>Оплата в эскроу</li>
+      <li className={styles.ctaPoint}>Эскроу-оплата</li>
       <li className={styles.ctaPoint}>Прямые заказы</li>
       <li className={styles.ctaPoint}>Вывод на карту</li>
     </ul>

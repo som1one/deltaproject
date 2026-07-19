@@ -100,6 +100,7 @@ async def user_to_me_read(
         percent=user.percent,
         balance=user.balance,
         balance_pending_confirmation_kopeks=pending,
+        marketplace_balance_kopeks=user.marketplace_balance_kopeks,
         payout_card_last4=user.payout_card_last4,
         payout_card_brand=user.payout_card_brand,
         payout_card_holder=user.payout_card_holder,

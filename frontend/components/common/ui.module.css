@@ -881,7 +881,8 @@
 
 @media (max-width: 640px) {
   .container {
-    width: calc(100% - 1.4rem);
+    /* 0.7rem по бокам делали мобилку тесной — контенту нужен воздух. */
+    width: calc(100% - 2.2rem);
     padding: 1rem 0 5rem;
   }
 

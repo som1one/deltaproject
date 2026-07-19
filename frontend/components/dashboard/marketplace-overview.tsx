@@ -258,7 +258,8 @@ export const MarketplaceOverview = ({
     }
   }, [referralUrl, pushToast]);
 
-  const hasBalance = me.balance > 0;
+  // Кнопка выплаты смотрит на оба контура: маркетплейс-заработок + легаси-остаток.
+  const hasBalance = me.marketplace_balance_kopeks + me.balance > 0;
   const hasCard = Boolean(me.payout_card_last4);
 
   return (

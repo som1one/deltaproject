@@ -8,10 +8,12 @@ import { api } from "@/lib/api";
 import { appConfig } from "@/lib/config";
 import { useAuth } from "@/lib/auth-context";
 import { tokenStorage } from "@/lib/storage";
-import { formatMoney, formatNumber, formatRole } from "@/lib/format";
+import { formatDateTime, formatMoney, formatNumber, formatRole } from "@/lib/format";
 import type {
   LedgerEntryRead,
   LedgerEntryStatus,
+  MarketplaceWithdrawalRead,
+  MarketplaceWithdrawalStatus,
   UserMeRead,
 } from "@/lib/types";
 import {
@@ -20,6 +22,7 @@ import {
   Message,
   PageSurface,
   SelectInput,
+  StatusPill,
   TextInput,
   TopNav,
   TwoColumn,
@@ -138,7 +141,7 @@ const IdentityHeader = ({
               <code>{me.telegram}</code>
             </span>
           ) : null}
-          <span className={styles.identityMeta}>
+          <span className={`${styles.identityMeta} ${styles.identityMetaCard}`}>
             <Icon d={ICONS.card} />
             {me.payout_card_last4 ? (
               <code>•••• {me.payout_card_last4}</code>
@@ -260,6 +263,79 @@ const usePayoutRequest = (me: UserMeRead, onToast: (toast: Toast) => void) => {
 type PayoutControls = ReturnType<typeof usePayoutRequest>;
 
 /* =========================================================
+   Marketplace withdraw — вывод заработка маркетплейса
+   (marketplace_balance_kopeks) на привязанную карту
+   ========================================================= */
+
+const WITHDRAWAL_STATUS_LABELS: Record<MarketplaceWithdrawalStatus, string> = {
+  pending: "В обработке",
+  completed: "Выплачено",
+  failed: "Ошибка",
+};
+
+const withdrawalTone = (
+  status: MarketplaceWithdrawalStatus,
+): "active" | "success" | "danger" =>
+  status === "completed" ? "success" : status === "failed" ? "danger" : "active";
+
+const useMarketplaceWithdraw = (me: UserMeRead, onToast: (toast: Toast) => void) => {
+  const queryClient = useQueryClient();
+  const [amount, setAmount] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: (amountKopeks: number) => api.createMarketplaceWithdrawal(amountKopeks),
+    onSuccess: (withdrawal) => {
+      if (withdrawal.status === "failed") {
+        setError(withdrawal.error_message || "Выплата не прошла. Попробуйте позже.");
+      } else {
+        onToast({ tone: "success", text: "Выплата отправлена — деньги уйдут на привязанную карту." });
+        setAmount("");
+        setError(null);
+      }
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+      queryClient.invalidateQueries({ queryKey: ["marketplace", "withdrawals"] });
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const changeAmount = (value: string) => {
+    setAmount(value);
+    setError(null);
+  };
+
+  const fillMax = () => {
+    setAmount(me.marketplace_balance_kopeks > 0 ? String(me.marketplace_balance_kopeks / 100) : "");
+    setError(null);
+  };
+
+  const submit = () => {
+    const amountKopeks = Math.round(Number(amount.replace(",", ".")) * 100);
+    if (!Number.isFinite(amountKopeks) || amountKopeks <= 0) {
+      setError("Введите положительную сумму.");
+      return;
+    }
+    if (amountKopeks < 100) {
+      setError("Минимальная сумма вывода — 1 ₽.");
+      return;
+    }
+    if (amountKopeks > me.marketplace_balance_kopeks) {
+      setError("Сумма больше доступного баланса.");
+      return;
+    }
+    if (!me.payout_card_last4) {
+      setError("Сначала привяжите карту в разделе «Профиль».");
+      return;
+    }
+    mutation.mutate(amountKopeks);
+  };
+
+  return { amount, changeAmount, error, fillMax, submit, pending: mutation.isPending };
+};
+
+type WithdrawControls = ReturnType<typeof useMarketplaceWithdraw>;
+
+/* =========================================================
    Finance tab — выплата + история операций (общая для ролей)
    ========================================================= */
 
@@ -267,6 +343,9 @@ const FinanceTab = ({
   me,
   payout,
   widgetEnabled,
+  withdraw,
+  withdrawals,
+  withdrawalsLoading,
   ledgerItems,
   ledgerLoading,
   filter,
@@ -276,6 +355,9 @@ const FinanceTab = ({
   me: UserMeRead;
   payout: PayoutControls;
   widgetEnabled: boolean;
+  withdraw: WithdrawControls;
+  withdrawals: MarketplaceWithdrawalRead[];
+  withdrawalsLoading: boolean;
   ledgerItems: LedgerEntryRead[];
   ledgerLoading: boolean;
   /* Фильтр живёт у родителя, чтобы выбор переживал переключение вкладок. */
@@ -291,56 +373,120 @@ const FinanceTab = ({
   return (
     <div className={styles.stack}>
       <Section
-        label="Выплата"
-        lead="Сумма уйдёт на привязанную карту после подтверждения администратором."
+        label="Вывод средств"
+        lead="Заработок на маркетплейсе. Деньги уходят на привязанную карту сразу после запроса."
       >
         <div className={styles.payoutRow}>
           <div className={styles.payoutField}>
             <p className={styles.payoutLabel}>Доступно к выводу</p>
-            <p className={styles.payoutAvailable}>{formatMoney(me.balance)}</p>
+            <p className={styles.payoutAvailable}>{formatMoney(me.marketplace_balance_kopeks)}</p>
             {!me.payout_card_last4 ? (
               <p className={styles.payoutHint}>
-                Привяжите карту в разделе «Профиль», иначе администратор не сможет провести перевод.
+                Привяжите карту в разделе «Профиль» — выплата уходит только на неё.
               </p>
             ) : (
               <p className={styles.payoutHint}>Карта: •••• {me.payout_card_last4}</p>
             )}
           </div>
-          <Field label="Сумма, ₽" help={payout.error ?? undefined}>
+          <Field label="Сумма, ₽" help={withdraw.error ?? undefined}>
             <TextInput
               inputMode="decimal"
-              value={payout.amount}
-              onChange={(event) => payout.changeAmount(event.target.value)}
+              value={withdraw.amount}
+              onChange={(event) => withdraw.changeAmount(event.target.value)}
               placeholder="5000"
-              aria-invalid={Boolean(payout.error)}
+              aria-invalid={Boolean(withdraw.error)}
             />
           </Field>
           <div className={styles.payoutActions}>
             <Button
-              kind="secondary"
-              onClick={payout.fillMax}
-              disabled={me.balance <= 0 || payout.pending}
+              kind="ghost"
+              onClick={withdraw.fillMax}
+              disabled={me.marketplace_balance_kopeks <= 0 || withdraw.pending}
             >
               Всё
             </Button>
             <Button
-              onClick={payout.submit}
-              disabled={payout.pending || !payout.amount || me.balance <= 0}
+              onClick={withdraw.submit}
+              disabled={withdraw.pending || !withdraw.amount || me.marketplace_balance_kopeks <= 0}
             >
-              {payout.pending ? "Отправляем…" : "Запросить выплату"}
+              {withdraw.pending ? "Отправляем…" : "Вывести"}
             </Button>
           </div>
         </div>
-        {widgetEnabled ? (
-          <Message tone="default">
-            Доступна автоматическая выплата через виджет ЮKassa. Скоро появится прямо здесь.
-          </Message>
+        {withdrawalsLoading ? (
+          <SkeletonTable rows={2} />
+        ) : withdrawals.length > 0 ? (
+          <ul className={styles.wdList}>
+            {withdrawals.map((w) => (
+              <li key={w.id} className={styles.wdRow}>
+                <span className={styles.wdAmount}>−{formatMoney(w.amount_kopeks)}</span>
+                <StatusPill tone={withdrawalTone(w.status)}>
+                  {WITHDRAWAL_STATUS_LABELS[w.status]}
+                </StatusPill>
+                <span className={styles.wdDate}>{formatDateTime(w.created_at)}</span>
+                {w.status === "failed" && w.error_message ? (
+                  <p className={styles.wdError}>{w.error_message}</p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         ) : null}
       </Section>
 
+      {/* Остаток прежней программы начислений: показываем, только если он есть.
+          Новые деньги сюда не попадают — это хвост легаси-баланса. */}
+      {me.balance > 0 ? (
+        <Section
+          label="Выплата по прежним начислениям"
+          lead="Остаток по старой программе. Сумма уйдёт на карту после подтверждения администратором."
+        >
+          <div className={styles.payoutRow}>
+            <div className={styles.payoutField}>
+              <p className={styles.payoutLabel}>Доступно к выводу</p>
+              <p className={styles.payoutAvailable}>{formatMoney(me.balance)}</p>
+              {!me.payout_card_last4 ? (
+                <p className={styles.payoutHint}>
+                  Привяжите карту в разделе «Профиль», иначе администратор не сможет провести перевод.
+                </p>
+              ) : (
+                <p className={styles.payoutHint}>Карта: •••• {me.payout_card_last4}</p>
+              )}
+            </div>
+            <Field label="Сумма, ₽" help={payout.error ?? undefined}>
+              <TextInput
+                inputMode="decimal"
+                value={payout.amount}
+                onChange={(event) => payout.changeAmount(event.target.value)}
+                placeholder="5000"
+                aria-invalid={Boolean(payout.error)}
+              />
+            </Field>
+            <div className={styles.payoutActions}>
+              <Button
+                kind="ghost"
+                onClick={payout.fillMax}
+                disabled={me.balance <= 0 || payout.pending}
+              >
+                Всё
+              </Button>
+              <Button
+                onClick={payout.submit}
+                disabled={payout.pending || !payout.amount || me.balance <= 0}
+              >
+                {payout.pending ? "Отправляем…" : "Запросить выплату"}
+              </Button>
+            </div>
+          </div>
+          {widgetEnabled ? (
+            <Message tone="default">
+              Доступна автоматическая выплата через виджет ЮKassa. Скоро появится прямо здесь.
+            </Message>
+          ) : null}
+        </Section>
+      ) : null}
+
       <Section
         label="История операций"
-        lead="Начисления, заморозки, запросы и завершённые выплаты."
         aside={
           <span className={styles.ledgerFilter}>
             <SelectInput
@@ -639,6 +785,11 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
   });
 
   const payout = usePayoutRequest(me, setToast);
+  const withdraw = useMarketplaceWithdraw(me, setToast);
+  const withdrawalsQuery = useQuery({
+    queryKey: ["marketplace", "withdrawals"],
+    queryFn: api.getMarketplaceWithdrawals,
+  });
 
   const ledger = ledgerQuery.data?.items || [];
 
@@ -695,6 +846,9 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
             me={me}
             payout={payout}
             widgetEnabled={Boolean(payoutWidgetQuery.data?.enabled)}
+            withdraw={withdraw}
+            withdrawals={withdrawalsQuery.data?.items || []}
+            withdrawalsLoading={withdrawalsQuery.isLoading}
             ledgerItems={ledger}
             ledgerLoading={ledgerQuery.isLoading}
             filter={ledgerFilter}
@@ -774,6 +928,11 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
   });
 
   const payout = usePayoutRequest(me, setToast);
+  const withdraw = useMarketplaceWithdraw(me, setToast);
+  const withdrawalsQuery = useQuery({
+    queryKey: ["marketplace", "withdrawals"],
+    queryFn: api.getMarketplaceWithdrawals,
+  });
 
   const ledger = ledgerQuery.data?.items || [];
 
@@ -809,6 +968,9 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
             me={me}
             payout={payout}
             widgetEnabled={Boolean(payoutWidgetQuery.data?.enabled)}
+            withdraw={withdraw}
+            withdrawals={withdrawalsQuery.data?.items || []}
+            withdrawalsLoading={withdrawalsQuery.isLoading}
             ledgerItems={ledger}
             ledgerLoading={ledgerQuery.isLoading}
             filter={ledgerFilter}

@@ -256,6 +256,8 @@ class BloggerSelfProfileResponse(BloggerProfileResponse):
 
     price_list_full: list[PriceItemFull] = Field(default_factory=list)
     latest_audience_submission: AudienceSubmissionResponse | None = None
+    # Маркетплейс-баланс автора (marketplace_balance_kopeks владельца профиля).
+    balance_kopeks: int = 0
 
 
 def _clean_portfolio_covers(v: list[str | None] | None) -> list[str | None] | None:

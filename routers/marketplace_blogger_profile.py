@@ -140,6 +140,7 @@ async def _self_profile_response(
         updated_at=profile.updated_at,
         price_list_full=price_list_full,
         latest_audience_submission=await _latest_submission(db, profile.id),
+        balance_kopeks=user.marketplace_balance_kopeks,
     )
 
 

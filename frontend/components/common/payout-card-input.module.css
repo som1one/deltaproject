@@ -12,7 +12,11 @@
 @media (max-width: 720px) {
   .shell {
     grid-template-columns: 1fr;
-    gap: 1rem;
+    gap: 1.1rem;
+  }
+  /* Превью выравнивается по колонке формы, а не обрывается на 320px. */
+  .card {
+    max-width: none;
   }
 }
 

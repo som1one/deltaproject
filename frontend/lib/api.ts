@@ -18,6 +18,8 @@ import type {
   FinanceSchemeAdminRead,
   LedgerEntryRead,
   LedgerListResponse,
+  MarketplaceWithdrawalListResponse,
+  MarketplaceWithdrawalRead,
   MeDealsResponse,
   MeStatsResponse,
   PayoutWidgetConfigResponse,
@@ -262,6 +264,18 @@ export const api = {
       auth: true,
       credentials: "include",
       body: JSON.stringify(body),
+    }),
+  /** Маркетплейс: история выводов с marketplace_balance_kopeks. */
+  getMarketplaceWithdrawals: () =>
+    request<MarketplaceWithdrawalListResponse>("/marketplace/withdrawals", {
+      auth: true,
+    }),
+  /** Маркетплейс: вывод заработка на привязанную карту (мгновенная выплата). */
+  createMarketplaceWithdrawal: (amountKopeks: number) =>
+    request<MarketplaceWithdrawalRead>("/marketplace/withdrawals", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify({ amount_kopeks: amountKopeks }),
     }),
   createDeal: (body: {
     shop_link: string;

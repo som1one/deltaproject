@@ -43,6 +43,7 @@ export type UserMeRead = {
   percent: number;
   balance: number;
   balance_pending_confirmation_kopeks: number;
+  marketplace_balance_kopeks: number;
   payout_card_last4: string | null;
   payout_card_brand: string | null;
   payout_card_holder: string | null;
@@ -138,6 +139,27 @@ export type LedgerListResponse = {
 export type PayoutWidgetConfigResponse = {
   enabled: boolean;
   gateway_id: string | null;
+};
+
+export type MarketplaceWithdrawalStatus = "pending" | "completed" | "failed";
+
+export type MarketplaceWithdrawalRead = {
+  id: string;
+  user_id: string;
+  amount_kopeks: number;
+  status: MarketplaceWithdrawalStatus;
+  yookassa_payout_id: string | null;
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+  updated_at: string;
+};
+
+export type MarketplaceWithdrawalListResponse = {
+  items: MarketplaceWithdrawalRead[];
+  total: number;
+  page: number;
+  page_size: number;
 };
 
 export type ReferralRead = {

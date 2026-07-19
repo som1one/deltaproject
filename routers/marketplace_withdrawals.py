@@ -73,6 +73,17 @@ async def create_withdrawal(
             detail="Необходимо привязать банковскую карту перед выводом средств",
         )
 
+    # Шлюз проверяем до списания: иначе создали бы запись и списали баланс,
+    # которые всё равно откатятся на teardown, а клиент увидел бы фантомный PENDING.
+    from services.marketplace_payment_settings_service import get_effective_yookassa
+
+    creds = await get_effective_yookassa(db)
+    if not creds.active:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Выплаты временно недоступны: платёжный шлюз не настроен",
+        )
+
     # Lock user row for concurrent withdrawal protection
     lock_query = (
         select(User)
@@ -116,10 +127,24 @@ async def create_withdrawal(
             withdrawal_id=withdrawal.id,
         )
         # payout_id is already stored on withdrawal by PaymentService
-    except PaymentServiceError:
-        # PaymentService already restores balance and sets FAILED status on error
-        await db.refresh(withdrawal)
-        return WithdrawalResponse.model_validate(withdrawal)
+    except PaymentServiceError as exc:
+        # Ветка YookassaPayoutError уже закоммитила FAILED + возврат баланса.
+        # Если же ошибка случилась до попытки выплаты (коммита не было) —
+        # откатываемся и честно отвечаем 502 вместо фантомной PENDING-записи.
+        await db.rollback()
+        committed = (
+            await db.execute(
+                select(MarketplaceWithdrawal).where(
+                    MarketplaceWithdrawal.id == withdrawal.id
+                )
+            )
+        ).scalar_one_or_none()
+        if committed is not None:
+            return WithdrawalResponse.model_validate(committed)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Не удалось создать выплату: {exc}",
+        ) from exc
 
     await db.commit()
     await db.refresh(withdrawal)

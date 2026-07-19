@@ -24,6 +24,8 @@ class UserMeRead(BaseModel):
     percent: float
     balance: int
     balance_pending_confirmation_kopeks: int = 0
+    # Заработок на маркетплейсе (эскроу-заказы); отдельный от легаси balance.
+    marketplace_balance_kopeks: int = 0
     payout_card_last4: str | None = None
     payout_card_brand: str | None = None
     payout_card_holder: str | None = None

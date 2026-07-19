@@ -98,7 +98,9 @@ export const BalanceCard = ({ me }: { me: UserMeRead }) => {
   };
 
   const symbol = CURRENCIES.find((c) => c.code === currency)?.symbol ?? "₽";
-  const balanceText = useMemo(() => convert(me.balance, currency), [me.balance, currency]);
+  // Общий доступный остаток: маркетплейс-заработок + легаси-баланс прежних сделок.
+  const totalKopeks = me.marketplace_balance_kopeks + me.balance;
+  const balanceText = useMemo(() => convert(totalKopeks, currency), [totalKopeks, currency]);
   const hasPending = me.balance_pending_confirmation_kopeks > 0;
   const holder = me.nickname ? `@${me.nickname}` : me.name;
 

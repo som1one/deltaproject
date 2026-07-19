@@ -37,6 +37,12 @@ type ProfileResponse = {
   balance_kopeks?: number;
 };
 
+const WITHDRAWAL_STATUS_RU: Record<string, string> = {
+  pending: "в обработке",
+  completed: "выплачено",
+  failed: "ошибка",
+};
+
 export default function BloggerMarketplacePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -80,22 +86,6 @@ export default function BloggerMarketplacePage() {
     enabled: isAuthenticated,
   });
 
-  const completeMutation = useMutation({
-    mutationFn: async (orderId: string) => {
-      const response = await fetch(`${appConfig.apiBaseUrl}/marketplace/orders/${orderId}/complete`, {
-        method: "PATCH",
-        headers,
-      });
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(typeof payload.detail === "string" ? payload.detail : "Не удалось отметить выполнение");
-      }
-      return response.json();
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["blogger-marketplace-orders"] }),
-    onError: (err: Error) => setMessage(err.message),
-  });
-
   const withdrawMutation = useMutation({
     mutationFn: async () => {
       const amount = Number(withdrawAmount.replace(",", "."));
@@ -109,11 +99,16 @@ export default function BloggerMarketplacePage() {
         const payload = await response.json().catch(() => ({}));
         throw new Error(typeof payload.detail === "string" ? payload.detail : "Не удалось создать вывод");
       }
-      return response.json();
+      return response.json() as Promise<{ status?: string; error_message?: string | null }>;
     },
-    onSuccess: () => {
-      setMessage("Запрос на вывод создан.");
-      setWithdrawAmount("");
+    onSuccess: (created) => {
+      // Бэкенд мог сразу зафиксировать неудачу выплаты (FAILED + возврат баланса).
+      if (created?.status === "failed") {
+        setMessage(created.error_message || "Выплата не прошла. Попробуйте позже.");
+      } else {
+        setMessage("Запрос на вывод создан.");
+        setWithdrawAmount("");
+      }
       queryClient.invalidateQueries({ queryKey: ["blogger-marketplace-profile-balance"] });
       queryClient.invalidateQueries({ queryKey: ["blogger-marketplace-withdrawals"] });
     },
@@ -171,7 +166,11 @@ export default function BloggerMarketplacePage() {
             <div className={styles.list} style={{ marginTop: "24px" }}>
               {withdrawals?.items.map((item) => (
                 <div className={styles.rowItem} key={item.id}>
-                  <span>{formatDateTime(item.created_at)}</span>
+                  <span>
+                    {formatDateTime(item.created_at)}
+                    {" · "}
+                    {WITHDRAWAL_STATUS_RU[item.status] ?? item.status}
+                  </span>
                   <strong>{formatMoney(item.amount_kopeks)}</strong>
                 </div>
               ))}
@@ -191,14 +190,16 @@ export default function BloggerMarketplacePage() {
                   order={order}
                   action={
                     order.status === "ESCROW_HELD" ? (
-                      <button
+                      // Сдача работы требует текста результата — этот флоу живёт
+                      // в кабинете автора на маркетплейсе.
+                      <a
                         className={styles.secondaryButton}
-                        disabled={completeMutation.isPending}
-                        onClick={() => completeMutation.mutate(order.id)}
-                        type="button"
+                        href={`${appConfig.marketplaceUrl}/cabinet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                       >
-                        Выполнено
-                      </button>
+                        Сдать работу в кабинете
+                      </a>
                     ) : null
                   }
                 />

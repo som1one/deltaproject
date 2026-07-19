@@ -76,13 +76,14 @@
 
 .ctaTitle {
   margin: 0;
-  max-width: 15ch;
+  max-width: 18ch;
   font-family: var(--font-display);
   font-weight: 600;
   font-size: clamp(1.2rem, 2vw, 1.5rem);
   letter-spacing: -0.03em;
   line-height: 1.12;
   color: var(--text-strong);
+  text-wrap: balance;
 }
 
 .ctaText {
@@ -93,27 +94,35 @@
   max-width: 42ch;
 }
 
+/* Пункты — типографская строка с точками-разделителями,
+   а не чипы-коробки: короче на мобиле и тише по весу. */
 .ctaPoints {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
   margin-top: auto;
 }
 
 .ctaPoint {
   display: inline-flex;
   align-items: center;
-  padding: 0.34rem 0.75rem;
-  border-radius: var(--radius-pill);
-  background: var(--surface-inset);
-  border: 1px solid var(--border-faint);
+  gap: 0.6rem;
   font-family: var(--font-narrow);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
   color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ctaPoint:not(:first-child)::before {
+  content: "·";
+  color: var(--text-soft);
 }
 
 .ctaBtn {
@@ -292,16 +301,55 @@
     gap: 2rem;
   }
   .cta {
-    padding: 1.4rem 1.4rem;
+    padding: 1.35rem 1.3rem 1.3rem;
+    gap: 1rem;
+  }
+  .ctaTitle {
+    max-width: none;
+  }
+  .ctaText {
+    font-size: 0.88rem;
+  }
+  /* Пункты — одной строкой вразнос, как футер карты баланса.
+     Точки-разделители убираем: при переносе/нехватке места они
+     ломали строку. Скролл — страховка для сверхузких экранов. */
+  .ctaPoints {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 0.75rem;
+  }
+  .ctaPoints::-webkit-scrollbar {
+    display: none;
+  }
+  .ctaPoint {
+    font-size: 0.6rem;
+  }
+  .ctaPoint:not(:first-child)::before {
+    content: none;
+  }
+  /* CTA-кнопка на мобиле — полноширинная. */
+  .ctaBtn {
+    align-self: stretch;
+    width: 100%;
+  }
+
+  /* Строка операции: сумма слева, статус справа, дата второй
+     строкой — та же сетка, что в «Финансах», без рваного переноса. */
+  .opsRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    row-gap: 0.35rem;
+    padding: 0.9rem 0.15rem;
   }
   .opsAmount {
     min-width: 0;
+    font-size: 1rem;
   }
   .opsDate {
-    flex-shrink: 0;
-  }
-  .opsRow {
-    flex-wrap: wrap;
-    gap: 0.4rem 0.9rem;
+    grid-column: 1 / -1;
+    margin-left: 0;
   }
 }

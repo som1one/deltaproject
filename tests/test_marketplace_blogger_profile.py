@@ -21,6 +21,7 @@ def _make_blogger_user() -> MagicMock:
     user.name = "Test Blogger"
     user.role = UserRole.BLOGER
     user.is_active = True
+    user.marketplace_balance_kopeks = 77_700
     return user
 
 
@@ -124,6 +125,8 @@ async def test_get_profile_200_when_exists() -> None:
         assert data["show_portfolio"] is True
         assert data["show_socials"] is True
         assert data["latest_audience_submission"] is None
+        # Баланс автора — страница выплат читает именно это поле
+        assert data["balance_kopeks"] == 77_700
     finally:
         app.dependency_overrides.clear()
 
