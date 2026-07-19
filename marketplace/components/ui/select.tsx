@@ -145,6 +145,9 @@ export function Select({ value, onChange, options, ariaLabel, className, leading
             style={{
               left: coords.left,
               width: coords.width,
+              /* CSS-потолок 320px — для узких триггеров с длинными опциями;
+                 у широкого триггера меню занимает всю его ширину. */
+              maxWidth: `min(92vw, ${Math.max(320, Math.round(coords.width))}px)`,
               ...(coords.up
                 ? { bottom: window.innerHeight - coords.top }
                 : { top: coords.top }),
