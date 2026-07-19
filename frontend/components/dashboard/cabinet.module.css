@@ -715,6 +715,16 @@
   align-self: end;
 }
 
+/* Ошибка — отдельная строка грида под инпутом: ряд «поле + кнопки»
+   не меняет высоту, и кнопки не съезжают при её появлении. */
+.payoutError {
+  grid-column: 2 / -1;
+  margin: -0.55rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--status-danger);
+}
+
 /* --- Маркетплейс-выводы: hairline-история под формой --- */
 
 .wdList {
@@ -1100,6 +1110,9 @@
   .payoutField {
     grid-column: 1 / -1;
   }
+  .payoutError {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1208,6 +1221,13 @@
     display: grid;
     grid-template-columns: auto 1fr;
     width: 100%;
+    /* Кнопки в конец, чтобы ошибка встала сразу под инпутом. */
+    order: 2;
+  }
+  .payoutError {
+    grid-column: auto;
+    order: 1;
+    margin-top: -0.35rem;
   }
   .payoutAvailable {
     font-size: 1.45rem;

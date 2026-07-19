@@ -393,7 +393,7 @@ const FinanceTab = ({
               <p className={styles.payoutHint}>Карта: •••• {me.payout_card_last4}</p>
             )}
           </div>
-          <Field label="Сумма, ₽" help={withdraw.error ?? undefined}>
+          <Field label="Сумма, ₽">
             <TextInput
               inputMode="decimal"
               value={withdraw.amount}
@@ -417,6 +417,11 @@ const FinanceTab = ({
               {withdraw.pending ? "Отправляем…" : "Вывести"}
             </Button>
           </div>
+          {withdraw.error ? (
+            <p className={styles.payoutError} role="alert">
+              {withdraw.error}
+            </p>
+          ) : null}
         </div>
         {withdrawalsLoading ? (
           <SkeletonTable rows={2} />
@@ -457,7 +462,7 @@ const FinanceTab = ({
                 <p className={styles.payoutHint}>Карта: •••• {me.payout_card_last4}</p>
               )}
             </div>
-            <Field label="Сумма, ₽" help={payout.error ?? undefined}>
+            <Field label="Сумма, ₽">
               <TextInput
                 inputMode="decimal"
                 value={payout.amount}
@@ -481,6 +486,11 @@ const FinanceTab = ({
                 {payout.pending ? "Отправляем…" : "Запросить выплату"}
               </Button>
             </div>
+            {payout.error ? (
+              <p className={styles.payoutError} role="alert">
+                {payout.error}
+              </p>
+            ) : null}
           </div>
           {widgetEnabled ? (
             <Message tone="default">
