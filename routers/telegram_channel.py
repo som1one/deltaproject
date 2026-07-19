@@ -26,6 +26,7 @@ from services.telegram_channel_service import (
     get_channel_member_count,
     get_daily_subscription_series,
     get_subscription_stats,
+    normalize_channel_id,
     upsert_channel_config,
 )
 
@@ -51,9 +52,25 @@ async def admin_set_channel_config(
     db: Annotated[AsyncSession, Depends(get_db)],
     _admin: Annotated[User, Depends(get_current_admin_or_tech)],
 ):
+    """Сохранить конфиг ворот подписки.
+
+    channel_id нормализуется (@username / t.me-ссылка / -100…-id) и, если
+    ворота включаются, проверяется через getChat: сохранить id, который бот
+    не может разрезолвить, нельзя — иначе ворота молча режут всех,
+    включая подписанных.
+    """
+    channel_id = normalize_channel_id(body.channel_id)
+    if not channel_id:
+        raise HTTPException(status_code=422, detail="Укажите @username или -100…-id канала")
+
+    if body.is_enabled:
+        diag = await diagnose_channel_access(channel_id)
+        if diag["bot_configured"] and not diag["chat_found"]:
+            raise HTTPException(status_code=422, detail=diag["error_hint"])
+
     config = await upsert_channel_config(
         db,
-        channel_id=body.channel_id,
+        channel_id=channel_id,
         channel_title=body.channel_title,
         channel_url=body.channel_url,
         is_enabled=body.is_enabled,

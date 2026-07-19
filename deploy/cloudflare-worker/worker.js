@@ -1,6 +1,13 @@
 /**
- * Cloudflare Worker — reverse proxy для oauth.telegram.org.
- * Обходит блокировку РКН на российских серверах.
+ * Cloudflare Worker — reverse proxy для Telegram с российских серверов.
+ * Обходит блокировку РКН: OAuth (oauth.telegram.org) и Bot API (api.telegram.org).
+ *
+ * Маршрутизация по пути:
+ *   /bot<token>/…  и  /file/bot<token>/…  →  https://api.telegram.org
+ *   всё остальное (OAuth, JWKS)           →  https://oauth.telegram.org
+ *
+ * Без маршрутизации Bot API-вызовы (getChatMember — проверка подписки на канал)
+ * уходили на oauth-хост, получали 302 без JSON и валили проверку для всех.
  *
  * Деплой:
  *   1. Зайди на https://dash.cloudflare.com → Workers & Pages → Create
@@ -10,13 +17,19 @@
  *   5. Пропиши в .env на сервере:
  *        TELEGRAM_OAUTH_ISSUER=https://tg-oauth-proxy.<your-subdomain>.workers.dev
  *        TELEGRAM_OAUTH_JWKS_URL=https://tg-oauth-proxy.<your-subdomain>.workers.dev/.well-known/jwks.json
+ *        TELEGRAM_OAUTH_PROXY=https://tg-oauth-proxy.<your-subdomain>.workers.dev
+ *      (TELEGRAM_OAUTH_PROXY нужен, чтобы проверка подписки на канал ходила
+ *       в Bot API через worker, а не напрямую в заблокированный api.telegram.org.)
  *
- * Worker проксирует ВСЕ запросы к oauth.telegram.org, сохраняя path, method, headers и body.
  * Секрет AUTH_SECRET (опционально) — если задан в Worker Environment Variables,
- * то worker проверяет заголовок X-Proxy-Secret.
+ * то worker проверяет заголовок X-Proxy-Secret (TELEGRAM_OAUTH_PROXY_SECRET в .env).
  */
 
-const TARGET = "https://oauth.telegram.org";
+const OAUTH_TARGET = "https://oauth.telegram.org";
+const BOT_API_TARGET = "https://api.telegram.org";
+
+// /bot123456:ABC…/method и /file/bot123456:ABC…/path — это Bot API
+const BOT_API_PATH = /^\/(?:file\/)?bot\d+:/;
 
 export default {
   async fetch(request, env) {
@@ -29,7 +42,8 @@ export default {
     }
 
     const url = new URL(request.url);
-    const targetUrl = TARGET + url.pathname + url.search;
+    const target = BOT_API_PATH.test(url.pathname) ? BOT_API_TARGET : OAUTH_TARGET;
+    const targetUrl = target + url.pathname + url.search;
 
     // Копируем заголовки, убирая CF-специфичные
     const headers = new Headers(request.headers);
@@ -38,7 +52,7 @@ export default {
     headers.delete("cf-visitor");
     headers.delete("cf-worker");
     headers.delete("x-proxy-secret");
-    headers.set("Host", "oauth.telegram.org");
+    headers.set("Host", new URL(target).host);
 
     const init = {
       method: request.method,

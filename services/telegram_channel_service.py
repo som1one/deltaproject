@@ -20,6 +20,40 @@ logger = logging.getLogger(__name__)
 _MEMBER_STATUSES = {"creator", "administrator", "member"}
 
 
+def normalize_channel_id(raw: str) -> str:
+    """Приводит ввод админа к виду, который понимает Bot API.
+
+    Принимаем всё, что люди реально вставляют в поле: @username, username
+    без собаки, ссылки t.me/username (в т.ч. https:// и t.me/s/username),
+    числовой -100…-id. Инвайт-ссылки приватных каналов (t.me/+hash)
+    нормализовать нельзя — их отсечёт валидация getChat при сохранении.
+    """
+    value = raw.strip()
+    lowered = value.lower()
+    for prefix in ("https://", "http://"):
+        if lowered.startswith(prefix):
+            value = value[len(prefix):]
+            lowered = value.lower()
+            break
+    for host in ("t.me/", "telegram.me/", "telegram.dog/"):
+        if lowered.startswith(host):
+            value = value[len(host):]
+            break
+    if value.lower().startswith("s/"):
+        value = value[2:]
+    value = value.split("?", 1)[0].strip().strip("/")
+
+    if not value:
+        return value
+    # Числовой id (каналы: -100…) — как есть
+    if value.lstrip("-").isdigit():
+        return value
+    # Инвайт-хеш приватного канала — вернём как есть, валидация скажет внятно
+    if value.startswith("+"):
+        return value
+    return value if value.startswith("@") else f"@{value}"
+
+
 async def get_channel_config(db: AsyncSession) -> TelegramChannelConfig | None:
     """Return the active channel config (singleton)."""
     result = await db.execute(
