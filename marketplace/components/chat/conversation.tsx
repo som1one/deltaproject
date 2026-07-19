@@ -426,11 +426,11 @@ function MessageRow({ msg, partnerId }: { msg: ChatMessage; partnerId: string })
   if (msg.kind === "system") {
     return (
       <motion.div className={st.sysRow} {...appear}>
-        <span className={st.sysPill}>
+        <span className={st.sysText}>
           {msg.text}
           {msg.order_id && (
             <>
-              {" · "}
+              {" "}
               <Link href={`/orders/${msg.order_id}`} className={st.sysLink}>
                 Открыть сделку
               </Link>

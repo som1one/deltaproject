@@ -463,23 +463,31 @@
   opacity: 0.55;
 }
 
-/* Системное сообщение — центрированная пилюля */
+/* Системное сообщение — событие ленты, а не «пузырь»:
+   центрированная строка с hairline-линейками по бокам. */
 .sysRow {
   display: flex;
-  justify-content: center;
-  margin: 6px 0;
+  align-items: center;
+  gap: 14px;
+  margin: 14px 0;
 }
 
-.sysPill {
-  max-width: 84%;
+.sysRow::before,
+.sysRow::after {
+  content: "";
+  flex: 1 1 auto;
+  min-width: 16px;
+  height: 1px;
+  background: var(--line);
+}
+
+.sysText {
+  flex: 0 1 auto;
+  max-width: 76%;
   text-align: center;
-  font-size: 12.5px;
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.55;
   color: var(--muted);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 6px 14px;
 }
 
 .sysLink {
@@ -487,6 +495,11 @@
   font-weight: 650;
   text-decoration: underline;
   text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+.sysLink:hover {
+  opacity: 0.75;
 }
 
 /* ── Карточка-оффер в ленте ───────────────────────────────── */
