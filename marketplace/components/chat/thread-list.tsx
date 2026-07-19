@@ -14,6 +14,7 @@ import type { ThreadsList as ThreadsListData } from "@/lib/types";
 
 import ui from "@/components/ui/ui.module.css";
 import st from "@/components/chat/chat.module.css";
+import { useNestedLenis } from "@/components/chat/use-nested-lenis";
 
 /** Список тредов: собеседник, последнее сообщение, непрочитанные. */
 export function ThreadList({ activePartnerId }: { activePartnerId?: string }) {
@@ -28,6 +29,11 @@ export function ThreadList({ activePartnerId }: { activePartnerId?: string }) {
   });
 
   const threads = data?.items ?? [];
+
+  /* Вложенный Lenis — плавное пролистывание списка диалогов,
+     как у ленты сообщений и остальной страницы. */
+  const listRef = useRef<HTMLElement>(null);
+  useNestedLenis(listRef, enabled && !isLoading && !error && threads.length > 0);
 
   // Уведомления о новых входящих: сравниваем id последнего сообщения
   // с прошлым снимком. Первый снимок только запоминаем — иначе при
@@ -93,7 +99,7 @@ export function ThreadList({ activePartnerId }: { activePartnerId?: string }) {
           )}
         </div>
       ) : (
-        <nav className={st.sideList} aria-label="Диалоги" data-lenis-prevent>
+        <nav className={st.sideList} ref={listRef} aria-label="Диалоги" data-lenis-prevent>
           {threads.map((t) => {
             const active = t.partner.id === activePartnerId;
             const fromMe = t.last_message.sender_id !== t.partner.id;

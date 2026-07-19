@@ -36,6 +36,7 @@ import type { ChatMessage, Conversation as ConversationData, UserPeek } from "@/
 
 import ui from "@/components/ui/ui.module.css";
 import st from "@/components/chat/chat.module.css";
+import { useNestedLenis } from "@/components/chat/use-nested-lenis";
 
 const SAFETY_KEY = "mp-chat-safety-dismissed";
 const MAX_COMPOSER_HEIGHT = 132; // ~6 строк
@@ -102,6 +103,11 @@ export function Conversation({ partnerId }: { partnerId: string }) {
   const stickRef = useRef(true);
   const didInitialScrollRef = useRef(false);
 
+  /* Вложенный Lenis — «масляное» пролистывание внутри ленты,
+     как у остальной страницы. */
+  const listReady = enabled && !isLoading && !error;
+  const chatLenisRef = useNestedLenis(scrollRef, listReady);
+
   useEffect(() => {
     didInitialScrollRef.current = false;
     stickRef.current = true;
@@ -123,7 +129,12 @@ export function Conversation({ partnerId }: { partnerId: string }) {
       return;
     }
     if (stickRef.current) {
-      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      const lenis = chatLenisRef.current;
+      if (lenis) {
+        lenis.scrollTo(el.scrollHeight, { duration: 0.9 });
+      } else {
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastMessageId, items.length]);
