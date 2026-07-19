@@ -289,9 +289,7 @@ export const PrivacyPage = () => (
         <h2>14. Контакты</h2>
         <p>
           По вопросам обработки персональных данных обращайтесь в Telegram:
-          {" "}<a href="https://t.me/looneymoonhelper" target="_blank" rel="noreferrer">@looneymoonhelper</a>
-          {" "}или по электронной почте:
-          {" "}<a href="mailto:admin@looneymoon.ru">admin@looneymoon.ru</a>.
+          {" "}<a href="https://t.me/looneymoonhelper" target="_blank" rel="noreferrer">@looneymoonhelper</a>.
           В обращении укажите аккаунт, к которому относится запрос, и его суть.
         </p>
       </section>
