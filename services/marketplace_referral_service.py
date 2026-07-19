@@ -46,7 +46,7 @@ async def generate_referral_link(worker_id: uuid.UUID, db: AsyncSession) -> str:
     Otherwise generates a new unique code and persists it.
 
     Returns:
-        Full referral URL: {MARKETPLACE_FRONTEND_URL}/marketplace/auth/register?ref={ref_code}
+        Full referral URL: {MARKETPLACE_FRONTEND_URL}/?ref={ref_code}
     """
     # Check if worker already has a referral code
     result = await db.execute(
@@ -276,6 +276,12 @@ async def get_commission_history(
 
 
 def _build_referral_url(ref_code: str) -> str:
-    """Build the full referral URL from a ref_code."""
+    """Build the full referral URL from a ref_code.
+
+    Ведёт на главную, а не на регистрацию: приглашённый сначала знакомится
+    с платформой, код подхватывает глобальный RefTracker и доживает до
+    регистрации в localStorage. Старые ссылки на /auth/register?ref= тоже
+    продолжают работать.
+    """
     base_url = settings.marketplace_frontend_url.rstrip("/")
-    return f"{base_url}/auth/register?ref={ref_code}"
+    return f"{base_url}/?ref={ref_code}"

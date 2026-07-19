@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import { AuthShell } from "@/components/auth/auth-shell";
+import { clearReferralCode, readReferralCode } from "@/components/marketplace/ref-tracker";
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -25,9 +26,7 @@ function RegisterForm() {
 
   useEffect(() => {
     const urlRef = searchParams.get("ref");
-    const storageRef =
-      typeof window !== "undefined" ? window.localStorage.getItem("marketplace_referral_code") : null;
-    setReferralCode(urlRef || storageRef || "");
+    setReferralCode(urlRef || readReferralCode());
   }, [searchParams]);
 
   const registerMutation = useMutation({
@@ -40,7 +39,7 @@ function RegisterForm() {
       }),
     onSuccess: (data) => {
       setSession(data.token, data.refresh_token);
-      window.localStorage.removeItem("marketplace_referral_code");
+      clearReferralCode();
       router.push(nextPath);
     },
     onError: (err: Error) => {

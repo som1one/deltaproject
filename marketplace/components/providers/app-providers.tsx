@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
 import { AuthProvider } from "@/lib/auth-context";
+import { RefTracker } from "@/components/marketplace/ref-tracker";
 import { SmoothScroll } from "@/components/providers/smooth-scroll";
 
 export const AppProviders = ({ children }: { children: ReactNode }) => {
@@ -26,6 +27,7 @@ export const AppProviders = ({ children }: { children: ReactNode }) => {
   return (
     <QueryClientProvider client={queryClient}>
       <SmoothScroll />
+      <RefTracker />
       <AuthProvider>{children}</AuthProvider>
     </QueryClientProvider>
   );

@@ -133,11 +133,9 @@ function CatalogContent() {
   const [refNotice, setRefNotice] = useState(false);
 
   useEffect(() => {
+    // Сохранение кода делает глобальный RefTracker — здесь только показываем плашку.
     const ref = searchParams.get("ref");
-    if (ref) {
-      window.localStorage.setItem("marketplace_referral_code", ref);
-      if (!isAuthenticated) setRefNotice(true);
-    }
+    if (ref && !isAuthenticated) setRefNotice(true);
   }, [isAuthenticated, searchParams]);
 
   useEffect(() => {

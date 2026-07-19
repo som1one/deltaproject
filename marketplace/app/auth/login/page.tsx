@@ -6,6 +6,7 @@ import { Suspense, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 
 import { AuthShell } from "@/components/auth/auth-shell";
+import { clearReferralCode } from "@/components/marketplace/ref-tracker";
 import { ApiError, api } from "@/lib/api";
 import { appConfig } from "@/lib/config";
 import { useAuth } from "@/lib/auth-context";
@@ -40,6 +41,9 @@ function LoginForm() {
     mutationFn: () => api.login({ email: form.email.trim(), password: form.password }),
     onSuccess: (data) => {
       setSession(data.token, data.refresh_token);
+      // Рефка применима только к новой регистрации — у входа в существующий
+      // аккаунт её оставлять нельзя, иначе прилипнет к чужой будущей регистрации.
+      clearReferralCode();
       router.push(nextPath);
     },
     onError: (err: Error) => {

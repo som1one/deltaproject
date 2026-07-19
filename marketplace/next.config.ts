@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1", "localhost", "marketplace.localhost"],
   // Плавающая кнопка Next.js Dev Tools в углу мешает — скрываем
   devIndicators: false,
+  // Позволяет поднять второй dev-server из этой же папки (Next 16 держит
+  // лок в distDir): NEXT_DIST_DIR=.next-preview next dev
+  distDir: process.env.NEXT_DIST_DIR || ".next",
 };
 
 export default nextConfig;
