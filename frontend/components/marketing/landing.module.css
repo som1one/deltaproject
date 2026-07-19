@@ -1055,13 +1055,6 @@
   max-width: 24ch;
 }
 
-.aboutTitle em {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 400;
-  color: var(--text);
-}
-
 .aboutGrid {
   display: grid;
   gap: 1.2rem;

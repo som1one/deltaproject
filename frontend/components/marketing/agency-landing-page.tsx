@@ -310,7 +310,7 @@ export const AgencyLandingPage = () => {
             <header className={styles.aboutHeader}>
               <p className={styles.aboutEyebrow}>Что это</p>
               <h2 className={styles.aboutTitle}>
-                Сообщество, где <em>быстро находят деньги</em> в интернете — без вложений и опыта.
+                Сообщество, где быстро находят деньги в интернете — без вложений и опыта.
               </h2>
             </header>
           </AnimatedSection>
