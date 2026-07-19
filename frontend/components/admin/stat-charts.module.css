@@ -8,6 +8,7 @@
 .chartSvg {
   width: 100%;
   height: auto;
+  max-height: 240px;
   display: block;
   color: var(--text-strong, #fff);
 }
@@ -43,6 +44,21 @@
   font-family: var(--font-narrow, inherit);
   font-size: 10px;
   letter-spacing: 0.06em;
+}
+
+.axisLabelToday {
+  fill: var(--text-strong, #fff);
+  font-family: var(--font-narrow, inherit);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.valueLabel {
+  fill: var(--text-strong, rgba(255, 255, 255, 0.9));
+  font-family: var(--font-narrow, inherit);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
 }
 
 .emptyNote {

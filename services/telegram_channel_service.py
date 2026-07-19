@@ -34,16 +34,15 @@ async def is_subscription_required(db: AsyncSession) -> bool:
     return config is not None and config.is_enabled
 
 
-async def check_user_subscribed(telegram_user_id: str, channel_id: str) -> bool:
-    """Call Telegram Bot API getChatMember to verify subscription.
+async def _bot_api_call(method: str, params: dict) -> dict:
+    """Вызов Telegram Bot API (с учётом прокси). Возвращает распарсенный JSON.
 
-    Returns True if the user is a member/admin/creator of the channel.
-    Returns False on network errors (fail-closed) to enforce subscription.
+    На сетевых ошибках возвращает ``{"ok": False, "description": <текст>}`` —
+    вызывающие сами решают, fail-open или fail-closed.
     """
     bot_token = settings.telegram_oauth_bot_token.strip()
     if not bot_token:
-        logger.warning("TELEGRAM_OAUTH_BOT_TOKEN not set, skipping subscription check")
-        return True  # Fail-open if bot token not configured
+        return {"ok": False, "description": "bot_token_not_configured"}
 
     # Use proxy if configured (needed for servers where api.telegram.org is blocked)
     proxy_url = settings.telegram_oauth_proxy.strip() or None
@@ -51,13 +50,11 @@ async def check_user_subscribed(telegram_user_id: str, channel_id: str) -> bool:
 
     if is_reverse_proxy:
         # Cloudflare Worker reverse-proxy: rewrite the base URL
-        url = f"{proxy_url.rstrip('/')}/bot{bot_token}/getChatMember"
+        url = f"{proxy_url.rstrip('/')}/bot{bot_token}/{method}"
         transport = None
     else:
-        url = f"https://api.telegram.org/bot{bot_token}/getChatMember"
+        url = f"https://api.telegram.org/bot{bot_token}/{method}"
         transport = httpx.AsyncHTTPTransport(proxy=proxy_url) if proxy_url else None
-
-    params = {"chat_id": channel_id, "user_id": telegram_user_id}
 
     headers: dict[str, str] = {}
     proxy_secret = settings.telegram_oauth_proxy_secret.strip()
@@ -69,26 +66,117 @@ async def check_user_subscribed(telegram_user_id: str, channel_id: str) -> bool:
             timeout=15.0, transport=transport, trust_env=False,
         ) as client:
             resp = await client.get(url, params=params, headers=headers)
-            data = resp.json()
+            return resp.json()
+    except Exception as exc:
+        logger.exception("Telegram Bot API %s failed", method)
+        return {"ok": False, "description": f"network_error: {exc}"}
 
-        if not data.get("ok"):
-            # User not found in channel or bot has no access
-            logger.debug(
-                "getChatMember failed for user=%s channel=%s: %s",
-                telegram_user_id, channel_id, data.get("description", "unknown"),
-            )
-            return False
 
-        status = data.get("result", {}).get("status", "")
-        return status in _MEMBER_STATUSES
+async def check_user_subscribed(telegram_user_id: str, channel_id: str) -> bool:
+    """Call Telegram Bot API getChatMember to verify subscription.
 
-    except Exception:
-        logger.exception(
-            "Error checking Telegram channel subscription for user=%s channel=%s",
-            telegram_user_id, channel_id,
+    Returns True if the user is a member/admin/creator of the channel.
+    Returns False on network errors (fail-closed) to enforce subscription.
+    """
+    if not settings.telegram_oauth_bot_token.strip():
+        logger.warning("TELEGRAM_OAUTH_BOT_TOKEN not set, skipping subscription check")
+        return True  # Fail-open if bot token not configured
+
+    data = await _bot_api_call(
+        "getChatMember", {"chat_id": channel_id, "user_id": telegram_user_id}
+    )
+
+    if not data.get("ok"):
+        # Либо юзер не подписан, либо бот не может смотреть участников
+        # (не админ канала / неверный chat_id) — второе ломает ворота для всех,
+        # поэтому warning, а не debug. Диагностика: /admin/telegram-channel/diagnose.
+        logger.warning(
+            "getChatMember failed for user=%s channel=%s: %s",
+            telegram_user_id, channel_id, data.get("description", "unknown"),
         )
-        # Fail-CLOSED: if we can't verify, deny access to enforce subscription
         return False
+
+    status = data.get("result", {}).get("status", "")
+    return status in _MEMBER_STATUSES
+
+
+async def get_channel_member_count(channel_id: str) -> int | None:
+    """Живое число подписчиков канала (getChatMemberCount). None — не удалось."""
+    data = await _bot_api_call("getChatMemberCount", {"chat_id": channel_id})
+    if not data.get("ok"):
+        logger.warning(
+            "getChatMemberCount failed for channel=%s: %s",
+            channel_id, data.get("description", "unknown"),
+        )
+        return None
+    result = data.get("result")
+    return int(result) if isinstance(result, int) else None
+
+
+async def diagnose_channel_access(channel_id: str) -> dict:
+    """Проверка настроек ворот: виден ли канал боту и может ли он проверять подписку.
+
+    Возвращает поля для админки; ``can_check_members`` — главный вердикт
+    (для каналов getChatMember работает, только если бот — админ канала).
+    """
+    bot_token = settings.telegram_oauth_bot_token.strip()
+    if not bot_token:
+        return {
+            "bot_configured": False,
+            "chat_found": False,
+            "chat_title": "",
+            "bot_status": "",
+            "can_check_members": False,
+            "member_count": None,
+            "error_hint": "TELEGRAM_OAUTH_BOT_TOKEN не настроен на сервере.",
+        }
+
+    chat = await _bot_api_call("getChat", {"chat_id": channel_id})
+    if not chat.get("ok"):
+        return {
+            "bot_configured": True,
+            "chat_found": False,
+            "chat_title": "",
+            "bot_status": "",
+            "can_check_members": False,
+            "member_count": None,
+            "error_hint": (
+                f"Канал не найден ботом: {chat.get('description', 'unknown')}. "
+                "Проверьте ID канала (@username или -100…) и что бот добавлен в канал."
+            ),
+        }
+    chat_title = str(chat.get("result", {}).get("title", ""))
+
+    bot_id = bot_token.split(":", 1)[0]
+    member = await _bot_api_call(
+        "getChatMember", {"chat_id": channel_id, "user_id": bot_id}
+    )
+    bot_status = str(member.get("result", {}).get("status", "")) if member.get("ok") else ""
+    is_admin = bot_status in {"administrator", "creator"}
+
+    member_count = await get_channel_member_count(channel_id)
+
+    error_hint = ""
+    if not member.get("ok"):
+        error_hint = (
+            f"Бот не видит себя в канале: {member.get('description', 'unknown')}. "
+            "Добавьте бота администратором канала."
+        )
+    elif not is_admin:
+        error_hint = (
+            f"Бот в канале со статусом «{bot_status}», но для проверки подписчиков "
+            "он должен быть администратором канала."
+        )
+
+    return {
+        "bot_configured": True,
+        "chat_found": True,
+        "chat_title": chat_title,
+        "bot_status": bot_status,
+        "can_check_members": is_admin,
+        "member_count": member_count,
+        "error_hint": error_hint,
+    }
 
 
 async def record_subscription(
@@ -112,8 +200,12 @@ async def get_subscription_stats(
     period_start: datetime | None = None,
     period_end: datetime | None = None,
 ) -> dict:
-    """Get subscription statistics for the admin panel."""
-    base_query = select(func.count(TelegramChannelSubscription.id))
+    """Get subscription statistics for the admin panel.
+
+    Считаем УНИКАЛЬНЫЕ telegram-аккаунты: один человек, вошедший пять раз,
+    — это одна подписка, а не пять записей журнала.
+    """
+    base_query = select(func.count(func.distinct(TelegramChannelSubscription.telegram_user_id)))
 
     # Total all time
     total_result = await db.execute(base_query)
@@ -164,7 +256,7 @@ async def get_subscription_stats(
 
 
 async def get_daily_subscription_series(db: AsyncSession, days: int) -> list[dict]:
-    """Подписки по дням за последние ``days`` дней (zero-filled, UTC)."""
+    """Уникальные прошедшие проверку по дням за ``days`` дней (zero-filled, UTC)."""
     from datetime import timedelta
 
     now = datetime.now(timezone.utc)
@@ -172,7 +264,7 @@ async def get_daily_subscription_series(db: AsyncSession, days: int) -> list[dic
 
     day = func.date_trunc("day", TelegramChannelSubscription.confirmed_at)
     result = await db.execute(
-        select(day.label("day"), func.count(TelegramChannelSubscription.id))
+        select(day.label("day"), func.count(func.distinct(TelegramChannelSubscription.telegram_user_id)))
         .where(TelegramChannelSubscription.confirmed_at >= start)
         .group_by(day)
         .order_by(day)

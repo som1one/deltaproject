@@ -406,6 +406,20 @@ export type TelegramChannelStatsResponse = {
   period_count: number | null;
 };
 
+export type TelegramChannelMemberCountResponse = {
+  count: number | null;
+};
+
+export type TelegramChannelDiagnoseResponse = {
+  bot_configured: boolean;
+  chat_found: boolean;
+  chat_title: string;
+  bot_status: string;
+  can_check_members: boolean;
+  member_count: number | null;
+  error_hint: string;
+};
+
 export type DailyCountPoint = {
   date: string;
   count: number;

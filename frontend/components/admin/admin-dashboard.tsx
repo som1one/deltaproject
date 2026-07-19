@@ -288,6 +288,20 @@ export const AdminDashboard = () => {
     enabled: Boolean(isAuthenticated) && section === "stats",
   });
 
+  const memberCountQuery = useQuery({
+    queryKey: ["admin", "telegramMemberCount"],
+    queryFn: api.getAdminTelegramChannelMemberCount,
+    enabled: Boolean(isAuthenticated) && (section === "stats" || section === "telegram"),
+    staleTime: 60_000,
+  });
+  // Диагностика доступа бота — только по кнопке в разделе Telegram
+  const diagnoseQuery = useQuery({
+    queryKey: ["admin", "telegramDiagnose"],
+    queryFn: api.diagnoseAdminTelegramChannel,
+    enabled: false,
+    retry: false,
+  });
+
   // Telegram channel
   const telegramConfigQuery = useQuery({
     queryKey: ["admin", "telegramChannel"],
@@ -786,6 +800,7 @@ export const AdminDashboard = () => {
       setMessage({ tone: "success", text: "Настройки Telegram-канала сохранены." });
       await invalidateAdmin(["admin", "telegramChannel"]);
       await invalidateAdmin(["admin", "telegramChannelStats"]);
+      await invalidateAdmin(["admin", "telegramMemberCount"]);
     },
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
@@ -2661,6 +2676,7 @@ export const AdminDashboard = () => {
 
     if (section === "stats") {
       const stats = telegramStatsQuery.data;
+      const liveCount = memberCountQuery.data?.count;
       const subsSeries = statsSubsDailyQuery.data?.series ?? [];
       const loginsSeries = statsLoginsDailyQuery.data?.series ?? [];
       const subsPeriodTotal = subsSeries.reduce((acc, point) => acc + point.count, 0);
@@ -2668,7 +2684,11 @@ export const AdminDashboard = () => {
       return (
         <Stack>
           <StatsGrid>
-            <StatCard label="Подписок всего" value={stats ? formatNumber(stats.total) : "—"} />
+            <StatCard
+              label="В канале сейчас"
+              value={typeof liveCount === "number" ? formatNumber(liveCount) : "—"}
+            />
+            <StatCard label="Прошли проверку" value={stats ? formatNumber(stats.total) : "—"} />
             <StatCard label="Сегодня" value={stats ? formatNumber(stats.today) : "—"} />
             <StatCard label="За неделю" value={stats ? formatNumber(stats.this_week) : "—"} />
             <StatCard label="За месяц" value={stats ? formatNumber(stats.this_month) : "—"} />
@@ -2677,11 +2697,11 @@ export const AdminDashboard = () => {
           <ChartRangeSwitch value={statsRange} onChange={setStatsRange} />
 
           <SectionCard
-            title="Подписки на канал по дням"
-            lead={`Сколько человек подтвердили подписку при регистрации. За период: ${formatNumber(subsPeriodTotal)}.`}
+            title="Прошли проверку подписки по дням"
+            lead={`Уникальные люди, вошедшие через Telegram с включённой проверкой. Отметка появляется в момент входа на платформу, а не подписки на канал. За период: ${formatNumber(subsPeriodTotal)}.`}
           >
             {statsSubsDailyQuery.data ? (
-              <DailyBarsChart points={subsSeries} ariaLabel="Подписки на канал по дням" />
+              <DailyBarsChart points={subsSeries} ariaLabel="Прошли проверку подписки по дням" />
             ) : statsSubsDailyQuery.isError ? (
               <Message tone="error">Не удалось загрузить график подписок.</Message>
             ) : (
@@ -2707,14 +2727,73 @@ export const AdminDashboard = () => {
 
     if (section === "telegram") {
       const stats = telegramStatsQuery.data;
+      const liveCount = memberCountQuery.data?.count;
+      const diagnose = diagnoseQuery.data;
       return (
         <div>
           <StatsGrid>
-            <StatCard label="Всего подписок" value={stats ? formatNumber(stats.total) : "—"} />
+            <StatCard
+              label="В канале сейчас"
+              value={typeof liveCount === "number" ? formatNumber(liveCount) : "—"}
+            />
+            <StatCard label="Прошли проверку" value={stats ? formatNumber(stats.total) : "—"} />
             <StatCard label="Сегодня" value={stats ? formatNumber(stats.today) : "—"} />
             <StatCard label="За неделю" value={stats ? formatNumber(stats.this_week) : "—"} />
             <StatCard label="За месяц" value={stats ? formatNumber(stats.this_month) : "—"} />
           </StatsGrid>
+
+          <div style={{ marginTop: "1.2rem" }}>
+          <SectionCard
+            title="Доступ бота к каналу"
+            lead="Если бот не администратор канала, проверка подписки не пускает даже подписанных."
+          >
+            <Stack>
+              <div className={styles.actionRow}>
+                <Button
+                  type="button"
+                  kind="ghost"
+                  onClick={() => void diagnoseQuery.refetch()}
+                  disabled={diagnoseQuery.isFetching}
+                >
+                  {diagnoseQuery.isFetching ? "Проверяем…" : "Проверить доступ бота"}
+                </Button>
+              </div>
+              {diagnoseQuery.isError ? (
+                <Message tone="error">
+                  {diagnoseQuery.error instanceof Error
+                    ? diagnoseQuery.error.message
+                    : "Не удалось выполнить проверку."}
+                </Message>
+              ) : null}
+              {diagnose ? (
+                <>
+                  <PillRow>
+                    <Pill tone={diagnose.chat_found ? "accent" : "default"}>
+                      {diagnose.chat_found
+                        ? `Канал найден${diagnose.chat_title ? `: «${diagnose.chat_title}»` : ""}`
+                        : "Канал не найден"}
+                    </Pill>
+                    <Pill tone={diagnose.can_check_members ? "accent" : "default"}>
+                      {diagnose.can_check_members
+                        ? "Бот — админ, проверка работает"
+                        : `Бот не админ${diagnose.bot_status ? ` (статус: ${diagnose.bot_status})` : ""}`}
+                    </Pill>
+                    {typeof diagnose.member_count === "number" ? (
+                      <Pill>Подписчиков: {formatNumber(diagnose.member_count)}</Pill>
+                    ) : null}
+                  </PillRow>
+                  {diagnose.error_hint ? (
+                    <Message tone="error">{diagnose.error_hint}</Message>
+                  ) : (
+                    <Message tone="success">
+                      Всё настроено: бот видит канал и может проверять подписку.
+                    </Message>
+                  )}
+                </>
+              ) : null}
+            </Stack>
+          </SectionCard>
+          </div>
 
           <div style={{ marginTop: "1.2rem" }}>
           <SectionCard title="Настройки канала">

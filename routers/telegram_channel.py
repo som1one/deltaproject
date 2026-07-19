@@ -14,12 +14,16 @@ from schemas.admin import AdminDailySeriesResponse
 from schemas.telegram_channel import (
     TelegramChannelConfigRead,
     TelegramChannelConfigSet,
+    TelegramChannelDiagnoseResponse,
+    TelegramChannelMemberCountResponse,
     TelegramChannelStatsResponse,
     TelegramChannelSubCheck,
 )
 from services.telegram_channel_service import (
     check_user_subscribed,
+    diagnose_channel_access,
     get_channel_config,
+    get_channel_member_count,
     get_daily_subscription_series,
     get_subscription_stats,
     upsert_channel_config,
@@ -78,6 +82,36 @@ async def admin_get_channel_daily_stats(
     """Подписки на канал по дням — для графика в разделе «Статистика»."""
     series = await get_daily_subscription_series(db, days)
     return AdminDailySeriesResponse(days=days, series=series)
+
+
+@router.get("/admin/telegram-channel/member-count", response_model=TelegramChannelMemberCountResponse)
+async def admin_get_channel_member_count(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+):
+    """Живое число подписчиков канала (Bot API getChatMemberCount)."""
+    config = await get_channel_config(db)
+    if config is None:
+        return TelegramChannelMemberCountResponse(count=None)
+    count = await get_channel_member_count(config.channel_id)
+    return TelegramChannelMemberCountResponse(count=count)
+
+
+@router.get("/admin/telegram-channel/diagnose", response_model=TelegramChannelDiagnoseResponse)
+async def admin_diagnose_channel(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+):
+    """Проверка доступа бота к каналу: найден ли канал, админ ли бот.
+
+    Если ``can_check_members`` = false, ворота не пускают даже подписанных
+    (getChatMember по чужому user_id работает только у бота-администратора).
+    """
+    config = await get_channel_config(db)
+    if config is None:
+        raise HTTPException(status_code=404, detail="Канал не настроен")
+    data = await diagnose_channel_access(config.channel_id)
+    return TelegramChannelDiagnoseResponse(**data)
 
 
 @router.get("/admin/telegram-channel/check/{telegram_user_id}")

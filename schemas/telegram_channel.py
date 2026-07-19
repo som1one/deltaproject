@@ -30,6 +30,24 @@ class TelegramChannelStatsResponse(BaseModel):
     period_count: int | None = None
 
 
+class TelegramChannelMemberCountResponse(BaseModel):
+    """Живое число подписчиков канала; None — бот не смог получить."""
+
+    count: int | None
+
+
+class TelegramChannelDiagnoseResponse(BaseModel):
+    """Диагностика доступа бота к каналу для админки."""
+
+    bot_configured: bool
+    chat_found: bool
+    chat_title: str
+    bot_status: str
+    can_check_members: bool
+    member_count: int | None
+    error_hint: str
+
+
 class TelegramChannelSubCheck(BaseModel):
     """Response for the public check endpoint (used by frontend during registration)."""
     required: bool

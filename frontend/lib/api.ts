@@ -30,6 +30,8 @@ import type {
   ReportingPeriod,
   TelegramChannelConfigRead,
   TelegramChannelConfigSet,
+  TelegramChannelDiagnoseResponse,
+  TelegramChannelMemberCountResponse,
   TelegramChannelStatsResponse,
   TelegramOAuthConfigResponse,
   UserMeRead,
@@ -485,6 +487,10 @@ export const api = {
     request<TelegramChannelStatsResponse>(`/admin/telegram-channel/stats${query}`, { auth: true }),
   getAdminTelegramChannelDailyStats: (days = 30) =>
     request<AdminDailySeriesResponse>(`/admin/telegram-channel/stats/daily?days=${days}`, { auth: true }),
+  getAdminTelegramChannelMemberCount: () =>
+    request<TelegramChannelMemberCountResponse>("/admin/telegram-channel/member-count", { auth: true }),
+  diagnoseAdminTelegramChannel: () =>
+    request<TelegramChannelDiagnoseResponse>("/admin/telegram-channel/diagnose", { auth: true }),
   checkAdminTelegramSubscription: (telegramUserId: string) =>
     request<{ subscribed: boolean; channel_id?: string; reason?: string }>(
       `/admin/telegram-channel/check/${telegramUserId}`,
