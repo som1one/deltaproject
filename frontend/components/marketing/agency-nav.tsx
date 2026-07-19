@@ -6,7 +6,7 @@ import { useSessionTarget } from "@/lib/use-session-target";
 import styles from "@/components/marketing/agency-nav.module.css";
 
 const NAV_ITEMS = [
-  { href: "/#manifest", label: "О платформе" },
+  { href: "/#about", label: "О платформе" },
   { href: "/faq", label: "FAQ" },
   { href: "/contacts", label: "Контакты" },
 ];
@@ -23,7 +23,7 @@ export const AgencyNav = () => {
     <header className={styles.topBar}>
       <Link href="/" className={styles.brand}>
         <span className={styles.brandMark}>looney moon</span>
-        <span className={styles.brandSub}>агентство</span>
+        <span className={styles.brandSub}>сообщество</span>
       </Link>
 
       <nav className={styles.links} aria-label="Основная навигация">

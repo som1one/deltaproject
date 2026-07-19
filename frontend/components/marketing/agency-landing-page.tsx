@@ -16,23 +16,23 @@ const AUTHOR = "Томас Карлейль";
 const processSteps: { num: string; title: string; text: string }[] = [
   {
     num: "01",
-    title: "Работник находит продавца",
-    text: "Пишет по готовым скриптам, согласовывает рекламу и заводит сделку в системе.",
+    title: "Получите ссылку",
+    text: "Зарегистрируйтесь через Telegram — в кабинете уже ждут персональная реферальная ссылка и готовые скрипты сообщений.",
   },
   {
     num: "02",
-    title: "Блогер принимает интеграцию",
-    text: "Видит заявку, согласовывает контакты и сумму, выпускает рекламу.",
+    title: "Пригласите заказчика",
+    text: "Находите тех, кому нужна реклама у блогеров, пишите по скриптам и отправляйте ссылку. Заказчик привязывается к вам навсегда.",
   },
   {
     num: "03",
-    title: "Администратор подтверждает",
-    text: "Каждая сделка проходит проверку. После статуса «Оплачена» включается распределение.",
+    title: "Заказчик покупает рекламу",
+    text: "Он выбирает блогера в каталоге маркетплейса и оплачивает заказ через площадку. Деньги держатся в эскроу до выполнения.",
   },
   {
     num: "04",
-    title: "Система считает выплаты",
-    text: "Доли работника, блогера, реферала и платформы попадают на балансы автоматически.",
+    title: "Комиссия на балансе",
+    text: "После завершения заказа система начисляет ваш процент автоматически. Выводите на карту в любой момент.",
   },
 ];
 
@@ -310,7 +310,7 @@ export const AgencyLandingPage = () => {
             <header className={styles.aboutHeader}>
               <p className={styles.aboutEyebrow}>Что это</p>
               <h2 className={styles.aboutTitle}>
-                Платформа, которая объединяет <em>работников</em> и <em>блогеров</em> в единую экосистему.
+                Сообщество, где <em>быстро находят деньги</em> в интернете — без вложений и опыта.
               </h2>
             </header>
           </AnimatedSection>
@@ -319,9 +319,9 @@ export const AgencyLandingPage = () => {
             <StaggerItem>
               <div className={styles.aboutCard}>
                 <div className={styles.aboutCardGlow} aria-hidden />
-                <h3 className={styles.aboutCardTitle}>Единое окно</h3>
+                <h3 className={styles.aboutCardTitle}>Быстрый старт</h3>
                 <p className={styles.aboutCardText}>
-                  Больше никаких таблиц, разрозненных чатов и потерянных оплат. Все этапы сделки, от первого контакта до выплаты, проходят в одном месте.
+                  Никаких вложений и собеседований. Регистрация через Telegram занимает минуту — персональная ссылка и готовые скрипты сообщений сразу в кабинете.
                 </p>
               </div>
             </StaggerItem>
@@ -330,7 +330,7 @@ export const AgencyLandingPage = () => {
                 <div className={styles.aboutCardGlow} aria-hidden />
                 <h3 className={styles.aboutCardTitle}>Автоматизация</h3>
                 <p className={styles.aboutCardText}>
-                  Система сама рассчитывает доли каждого участника (работника, блогера и реферала) и распределяет балансы автоматически после подтверждения.
+                  Приведённый заказчик привязывается к вам навсегда. Процент с каждого его оплаченного заказа система начисляет на баланс сама — без переговоров о долях.
                 </p>
               </div>
             </StaggerItem>
@@ -339,7 +339,7 @@ export const AgencyLandingPage = () => {
                 <div className={styles.aboutCardGlow} aria-hidden />
                 <h3 className={styles.aboutCardTitle}>Прозрачность</h3>
                 <p className={styles.aboutCardText}>
-                  Каждая сделка прозрачна и защищена. Вы всегда знаете, на каком этапе находится интеграция и когда поступят средства.
+                  Оплата заказов проходит через площадку и держится в эскроу. Баланс, история операций и статус каждой выплаты — всегда перед глазами в кабинете.
                 </p>
               </div>
             </StaggerItem>
@@ -363,10 +363,10 @@ export const AgencyLandingPage = () => {
             <Link href={isLoggedIn ? (session.href as string) : "/blogger/login"} className={styles.roleCard}>
               <p className={styles.roleCardEyebrow}>Роль · Блогер</p>
               <span className={styles.roleCardScript}>Я блогер</span>
-              <h3 className={styles.roleCardTitle}>Получайте интеграции и стройте сеть работников</h3>
+              <h3 className={styles.roleCardTitle}>Получайте заказы на интеграции с оплатой через эскроу</h3>
               <p className={styles.roleCardLead}>
-                Принимайте заявки, выпускайте рекламу, делитесь реферальной ссылкой. Сеть приведённых
-                работников приносит вам пассивную долю с каждой их сделки.
+                Ваш профиль — в каталоге маркетплейса, заказчики приходят сами. Согласовывайте детали
+                во встроенном чате, деньги приходят на баланс после выполнения — без переписок о предоплате.
               </p>
               <div className={styles.roleCardSpacer} />
               <span className={styles.roleCardCta}>
@@ -377,16 +377,16 @@ export const AgencyLandingPage = () => {
 
           <StaggerItem>
             <Link href={isLoggedIn ? (session.href as string) : "/register"} className={styles.roleCard}>
-              <p className={styles.roleCardEyebrow}>Роль · Работник</p>
-              <span className={styles.roleCardScript}>Я работник</span>
-              <h3 className={styles.roleCardTitle}>Находите продавцов, закрывайте сделки и зарабатывайте</h3>
+              <p className={styles.roleCardEyebrow}>Роль · Воркер</p>
+              <span className={styles.roleCardScript}>Я воркер</span>
+              <h3 className={styles.roleCardTitle}>Приводите заказчиков и зарабатывайте на каждом их заказе</h3>
               <p className={styles.roleCardLead}>
-                Пишите рекламодателям маркетплейсов, согласовывайте интеграции с блогером и получайте
-                свою долю автоматически - после подтверждения администратора.
+                Делитесь реферальной ссылкой по готовым скриптам. Заказчик привязывается к вам
+                навсегда — комиссия с каждого его заказа начисляется автоматически.
               </p>
               <div className={styles.roleCardSpacer} />
               <span className={styles.roleCardCta}>
-                {isLoggedIn ? "Открыть кабинет" : "Начать как работник"}
+                {isLoggedIn ? "Открыть кабинет" : "Начать как воркер"}
               </span>
             </Link>
           </StaggerItem>
@@ -398,7 +398,7 @@ export const AgencyLandingPage = () => {
         <AnimatedSection>
           <header className={styles.processHeader}>
             <p className={styles.processEyebrow}>Как устроена платформа</p>
-            <h2 className={styles.processTitle}>Каждая сделка проходит ровно четыре шага</h2>
+            <h2 className={styles.processTitle}>От регистрации до выплаты — четыре шага</h2>
           </header>
         </AnimatedSection>
 
