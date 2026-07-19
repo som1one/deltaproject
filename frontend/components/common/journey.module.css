@@ -251,6 +251,75 @@
   gap: 0.7rem;
 }
 
+/* ---------- Channel subscription gate ---------- */
+
+.channelGate {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 0.6rem;
+}
+
+.channelLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 1rem 1.6rem;
+  border-radius: var(--radius-md);
+  background: #2aabee;
+  border: 2px solid #2aabee;
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.98rem;
+  text-decoration: none;
+  transition: filter var(--transition-base);
+}
+
+.channelLink:hover {
+  filter: brightness(1.07);
+}
+
+.channelLink:focus-visible {
+  outline: 3px solid rgba(42, 171, 238, 0.4);
+  outline-offset: 3px;
+}
+
+.channelLink svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+}
+
+.channelConfirm {
+  padding: 0.95rem 1.5rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-strong);
+  font-size: 0.94rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-base),
+    opacity var(--transition-base);
+}
+
+.channelConfirm:hover {
+  border-color: var(--text-soft);
+}
+
+.channelConfirm:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.25);
+  outline-offset: 3px;
+}
+
+.channelConfirm:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 /* ---------- Form card ---------- */
 
 .formCard {

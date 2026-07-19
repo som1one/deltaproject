@@ -200,6 +200,53 @@ export const JourneyLinkRow = ({ children }: { children: ReactNode }) => (
 );
 
 /**
+ * Ворота обязательной подписки: кнопка-ссылка на Telegram-канал и
+ * подтверждение «Я подписался», которое перезапускает проверку.
+ */
+export const JourneyChannelGate = ({
+  channelUrl,
+  onConfirm,
+  confirming,
+}: {
+  channelUrl?: string | null;
+  onConfirm: () => void;
+  confirming?: boolean;
+}) => (
+  <div className={styles.channelGate}>
+    {channelUrl ? (
+      <a
+        className={styles.channelLink}
+        href={channelUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="m22 2-7 20-4-9-9-4Z" />
+          <path d="M22 2 11 13" />
+        </svg>
+        Перейти в канал
+      </a>
+    ) : null}
+    <button
+      type="button"
+      className={styles.channelConfirm}
+      onClick={onConfirm}
+      disabled={confirming}
+    >
+      {confirming ? "Проверяем подписку…" : "Я подписался — проверить"}
+    </button>
+  </div>
+);
+
+/**
  * Decorative CSS-only moon used at the top of auth/onboarding screens
  * in place of role-specific illustrations. Inherits the same visual
  * language as the landing hero moon.

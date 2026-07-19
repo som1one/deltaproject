@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { api, ApiError } from "@/lib/api";
+import { appConfig } from "@/lib/config";
 import { useAuth } from "@/lib/auth-context";
 import { telegramStorage } from "@/lib/storage";
 import {
+  JourneyChannelGate,
   JourneyEyebrow,
   JourneyFeedback,
   JourneyLead,
@@ -59,10 +61,16 @@ export const TelegramCallback = () => {
   const channelUrl = params.get("channel_url");
   const channelTitle = params.get("channel_title");
 
+  const isChannelGate = errorParam === "channel_not_subscribed";
+
   const [error, setError] = useState<string>(errorParam ? humanizeError(errorParam) : "");
+  const [retrying, setRetrying] = useState(false);
 
   useEffect(() => {
-    if (errorParam && errorParam !== "channel_not_subscribed") {
+    // Подписка на канал — терминальное состояние без авторедиректов:
+    // пользователь уходит в канал и возвращается по кнопке «Я подписался».
+    if (isChannelGate) return;
+    if (errorParam) {
       const timer = window.setTimeout(() => router.replace("/register"), 2500);
       return () => window.clearTimeout(timer);
     }
@@ -131,7 +139,17 @@ export const TelegramCallback = () => {
     return () => {
       cancelled = true;
     };
-  }, [errorParam, router, setSession, ticket]);
+  }, [errorParam, isChannelGate, router, setSession, ticket]);
+
+  // Повторный вход через Telegram: бэкенд заново проверит подписку и,
+  // если она появилась, завершит вход без лишних действий пользователя.
+  // linked_to переживает round-trip в sessionStorage (см. TelegramButton).
+  const handleSubscriptionConfirm = () => {
+    setRetrying(true);
+    const linkedTo = telegramStorage.getLinkedTo();
+    const search = linkedTo ? `?linked_to=${encodeURIComponent(linkedTo)}` : "";
+    window.location.href = `${appConfig.apiBaseUrl}/auth/telegram/start${search}`;
+  };
 
   return (
     <JourneyShell
@@ -144,58 +162,22 @@ export const TelegramCallback = () => {
       <JourneyPanel tone="light">
         <JourneyMoon />
         <JourneyEyebrow>Telegram</JourneyEyebrow>
-        <JourneyTitle>{error ? "Не получилось войти" : "Завершаем вход"}</JourneyTitle>
+        <JourneyTitle>
+          {isChannelGate ? "Остался один шаг" : error ? "Не получилось войти" : "Завершаем вход"}
+        </JourneyTitle>
         <JourneyLead>
-          {errorParam === "channel_not_subscribed"
-            ? "Для регистрации необходимо подписаться на наш Telegram-канал. Подпишитесь и попробуйте снова."
+          {isChannelGate
+            ? `Вход открыт подписчикам нашего Telegram-канала${channelTitle ? ` «${channelTitle}»` : ""}. Подпишитесь и нажмите «Я подписался» — проверим подписку и сразу продолжим вход.`
             : error
               ? "Сейчас вернём вас на страницу регистрации. Попробуйте ещё раз — если ошибка повторится, напишите в поддержку."
               : "Обмениваем результат Telegram на сессию. Это занимает пару секунд."}
         </JourneyLead>
-        {errorParam === "channel_not_subscribed" && channelUrl ? (
-          <>
-            <JourneyFeedback tone="error">
-              Подпишитесь на канал{channelTitle ? ` «${channelTitle}»` : ""} и нажмите кнопку ниже.
-            </JourneyFeedback>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginTop: "0.5rem" }}>
-              <a
-                href={channelUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "0.5rem",
-                  padding: "0.7rem 1.4rem",
-                  borderRadius: "var(--radius-pill, 99px)",
-                  background: "#0088cc",
-                  color: "#fff",
-                  fontWeight: 600,
-                  fontSize: "0.92rem",
-                  textDecoration: "none",
-                }}
-              >
-                Перейти в канал
-              </a>
-              <button
-                type="button"
-                onClick={() => router.push("/register")}
-                style={{
-                  padding: "0.55rem 1.2rem",
-                  borderRadius: "var(--radius-pill, 99px)",
-                  border: "1px solid var(--border, #333)",
-                  background: "transparent",
-                  color: "var(--text-strong, #fff)",
-                  fontWeight: 500,
-                  fontSize: "0.88rem",
-                  cursor: "pointer",
-                }}
-              >
-                Я подписался — попробовать снова
-              </button>
-            </div>
-          </>
+        {isChannelGate ? (
+          <JourneyChannelGate
+            channelUrl={channelUrl}
+            confirming={retrying}
+            onConfirm={handleSubscriptionConfirm}
+          />
         ) : error ? (
           <JourneyFeedback tone="error">{error}</JourneyFeedback>
         ) : (
