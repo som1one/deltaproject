@@ -358,7 +358,8 @@ export const MarketplaceOverview = ({
            Ставку не дублируем — она уже на карте баланса. ---- */}
       <div className={styles.metrics}>
         <div className={styles.metric}>
-          <span className={styles.metricLabel}>Заработано всего</span>
+          {/* Коротко: длинный «Заработано всего» ломал строку метрик на мобиле. */}
+          <span className={styles.metricLabel}>Заработано</span>
           <span className={styles.metricValue}>
             {stats ? formatMoney(stats.total_earnings_kopeks) : "—"}
           </span>

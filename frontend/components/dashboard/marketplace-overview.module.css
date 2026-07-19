@@ -425,10 +425,13 @@
   .root {
     gap: 2rem;
   }
+  /* Три метрики — одной строкой, как статы в шапке и футер карты
+     баланса; сетка 2+1 оставляла рваный «хвост». Денежной колонке —
+     больше места, счётчикам хватает и узких. */
   .metrics {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.1rem 1.4rem;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 0.85fr);
+    gap: 1rem;
   }
   .metric {
     border-left: 0;

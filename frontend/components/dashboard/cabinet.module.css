@@ -1175,6 +1175,20 @@
     width: 0.95rem;
     height: 0.95rem;
   }
+  /* Dense-режим (4+ вкладок, кабинет воркера): без иконок и с ужатыми
+     отступами все вкладки помещаются на 360–375px без обрезания. */
+  .tabBarDense .tabIcon {
+    display: none;
+  }
+  .tabBarDense .tabBtn {
+    padding: 0.85rem 0.4rem 0.9rem;
+    font-size: 0.86rem;
+    gap: 0.3rem;
+  }
+  .tabBarDense .tabBtn::after {
+    left: 0.4rem;
+    right: 0.4rem;
+  }
 
   /* --- Workspace --- */
   .workspace,

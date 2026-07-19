@@ -185,7 +185,12 @@ const TabBar = ({
   active: string;
   onSelect: (id: string) => void;
 }) => (
-  <nav className={styles.tabBar} aria-label="Разделы кабинета">
+  /* 4+ вкладок (воркер) на мобиле не помещаются с иконками —
+     dense-режим прячет их и ужимает отступы, чтобы не резать «Профиль». */
+  <nav
+    className={`${styles.tabBar}${tabs.length > 3 ? ` ${styles.tabBarDense}` : ""}`}
+    aria-label="Разделы кабинета"
+  >
     <div className={styles.tabBarRow}>
       {tabs.map((tab) => (
         <button
