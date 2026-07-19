@@ -9,6 +9,8 @@ import { tokenStorage } from "@/lib/storage";
 import { useToast } from "@/components/common/toast";
 import type { UserMeRead } from "@/lib/types";
 
+import { BalanceCard } from "./balance-card";
+import { Section } from "./section";
 import styles from "./marketplace-overview.module.css";
 
 /* =========================================================
@@ -97,6 +99,16 @@ const buildBalanceSeries = (
 };
 
 /* =========================================================
+   Icons
+   ========================================================= */
+
+const ArrowIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);
+
+/* =========================================================
    Balance Chart (SVG)
    ========================================================= */
 
@@ -140,7 +152,7 @@ const BalanceChart = ({ data }: { data: { date: string; balance: number }[] }) =
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         preserveAspectRatio="none"
         role="img"
-        aria-label="График баланса"
+        aria-label="График динамики заработка"
       >
         <defs>
           <linearGradient id="balAreaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -251,45 +263,73 @@ export const MarketplaceOverview = ({
 
   return (
     <div className={styles.root}>
-      {/* ---- Hero: главная цифра + быстрые действия ---- */}
-      <section className={styles.hero}>
-        <div className={styles.heroMain}>
-          <p className={styles.heroLabel}>Ваш баланс</p>
-          <p className={styles.heroValue}>{formatMoney(me.balance)}</p>
-          {me.balance_pending_confirmation_kopeks > 0 ? (
-            <p className={styles.heroPending}>
-              + {formatMoney(me.balance_pending_confirmation_kopeks)} на подтверждении
+      {/* ---- Верхний ряд: карта баланса + действия и реф-ссылка ---- */}
+      <div className={styles.topGrid}>
+        <BalanceCard me={me} />
+
+        <aside className={styles.side}>
+          <div className={styles.sideBlock}>
+            <p className={styles.sideLabel}>Быстрые действия</p>
+            <div className={styles.sideActions}>
+              {hasCard ? (
+                <button
+                  type="button"
+                  className={styles.sideAction}
+                  onClick={() => onNavigate?.("finance")}
+                  disabled={!hasBalance}
+                >
+                  <span>Запросить выплату</span>
+                  <ArrowIcon />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.sideAction}
+                  onClick={() => onNavigate?.("profile")}
+                >
+                  <span>Привязать карту</span>
+                  <ArrowIcon />
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.sideAction}
+                onClick={() => onNavigate?.("scripts")}
+              >
+                <span>Скрипты сообщений</span>
+                <ArrowIcon />
+              </button>
+            </div>
+            {!hasBalance && hasCard ? (
+              <p className={styles.sideHint}>Баланс пуст — приглашайте заказчиков по ссылке ниже.</p>
+            ) : null}
+          </div>
+
+          <div className={styles.sideBlock}>
+            <p className={styles.sideLabel}>Реферальная ссылка</p>
+            <p className={styles.refUrl}>
+              {referralLoading ? "Получаем ссылку…" : referralUrl || "не получена"}
             </p>
-          ) : null}
-        </div>
-        <div className={styles.heroActions}>
-          {hasBalance && hasCard ? (
             <button
               type="button"
-              className={styles.heroBtn}
-              onClick={() => onNavigate?.("finance")}
+              className={`${styles.refCopyBtn}${copied ? ` ${styles.refCopied}` : ""}`}
+              onClick={handleCopy}
+              disabled={!referralUrl}
             >
-              Запросить выплату
+              {copied ? "Скопировано" : "Скопировать ссылку"}
             </button>
-          ) : !hasCard ? (
-            <button
-              type="button"
-              className={`${styles.heroBtn} ${styles.heroBtnSecondary}`}
-              onClick={() => onNavigate?.("profile")}
-            >
-              Привязать карту
-            </button>
-          ) : (
-            <span className={styles.heroHint}>Баланс пуст — приглашайте заказчиков</span>
-          )}
-        </div>
-      </section>
+            <p className={styles.sideHint}>
+              Заказчик, пришедший по ссылке, привязывается к вам навсегда.
+            </p>
+          </div>
+        </aside>
+      </div>
 
       {/* ---- График баланса ---- */}
       {chartData.length > 1 ? (
-        <section className={styles.chartSection}>
-          <div className={styles.chartHeader}>
-            <h3 className={styles.chartTitle}>Динамика заработка</h3>
+        <Section
+          label="Динамика заработка"
+          aside={
             <div className={styles.chartPeriod}>
               {([
                 { id: "week", label: "7 дн" },
@@ -300,79 +340,57 @@ export const MarketplaceOverview = ({
                   key={id}
                   type="button"
                   className={`${styles.chartPeriodBtn}${chartPeriod === id ? ` ${styles.chartPeriodBtnActive}` : ""}`}
+                  aria-pressed={chartPeriod === id}
                   onClick={() => setChartPeriod(id)}
                 >
                   {label}
                 </button>
               ))}
             </div>
-          </div>
+          }
+        >
           <BalanceChart data={chartData} />
-        </section>
+        </Section>
       ) : null}
 
-      {/* ---- Компактная строка метрик ---- */}
-      <section className={styles.metrics}>
+      {/* ---- Метрики: тихая типографская строка.
+           Ставку не дублируем — она уже на карте баланса. ---- */}
+      <div className={styles.metrics}>
         <div className={styles.metric}>
-          <span className={styles.metricValue}>{me.percent}%</span>
-          <span className={styles.metricLabel}>ставка</span>
-        </div>
-        <div className={styles.metricDivider} />
-        <div className={styles.metric}>
+          <span className={styles.metricLabel}>Заработано всего</span>
           <span className={styles.metricValue}>
             {stats ? formatMoney(stats.total_earnings_kopeks) : "—"}
           </span>
-          <span className={styles.metricLabel}>заработано всего</span>
         </div>
-        <div className={styles.metricDivider} />
         <div className={styles.metric}>
+          <span className={styles.metricLabel}>Рефералов</span>
           <span className={styles.metricValue}>
             {stats ? formatNumber(stats.referral_count) : "0"}
           </span>
-          <span className={styles.metricLabel}>рефералов</span>
         </div>
-        <div className={styles.metricDivider} />
         <div className={styles.metric}>
+          <span className={styles.metricLabel}>Заказов</span>
           <span className={styles.metricValue}>
             {commissionsQuery.data ? formatNumber(commissionsQuery.data.total) : "0"}
           </span>
-          <span className={styles.metricLabel}>сделок</span>
         </div>
-      </section>
+      </div>
 
-      {/* ---- Реферальная ссылка — компактно ---- */}
-      <section className={styles.refRow}>
-        <div className={styles.refInfo}>
-          <span className={styles.refLabel}>Реф-ссылка</span>
-          <span className={styles.refUrl}>
-            {referralLoading ? "..." : referralUrl || "не получена"}
-          </span>
-        </div>
-        <button
-          type="button"
-          className={`${styles.refCopyBtn}${copied ? ` ${styles.refCopied}` : ""}`}
-          onClick={handleCopy}
-          disabled={!referralUrl}
-        >
-          {copied ? "✓ Скопировано" : "Скопировать"}
-        </button>
-      </section>
-
-      {/* ---- Последние комиссии (лента) ---- */}
-      <section className={styles.activity}>
-        <div className={styles.activityHeader}>
-          <h3 className={styles.activityTitle}>Последние комиссии</h3>
-          {recentCommissions.length > 0 ? (
+      {/* ---- Последние комиссии ---- */}
+      <Section
+        label="Последние комиссии"
+        aside={
+          recentCommissions.length > 0 ? (
             <button
               type="button"
-              className={styles.activityLink}
+              className={styles.sectionLink}
               onClick={() => onNavigate?.("finance")}
             >
               Все операции →
             </button>
-          ) : null}
-        </div>
-
+          ) : null
+        }
+      >
         {recentCommissions.length === 0 ? (
           <div className={styles.activityEmpty}>
             <p className={styles.activityEmptyTitle}>Пока нет комиссий</p>
@@ -402,57 +420,33 @@ export const MarketplaceOverview = ({
             ))}
           </ul>
         )}
-      </section>
+      </Section>
 
       {/* ---- Как это работает ---- */}
-      <section className={styles.howItWorks}>
-        <h3 className={styles.howTitle}>Как работает платформа</h3>
+      <Section label="Как работает платформа">
         <ol className={styles.howSteps}>
           <li className={styles.howStep}>
-            <span className={styles.howStepNum}>1</span>
-            <div className={styles.howStepBody}>
-              <span className={styles.howStepTitle}>Скопируйте ссылку</span>
-              <span className={styles.howStepDesc}>Отправьте реферальную ссылку потенциальному заказчику</span>
-            </div>
-          </li>
-          <li className={styles.howArrow} aria-hidden="true">
-            <svg viewBox="0 0 24 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M0 6h20M17 2l4 4-4 4" />
-            </svg>
+            <span className={styles.howStepNum}>01</span>
+            <span className={styles.howStepTitle}>Скопируйте ссылку</span>
+            <span className={styles.howStepDesc}>Отправьте реферальную ссылку потенциальному заказчику</span>
           </li>
           <li className={styles.howStep}>
-            <span className={styles.howStepNum}>2</span>
-            <div className={styles.howStepBody}>
-              <span className={styles.howStepTitle}>Заказчик регистрируется</span>
-              <span className={styles.howStepDesc}>Он навсегда привязывается к вам — все его заказы ваши</span>
-            </div>
-          </li>
-          <li className={styles.howArrow} aria-hidden="true">
-            <svg viewBox="0 0 24 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M0 6h20M17 2l4 4-4 4" />
-            </svg>
+            <span className={styles.howStepNum}>02</span>
+            <span className={styles.howStepTitle}>Заказчик регистрируется</span>
+            <span className={styles.howStepDesc}>Он навсегда привязывается к вам — все его заказы ваши</span>
           </li>
           <li className={styles.howStep}>
-            <span className={styles.howStepNum}>3</span>
-            <div className={styles.howStepBody}>
-              <span className={styles.howStepTitle}>Сделка оплачивается</span>
-              <span className={styles.howStepDesc}>Администратор подтверждает оплату по факту</span>
-            </div>
-          </li>
-          <li className={styles.howArrow} aria-hidden="true">
-            <svg viewBox="0 0 24 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M0 6h20M17 2l4 4-4 4" />
-            </svg>
+            <span className={styles.howStepNum}>03</span>
+            <span className={styles.howStepTitle}>Сделка оплачивается</span>
+            <span className={styles.howStepDesc}>Администратор подтверждает оплату по факту</span>
           </li>
           <li className={styles.howStep}>
-            <span className={styles.howStepNum}>4</span>
-            <div className={styles.howStepBody}>
-              <span className={styles.howStepTitle}>Получите комиссию</span>
-              <span className={styles.howStepDesc}>Деньги на балансе — выводите на карту в любое время</span>
-            </div>
+            <span className={styles.howStepNum}>04</span>
+            <span className={styles.howStepTitle}>Получите комиссию</span>
+            <span className={styles.howStepDesc}>Деньги на балансе — выводите на карту в любое время</span>
           </li>
         </ol>
-      </section>
+      </Section>
     </div>
   );
 };

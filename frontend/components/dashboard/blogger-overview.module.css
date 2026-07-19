@@ -1,11 +1,14 @@
 /* =========================================================
-   Blogger overview — premium balance card + marketplace CTA.
-   Монохром, тёмная «карта» как физический платёжный носитель.
+   Blogger overview — карта баланса + CTA маркетплейса +
+   превью последних операций. Карта — единственный «тяжёлый»
+   объект; остальное — типографика и hairline-линейки.
    ========================================================= */
 
+/* Появление обзора анимирует workspace кабинета целиком —
+   свой каскад тут был бы вторым слоем той же анимации. */
 .root {
   display: grid;
-  gap: 1.8rem;
+  gap: 2.6rem;
 }
 
 .topGrid {
@@ -22,253 +25,7 @@
 }
 
 /* ============================================================
-   Balance card — тёмная карта с чипом, скрытием и валютами
-   ============================================================ */
-
-.card {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 1.3rem;
-  min-height: 15.5rem;
-  padding: 1.7rem 1.85rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-strong);
-  background:
-    radial-gradient(560px 240px at 84% -12%, rgba(255, 255, 255, 0.08), transparent 58%),
-    radial-gradient(460px 260px at -12% 118%, rgba(255, 255, 255, 0.04), transparent 55%),
-    linear-gradient(152deg, #121214 0%, #0a0a0b 46%, #050506 100%);
-  box-shadow: var(--shadow-soft);
-}
-
-/* Верхняя световая грань + диагональный глянец — «стекло» карты. */
-.card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 20%);
-  z-index: 0;
-}
-
-.card::after {
-  content: "";
-  position: absolute;
-  top: -45%;
-  right: -18%;
-  width: 62%;
-  height: 190%;
-  transform: rotate(19deg);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.card > * {
-  position: relative;
-  z-index: 1;
-}
-
-.cardHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-/* Ярлык карты — та же грамматика, что у eyebrow соседнего CTA. */
-.cardEyebrow {
-  margin: 0;
-  font-family: var(--font-narrow);
-  font-size: 0.62rem;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--text-soft);
-}
-
-.eyeBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.1rem;
-  height: 2.1rem;
-  flex-shrink: 0;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition:
-    background var(--transition-base),
-    border-color var(--transition-base),
-    color var(--transition-base);
-}
-
-.eyeBtn:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: var(--border-strong);
-  color: var(--text-strong);
-}
-
-.eyeBtn svg {
-  width: 1.05rem;
-  height: 1.05rem;
-}
-
-/* ---- «Номер карты» — маскированный PAN с last4 карты выплат.
-   Рендерится только при привязанной карте. ---- */
-
-.cardNumber {
-  display: flex;
-  gap: 1.15rem;
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 1.05rem;
-  letter-spacing: 0.14em;
-  line-height: 1;
-  color: var(--text-soft);
-}
-
-.cardNumberKnown {
-  color: var(--text);
-}
-
-/* ---- Body: label + big balance + pending ---- */
-
-.cardBody {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.cardLabel {
-  margin: 0;
-  font-family: var(--font-narrow);
-  font-size: 0.64rem;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--text-soft);
-}
-
-.cardBalance {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: clamp(2rem, 3.8vw, 2.7rem);
-  letter-spacing: -0.045em;
-  line-height: 1.02;
-  color: var(--text-strong);
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-
-.masked {
-  letter-spacing: 0.02em;
-  color: var(--text);
-}
-
-.cardPending {
-  margin: 0.1rem 0 0;
-  font-family: var(--font-mono);
-  font-size: 0.84rem;
-  color: var(--status-success);
-  letter-spacing: -0.01em;
-}
-
-.cardPending[data-empty="true"] {
-  font-family: var(--font-body);
-  color: var(--text-soft);
-}
-
-/* ---- Currency switcher ---- */
-
-.currencyRow {
-  display: inline-flex;
-  align-self: flex-start;
-  gap: 0.2rem;
-  padding: 0.22rem;
-  border-radius: var(--radius-pill);
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid var(--border-faint);
-}
-
-.currencyBtn {
-  min-width: 2.1rem;
-  height: 1.9rem;
-  padding: 0 0.55rem;
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-soft);
-  font-family: var(--font-mono);
-  font-size: 0.92rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background var(--transition-base),
-    color var(--transition-base),
-    border-color var(--transition-base);
-}
-
-.currencyBtn:hover {
-  color: var(--text);
-}
-
-.currencyBtnActive {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--border-strong);
-  color: var(--text-strong);
-}
-
-/* ---- Footer: держатель / ставка / карта ---- */
-
-/* Три ровные колонки вместо пары, сбившейся влево: держатель |
-   ставка | карта. Последняя прижата вправо. */
-.cardFoot {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-  align-items: end;
-  column-gap: 1.2rem;
-  padding-top: 1.15rem;
-  border-top: 1px solid var(--border-faint);
-}
-
-.cardFootItem {
-  display: grid;
-  gap: 0.28rem;
-  min-width: 0;
-}
-
-.cardFootItemEnd {
-  text-align: right;
-}
-
-.cardFootLabel {
-  font-family: var(--font-narrow);
-  font-size: 0.58rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--text-soft);
-}
-
-.cardFootValue {
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  letter-spacing: -0.01em;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ============================================================
-   Marketplace CTA
+   Marketplace CTA — «приглашение», второй объект верхнего ряда.
    ============================================================ */
 
 .cta {
@@ -300,27 +57,6 @@
 .cta > * {
   position: relative;
   z-index: 1;
-}
-
-/* крупная бледная стрелка-водяной знак в углу */
-.ctaGlyph {
-  position: absolute;
-  top: 1.4rem;
-  right: 1.5rem;
-  z-index: 0;
-  display: grid;
-  place-items: center;
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  color: var(--text-soft);
-  opacity: 0.5;
-}
-
-.ctaGlyph svg {
-  width: 1.2rem;
-  height: 1.2rem;
 }
 
 .ctaTop {
@@ -370,8 +106,7 @@
 .ctaPoint {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.34rem 0.7rem;
+  padding: 0.34rem 0.75rem;
   border-radius: var(--radius-pill);
   background: var(--surface-inset);
   border: 1px solid var(--border-faint);
@@ -379,14 +114,6 @@
   font-size: 0.68rem;
   letter-spacing: 0.06em;
   color: var(--text-muted);
-}
-
-.ctaPoint::before {
-  content: "";
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--text-soft);
 }
 
 .ctaBtn {
@@ -427,46 +154,154 @@
 }
 
 /* ============================================================
+   Последние операции — hairline-список.
+   ============================================================ */
+
+.sectionLink {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+  white-space: nowrap;
+  transition: color var(--transition-base);
+}
+
+.sectionLink:hover {
+  color: var(--text-strong);
+}
+
+.opsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.opsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  width: 100%;
+  padding: 0.85rem 0.15rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-faint);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.opsList > li:first-child .opsRow {
+  border-top: 1px solid var(--border-faint);
+}
+
+.opsRow:hover,
+.opsRow:focus-visible {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.opsAmount {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  min-width: 7.5rem;
+}
+
+.opsAmount[data-negative="true"] {
+  color: var(--status-danger);
+}
+
+.opsDate {
+  margin-left: auto;
+  font-family: var(--font-narrow);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+
+/* Empty + skeleton */
+
+.opsEmpty {
+  padding: 1.9rem 1.4rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  border: 1px dashed var(--border);
+  text-align: center;
+}
+
+.opsEmptyTitle {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--text-strong);
+}
+
+.opsEmptyText {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  max-width: 42ch;
+  margin-inline: auto;
+}
+
+.opsSkeleton {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.opsSkeletonRow {
+  position: relative;
+  overflow: hidden;
+  height: 2.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-faint);
+}
+
+.opsSkeletonRow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.04) 50%, transparent 100%);
+  animation: deltaShimmer 1.4s linear infinite;
+}
+
+@keyframes deltaShimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+
+/* ============================================================
    Responsive
    ============================================================ */
 
-@media (max-width: 900px) {
-  .cta {
-    min-height: 0;
-  }
-}
-
 @media (max-width: 540px) {
-  .card {
-    padding: 1.4rem 1.4rem;
-    min-height: 0;
-    gap: 1.2rem;
-  }
-  .cardNumber {
-    font-size: 0.92rem;
-    gap: 0.85rem;
-  }
-  .cardFoot {
-    gap: 0.8rem;
-  }
-  .cardFootValue {
-    font-size: 0.82rem;
+  .root {
+    gap: 2rem;
   }
   .cta {
     padding: 1.4rem 1.4rem;
   }
-  .ctaGlyph {
-    display: none;
+  .opsAmount {
+    min-width: 0;
   }
-}
-
-@media (max-width: 380px) {
-  .cardFoot {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    row-gap: 0.8rem;
+  .opsDate {
+    flex-shrink: 0;
   }
-  .cardFootItemEnd {
-    grid-column: 1 / -1;
-    text-align: left;
+  .opsRow {
+    flex-wrap: wrap;
+    gap: 0.4rem 0.9rem;
   }
 }

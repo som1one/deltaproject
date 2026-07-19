@@ -1,0 +1,75 @@
+/* =========================================================
+   Section — типографический раздел кабинета.
+   Ярлык + hairline-линейка вместо карточки-коробки.
+   ========================================================= */
+
+.section {
+  display: grid;
+  gap: 1.2rem;
+  min-width: 0;
+}
+
+.head {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.headRow {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  min-height: 1.9rem;
+}
+
+.label {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.64rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
+  /* Заголовок раздела — смысловой текст: muted вместо soft ради контраста. */
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.rule {
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--border-faint);
+  min-width: 1.5rem;
+}
+
+.aside {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.lead {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  max-width: 64ch;
+}
+
+@media (max-width: 720px) {
+  .headRow {
+    gap: 0.6rem 0.8rem;
+    /* Широкие контролы (например, селект фильтра) переносятся
+       на свою строку, а не вылезают за край экрана. */
+    flex-wrap: wrap;
+  }
+  .aside {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .lead {
+    font-size: 0.86rem;
+  }
+}

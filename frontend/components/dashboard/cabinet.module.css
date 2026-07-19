@@ -1,7 +1,8 @@
 /* =========================================================
    Cabinet — Worker / Blogger dashboard.
-   Layout: identity header + stats + sidebar tabs + workspace.
-   Premium monochrome.
+   Архитектура «банковской выписки»: единственный материальный
+   объект — тёмная карта баланса; всё остальное — типографика,
+   hairline-линейки и воздух. Никаких коробок-в-коробках.
    ========================================================= */
 
 /* ---------- Identity header ---------- */
@@ -14,7 +15,7 @@
   gap: 1.6rem;
   align-items: center;
   padding: 0.6rem 0.2rem 0;
-  margin-bottom: 2.6rem;
+  margin-bottom: 2rem;
 }
 
 .identityCard > * {
@@ -136,127 +137,92 @@
   white-space: nowrap;
 }
 
-@media (max-width: 720px) {
-  .identityCard {
-    grid-template-columns: 1fr;
-    padding: 0.2rem 0 0;
-  }
-  .identityStats {
-    flex-wrap: wrap;
-    row-gap: 0.8rem;
-  }
-  .identityStat {
-    padding: 0.1rem 1.1rem;
-  }
-  .identityStat:first-child {
-    padding-left: 0;
-  }
-  .identityStat dd {
-    font-size: 1.2rem;
-  }
-}
+/* ---------- Tab bar — типографская строка вкладок ----------
+   Вместо боксового сайдбара: подчёркивание активной вкладки,
+   моно-счётчик вместо пилюли. Липнет под верхнюю навигацию. */
 
-/* ---------- Stats row ---------- */
-
-.statsRow {
-  margin-bottom: 2.2rem;
-}
-
-/* ---------- Tabbed shell ---------- */
-
-.shell {
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 1.8rem;
-  align-items: start;
-}
-
-/* ---------- Sidebar ---------- */
-
-.sidebar {
+.tabBar {
   position: sticky;
-  top: 6.4rem;
-  display: grid;
+  /* Высота TopNav: navInner min-height 3.25rem + 1px граница. */
+  top: calc(3.25rem + 1px);
+  z-index: 40;
+  margin-bottom: 2.4rem;
+  background: rgba(0, 0, 0, 0.82);
+  /* Только стандартное свойство: рукописный -webkit-префикс заставляет
+     Lightning CSS выбрасывать нестандартную пару из сборки. */
+  backdrop-filter: blur(20px) saturate(140%);
+  border-bottom: 1px solid var(--border);
+}
+
+.tabBarRow {
+  display: flex;
   gap: 0.3rem;
-  padding: 1.1rem;
-  border-radius: var(--radius-lg);
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-soft);
-  overflow: hidden;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
-.sidebar::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255,255,255,0.022), transparent 30%);
-  border-radius: inherit;
-}
-
-.sidebarLabel {
-  margin: 0;
-  font-family: var(--font-narrow);
-  font-size: 0.62rem;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--text-soft);
-  padding: 0.8rem 0.7rem 0.6rem;
+.tabBarRow::-webkit-scrollbar {
+  display: none;
 }
 
 .tabBtn {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.85rem 0.95rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
+  gap: 0.55rem;
+  padding: 0.9rem 0.95rem 0.95rem;
   background: transparent;
+  border: none;
   color: var(--text-muted);
-  font: inherit;
+  font-family: var(--font-display);
   font-size: 0.92rem;
   font-weight: 500;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
   cursor: pointer;
-  text-align: left;
-  width: 100%;
-  position: relative;
-  transition:
-    background var(--transition-base),
-    color var(--transition-base),
-    border-color var(--transition-base);
+  flex-shrink: 0;
+  transition: color var(--transition-base);
+}
+
+/* Подчёркивание рисуем заранее и раскрываем на активной вкладке —
+   переход «выезжает» из центра. */
+.tabBtn::after {
+  content: "";
+  position: absolute;
+  left: 0.95rem;
+  right: 0.95rem;
+  bottom: -1px;
+  height: 1px;
+  background: var(--text-strong);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform var(--transition-base);
 }
 
 .tabBtn:hover {
-  background: var(--surface-hover);
-  color: var(--text-strong);
+  color: var(--text);
 }
 
 .tabBtnActive {
-  background: rgba(255, 255, 255, 0.04);
   color: var(--text-strong);
-  border-color: var(--border-strong);
 }
 
-.tabBtnActive::before {
-  content: "";
-  position: absolute;
-  left: -0.85rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 1.2rem;
-  background: var(--text-strong);
-  border-radius: 0 2px 2px 0;
+.tabBtnActive::after {
+  transform: scaleX(1);
 }
 
 .tabIcon {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 1rem;
+  height: 1rem;
   flex-shrink: 0;
-  opacity: 0.55;
+  opacity: 0.5;
   transition: opacity var(--transition-base);
+}
+
+.tabIcon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .tabBtn:hover .tabIcon,
@@ -264,43 +230,22 @@
   opacity: 1;
 }
 
-.tabBadge {
-  margin-left: auto;
-  font-family: var(--font-narrow);
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  background: var(--surface-inset);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  padding: 0.14rem 0.55rem;
+.tabCount {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
   color: var(--text-soft);
-  min-width: 1.4rem;
-  text-align: center;
+  transform: translateY(-0.35em);
 }
 
-.tabBtnActive .tabBadge {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.18);
-  color: var(--text-strong);
-}
-
-.sidebarHelp {
-  margin: 0.85rem 0.4rem 0;
-  padding: 0.85rem 0.9rem;
-  border-radius: var(--radius-sm);
-  background: var(--surface-inset);
-  border: 1px solid var(--border-faint);
-  font-size: 0.8rem;
-  line-height: 1.55;
-  color: var(--text-soft);
+.tabBtnActive .tabCount {
+  color: var(--text-muted);
 }
 
 /* ---------- Workspace ---------- */
 
 .workspace {
   display: grid;
-  gap: 1.8rem;
+  gap: 2.6rem;
   min-width: 0;
   animation: deltaTabFade 360ms var(--easing) both;
 }
@@ -310,38 +255,11 @@
   to   { opacity: 1; transform: translateY(0); filter: blur(0); }
 }
 
-@media (max-width: 1080px) {
-  .shell {
-    grid-template-columns: 1fr;
-  }
-  .sidebar {
-    position: static;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(140px, 1fr);
-    gap: 0.4rem;
-    overflow-x: auto;
-    padding: 0.7rem;
-  }
-  .sidebarLabel,
-  .sidebarHelp {
-    display: none;
-  }
-  .tabBtn {
-    white-space: nowrap;
-    justify-content: center;
-  }
-  .tabBtnActive::before {
-    display: none;
-  }
-}
-
-/* ---------- Mobile bottom nav (under 640px we hide sidebar entirely
-   and use a dedicated bottom bar; sidebar still visible 640-1080 as scroll row) ---------- */
-
-@media (max-width: 640px) {
-  .shell {
-    padding-bottom: 5rem;
-  }
+/* Вертикальный стек секций внутри вкладки (Финансы). */
+.stack {
+  display: grid;
+  gap: 2.6rem;
+  min-width: 0;
 }
 
 /* ---------- Action / utility rows ---------- */
@@ -353,30 +271,15 @@
   align-items: center;
 }
 
-.dealActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+/* Фильтр истории операций — в aside заголовка секции. */
+.ledgerFilter {
+  display: inline-flex;
+  min-width: 0;
 }
 
-.toolbarRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.7rem;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.toolbarFilters {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.toolbarFilters select {
-  min-width: 12rem;
+.ledgerFilter select {
+  min-width: 11rem;
+  max-width: 15rem;
 }
 
 /* ---------- Empty state ---------- */
@@ -435,24 +338,15 @@
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
-.skeletonStat,
 .skeletonRow {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-md);
   background: var(--surface-raised);
   border: 1px solid var(--border-faint);
-}
-
-.skeletonStat {
-  height: 6.6rem;
-}
-
-.skeletonRow {
   height: 3rem;
 }
 
-.skeletonStat::after,
 .skeletonRow::after {
   content: "";
   position: absolute;
@@ -481,34 +375,87 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
+/* Видимый фокус: строка таблицы не рисует outline, поэтому обводим ячейки. */
 .dealRowClickable:focus-visible {
   outline: none;
 }
 
 .dealRowClickable:focus-visible td {
   background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px var(--border-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .dealRowClickable:focus-visible td:first-child {
-  box-shadow: inset 1px 0 0 var(--text-strong), inset 0 1px 0 var(--border-strong), inset 0 -1px 0 var(--border-strong);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(255, 255, 255, 0.45);
 }
 
-/* ---------- Script cards ---------- */
+.dealRowClickable:focus-visible td:last-child {
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -1px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* ---------- Scripts ---------- */
+
+.scriptTools {
+  display: grid;
+  gap: 0.75rem;
+}
+
+/* Чипы категорий: на десктопе переносятся, на мобиле — одна
+   горизонтальная лента со скроллом (никогда не в столбик). */
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.chip {
+  appearance: none;
+  padding: 0.42rem 0.95rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background var(--transition-base),
+    color var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.chip:hover {
+  color: var(--text-strong);
+  border-color: var(--border-strong);
+}
+
+.chipActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.chipActive:hover {
+  color: var(--accent-ink);
+}
 
 .scriptGrid {
   display: grid;
   gap: 0.85rem;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  margin-top: 0.4rem;
 }
 
 .scriptCard {
-  padding: 1.2rem 1.3rem;
+  padding: 1.15rem 1.25rem 1.2rem;
   border-radius: var(--radius-md);
   background: var(--surface-inset);
   border: 1px solid var(--border);
   display: grid;
-  gap: 0.6rem;
+  gap: 0.55rem;
+  align-content: start;
   position: relative;
   overflow: hidden;
   transition: border-color var(--transition-base), transform var(--transition-base);
@@ -536,16 +483,32 @@
   transform: scaleY(0.7);
 }
 
-.scriptCard h3 {
+.scriptHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.scriptHead h3 {
   margin: 0;
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: -0.018em;
   color: var(--text-strong);
+  line-height: 1.3;
 }
 
-.scriptCard p {
+.scriptKeywords {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  color: var(--text-soft);
+}
+
+.scriptBody {
   margin: 0;
   color: var(--text-muted);
   white-space: pre-wrap;
@@ -567,12 +530,16 @@
 
 .profileGrid {
   display: grid;
-  gap: 1.4rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2.2rem 3.2rem;
+  margin-top: 0.4rem;
 }
 
 .profileBlock {
   display: grid;
   gap: 1rem;
+  align-content: start;
+  min-width: 0;
 }
 
 .profileBlockTitle {
@@ -585,29 +552,6 @@
   color: var(--text-soft);
   padding-bottom: 0.6rem;
   border-bottom: 1px solid var(--border-faint);
-}
-
-/* Payout card row: card input + submit button on one line, button aligned
-   to the field height (not its help text). */
-.profilePayoutRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.85rem;
-  align-items: start;
-}
-
-.profilePayoutRow > button {
-  /* Поднимаем кнопку до уровня инпута (компенсируем высоту лейбла поля). */
-  margin-top: 1.55rem;
-}
-
-@media (max-width: 720px) {
-  .profilePayoutRow {
-    grid-template-columns: 1fr;
-  }
-  .profilePayoutRow > button {
-    margin-top: 0;
-  }
 }
 
 /* ---------- Unlock card ---------- */
@@ -706,17 +650,143 @@
   justify-items: center;
 }
 
-@media (max-width: 720px) {
-  .unlockCard {
-    padding: 1.7rem;
-  }
-  .scriptGrid {
-    grid-template-columns: 1fr;
-  }
+/* =========================================================
+   Payout request — de-boxed строка «Выплата».
+   ========================================================= */
+
+.payoutRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto;
+  gap: 1rem 1.6rem;
+  align-items: end;
+}
+
+.payoutField {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.payoutLabel {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.payoutAvailable {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.7rem;
+  letter-spacing: -0.035em;
+  color: var(--text-strong);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.payoutHint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-soft);
+  line-height: 1.45;
+}
+
+.payoutActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: end;
 }
 
 /* =========================================================
-   Deal details modal — custom shell, tabs, sticky footer.
+   Ledger: десктопная таблица + мобильный hairline-список.
+   ========================================================= */
+
+.dealsDesktopTable {
+  display: block;
+}
+
+.ledgerMobileList {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Строка операции: без коробки — hairline-разделители,
+   крупная сумма, статус справа, дата/заметка ниже. */
+.ledgerMobileRow {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.95rem 0.15rem;
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.ledgerMobileRow:first-child {
+  border-top: 1px solid var(--border-faint);
+}
+
+.ledgerMobileTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.ledgerMobileAmount {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.ledgerMobileAmount[data-negative="true"] {
+  color: var(--status-danger);
+}
+
+.ledgerMobileFoot {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.ledgerMobileDate {
+  font-family: var(--font-narrow);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.ledgerMobileNote {
+  font-size: 0.86rem;
+  color: var(--text);
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.ledgerMobileRowClickable {
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.ledgerMobileRowClickable:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.ledgerMobileRowClickable:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.45);
+  outline-offset: -1px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+/* =========================================================
+   Deal details modal — custom shell, sticky footer.
    ========================================================= */
 
 .dealModalBackdrop {
@@ -724,13 +794,17 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.78);
   backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: clamp(1rem, 4vw, 2.5rem);
   animation: deltaBackdropFade 320ms var(--easing) both;
+}
+
+@keyframes deltaBackdropFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .dealModalCard {
@@ -744,6 +818,11 @@
   box-shadow: var(--shadow-strong);
   overflow: hidden;
   animation: deltaModalIn 360ms var(--easing) both;
+}
+
+@keyframes deltaModalIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ---- Header ---- */
@@ -902,6 +981,24 @@
   word-break: break-word;
 }
 
+/* Заметка в модалке ledger — лежит под grid'ом мета-полей. */
+.dealModalLedgerNote {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.95rem 1.1rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-faint);
+}
+
+.dealModalLedgerNote p:last-child {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--text);
+  word-wrap: break-word;
+}
+
 /* ---- Footer ---- */
 
 .dealModalFooter {
@@ -937,26 +1034,25 @@
   }
 }
 
-
 /* =========================================================
-   Обёртка десктопной таблицы (финансы): на ≤720px прячется,
-   вместо неё показывается ledgerMobileList.
+   Responsive.
    ========================================================= */
 
-.dealsDesktopTable {
-  display: block;
+@media (max-width: 900px) {
+  .payoutRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .payoutField {
+    grid-column: 1 / -1;
+  }
 }
-
-/* =========================================================
-   Mobile redesign — ≤720px.
-   Цели: меньше высоты, плотнее, без потери UX.
-   ========================================================= */
 
 @media (max-width: 720px) {
   /* --- Identity header --- */
   .identityCard {
+    grid-template-columns: 1fr;
     padding: 0.2rem 0 0;
-    margin-bottom: 1.8rem;
+    margin-bottom: 1.4rem;
     gap: 0.9rem;
   }
   .identityMain {
@@ -981,54 +1077,97 @@
     width: 12px;
     height: 12px;
   }
-
-  /* --- Shell + sidebar --- */
-  .shell {
-    gap: 1rem;
-    padding-bottom: 0;
+  .identityStats {
+    flex-wrap: wrap;
+    row-gap: 0.8rem;
   }
-  .sidebar {
-    padding: 0.45rem;
-    gap: 0.3rem;
-    border-radius: var(--radius-md);
+  .identityStat {
+    padding: 0.1rem 1.1rem;
+  }
+  .identityStat:first-child {
+    padding-left: 0;
+  }
+  .identityStat dd {
+    font-size: 1.2rem;
+  }
+
+  /* --- Tab bar --- */
+  .tabBar {
+    margin-bottom: 1.6rem;
   }
   .tabBtn {
-    padding: 0.55rem 0.7rem;
-    font-size: 0.78rem;
+    padding: 0.75rem 0.75rem 0.8rem;
+    font-size: 0.84rem;
     gap: 0.45rem;
   }
-  .tabIcon {
-    width: 0.95rem;
-    height: 0.95rem;
+  .tabBtn::after {
+    left: 0.75rem;
+    right: 0.75rem;
   }
-  .tabBadge {
-    padding: 0.08rem 0.42rem;
-    font-size: 0.6rem;
-    min-width: 1.1rem;
+  .tabIcon {
+    width: 0.9rem;
+    height: 0.9rem;
   }
 
   /* --- Workspace --- */
-  .workspace {
-    gap: 1rem;
+  .workspace,
+  .stack {
+    gap: 2rem;
   }
 
-  /* --- SectionCard padding compact --- */
-  .toolbarRow {
-    gap: 0.5rem;
-    margin-bottom: 0.7rem;
+  /* --- Выплата --- */
+  .payoutRow {
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
   }
-  .toolbarFilters {
+  .payoutField {
+    grid-column: auto;
+  }
+  .payoutActions {
+    display: grid;
+    grid-template-columns: auto 1fr;
     width: 100%;
   }
+  .payoutAvailable {
+    font-size: 1.45rem;
+  }
 
-  /* --- Финансы: десктопная таблица скрыта, работает мобильный список --- */
+  /* --- История: таблица → hairline-список --- */
   .dealsDesktopTable {
     display: none;
   }
+  .ledgerMobileList {
+    display: block;
+  }
+  .ledgerFilter {
+    flex: 1 1 auto;
+  }
+  .ledgerFilter select {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
 
-  /* --- Profile compact --- */
+  /* --- Скрипты --- */
+  .chipRow {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-inline: -0.2rem;
+    padding-inline: 0.2rem;
+    padding-bottom: 0.2rem;
+  }
+  .chipRow::-webkit-scrollbar {
+    display: none;
+  }
+  .scriptGrid {
+    grid-template-columns: 1fr;
+  }
+
+  /* --- Profile --- */
   .profileGrid {
-    gap: 1rem;
+    grid-template-columns: 1fr;
+    gap: 1.6rem;
   }
   .profileBlock {
     gap: 0.7rem;
@@ -1044,172 +1183,8 @@
   .actionRow > * {
     flex: 1 1 auto;
   }
-}
 
-
-/* =========================================================
-   Ledger mobile list.
-   ========================================================= */
-
-.ledgerMobileList {
-  display: none;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  gap: 0.55rem;
-}
-
-.ledgerMobileCard {
-  display: grid;
-  gap: 0.4rem;
-  padding: 0.85rem 0.95rem;
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
-  border: 1px solid var(--border-faint);
-}
-
-.ledgerMobileTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
-}
-
-.ledgerMobileAmount {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  font-size: 1rem;
-  color: var(--text-strong);
-  font-variant-numeric: tabular-nums;
-}
-
-.ledgerMobileAmount[data-negative="true"] {
-  color: var(--status-danger);
-}
-
-.ledgerMobileFoot {
-  display: grid;
-  gap: 0.2rem;
-  min-width: 0;
-}
-
-.ledgerMobileDate {
-  font-family: var(--font-narrow);
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-}
-
-.ledgerMobileNote {
-  font-size: 0.86rem;
-  color: var(--text);
-  line-height: 1.4;
-  word-wrap: break-word;
-}
-
-@media (max-width: 720px) {
-  .ledgerMobileList {
-    display: grid;
-  }
-}
-
-
-/* Кликабельная мобильная карточка ledger — используется когда в LedgerTable
-   передаётся onSelect (открытие детальной модалки операции). */
-.ledgerMobileCardClickable {
-  cursor: pointer;
-  transition: background var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
-}
-
-.ledgerMobileCardClickable:hover,
-.ledgerMobileCardClickable:focus-visible {
-  outline: none;
-  border-color: var(--border-strong);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-/* Заметка в модалке ledger — лежит под grid'ом мета-полей. */
-.dealModalLedgerNote {
-  display: grid;
-  gap: 0.4rem;
-  padding: 0.95rem 1.1rem;
-  border-radius: var(--radius-md);
-  background: var(--surface-inset);
-  border: 1px solid var(--border-faint);
-}
-
-.dealModalLedgerNote p:last-child {
-  margin: 0;
-  font-size: 0.92rem;
-  line-height: 1.5;
-  color: var(--text);
-  word-wrap: break-word;
-}
-
-
-/* =========================================================
-   Worker payout request — карточка над «Финансы».
-   ========================================================= */
-
-.payoutRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto;
-  gap: 1rem 1.4rem;
-  align-items: end;
-}
-
-.payoutField {
-  display: grid;
-  gap: 0.4rem;
-  min-width: 0;
-}
-
-.payoutLabel {
-  margin: 0;
-  font-family: var(--font-narrow);
-  font-size: 0.6rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--text-soft);
-}
-
-.payoutAvailable {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.55rem;
-  letter-spacing: -0.03em;
-  color: var(--text-strong);
-  line-height: 1.1;
-}
-
-.payoutHint {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--text-soft);
-  line-height: 1.45;
-}
-
-.payoutActions {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0;
-  align-self: end;
-}
-
-@media (max-width: 720px) {
-  .payoutRow {
-    grid-template-columns: 1fr;
-    gap: 0.8rem;
-  }
-  .payoutActions {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    width: 100%;
-  }
-  .payoutAvailable {
-    font-size: 1.4rem;
+  .unlockCard {
+    padding: 1.7rem;
   }
 }
