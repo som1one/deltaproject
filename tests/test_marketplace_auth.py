@@ -25,6 +25,8 @@ def _make_client_user(
     user.hash_pass = hash_password("securepass123")
     user.role = UserRole.CLIENT
     user.is_active = is_active
+    user.banned_at = None
+    user.ban_reason = None
     user.marketplace_referred_by = marketplace_referred_by
     return user
 
@@ -379,6 +381,41 @@ async def test_login_inactive_account_403() -> None:
             )
         assert r.status_code == 403
         assert "деактивирован" in r.json()["detail"].lower()
+    finally:
+        app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_login_banned_account_403_with_reason() -> None:
+    """POST /marketplace/auth/login: забаненный аккаунт получает 403 с причиной."""
+    from datetime import UTC, datetime
+
+    app = create_app()
+    user = _make_client_user(is_active=False)
+    user.banned_at = datetime.now(UTC)
+    user.ban_reason = "Спам в чатах"
+
+    async def fake_db():
+        session = AsyncMock()
+        result = MagicMock()
+        result.scalar_one_or_none = MagicMock(return_value=user)
+        session.execute = AsyncMock(return_value=result)
+        yield session
+
+    app.dependency_overrides[get_db] = fake_db
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.post(
+                "/marketplace/auth/login",
+                json={
+                    "email": "client@example.com",
+                    "password": "securepass123",
+                },
+            )
+        assert r.status_code == 403
+        detail = r.json()["detail"]
+        assert "заблокирован" in detail.lower()
+        assert "Спам в чатах" in detail
     finally:
         app.dependency_overrides.clear()
 

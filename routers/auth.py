@@ -52,6 +52,7 @@ from services.telegram_channel_service import (
     record_subscription,
 )
 from services.marketplace_referral_service import resolve_referral
+from utils.account_status import account_blocked_detail
 from utils.blogger_credentials import normalize_blogger_nickname
 from utils.request_ip import get_client_ip
 from utils.jwt_tokens import (
@@ -476,8 +477,10 @@ async def platform_oauth_authorize(
         raise HTTPException(status_code=401, detail="Невалидный access-токен") from None
 
     user = await db.get(User, user_id)
-    if user is None or not user.is_active:
-        raise HTTPException(status_code=401, detail="Пользователь не найден или деактивирован")
+    if user is None:
+        raise HTTPException(status_code=401, detail="Пользователь не найден")
+    if not user.is_active:
+        raise HTTPException(status_code=401, detail=account_blocked_detail(user))
     if user.role != UserRole.BLOGER:
         raise HTTPException(
             status_code=403,
@@ -544,7 +547,7 @@ async def admin_login(
     if user is None or not verify_password(body.password, user.hash_pass):
         raise HTTPException(status_code=400, detail="Invalid email or password")
     if not user.is_active:
-        raise HTTPException(status_code=401, detail="Пользователь деактивирован")
+        raise HTTPException(status_code=401, detail=account_blocked_detail(user))
     if user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Этот вход доступен только администратору")
     client_ip = get_client_ip(request)
@@ -579,7 +582,7 @@ async def blogger_login(
     if user is None or not verify_password(body.password, user.hash_pass):
         raise HTTPException(status_code=400, detail="Неверный ник или пароль")
     if not user.is_active:
-        raise HTTPException(status_code=401, detail="Пользователь деактивирован")
+        raise HTTPException(status_code=401, detail=account_blocked_detail(user))
     if user.role != UserRole.BLOGER:
         raise HTTPException(status_code=403, detail="Вход по нику доступен только блогеру")
     client_ip = get_client_ip(request)

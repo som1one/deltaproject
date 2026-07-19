@@ -5,6 +5,7 @@ import type {
   AdminBalanceAdjustmentResponse,
   AdminBloggerCreateResponse,
   AdminDailySeriesResponse,
+  AdminMarketplaceBloggerProfile,
   AdminOverviewResponse,
   AdminPaymentDetails,
   AdminPaymentDetailsSet,
@@ -361,6 +362,25 @@ export const api = {
   setPartnerPayoutCard: (id: string, body: { card_number: string; card_brand: string | null; card_holder: string | null }) =>
     request<AdminUserRead>(`/admin/users/${id}/payout-card`, {
       method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  banAdminUser: (id: string, body: { reason: string }) =>
+    request<AdminUserRead>(`/admin/users/${id}/ban`, {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  unbanAdminUser: (id: string) =>
+    request<AdminUserRead>(`/admin/users/${id}/unban`, {
+      method: "POST",
+      auth: true,
+    }),
+  getAdminUserMarketplaceProfile: (userId: string) =>
+    request<AdminMarketplaceBloggerProfile>(`/admin/marketplace/bloggers/by-user/${userId}`, { auth: true }),
+  patchAdminMarketplaceBlogger: (profileId: string, body: Record<string, unknown>) =>
+    request<AdminMarketplaceBloggerProfile>(`/admin/marketplace/bloggers/${profileId}`, {
+      method: "PATCH",
       auth: true,
       body: JSON.stringify(body),
     }),

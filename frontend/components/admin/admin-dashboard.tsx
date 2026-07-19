@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import {
   dealStatusTone,
@@ -16,6 +16,7 @@ import {
   formatRole,
 } from "@/lib/format";
 import type {
+  AdminMarketplaceBloggerProfile,
   AdminUserRead,
   DealRead,
   LedgerEntryRead,
@@ -66,6 +67,7 @@ type AdminModalState =
   | { kind: "payout-complete"; entry: LedgerEntryRead }
   | { kind: "delete-script"; script: WorkerMessageScriptRead }
   | { kind: "blogger-created"; nickname: string; password: string }
+  | { kind: "ban-user"; user: AdminUserRead; reason: string }
   | null;
 
 const emptyUserForm = {
@@ -73,12 +75,43 @@ const emptyUserForm = {
   email: "",
   telegram: "",
   nickname: "",
-  percent: "0",
+  photo_url: "",
   role: "Worker",
   is_active: true,
   blogger_cabinet_pin: "",
   new_password: "",
 };
+
+const emptyMpProfileForm = {
+  photo_url: "",
+  category: "other",
+  description: "",
+  subscriber_count: "",
+  average_price_rub: "",
+  is_active: true,
+  orders_enabled: true,
+};
+
+const MP_CATEGORY_OPTIONS: { value: string; label: string }[] = [
+  { value: "lifestyle", label: "Лайфстайл" },
+  { value: "tech", label: "Технологии" },
+  { value: "beauty", label: "Красота" },
+  { value: "food", label: "Еда" },
+  { value: "travel", label: "Путешествия" },
+  { value: "fitness", label: "Фитнес" },
+  { value: "gaming", label: "Игры" },
+  { value: "education", label: "Образование" },
+  { value: "business", label: "Бизнес" },
+  { value: "entertainment", label: "Развлечения" },
+  { value: "other", label: "Другое" },
+];
+
+type UsersRoleFilter = "all" | "Worker" | "Bloger" | "Client" | "admins";
+
+const USERS_PAGE_SIZE = 50;
+
+const userStatusLabel = (user: Pick<AdminUserRead, "is_active" | "banned_at">) =>
+  user.banned_at ? "Бан" : user.is_active ? "Активен" : "Отключён";
 
 const emptyBloggerForm = {
   nickname: "",
@@ -108,7 +141,7 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
   users: {
     label: "Пользователи",
     title: "Пользователи",
-    lead: "Воркеры и блогеры. Создание блогера выдаёт сгенерированный пароль под ник.",
+    lead: "Единое управление: воркеры, блогеры, заказчики и администраторы. Профили, баланс, бан.",
   },
   deals: {
     label: "Сделки",
@@ -240,6 +273,11 @@ export const AdminDashboard = () => {
   const [selectedSchemeId, setSelectedSchemeId] = useState("");
   const [selectedScriptId, setSelectedScriptId] = useState("");
   const [userForm, setUserForm] = useState(emptyUserForm);
+  const [userRoleFilter, setUserRoleFilter] = useState<UsersRoleFilter>("all");
+  const [userSearchInput, setUserSearchInput] = useState("");
+  const [userSearch, setUserSearch] = useState("");
+  const [usersPage, setUsersPage] = useState(0);
+  const [mpProfileForm, setMpProfileForm] = useState(emptyMpProfileForm);
   const [bloggerForm, setBloggerForm] = useState(emptyBloggerForm);
   const [scriptForm, setScriptForm] = useState(emptyScriptForm);
   const [financeForm, setFinanceForm] = useState({
@@ -267,6 +305,28 @@ export const AdminDashboard = () => {
   });
   const overviewQuery = useQuery({ queryKey: ["admin", "overview"], queryFn: api.getAdminOverview, enabled: Boolean(isAuthenticated) });
   const usersQuery = useQuery({ queryKey: ["admin", "users"], queryFn: () => api.getAdminUsers(), enabled: Boolean(isAuthenticated) });
+
+  // Единый раздел «Пользователи»: серверный фильтр по ролям + поиск + пагинация.
+  const usersFilterQueryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (userRoleFilter === "admins") {
+      params.append("role", "Admin");
+      params.append("role", "Tech_Admin");
+    } else if (userRoleFilter !== "all") {
+      params.append("role", userRoleFilter);
+    }
+    if (userSearch.trim()) {
+      params.set("email", userSearch.trim());
+    }
+    params.set("limit", String(USERS_PAGE_SIZE));
+    params.set("offset", String(usersPage * USERS_PAGE_SIZE));
+    return `?${params.toString()}`;
+  }, [userRoleFilter, userSearch, usersPage]);
+  const usersFilteredQuery = useQuery({
+    queryKey: ["admin", "usersFiltered", usersFilterQueryString],
+    queryFn: () => api.getAdminUsers(usersFilterQueryString),
+    enabled: Boolean(isAuthenticated),
+  });
   const dealsQuery = useQuery({ queryKey: ["admin", "deals"], queryFn: () => api.getAdminDeals(), enabled: Boolean(isAuthenticated) });
   const ledgerQuery = useQuery({ queryKey: ["admin", "ledger"], queryFn: () => api.getAdminLedger(), enabled: Boolean(isAuthenticated) });
   const schemesQuery = useQuery({
@@ -327,7 +387,18 @@ export const AdminDashboard = () => {
   const userStatsQuery = useQuery({
     queryKey: ["admin", "userStats", selectedUserId],
     queryFn: () => api.getAdminUserStats(selectedUserId),
-    enabled: Boolean(selectedUserId),
+    // Статистика кабинета есть только у воркеров и блогеров.
+    enabled:
+      Boolean(selectedUserId) &&
+      (userDetailQuery.data?.role === "Worker" || userDetailQuery.data?.role === "Bloger"),
+  });
+  // Маркетплейс-профиль автора: 404 = профиль ещё не создан, не ретраим.
+  const mpProfileQuery = useQuery({
+    queryKey: ["admin", "mpProfile", selectedUserId],
+    queryFn: () => api.getAdminUserMarketplaceProfile(selectedUserId),
+    enabled: Boolean(selectedUserId) && userDetailQuery.data?.role === "Bloger",
+    retry: (failureCount, error) =>
+      !(error instanceof ApiError && error.status === 404) && failureCount < 2,
   });
   const userLedgerQuery = useQuery({
     queryKey: ["admin", "userLedger", selectedUserId],
@@ -433,7 +504,7 @@ export const AdminDashboard = () => {
         email: userDetailQuery.data.email,
         telegram: userDetailQuery.data.telegram || "",
         nickname: userDetailQuery.data.nickname || "",
-        percent: String(userDetailQuery.data.percent),
+        photo_url: userDetailQuery.data.photo_url || "",
         role: userDetailQuery.data.role,
         is_active: userDetailQuery.data.is_active,
         blogger_cabinet_pin: "",
@@ -441,6 +512,31 @@ export const AdminDashboard = () => {
       });
     }
   }, [userDetailQuery.data]);
+
+  useEffect(() => {
+    // Поиск по пользователям — с задержкой, чтобы не дёргать API на каждый символ.
+    const timer = window.setTimeout(() => {
+      setUserSearch(userSearchInput);
+      setUsersPage(0);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [userSearchInput]);
+
+  useEffect(() => {
+    if (mpProfileQuery.data) {
+      setMpProfileForm({
+        photo_url: mpProfileQuery.data.photo_url || "",
+        category: mpProfileQuery.data.category || "other",
+        description: mpProfileQuery.data.description || "",
+        subscriber_count: String(mpProfileQuery.data.subscriber_count),
+        average_price_rub: String(Math.round(mpProfileQuery.data.average_price_kopeks / 100)),
+        is_active: mpProfileQuery.data.is_active,
+        orders_enabled: mpProfileQuery.data.orders_enabled,
+      });
+    } else {
+      setMpProfileForm(emptyMpProfileForm);
+    }
+  }, [mpProfileQuery.data]);
 
   useEffect(() => {
     // Сбрасываем формы корректировки баланса и карты партнёра при смене пользователя.
@@ -494,7 +590,6 @@ export const AdminDashboard = () => {
       const payload: Record<string, unknown> = {
         name: userForm.name,
         telegram: userForm.telegram || null,
-        percent: Number(userForm.percent),
         role: userForm.role,
         is_active: userForm.is_active,
         blogger_cabinet_pin: userForm.blogger_cabinet_pin || undefined,
@@ -504,8 +599,12 @@ export const AdminDashboard = () => {
       }
       if (isBlogger) {
         payload.nickname = userForm.nickname || null;
-      } else if (userForm.email.trim()) {
-        payload.email = userForm.email.trim();
+      } else {
+        // Аватар живёт на User только вне блогеров (у авторов — в маркетплейс-профиле).
+        payload.photo_url = userForm.photo_url.trim();
+        if (userForm.email.trim()) {
+          payload.email = userForm.email.trim();
+        }
       }
       return api.patchAdminUser(selectedUserId, payload);
     },
@@ -513,10 +612,68 @@ export const AdminDashboard = () => {
       setMessage({ tone: "success", text: "Пользователь обновлён." });
       await invalidateAdmin(
         ["admin", "users"],
+        ["admin", "usersFiltered"],
         ["admin", "user", selectedUserId],
         ["admin", "userStats", selectedUserId],
         ["admin", "overview"],
       );
+    },
+    onError: (error) => setMessage({ tone: "error", text: error.message }),
+  });
+
+  const banUserMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      api.banAdminUser(id, { reason: reason.trim() }),
+    onSuccess: async (_data, variables) => {
+      setMessage({ tone: "success", text: "Пользователь забанен." });
+      setModal(null);
+      await invalidateAdmin(
+        ["admin", "users"],
+        ["admin", "usersFiltered"],
+        ["admin", "user", variables.id],
+        ["admin", "userAudit", variables.id],
+        ["admin", "overview"],
+      );
+    },
+    onError: (error) => setMessage({ tone: "error", text: error.message }),
+  });
+
+  const unbanUserMutation = useMutation({
+    mutationFn: (id: string) => api.unbanAdminUser(id),
+    onSuccess: async (_data, id) => {
+      setMessage({ tone: "success", text: "Бан снят, аккаунт активен." });
+      await invalidateAdmin(
+        ["admin", "users"],
+        ["admin", "usersFiltered"],
+        ["admin", "user", id],
+        ["admin", "userAudit", id],
+        ["admin", "overview"],
+      );
+    },
+    onError: (error) => setMessage({ tone: "error", text: error.message }),
+  });
+
+  const mpProfileMutation = useMutation({
+    mutationFn: () => {
+      const profileId = mpProfileQuery.data?.id;
+      if (!profileId) {
+        return Promise.reject(new Error("Профиль маркетплейса не загружен"));
+      }
+      const subscribers = Math.round(Number(mpProfileForm.subscriber_count));
+      const priceKopeks = Math.round(Number(mpProfileForm.average_price_rub) * 100);
+      return api.patchAdminMarketplaceBlogger(profileId, {
+        photo_url: mpProfileForm.photo_url.trim() || null,
+        category: mpProfileForm.category,
+        description: mpProfileForm.description.trim(),
+        subscriber_count: subscribers,
+        average_price_kopeks: priceKopeks,
+        is_active: mpProfileForm.is_active,
+        orders_enabled: mpProfileForm.orders_enabled,
+      });
+    },
+    onSuccess: async () => {
+      setMessage({ tone: "success", text: "Профиль маркетплейса обновлён." });
+      await invalidateAdmin(["admin", "mpProfile", selectedUserId]);
     },
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
@@ -535,6 +692,7 @@ export const AdminDashboard = () => {
         ["admin", "userLedger", selectedUserId],
         ["admin", "userStats", selectedUserId],
         ["admin", "users"],
+        ["admin", "usersFiltered"],
         ["admin", "overview"],
       );
     },
@@ -565,7 +723,7 @@ export const AdminDashboard = () => {
     onSuccess: async (payload) => {
       setBloggerForm(emptyBloggerForm);
       setModal({ kind: "blogger-created", nickname: payload.nickname, password: payload.generated_password });
-      await invalidateAdmin(["admin", "users"], ["admin", "overview"], ["admin", "financeSchemes"]);
+      await invalidateAdmin(["admin", "users"], ["admin", "usersFiltered"], ["admin", "overview"], ["admin", "financeSchemes"]);
     },
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
@@ -576,7 +734,7 @@ export const AdminDashboard = () => {
       setMessage({ tone: "success", text: "Пользователь удалён." });
       setModal(null);
       setSelectedUserId("");
-      await invalidateAdmin(["admin", "users"], ["admin", "overview"], ["admin", "financeSchemes"]);
+      await invalidateAdmin(["admin", "users"], ["admin", "usersFiltered"], ["admin", "overview"], ["admin", "financeSchemes"]);
     },
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
@@ -854,6 +1012,37 @@ export const AdminDashboard = () => {
             }
           >
             <Message tone="error">Пользователь {modal.user.email} будет удалён без возможности отката.</Message>
+          </Modal>
+        );
+      case "ban-user":
+        return (
+          <Modal
+            title="Забанить пользователя"
+            onClose={() => setModal(null)}
+            actions={
+              <>
+                <Button type="button" kind="ghost" onClick={() => setModal(null)}>
+                  Отмена
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => banUserMutation.mutate({ id: modal.user.id, reason: modal.reason })}
+                  disabled={banUserMutation.isPending || modal.reason.trim().length === 0}
+                >
+                  {banUserMutation.isPending ? "Баним…" : "Забанить"}
+                </Button>
+              </>
+            }
+          >
+            <Stack>
+              <Message tone="error">
+                {modal.user.nickname || modal.user.name || modal.user.email} сразу потеряет доступ: действующие
+                сессии и вход на маркетплейс будут закрыты.
+              </Message>
+              <Field label="Причина" help="Пользователь увидит её при попытке входа; причина попадёт в аудит.">
+                <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
+              </Field>
+            </Stack>
           </Modal>
         );
       case "deal-status":
@@ -1241,58 +1430,166 @@ export const AdminDashboard = () => {
     }
 
     if (section === "users") {
+      const usersPageItems = usersFilteredQuery.data?.items ?? [];
+      const usersTotal = usersFilteredQuery.data?.total ?? 0;
+      const usersFrom = usersTotal === 0 ? 0 : usersPage * USERS_PAGE_SIZE + 1;
+      const usersTo = usersPage * USERS_PAGE_SIZE + usersPageItems.length;
+      const targetUser = userDetailQuery.data ?? null;
+      const targetIsAdminRole = targetUser
+        ? targetUser.role === "Admin" || targetUser.role === "Tech_Admin"
+        : false;
+      const canModerateTarget = Boolean(
+        targetUser && targetUser.id !== meQuery.data?.id && (currentUserIsOwner || !targetIsAdminRole),
+      );
       return (
         <div className={styles.sideLayout}>
-          <SectionCard title="Список пользователей" lead="Кликните по строке, чтобы открыть редактор.">
-            {usersQuery.data ? (
-              <TableWrap>
-                <DataTable>
-                  <thead>
-                    <tr>
-                      <th>Email / ник</th>
-                      <th>Роль</th>
-                      <th>Баланс</th>
-                      <th>Статус</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {usersQuery.data.items.map((user) => (
-                      <tr
-                        key={user.id}
-                        className={`${styles.selectable}${selectedUserId === user.id ? ` ${styles.selected}` : ""}`}
-                        onClick={() => setSelectedUserId(user.id)}
-                      >
-                        <td>
-                          <strong>{user.nickname || user.email}</strong>
-                          <br />
-                          <span style={{ opacity: 0.6, fontSize: "0.85rem" }}>{user.email}</span>
-                        </td>
-                        <td>{formatRole(user.role)}</td>
-                        <td>{formatMoney(user.balance)}</td>
-                        <td>{user.is_active ? "Активен" : "Отключён"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </DataTable>
-              </TableWrap>
-            ) : (
-              <Message>Загружаем пользователей…</Message>
-            )}
+          <SectionCard
+            title="Список пользователей"
+            lead="Фильтр по роли и поиск по email, нику или имени. Кликните по строке, чтобы открыть редактор."
+          >
+            <Stack>
+              <TwoColumn>
+                <Field label="Роль">
+                  <SelectInput
+                    value={userRoleFilter}
+                    onChange={(event) => {
+                      setUserRoleFilter(event.target.value as UsersRoleFilter);
+                      setUsersPage(0);
+                    }}
+                  >
+                    <option value="all">Все роли</option>
+                    <option value="Worker">Работники</option>
+                    <option value="Bloger">Блогеры</option>
+                    <option value="Client">Заказчики</option>
+                    <option value="admins">Администраторы</option>
+                  </SelectInput>
+                </Field>
+                <Field label="Поиск">
+                  <TextInput
+                    value={userSearchInput}
+                    placeholder="Email, ник или имя"
+                    onChange={(event) => setUserSearchInput(event.target.value)}
+                  />
+                </Field>
+              </TwoColumn>
+              {usersFilteredQuery.data ? (
+                usersPageItems.length === 0 ? (
+                  <Message>Никого не нашли — измените фильтр или запрос.</Message>
+                ) : (
+                  <TableWrap>
+                    <DataTable>
+                      <thead>
+                        <tr>
+                          <th>Пользователь</th>
+                          <th>Роль</th>
+                          <th>Баланс</th>
+                          <th>Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {usersPageItems.map((user) => (
+                          <tr
+                            key={user.id}
+                            className={`${styles.selectable}${selectedUserId === user.id ? ` ${styles.selected}` : ""}`}
+                            onClick={() => setSelectedUserId(user.id)}
+                          >
+                            <td>
+                              <strong>{user.nickname || user.name || user.email}</strong>
+                              <br />
+                              <span style={{ opacity: 0.6, fontSize: "0.85rem" }}>{user.email}</span>
+                            </td>
+                            <td>{formatRole(user.role)}</td>
+                            <td>
+                              {formatMoney(user.balance)}
+                              {user.marketplace_balance_kopeks > 0 ? (
+                                <>
+                                  <br />
+                                  <span style={{ opacity: 0.6, fontSize: "0.85rem" }}>
+                                    МП: {formatMoney(user.marketplace_balance_kopeks)}
+                                  </span>
+                                </>
+                              ) : null}
+                            </td>
+                            <td>{userStatusLabel(user)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </DataTable>
+                  </TableWrap>
+                )
+              ) : (
+                <Message>Загружаем пользователей…</Message>
+              )}
+              {usersTotal > USERS_PAGE_SIZE ? (
+                <div className={styles.actionRow}>
+                  <Button
+                    type="button"
+                    kind="ghost"
+                    disabled={usersPage === 0}
+                    onClick={() => setUsersPage((current) => Math.max(0, current - 1))}
+                  >
+                    Назад
+                  </Button>
+                  <Pill>
+                    {usersFrom}–{usersTo} из {usersTotal}
+                  </Pill>
+                  <Button
+                    type="button"
+                    kind="ghost"
+                    disabled={usersTo >= usersTotal}
+                    onClick={() => setUsersPage((current) => current + 1)}
+                  >
+                    Вперёд
+                  </Button>
+                </div>
+              ) : null}
+            </Stack>
           </SectionCard>
 
           <SectionCard
             title="Редактор пользователя"
             lead={userDetailQuery.data ? `${userDetailQuery.data.email}` : "Выберите пользователя слева."}
             actions={
-              userDetailQuery.data && currentUserIsOwner ? (
-                <Button type="button" kind="ghost" onClick={() => setModal({ kind: "delete-user", user: userDetailQuery.data })}>
-                  Удалить
-                </Button>
+              targetUser ? (
+                <>
+                  {canModerateTarget ? (
+                    targetUser.banned_at ? (
+                      <Button
+                        type="button"
+                        kind="secondary"
+                        onClick={() => unbanUserMutation.mutate(targetUser.id)}
+                        disabled={unbanUserMutation.isPending}
+                      >
+                        {unbanUserMutation.isPending ? "Снимаем…" : "Разбанить"}
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        kind="ghost"
+                        onClick={() => setModal({ kind: "ban-user", user: targetUser, reason: "" })}
+                      >
+                        Забанить
+                      </Button>
+                    )
+                  ) : null}
+                  {currentUserIsOwner ? (
+                    <Button type="button" kind="ghost" onClick={() => setModal({ kind: "delete-user", user: targetUser })}>
+                      Удалить
+                    </Button>
+                  ) : null}
+                </>
               ) : null
             }
           >
             {userDetailQuery.data ? (
               <Stack>
+                {userDetailQuery.data.banned_at ? (
+                  <Message tone="error">
+                    Забанен {formatDateTime(userDetailQuery.data.banned_at)}
+                    {userDetailQuery.data.ban_reason ? ` — ${userDetailQuery.data.ban_reason}` : ""}. Вход и доступ к
+                    API закрыты до снятия бана.
+                  </Message>
+                ) : null}
                 <TwoColumn>
                   <Field label="Имя">
                     <TextInput value={userForm.name} onChange={(event) => setUserForm((current) => ({ ...current, name: event.target.value }))} />
@@ -1311,9 +1608,14 @@ export const AdminDashboard = () => {
                   <Field label="Никнейм" help="Только для блогера. Email пересоберётся под ник.">
                     <TextInput value={userForm.nickname} onChange={(event) => setUserForm((current) => ({ ...current, nickname: event.target.value }))} />
                   </Field>
-                  <Field label="Процент">
-                    <TextInput value={userForm.percent} onChange={(event) => setUserForm((current) => ({ ...current, percent: event.target.value }))} />
-                  </Field>
+                  {userForm.role !== "Bloger" ? (
+                    <Field label="Фото (URL)" help="Аватар аккаунта. Пустая строка убирает фото.">
+                      <TextInput
+                        value={userForm.photo_url}
+                        onChange={(event) => setUserForm((current) => ({ ...current, photo_url: event.target.value }))}
+                      />
+                    </Field>
+                  ) : null}
                   <Field
                     label="Роль"
                     help={
@@ -1333,6 +1635,7 @@ export const AdminDashboard = () => {
                     >
                       <option value="Worker">Работник</option>
                       <option value="Bloger">Блогер</option>
+                      <option value="Client">Заказчик</option>
                       <option value="Admin">Администратор</option>
                       <option value="Tech_Admin">Тех-админ</option>
                     </SelectInput>
@@ -1385,6 +1688,127 @@ export const AdminDashboard = () => {
                     <Pill>Доход: {formatMoney(userStatsQuery.data.earn)}</Pill>
                     <Pill>Ожидает: {formatMoney(userStatsQuery.data.balance_pending_confirmation_kopeks)}</Pill>
                   </PillRow>
+                ) : null}
+                {userDetailQuery.data.marketplace_balance_kopeks > 0 ? (
+                  <PillRow>
+                    <Pill tone="accent">Баланс маркетплейса: {formatMoney(userDetailQuery.data.marketplace_balance_kopeks)}</Pill>
+                  </PillRow>
+                ) : null}
+                {userDetailQuery.data.role === "Bloger" ? (
+                  <SectionCard
+                    title="Профиль на маркетплейсе"
+                    lead="Публичная карточка автора в каталоге: фото, категория, описание, цена и видимость."
+                  >
+                    {mpProfileQuery.data ? (
+                      <Stack>
+                        <TwoColumn>
+                          <Field label="Фото (URL)">
+                            <TextInput
+                              value={mpProfileForm.photo_url}
+                              onChange={(event) =>
+                                setMpProfileForm((current) => ({ ...current, photo_url: event.target.value }))
+                              }
+                            />
+                          </Field>
+                          <Field label="Категория">
+                            <SelectInput
+                              value={mpProfileForm.category}
+                              onChange={(event) =>
+                                setMpProfileForm((current) => ({ ...current, category: event.target.value }))
+                              }
+                            >
+                              {MP_CATEGORY_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                              {MP_CATEGORY_OPTIONS.some((option) => option.value === mpProfileForm.category) ? null : (
+                                <option value={mpProfileForm.category}>{mpProfileForm.category}</option>
+                              )}
+                            </SelectInput>
+                          </Field>
+                          <Field label="Подписчики">
+                            <TextInput
+                              value={mpProfileForm.subscriber_count}
+                              inputMode="numeric"
+                              onChange={(event) =>
+                                setMpProfileForm((current) => ({ ...current, subscriber_count: event.target.value }))
+                              }
+                            />
+                          </Field>
+                          <Field label="Средняя цена, ₽">
+                            <TextInput
+                              value={mpProfileForm.average_price_rub}
+                              inputMode="decimal"
+                              onChange={(event) =>
+                                setMpProfileForm((current) => ({ ...current, average_price_rub: event.target.value }))
+                              }
+                            />
+                          </Field>
+                          <Field label="Видимость в каталоге">
+                            <SelectInput
+                              value={mpProfileForm.is_active ? "active" : "hidden"}
+                              onChange={(event) =>
+                                setMpProfileForm((current) => ({ ...current, is_active: event.target.value === "active" }))
+                              }
+                            >
+                              <option value="active">Показывается</option>
+                              <option value="hidden">Скрыт</option>
+                            </SelectInput>
+                          </Field>
+                          <Field label="Приём заказов">
+                            <SelectInput
+                              value={mpProfileForm.orders_enabled ? "enabled" : "disabled"}
+                              onChange={(event) =>
+                                setMpProfileForm((current) => ({
+                                  ...current,
+                                  orders_enabled: event.target.value === "enabled",
+                                }))
+                              }
+                            >
+                              <option value="enabled">Принимает</option>
+                              <option value="disabled">Приостановлен</option>
+                            </SelectInput>
+                          </Field>
+                        </TwoColumn>
+                        <Field label="Описание" help="До 500 символов, показывается в карточке автора.">
+                          <TextArea
+                            value={mpProfileForm.description}
+                            onChange={(event) =>
+                              setMpProfileForm((current) => ({ ...current, description: event.target.value }))
+                            }
+                          />
+                        </Field>
+                        <PillRow>
+                          {mpProfileQuery.data.rating !== null ? <Pill>Рейтинг: {mpProfileQuery.data.rating}</Pill> : null}
+                          <Pill>Отзывов: {formatNumber(mpProfileQuery.data.reviews_count)}</Pill>
+                          {mpProfileQuery.data.engagement_rate !== null ? (
+                            <Pill>ER: {mpProfileQuery.data.engagement_rate}%</Pill>
+                          ) : null}
+                        </PillRow>
+                        <div className={styles.actionRow}>
+                          <Button
+                            type="button"
+                            onClick={() => mpProfileMutation.mutate()}
+                            disabled={
+                              mpProfileMutation.isPending ||
+                              mpProfileForm.description.trim().length === 0 ||
+                              !Number.isFinite(Number(mpProfileForm.subscriber_count)) ||
+                              Math.round(Number(mpProfileForm.subscriber_count)) < 1 ||
+                              !Number.isFinite(Number(mpProfileForm.average_price_rub)) ||
+                              Math.round(Number(mpProfileForm.average_price_rub) * 100) < 100
+                            }
+                          >
+                            {mpProfileMutation.isPending ? "Сохраняем…" : "Сохранить профиль маркетплейса"}
+                          </Button>
+                        </div>
+                      </Stack>
+                    ) : mpProfileQuery.isLoading ? (
+                      <Message>Загружаем профиль маркетплейса…</Message>
+                    ) : (
+                      <Message>У этого автора ещё нет профиля на маркетплейсе.</Message>
+                    )}
+                  </SectionCard>
                 ) : null}
               </Stack>
             ) : (

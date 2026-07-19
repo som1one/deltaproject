@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from decimal import Decimal
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 
 from enums.marketplace import MarketplaceOrderStatus
 from schemas.marketplace_payment_settings import CardRequisitesPublic
@@ -158,33 +157,3 @@ class RefundRequest(BaseModel):
         return v
 
 
-class CommissionSettingsUpdate(BaseModel):
-    """Обновление настроек комиссий платформы и воркера."""
-
-    platform_commission_pct: Decimal = Field(
-        ...,
-        ge=Decimal("1"),
-        le=Decimal("50"),
-        decimal_places=2,
-        description="Комиссия платформы (1–50%, до 2 знаков после запятой)",
-    )
-    worker_commission_pct: Decimal = Field(
-        ...,
-        ge=Decimal("1"),
-        le=Decimal("30"),
-        decimal_places=2,
-        description="Комиссия воркера (1–30%, до 2 знаков после запятой)",
-    )
-
-    @model_validator(mode="after")
-    def check_total(self) -> "CommissionSettingsUpdate":
-        if self.platform_commission_pct + self.worker_commission_pct > Decimal("80"):
-            raise ValueError("Сумма комиссий не может превышать 80%")
-        return self
-
-
-class CommissionSettingsReadResponse(BaseModel):
-    """Ответ с текущими настройками комиссий (для /commission-settings)."""
-
-    platform_commission_pct: Decimal
-    worker_commission_pct: Decimal

@@ -21,6 +21,7 @@ from schemas.admin import (
     AdminDailySeriesResponse,
     AdminOverviewResponse,
     AdminPartnerCardSet,
+    AdminUserBanRequest,
     AdminUserLedgerResponse,
     AdminUserListResponse,
     AdminUserPatch,
@@ -56,6 +57,7 @@ from services.admin_payment_details_service import (
 )
 from services.admin_user_service import (
     admin_adjust_user_balance,
+    admin_ban_user,
     admin_create_blogger,
     admin_delete_user,
     admin_get_user,
@@ -64,6 +66,7 @@ from services.admin_user_service import (
     admin_list_users,
     admin_patch_user,
     admin_set_partner_card,
+    admin_unban_user,
 )
 from services.deal_service import (
     admin_confirm_receipt,
@@ -117,15 +120,18 @@ async def get_admin_daily_logins(
 async def get_admin_users(
     db: Annotated[AsyncSession, Depends(get_db)],
     _admin: Annotated[User, Depends(get_current_admin_or_tech)],
-    role: Annotated[UserRole | None, Query(description="Фильтр по роли")] = None,
-    email: Annotated[str | None, Query(description="Поиск по email (contains)")] = None,
+    role: Annotated[
+        list[UserRole] | None,
+        Query(description="Фильтр по роли; параметр можно повторять (role=Admin&role=Tech_Admin)"),
+    ] = None,
+    email: Annotated[str | None, Query(description="Поиск по email/нику/имени (contains)")] = None,
     linked_to: Annotated[uuid.UUID | None, Query(description="Фильтр по linked_to")] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> AdminUserListResponse:
     rows, total = await admin_list_users(
         db,
-        role=role,
+        roles=role,
         email=email,
         linked_to=linked_to,
         limit=limit,
@@ -187,6 +193,29 @@ async def post_admin_user_balance_adjustment(
         user=AdminUserRead.model_validate(user),
         ledger_entry=LedgerEntryRead.model_validate(entry),
     )
+
+
+@router.post("/users/{user_id}/ban", response_model=AdminUserRead)
+async def post_admin_user_ban(
+    user_id: uuid.UUID,
+    body: AdminUserBanRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> AdminUserRead:
+    """Забанить пользователя (деактивация + причина в аудите и профиле)."""
+    user = await admin_ban_user(user_id, body.reason, admin, db)
+    return AdminUserRead.model_validate(user)
+
+
+@router.post("/users/{user_id}/unban", response_model=AdminUserRead)
+async def post_admin_user_unban(
+    user_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> AdminUserRead:
+    """Снять бан и активировать аккаунт."""
+    user = await admin_unban_user(user_id, admin, db)
+    return AdminUserRead.model_validate(user)
 
 
 @router.post("/users/{user_id}/payout-card", response_model=AdminUserRead)

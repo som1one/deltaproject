@@ -41,8 +41,10 @@ export const formatRole = (role: string) => {
       return "Блогер";
     case "Admin":
       return "Администратор";
+    case "Tech_Admin":
+      return "Тех-админ";
     case "Client":
-      return "Клиент";
+      return "Заказчик";
     default:
       return role;
   }

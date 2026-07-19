@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from enums.marketplace import BloggerCategory, MarketplaceOrderStatus
 
@@ -140,7 +140,7 @@ class AdminMarketplaceSummaryResponse(BaseModel):
 
 
 class CommissionSettingsResponse(BaseModel):
-    """Текущие настройки комиссий маркетплейса."""
+    """Текущие настройки комиссий маркетплейса (единственный источник процентов)."""
 
     platform_commission_pct: Decimal
     worker_referral_commission_pct: Decimal
@@ -151,28 +151,28 @@ class CommissionSettingsRequest(BaseModel):
 
     platform_commission_pct: Annotated[
         Decimal,
-        Field(ge=1, le=50, description="Комиссия платформы, 1-50%"),
+        Field(
+            ge=Decimal("1"),
+            le=Decimal("50"),
+            decimal_places=2,
+            description="Комиссия платформы (1–50%, до 2 знаков после запятой)",
+        ),
     ]
     worker_referral_commission_pct: Annotated[
         Decimal,
-        Field(ge=1, le=30, description="Реферальная комиссия воркера, 1-30%"),
+        Field(
+            ge=Decimal("1"),
+            le=Decimal("30"),
+            decimal_places=2,
+            description="Реферальная комиссия воркера (1–30%, до 2 знаков после запятой)",
+        ),
     ]
 
-    @field_validator("platform_commission_pct")
-    @classmethod
-    def validate_platform_commission_precision(cls, v: Decimal) -> Decimal:
-        """Максимум 2 знака после запятой."""
-        if v.as_tuple().exponent is not None and abs(int(v.as_tuple().exponent)) > 2:
-            raise ValueError("Максимум 2 знака после запятой для комиссии платформы")
-        return v
-
-    @field_validator("worker_referral_commission_pct")
-    @classmethod
-    def validate_worker_commission_precision(cls, v: Decimal) -> Decimal:
-        """Максимум 2 знака после запятой."""
-        if v.as_tuple().exponent is not None and abs(int(v.as_tuple().exponent)) > 2:
-            raise ValueError("Максимум 2 знака после запятой для реферальной комиссии")
-        return v
+    @model_validator(mode="after")
+    def check_total(self) -> "CommissionSettingsRequest":
+        if self.platform_commission_pct + self.worker_referral_commission_pct > Decimal("80"):
+            raise ValueError("Сумма комиссий не может превышать 80%")
+        return self
 
 
 class OrderResolveRequest(BaseModel):

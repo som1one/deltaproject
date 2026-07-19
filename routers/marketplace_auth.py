@@ -26,6 +26,7 @@ from utils.jwt_tokens import (
     get_user_id_from_payload,
     verify_refresh_token,
 )
+from utils.account_status import account_blocked_detail
 from utils.security import hash_password, verify_password
 
 router = APIRouter(prefix="/marketplace/auth", tags=["marketplace-auth"])
@@ -112,7 +113,7 @@ async def login_client(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Аккаунт деактивирован",
+            detail=account_blocked_detail(user),
         )
 
     if user.role != UserRole.CLIENT:
@@ -160,7 +161,7 @@ async def refresh_tokens(
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Аккаунт деактивирован",
+            detail=account_blocked_detail(user),
         )
 
     access_token = create_access_token(user.id)

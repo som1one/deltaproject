@@ -17,11 +17,14 @@ class AdminUserRead(BaseModel):
     email: str
     nickname: str | None
     telegram: str | None
+    photo_url: str | None = None
     role: UserRole
     linked_to: uuid.UUID | None
-    percent: float
     balance: int
+    marketplace_balance_kopeks: int = 0
     is_active: bool
+    banned_at: datetime.datetime | None = None
+    ban_reason: str | None = None
     payout_card_last4: str | None = None
     payout_card_brand: str | None = None
     payout_card_holder: str | None = None
@@ -35,7 +38,6 @@ class AdminUserRead(BaseModel):
 
 class AdminUserPatch(BaseModel):
     role: UserRole | None = None
-    percent: Annotated[float | None, Field(ge=0, le=100)] = None
     upline_blogger_id: uuid.UUID | None = None
     is_active: bool | None = None
     email: EmailStr | None = None
@@ -58,6 +60,20 @@ class AdminUserPatch(BaseModel):
         str | None,
         Field(None, min_length=8, max_length=100, description="Новый пароль пользователя"),
     ] = None
+    photo_url: Annotated[
+        str | None,
+        Field(None, max_length=2048, description="Аватар аккаунта; пустая строка очищает"),
+    ] = None
+
+
+class AdminUserBanRequest(BaseModel):
+    reason: Annotated[str, Field(min_length=1, max_length=500)]
+
+    @model_validator(mode="after")
+    def _validate(self) -> "AdminUserBanRequest":
+        if not self.reason.strip():
+            raise ValueError("Причина бана не может состоять из пробелов")
+        return self
 
 
 class AdminBalanceAdjustmentRequest(BaseModel):

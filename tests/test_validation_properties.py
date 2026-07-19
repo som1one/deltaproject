@@ -237,7 +237,7 @@ class TestSettlementAccountEdgeCases:
 
 from decimal import Decimal as _Decimal
 
-from schemas.marketplace_orders import CommissionSettingsUpdate
+from schemas.marketplace_admin import CommissionSettingsRequest
 
 
 class TestCommissionValidationProperty:
@@ -289,9 +289,9 @@ class TestCommissionValidationProperty:
         """platform_commission_pct вне [1, 50] отклоняется."""
         assume(platform_pct < _Decimal("1") or platform_pct > _Decimal("50"))
         with pytest.raises(ValidationError):
-            CommissionSettingsUpdate(
+            CommissionSettingsRequest(
                 platform_commission_pct=platform_pct,
-                worker_commission_pct=worker_pct,
+                worker_referral_commission_pct=worker_pct,
             )
 
     @given(
@@ -314,12 +314,12 @@ class TestCommissionValidationProperty:
     def test_worker_commission_out_of_range_rejected(
         self, platform_pct: _Decimal, worker_pct: _Decimal
     ) -> None:
-        """worker_commission_pct вне [1, 30] отклоняется."""
+        """worker_referral_commission_pct вне [1, 30] отклоняется."""
         assume(worker_pct < _Decimal("1") or worker_pct > _Decimal("30"))
         with pytest.raises(ValidationError):
-            CommissionSettingsUpdate(
+            CommissionSettingsRequest(
                 platform_commission_pct=platform_pct,
-                worker_commission_pct=worker_pct,
+                worker_referral_commission_pct=worker_pct,
             )
 
     @given(
@@ -346,9 +346,9 @@ class TestCommissionValidationProperty:
         # Убедимся, что значение действительно имеет >2 знаков
         assume(platform_pct != platform_pct.quantize(_Decimal("0.01")))
         with pytest.raises(ValidationError):
-            CommissionSettingsUpdate(
+            CommissionSettingsRequest(
                 platform_commission_pct=platform_pct,
-                worker_commission_pct=worker_pct,
+                worker_referral_commission_pct=worker_pct,
             )
 
     @given(
@@ -371,12 +371,12 @@ class TestCommissionValidationProperty:
     def test_worker_commission_too_many_decimals_rejected(
         self, platform_pct: _Decimal, worker_pct: _Decimal
     ) -> None:
-        """worker_commission_pct с более чем 2 знаками после запятой отклоняется."""
+        """worker_referral_commission_pct с более чем 2 знаками после запятой отклоняется."""
         assume(worker_pct != worker_pct.quantize(_Decimal("0.01")))
         with pytest.raises(ValidationError):
-            CommissionSettingsUpdate(
+            CommissionSettingsRequest(
                 platform_commission_pct=platform_pct,
-                worker_commission_pct=worker_pct,
+                worker_referral_commission_pct=worker_pct,
             )
 
     @given(
@@ -402,12 +402,12 @@ class TestCommissionValidationProperty:
         """С валидными диапазонами [1,50] + [1,30] сумма никогда не превышает 80 — всё принимается."""
         # This verifies the invariant: any valid individual values satisfy sum <= 80
         assert platform_pct + worker_pct <= _Decimal("80")
-        result = CommissionSettingsUpdate(
+        result = CommissionSettingsRequest(
             platform_commission_pct=platform_pct,
-            worker_commission_pct=worker_pct,
+            worker_referral_commission_pct=worker_pct,
         )
         assert result.platform_commission_pct == platform_pct
-        assert result.worker_commission_pct == worker_pct
+        assert result.worker_referral_commission_pct == worker_pct
 
     @given(
         platform_pct=st.decimals(
@@ -432,9 +432,9 @@ class TestCommissionValidationProperty:
         """Любая пара с суммой > 80% отклоняется (через ограничение диапазонов или model_validator)."""
         assume(platform_pct + worker_pct > _Decimal("80"))
         with pytest.raises(ValidationError):
-            CommissionSettingsUpdate(
+            CommissionSettingsRequest(
                 platform_commission_pct=platform_pct,
-                worker_commission_pct=worker_pct,
+                worker_referral_commission_pct=worker_pct,
             )
 
     @given(
@@ -459,12 +459,12 @@ class TestCommissionValidationProperty:
     ) -> None:
         """Валидные комбинации в допустимых диапазонах с суммой ≤ 80 принимаются."""
         assume(platform_pct + worker_pct <= _Decimal("80"))
-        result = CommissionSettingsUpdate(
+        result = CommissionSettingsRequest(
             platform_commission_pct=platform_pct,
-            worker_commission_pct=worker_pct,
+            worker_referral_commission_pct=worker_pct,
         )
         assert result.platform_commission_pct == platform_pct
-        assert result.worker_commission_pct == worker_pct
+        assert result.worker_referral_commission_pct == worker_pct
 
 
 # ---------------------------------------------------------------------------

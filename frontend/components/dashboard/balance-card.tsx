@@ -169,10 +169,6 @@ export const BalanceCard = ({ me }: { me: UserMeRead }) => {
           <span className={styles.cardFootLabel}>Держатель</span>
           <span className={styles.cardFootValue}>{holder}</span>
         </div>
-        <div className={styles.cardFootItem}>
-          <span className={styles.cardFootLabel}>Ставка</span>
-          <span className={styles.cardFootValue}>{me.percent}%</span>
-        </div>
         <div className={`${styles.cardFootItem} ${styles.cardFootItemEnd}`}>
           <span className={styles.cardFootLabel}>Карта выплат</span>
           <span className={styles.cardFootValue}>

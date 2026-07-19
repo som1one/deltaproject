@@ -61,7 +61,7 @@ async def _count_tech_admins(db: AsyncSession, *, exclude_id: uuid.UUID | None =
 async def admin_list_users(
     db: AsyncSession,
     *,
-    role: UserRole | None,
+    roles: list[UserRole] | None,
     email: str | None,
     linked_to: uuid.UUID | None,
     limit: int,
@@ -70,14 +70,15 @@ async def admin_list_users(
     base = select(User)
     count_stmt = select(func.count(User.id))
 
-    if role is not None:
-        base = base.where(User.role == role)
-        count_stmt = count_stmt.where(User.role == role)
+    if roles:
+        base = base.where(User.role.in_(roles))
+        count_stmt = count_stmt.where(User.role.in_(roles))
     if email is not None and email.strip():
         email_q = email.strip().lower()
         matcher = or_(
             func.lower(User.email).like(f"%{email_q}%"),
             func.lower(func.coalesce(User.nickname, "")).like(f"%{email_q}%"),
+            func.lower(User.name).like(f"%{email_q}%"),
         )
         base = base.where(matcher)
         count_stmt = count_stmt.where(matcher)
@@ -156,19 +157,6 @@ async def admin_patch_user(
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ник уже занят")
         user.nickname = nickname_value
         user.email = build_blogger_internal_email(nickname_value)
-    if body.percent is not None:
-        new_percent = round(float(body.percent), 2)
-        if user.percent != new_percent:
-            old_percent = user.percent
-            user.percent = new_percent
-            await record_admin_audit(
-                db,
-                actor_id=current_admin.id,
-                target_user_id=user.id,
-                field="percent",
-                old_value=str(old_percent),
-                new_value=str(new_percent),
-            )
     if body.upline_blogger_id is not None:
         # Назначение наставника-блогера (аплайна). Валидация (Req 7.1): целевой
         # пользователь и указанный наставник — оба Bloger, наставник != сам пользователь.
@@ -217,6 +205,11 @@ async def admin_patch_user(
                 detail="Нельзя деактивировать единственного активного администратора",
             )
         user.is_active = bool(body.is_active)
+        if user.is_active and user.banned_at is not None:
+            # Включение аккаунта снимает бан — иначе пользователь остался бы
+            # помечен забаненным при работающем доступе.
+            user.banned_at = None
+            user.ban_reason = None
     if body.role is not None and body.role != user.role:
         if body.role == UserRole.ADMIN:
             existing_admin = await db.execute(
@@ -260,6 +253,93 @@ async def admin_patch_user(
     if body.new_password is not None:
         user.hash_pass = hash_password(body.new_password)
 
+    if body.photo_url is not None:
+        # Пустая строка очищает аватар (у авторов фото живёт в BloggerProfile).
+        user.photo_url = body.photo_url.strip() or None
+
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def admin_ban_user(
+    user_id: uuid.UUID,
+    reason: str,
+    current_admin: User,
+    db: AsyncSession,
+) -> User:
+    """Забанить пользователя: is_active=False + отметка времени и причины.
+
+    Бан использует тот же механизм принудительного отключения, что и
+    деактивация (проверка ``is_active`` в ``get_current_user``), поэтому
+    действующие токены перестают работать сразу. Ограничения — как у
+    деактивации: нельзя банить себя, административные аккаунты банит только
+    владелец-Admin, последний активный Admin не может быть забанен.
+    """
+    user = await admin_get_user(user_id, db)
+    if user.id == current_admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Нельзя забанить собственный аккаунт",
+        )
+    if user.role in _ADMIN_ROLES and current_admin.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Бан административных учётных записей доступен только владельцу-Admin",
+        )
+    if (
+        user.role == UserRole.ADMIN
+        and user.is_active
+        and await _count_active_admins(db, exclude_id=user.id) == 0
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Нельзя забанить единственного активного администратора",
+        )
+
+    user.is_active = False
+    user.banned_at = datetime.now(UTC)
+    user.ban_reason = reason.strip()
+    await record_admin_audit(
+        db,
+        actor_id=current_admin.id,
+        target_user_id=user.id,
+        field="ban",
+        old_value=None,
+        new_value=user.ban_reason,
+    )
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def admin_unban_user(
+    user_id: uuid.UUID,
+    current_admin: User,
+    db: AsyncSession,
+) -> User:
+    """Снять бан: вернуть is_active=True и очистить поля бана."""
+    user = await admin_get_user(user_id, db)
+    if user.role in _ADMIN_ROLES and current_admin.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Разбан административных учётных записей доступен только владельцу-Admin",
+        )
+    if user.banned_at is None and user.is_active:
+        return user
+
+    old_reason = user.ban_reason
+    user.is_active = True
+    user.banned_at = None
+    user.ban_reason = None
+    await record_admin_audit(
+        db,
+        actor_id=current_admin.id,
+        target_user_id=user.id,
+        field="unban",
+        old_value=old_reason,
+        new_value=None,
+    )
     await db.commit()
     await db.refresh(user)
     return user

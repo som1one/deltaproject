@@ -410,6 +410,48 @@
   color: var(--mp-text-muted);
 }
 
+.settingsNote {
+  font-size: 0.82rem;
+  color: var(--mp-text-muted);
+  max-width: 56ch;
+}
+
+.settingsPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--mp-border);
+  max-width: 480px;
+}
+
+.settingsPreviewTitle {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--mp-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.settingsPreviewRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: var(--mp-text);
+}
+
+.settingsPreviewRow > span:last-child {
+  color: var(--mp-text-strong);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.settingsPreviewMuted {
+  color: var(--mp-text-muted);
+  font-weight: 400;
+}
+
 /* Tickets */
 .ticketItem {
   display: flex;

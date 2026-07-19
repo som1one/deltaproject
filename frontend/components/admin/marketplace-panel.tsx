@@ -863,6 +863,25 @@ function PaymentsTab() {
 
 /* ---------- Settings Tab ---------- */
 
+const SETTINGS_PREVIEW_AMOUNT_KOPEKS = 1_000_000; // пример: сделка на 10 000 ₽
+
+function parsePct(raw: string): number | null {
+  if (raw.trim() === "") return null;
+  const value = Number(raw.replace(",", "."));
+  if (!Number.isFinite(value)) return null;
+  // Максимум 2 знака после запятой — как на сервере.
+  if (Math.round(value * 100) !== value * 100) return null;
+  return value;
+}
+
+function validatePcts(platform: number | null, worker: number | null): string {
+  if (platform === null || worker === null) return "Укажите оба процента (до 2 знаков после запятой)";
+  if (platform < 1 || platform > 50) return "Комиссия платформы должна быть от 1 до 50%";
+  if (worker < 1 || worker > 30) return "Комиссия воркера должна быть от 1 до 30%";
+  if (platform + worker > 80) return "Сумма комиссий не может превышать 80%";
+  return "";
+}
+
 function SettingsTab() {
   const queryClient = useQueryClient();
   const [platformPct, setPlatformPct] = useState("");
@@ -891,7 +910,7 @@ function SettingsTab() {
         }),
       }),
     onSuccess: () => {
-      setSuccess("Настройки сохранены!");
+      setSuccess("Настройки сохранены.");
       setError("");
       queryClient.invalidateQueries({ queryKey: ["admin-marketplace-settings"] });
     },
@@ -903,16 +922,37 @@ function SettingsTab() {
 
   if (isLoading) return <LoadingSpinner size="small" />;
 
+  const platform = parsePct(platformPct);
+  const worker = parsePct(workerPct);
+  const validationError = validatePcts(platform, worker);
+
+  // Распределение считается как в эскроу: доли платформы и воркера — floor, остаток — автору.
+  let breakdown: { platform: number; worker: number; bloggerWithWorker: number; bloggerAlone: number } | null = null;
+  if (!validationError && platform !== null && worker !== null) {
+    const platformShare = Math.floor((SETTINGS_PREVIEW_AMOUNT_KOPEKS * platform) / 100);
+    const workerShare = Math.floor((SETTINGS_PREVIEW_AMOUNT_KOPEKS * worker) / 100);
+    breakdown = {
+      platform: platformShare,
+      worker: workerShare,
+      bloggerWithWorker: SETTINGS_PREVIEW_AMOUNT_KOPEKS - platformShare - workerShare,
+      bloggerAlone: SETTINGS_PREVIEW_AMOUNT_KOPEKS - platformShare,
+    };
+  }
+
   return (
     <div className={styles.section}>
-      <h2 className={styles.sectionTitle}>Настройки комиссий</h2>
+      <h2 className={styles.sectionTitle}>Единая настройка процентов</h2>
+      <p className={styles.settingsNote}>
+        Применяется ко всем новым сделкам: проценты фиксируются в заказе при создании,
+        уже открытые сделки не пересчитываются.
+      </p>
 
       {error && <p className={styles.errorMsg}>{error}</p>}
       {success && <p className={styles.successMsg}>{success}</p>}
 
       <div className={styles.settingsForm}>
         <div className={styles.settingsRow}>
-          <span className={styles.settingsLabel}>Комиссия платформы (1-50%)</span>
+          <span className={styles.settingsLabel}>Комиссия платформы (1–50%)</span>
           <input
             type="number"
             className={styles.settingsInput}
@@ -927,7 +967,7 @@ function SettingsTab() {
         </div>
 
         <div className={styles.settingsRow}>
-          <span className={styles.settingsLabel}>Комиссия воркера (1-30%)</span>
+          <span className={styles.settingsLabel}>Комиссия воркера (1–30%)</span>
           <input
             type="number"
             className={styles.settingsInput}
@@ -939,13 +979,39 @@ function SettingsTab() {
             aria-label="Комиссия воркера"
           />
           <span className={styles.settingsSuffix}>%</span>
+          <span className={styles.settingsNote}>начисляется, только если заказчик пришёл по ссылке воркера</span>
         </div>
+
+        {validationError ? (
+          <p className={styles.errorMsg}>{validationError}</p>
+        ) : breakdown ? (
+          <div className={styles.settingsPreview}>
+            <p className={styles.settingsPreviewTitle}>
+              Распределение сделки на {formatRubles(SETTINGS_PREVIEW_AMOUNT_KOPEKS)}
+            </p>
+            <div className={styles.settingsPreviewRow}>
+              <span>Автор</span>
+              <span>
+                {formatRubles(breakdown.bloggerAlone)}
+                <span className={styles.settingsPreviewMuted}> · с воркером {formatRubles(breakdown.bloggerWithWorker)}</span>
+              </span>
+            </div>
+            <div className={styles.settingsPreviewRow}>
+              <span>Платформа</span>
+              <span>{formatRubles(breakdown.platform)}</span>
+            </div>
+            <div className={styles.settingsPreviewRow}>
+              <span>Воркер (по реферальной ссылке)</span>
+              <span>{formatRubles(breakdown.worker)}</span>
+            </div>
+          </div>
+        ) : null}
 
         <button
           type="button"
           className={styles.btnPrimary}
           onClick={() => saveMutation.mutate()}
-          disabled={saveMutation.isPending}
+          disabled={saveMutation.isPending || Boolean(validationError)}
         >
           {saveMutation.isPending ? "Сохраняем…" : "Сохранить настройки"}
         </button>

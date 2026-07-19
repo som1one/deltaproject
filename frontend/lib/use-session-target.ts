@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { ApiError, api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { appConfig } from "@/lib/config";
 import type { UserRole } from "@/lib/types";
 
 /**
@@ -30,6 +31,8 @@ const HOME_BY_ROLE: Record<UserRole, { href: string; label: string }> = {
   Tech_Admin: { href: "/admin", label: "Открыть админку" },
   Worker: { href: "/cabinet", label: "Открыть кабинет" },
   Bloger: { href: "/cabinet", label: "Открыть кабинет" },
+  // Заказчики живут на маркетплейсе — на основном сайте кабинета у них нет.
+  Client: { href: appConfig.marketplaceUrl, label: "Открыть маркетплейс" },
 };
 
 export const useSessionTarget = (): SessionTarget => {

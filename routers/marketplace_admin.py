@@ -2,6 +2,7 @@
 
 Endpoints:
 - GET  /admin/marketplace/dashboard — сводная статистика
+- GET  /admin/marketplace/stats — большая статистика: KPI, ряды, распределения, топы
 - GET  /admin/marketplace/orders — список заказов с фильтрами
 - PATCH /admin/marketplace/orders/{id}/resolve — разрешение спора
 - GET  /admin/marketplace/settings — текущие настройки комиссий
@@ -85,8 +86,6 @@ from schemas.marketplace_admin import (
     TicketResolveRequest,
 )
 from schemas.marketplace_orders import (
-    CommissionSettingsReadResponse,
-    CommissionSettingsUpdate,
     OrderResponse,
     RefundRequest,
 )
@@ -95,6 +94,7 @@ from schemas.marketplace_payment_settings import (
     PaymentSettingsResponse,
     PaymentSettingsUpsert,
 )
+from schemas.marketplace_stats import MarketplaceStatsResponse
 from schemas.marketplace_support import TicketResponse
 from schemas.marketplace_withdrawals import (
     AdminWithdrawalItem,
@@ -104,6 +104,7 @@ from schemas.marketplace_withdrawals import (
 from schemas.settlement_account import SettlementAccountResponse, SettlementAccountUpsert
 from services import marketplace_payment_settings_service, notification_service
 from services.marketplace_escrow_service import calculate_distribution, confirm_payment, distribute_funds, process_refund, refund_to_client
+from services.marketplace_stats_service import get_marketplace_stats
 from services.settlement_account_service import (
     get_settlement_account,
     upsert_settlement_account,
@@ -165,6 +166,23 @@ async def get_marketplace_dashboard(
         active_bloggers_count=active_bloggers_count,
         registered_clients_count=registered_clients_count,
     )
+
+
+# ---------------------------------------------------------------------------
+# Большая статистика
+# ---------------------------------------------------------------------------
+
+
+@router.get("/stats", response_model=MarketplaceStatsResponse)
+async def get_marketplace_big_stats(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+    days: Annotated[int, Query(ge=7, le=365)] = 30,
+) -> MarketplaceStatsResponse:
+    """Большая статистика маркетплейса: KPI-сводка, дневные ряды (МСК),
+    воронка, распределения, топы авторов/заказчиков и теплокарта активности."""
+
+    return await get_marketplace_stats(db, days)
 
 
 # ---------------------------------------------------------------------------
@@ -580,10 +598,13 @@ async def update_marketplace_settings(
     db: Annotated[AsyncSession, Depends(get_db)],
     admin: Annotated[User, Depends(get_current_admin_or_tech)],
 ) -> CommissionSettingsResponse:
-    """Обновить настройки комиссий маркетплейса.
+    """Обновить настройки комиссий маркетплейса (единственная точка настройки процентов).
 
-    - platform_commission_pct: 1-50%, макс. 2 знака после запятой
-    - worker_referral_commission_pct: 1-30%, макс. 2 знака после запятой
+    - platform_commission_pct: 1–50%, макс. 2 знака после запятой
+    - worker_referral_commission_pct: 1–30%, макс. 2 знака после запятой
+    - сумма комиссий не более 80%
+
+    Применяется к новым сделкам: в заказ проценты попадают снимком при создании.
     """
 
     settings = await _get_or_create_settings(db)
@@ -668,58 +689,6 @@ async def update_hero_config_admin(
     await db.refresh(row)
 
     return _hero_config_to_response(row)
-
-
-# ---------------------------------------------------------------------------
-# Commission Settings (new /commission-settings endpoints)
-# ---------------------------------------------------------------------------
-
-
-@router.get("/commission-settings", response_model=CommissionSettingsReadResponse)
-async def get_commission_settings(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
-) -> CommissionSettingsReadResponse:
-    """Получить текущие значения комиссий платформы и воркера.
-
-    Возвращает platform_commission_pct и worker_commission_pct с точностью
-    до 2 знаков после запятой.
-    """
-
-    settings = await _get_or_create_settings(db)
-    return CommissionSettingsReadResponse(
-        platform_commission_pct=settings.platform_commission_pct,
-        worker_commission_pct=settings.worker_referral_commission_pct,
-    )
-
-
-@router.put("/commission-settings", response_model=CommissionSettingsReadResponse)
-async def update_commission_settings(
-    body: CommissionSettingsUpdate,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    admin: Annotated[User, Depends(get_current_admin_or_tech)],
-) -> CommissionSettingsReadResponse:
-    """Обновить настройки комиссий платформы и воркера.
-
-    Валидация:
-    - platform_commission_pct: 1–50%, макс. 2 знака после запятой
-    - worker_commission_pct: 1–30%, макс. 2 знака после запятой
-    - Сумма комиссий не более 80%
-    """
-
-    settings = await _get_or_create_settings(db)
-    settings.platform_commission_pct = body.platform_commission_pct
-    settings.worker_referral_commission_pct = body.worker_commission_pct
-    settings.updated_by = admin.id
-
-    await db.flush()
-    await db.commit()
-    await db.refresh(settings)
-
-    return CommissionSettingsReadResponse(
-        platform_commission_pct=settings.platform_commission_pct,
-        worker_commission_pct=settings.worker_referral_commission_pct,
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -935,6 +904,52 @@ async def list_marketplace_bloggers(
     return {"items": items, "total": total, "page": page, "page_size": page_size}
 
 
+def _blogger_profile_response(profile: BloggerProfile, user_name: str) -> BloggerProfileResponse:
+    return BloggerProfileResponse(
+        id=profile.id,
+        user_id=profile.user_id,
+        name=user_name,
+        category=profile.category,
+        gender=profile.gender if profile.gender in {"female", "male", "other"} else None,
+        subscriber_count=profile.subscriber_count,
+        average_price_kopeks=profile.average_price_kopeks,
+        engagement_rate=(
+            float(profile.engagement_rate) if profile.engagement_rate is not None else None
+        ),
+        rating=float(profile.rating) if profile.rating is not None else None,
+        reviews_count=profile.reviews_count,
+        description=profile.description,
+        portfolio_links=profile.portfolio_links or [],
+        social_links=profile.social_links,
+        photo_url=profile.photo_url,
+        preferred_contact=profile.preferred_contact,
+        is_active=profile.is_active,
+        orders_enabled=profile.orders_enabled,
+        created_at=profile.created_at,
+        updated_at=profile.updated_at,
+    )
+
+
+@router.get("/bloggers/by-user/{user_id}", response_model=BloggerProfileResponse)
+async def get_marketplace_blogger_by_user(
+    user_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> BloggerProfileResponse:
+    """Профиль блогера маркетплейса по id пользователя — для карточки в разделе «Пользователи»."""
+    result = await db.execute(
+        select(BloggerProfile).where(BloggerProfile.user_id == user_id)
+    )
+    profile = result.scalar_one_or_none()
+    if profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Профиль блогера не найден",
+        )
+    user = await db.get(User, profile.user_id)
+    return _blogger_profile_response(profile, user.name if user else "")
+
+
 @router.patch("/bloggers/{blogger_profile_id}", response_model=BloggerProfileResponse)
 async def patch_marketplace_blogger(
     blogger_profile_id: uuid.UUID,
@@ -968,29 +983,7 @@ async def patch_marketplace_blogger(
     user = await db.get(User, profile.user_id)
     user_name = user.name if user else ""
 
-    return BloggerProfileResponse(
-        id=profile.id,
-        user_id=profile.user_id,
-        name=user_name,
-        category=profile.category,
-        gender=profile.gender if profile.gender in {"female", "male", "other"} else None,
-        subscriber_count=profile.subscriber_count,
-        average_price_kopeks=profile.average_price_kopeks,
-        engagement_rate=(
-            float(profile.engagement_rate) if profile.engagement_rate is not None else None
-        ),
-        rating=float(profile.rating) if profile.rating is not None else None,
-        reviews_count=profile.reviews_count,
-        description=profile.description,
-        portfolio_links=profile.portfolio_links or [],
-        social_links=profile.social_links,
-        photo_url=profile.photo_url,
-        preferred_contact=profile.preferred_contact,
-        is_active=profile.is_active,
-        orders_enabled=profile.orders_enabled,
-        created_at=profile.created_at,
-        updated_at=profile.updated_at,
-    )
+    return _blogger_profile_response(profile, user_name)
 
 
 # ---------------------------------------------------------------------------

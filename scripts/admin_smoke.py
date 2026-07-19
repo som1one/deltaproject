@@ -117,15 +117,16 @@ async def main(base_url: str, email: str, password: str) -> int:
         else:
             _ok("create worker-message-script", False, f"status {r.status_code}")
 
-        # 11. Toggle процента воркера и вернуть обратно
-        if worker:
-            original_pct = worker.get("percent", 0)
-            r = await client.patch(f"/admin/users/{worker['id']}", json={"percent": float(original_pct) + 1})
-            _ok("PATCH user percent +1", r.status_code == 200, f"status {r.status_code}")
-            r = await client.patch(f"/admin/users/{worker['id']}", json={"percent": float(original_pct)})
-            _ok("PATCH user percent revert", r.status_code == 200, f"status {r.status_code}")
+        # 11. Единая настройка комиссий маркетплейса: прочитать и сохранить те же значения
+        r = await client.get("/admin/marketplace/settings")
+        if r.status_code == 200:
+            pcts = r.json()
+            _ok("GET marketplace settings", True,
+                f"platform {pcts['platform_commission_pct']}% / worker {pcts['worker_referral_commission_pct']}%")
+            r = await client.put("/admin/marketplace/settings", json=pcts)
+            _ok("PUT marketplace settings (same values)", r.status_code == 200, f"status {r.status_code}")
         else:
-            print("  · skip percent toggle: воркеров в БД нет")
+            _ok("GET marketplace settings", False, f"status {r.status_code}")
 
         # 12. Трогаем ledger-status: ставим тот же статус (без изменений → должен быть 200/400)
         if ledger:

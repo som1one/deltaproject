@@ -35,6 +35,10 @@ class User(Base):
     percent: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     balance: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
+    # Бан администратором: banned_at != None → is_active принудительно False.
+    # Обычная деактивация (is_active=False без banned_at) — отдельный случай.
+    banned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ban_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
     role: Mapped[UserRole] = mapped_column(
         SQLEnum(
             UserRole,

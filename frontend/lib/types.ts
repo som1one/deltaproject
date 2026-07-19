@@ -1,4 +1,4 @@
-export type UserRole = "Worker" | "Bloger" | "Admin" | "Tech_Admin";
+export type UserRole = "Worker" | "Bloger" | "Client" | "Admin" | "Tech_Admin";
 
 export type DealStatus =
   | "NEW"
@@ -194,16 +194,41 @@ export type AdminUserRead = {
   email: string;
   nickname: string | null;
   telegram: string | null;
+  photo_url: string | null;
   role: UserRole;
   linked_to: string | null;
-  percent: number;
   balance: number;
+  marketplace_balance_kopeks: number;
   is_active: boolean;
+  banned_at: string | null;
+  ban_reason: string | null;
   payout_card_last4: string | null;
   payout_card_brand: string | null;
   payout_card_holder: string | null;
   payout_card_bank: string | null;
   is_owner_admin: boolean;
+};
+
+export type AdminMarketplaceBloggerProfile = {
+  id: string;
+  user_id: string;
+  name: string;
+  category: string;
+  gender: string | null;
+  subscriber_count: number;
+  average_price_kopeks: number;
+  engagement_rate: number | null;
+  rating: number | null;
+  reviews_count: number;
+  description: string;
+  portfolio_links: string[];
+  social_links: string[];
+  photo_url: string | null;
+  preferred_contact: string | null;
+  is_active: boolean;
+  orders_enabled: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type AdminUserListResponse = {
