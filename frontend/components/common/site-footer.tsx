@@ -9,7 +9,7 @@ export function SiteFooter() {
       <div className={styles.glow} aria-hidden />
       <div className={styles.inner}>
         <div className={styles.top}>
-          <span className={styles.logo}>Looney Moon</span>
+          <span className={styles.logo}>moneymaxxxing</span>
           <div className={styles.links}>
             <Link href="/privacy">Политика конфиденциальности</Link>
             <Link href="/terms">Условия использования</Link>
@@ -18,7 +18,7 @@ export function SiteFooter() {
 
         <div className={styles.bottom}>
           <span className={styles.copy}>
-            © {new Date().getFullYear()} looney moon. Все права защищены.
+            © {new Date().getFullYear()} moneymaxxxing. Все права защищены.
           </span>
         </div>
       </div>

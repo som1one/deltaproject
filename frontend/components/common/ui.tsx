@@ -32,7 +32,7 @@ export const TopNav = ({
   <nav className={styles.nav}>
     <div className={styles.navInner}>
       <Link href="/" className={styles.brand}>
-        <span className={styles.brandMark}>looney moon</span>
+        <span className={styles.brandMark}>moneymaxxxing</span>
         <span className={styles.brandSub}>{brandSub}</span>
       </Link>
       {actions ? (

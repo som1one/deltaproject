@@ -1,8 +1,8 @@
 import { PrivacyPage } from "@/components/marketing/privacy-page";
 
 export const metadata = {
-  title: "Политика конфиденциальности — looney moon",
-  description: "Политика обработки персональных данных на платформе looney moon.",
+  title: "Политика конфиденциальности — moneymaxxxing",
+  description: "Политика обработки персональных данных на платформе moneymaxxxing.",
 };
 
 export default function PrivacyRoute() {

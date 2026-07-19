@@ -122,21 +122,55 @@ import { AgencyNav } from "@/components/marketing/agency-nav";
 import { SiteFooter } from "@/components/common/site-footer";
 
 /* =========================================================
-   Moon artwork
-   Pre-rendered sprite: a bump-lit full moon with the near-side
-   maria, Tycho/Copernicus ray systems and cratered southern
-   highlands, baked into a transparent PNG.
-   Regenerate with: node frontend/scripts/generate-moon.mjs
+   Money stack artwork
+   CSS-3D banded stack of real US $100 bills: the top face and
+   the loose bills use the public-domain series-2009 obverse
+   scan (Wikimedia Commons), wrapped by a mustard $10,000 strap
+   over paper-edge sides. The stack slowly spins on its axis.
    ========================================================= */
 
-const HeroMoonArt = () => (
+const BillArt = () => (
   <img
-    className={styles.heroMoonSvg}
-    src="/images/moon-surface.png"
+    className={styles.moneyBillArt}
+    src="/images/usd-100-front.jpg"
     alt=""
     aria-hidden="true"
     draggable={false}
   />
+);
+
+const HeroMoneyStack = () => (
+  <div className={styles.moneyScene}>
+    <div className={styles.moneyFloat}>
+      <div className={styles.moneyStack}>
+        {/* Cuboid: top bill, bottom sheet, four paper edges */}
+        <div className={`${styles.moneyFace} ${styles.moneyTop}`}>
+          <BillArt />
+        </div>
+        <div className={`${styles.moneyFace} ${styles.moneyBottom}`} />
+        <div className={`${styles.moneyFace} ${styles.moneyEdgeFront}`} />
+        <div className={`${styles.moneyFace} ${styles.moneyEdgeBack}`} />
+        <div className={`${styles.moneyFace} ${styles.moneyEdgeLeft}`} />
+        <div className={`${styles.moneyFace} ${styles.moneyEdgeRight}`} />
+
+        {/* Currency strap wrapping the middle of the stack */}
+        <div className={`${styles.moneyBand} ${styles.moneyBandTop}`}>
+          <span className={styles.moneyBandSign}>$10,000</span>
+        </div>
+        <div className={`${styles.moneyBand} ${styles.moneyBandBottom}`} />
+        <div className={`${styles.moneyBand} ${styles.moneyBandFront}`} />
+        <div className={`${styles.moneyBand} ${styles.moneyBandBack}`} />
+
+        {/* Two loose bills tucked under the strap */}
+        <div className={`${styles.moneyLoose} ${styles.moneyLoose1}`}>
+          <BillArt />
+        </div>
+        <div className={`${styles.moneyLoose} ${styles.moneyLoose2}`}>
+          <BillArt />
+        </div>
+      </div>
+    </div>
+  </div>
 );
 
 /* =========================================================
@@ -158,7 +192,7 @@ export const AgencyLandingPage = () => {
     offset: ["start start", "end start"],
   });
 
-  // Smooth the raw scroll progress with a spring so the moon glides
+  // Smooth the raw scroll progress with a spring so the money stack glides
   // instead of tracking the wheel 1-to-1.
   const smoothProgress = useSpring(scrollYProgress, {
     stiffness: 60,
@@ -167,34 +201,34 @@ export const AgencyLandingPage = () => {
     restDelta: 0.001,
   });
 
-  // Moon flies up, fades, blurs and shrinks slightly as the user scrolls.
+  // The stack flies up, fades, blurs and shrinks slightly as the user scrolls.
   // Eased keyframes so motion accelerates gently rather than starting hard.
-  const moonY = useTransform(
+  const packY = useTransform(
     smoothProgress,
     [0, 0.25, 0.6, 1],
     reduceMotion ? [0, 0, 0, 0] : [0, -60, -260, -780],
   );
-  const moonOpacity = useTransform(smoothProgress, [0, 0.5, 0.85, 1], [1, 0.85, 0.2, 0]);
-  const moonScale = useTransform(
+  const packOpacity = useTransform(smoothProgress, [0, 0.5, 0.85, 1], [1, 0.85, 0.2, 0]);
+  const packScale = useTransform(
     smoothProgress,
     [0, 1],
     reduceMotion ? [1, 1] : [1, 0.7],
   );
-  const moonBlur = useTransform(
+  const packBlur = useTransform(
     smoothProgress,
     [0, 0.5, 1],
     reduceMotion ? ["blur(0px)", "blur(0px)", "blur(0px)"] : ["blur(0px)", "blur(2px)", "blur(8px)"],
   );
 
-  const heroMoonEntryInitial = reduceMotion
+  const heroPackEntryInitial = reduceMotion
     ? { opacity: 0 }
     : { y: "-120vh", opacity: 0, filter: "blur(8px)" };
 
-  const heroMoonEntryAnimate = reduceMotion
+  const heroPackEntryAnimate = reduceMotion
     ? { opacity: 1 }
     : { y: 0, opacity: 1, filter: "blur(0px)" };
 
-  const heroMoonEntryTransition = reduceMotion
+  const heroPackEntryTransition = reduceMotion
     ? { duration: 0.4 }
     : { duration: 1.6, ease: [0.16, 0.84, 0.3, 1] as const };
 
@@ -260,30 +294,45 @@ export const AgencyLandingPage = () => {
         ) : null}
 
         <div className={styles.heroContent}>
-          <div className={styles.heroMoonAnchor} aria-hidden>
+          <div className={styles.heroMoneyAnchor} aria-hidden>
             <motion.div
-              className={styles.heroMoonStage}
-              style={{ y: moonY, opacity: moonOpacity, scale: moonScale, filter: moonBlur }}
+              className={styles.heroMoneyStage}
+              style={{ y: packY, opacity: packOpacity, scale: packScale, filter: packBlur }}
             >
               {!introVisible ? (
                 <motion.div
-                  key="moon-entry"
-                  className={styles.heroMoonEntry}
-                  initial={heroMoonEntryInitial}
-                  animate={heroMoonEntryAnimate}
-                  transition={heroMoonEntryTransition}
+                  key="money-entry"
+                  className={styles.heroMoneyEntry}
+                  initial={heroPackEntryInitial}
+                  animate={heroPackEntryAnimate}
+                  transition={heroPackEntryTransition}
                 >
-                  <div className={styles.heroMoonHalo} />
-                  <div className={styles.heroMoon}>
-                    <HeroMoonArt />
-                  </div>
+                  <div className={styles.heroMoneyHalo} />
+                  <HeroMoneyStack />
                 </motion.div>
               ) : null}
             </motion.div>
           </div>
 
-          <h1 className={styles.heroTitle}>
-            <span className={styles.heroTitleAccent}>looney moon</span>
+          <h1 className={styles.heroTitle} aria-label="moneymaxxxing">
+            {/* SVG text stretched to a fixed textLength scales with the
+               container, so the wordmark can never overflow the viewport. */}
+            <svg
+              className={styles.heroTitleSvg}
+              viewBox="0 0 600 148"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <text
+                x="300"
+                y="102"
+                textAnchor="middle"
+                textLength="576"
+                lengthAdjust="spacingAndGlyphs"
+              >
+                moneymaxxxing
+              </text>
+            </svg>
           </h1>
 
           <div className={styles.heroAuthorWrap}>

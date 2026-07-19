@@ -125,7 +125,7 @@ export const ReferralInvite = ({ username }: { username: string }) => {
         <JourneyEyebrow>Что это</JourneyEyebrow>
         <JourneyTitle>Платформа для блогеров и их команд</JourneyTitle>
         <JourneyLead>
-          looney moon — закрытая система, где блогеры получают рекламодателей через проверенных
+          moneymaxxxing — закрытая система, где блогеры получают рекламодателей через проверенных
           воркеров, а воркеры зарабатывают долю с каждой закрытой сделки. Всё автоматизировано:
           от поиска продавцов до расчёта выплат.
         </JourneyLead>

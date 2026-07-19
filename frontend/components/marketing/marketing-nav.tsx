@@ -45,7 +45,7 @@ export const MarketingNav = ({ brandSub = "агентство", items, cta }: Ma
     <header className={styles.topBar}>
       <div className={styles.topBarRow}>
         <Link href="/" className={styles.brand} onClick={closeMenu}>
-          <span className={styles.brandMark}>looney moon</span>
+          <span className={styles.brandMark}>moneymaxxxing</span>
           {brandSub ? <span className={styles.brandSub}>{brandSub}</span> : null}
         </Link>
 

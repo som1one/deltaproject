@@ -155,7 +155,7 @@ async def lifespan(_app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="looney moon API",
+        title="moneymaxxxing API",
         lifespan=lifespan,
     )
     app.state.limiter = limiter

@@ -396,15 +396,23 @@
   }
 }
 
-/* ---------- Moon behind the logo ---------- */
+/* ---------- Money stack behind the logo ---------- */
 
 /* Anchor handles centering — its transform stays untouched so the
-   inner stage can be animated freely (y / scale / opacity) on scroll. */
-.heroMoonAnchor {
+   inner stage can be animated freely (y / scale / opacity) on scroll.
+   The stack footprint derives from the anchor square so both share
+   the same breakpoints. */
+.heroMoneyAnchor {
+  --money-w: calc(clamp(220px, 38vw, 520px) * 0.66);
+  --money-d: calc(var(--money-w) / 2.35);
+  --money-h: calc(var(--money-w) * 0.15);
+  --money-band-w: calc(var(--money-w) * 0.26);
   position: absolute;
   left: 50%;
-  top: 50%;
-  transform: translate(-50%, -54%);
+  top: 0;
+  /* Hover the pack over the top of the wordmark: low enough to sit in
+     the composition, its lower edge layered behind the title glyphs. */
+  transform: translate(-50%, -44%);
   width: clamp(220px, 38vw, 520px);
   aspect-ratio: 1 / 1;
   z-index: 0;
@@ -412,13 +420,14 @@
 }
 
 @media (max-width: 720px) {
-  .heroMoonAnchor {
-    transform: translate(-50%, -52%);
+  .heroMoneyAnchor {
+    --money-w: calc(clamp(200px, 64vw, 360px) * 0.74);
+    transform: translate(-50%, -56%);
     width: clamp(200px, 64vw, 360px);
   }
 }
 
-.heroMoonStage {
+.heroMoneyStage {
   position: relative;
   width: 100%;
   height: 100%;
@@ -428,51 +437,263 @@
 
 /* Inner wrapper used purely for the page-load descent animation,
    so its transform stays independent of scroll-driven motion above. */
-.heroMoonEntry {
+.heroMoneyEntry {
   position: relative;
   width: 100%;
   height: 100%;
   will-change: transform, opacity, filter;
 }
 
-/* Outer glow / atmospheric bloom */
-.heroMoonHalo {
+/* Warm pool of light behind the stack */
+.heroMoneyHalo {
   position: absolute;
-  inset: -38%;
+  inset: -10%;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 50% 50%,
-      rgba(248, 246, 238, 0.18) 0%,
-      rgba(242, 238, 226, 0.11) 18%,
-      rgba(226, 223, 212, 0.055) 36%,
-      rgba(205, 205, 208, 0.025) 52%,
-      transparent 66%);
-  filter: blur(12px);
-  animation: heroMoonHalo 9s ease-in-out infinite;
+    radial-gradient(circle at 50% 56%,
+      rgba(244, 228, 190, 0.1) 0%,
+      rgba(226, 216, 172, 0.06) 18%,
+      rgba(170, 186, 148, 0.03) 34%,
+      rgba(110, 138, 110, 0.015) 48%,
+      transparent 60%);
+  filter: blur(14px);
+  animation: heroMoneyHalo 9s ease-in-out infinite;
   will-change: opacity, transform;
 }
 
-/* Moon disc — the surface itself is drawn by the inline SVG artwork */
-.heroMoon {
+/* Perspective viewport for the CSS-3D stack. The 3D scene lives fully
+   inside this element, so ancestor filters/opacity (scroll blur, entry
+   fade) can flatten the outside chain without breaking the cuboid. */
+.moneyScene {
   position: absolute;
   inset: 0;
-  border-radius: 50%;
-  box-shadow:
-    0 0 32px rgba(247, 243, 231, 0.16),
-    0 0 90px rgba(240, 233, 216, 0.1),
-    0 0 190px rgba(233, 226, 206, 0.05);
-  overflow: hidden;
-  animation: heroMoonBreath 12s ease-in-out infinite;
-  will-change: transform, filter;
+  display: grid;
+  place-items: center;
+  perspective: 1300px;
+  perspective-origin: 50% 30%;
 }
 
-.heroMoonSvg {
+/* Warm uplight rising from below the pack, painted behind the 3D subtree */
+.moneyScene::before {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 44% 26% at 50% 74%,
+    rgba(246, 214, 148, 0.2) 0%,
+    rgba(236, 196, 128, 0.1) 42%,
+    rgba(210, 170, 110, 0.045) 62%,
+    transparent 78%
+  );
+  filter: blur(6px);
+}
+
+/* Static night-light vignette over the scene: the pack centre stays lit
+   while its ends sink into the dark. Painted above the 3D subtree and
+   does not rotate with the stack, so it reads as overhead lighting.
+   The second layer is a faint warm wrap where the uplight kisses the
+   pack's underside. */
+.moneyScene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse 52% 36% at 50% 50%,
+      transparent 30%,
+      rgba(0, 0, 0, 0.28) 62%,
+      rgba(0, 0, 0, 0.55) 88%,
+      rgba(0, 0, 0, 0.7) 100%
+    ),
+    radial-gradient(
+      ellipse 38% 18% at 50% 67%,
+      rgba(244, 208, 140, 0.13) 0%,
+      rgba(244, 208, 140, 0.05) 55%,
+      transparent 75%
+    );
+}
+
+.moneyFloat {
+  position: relative;
+  width: var(--money-w);
+  height: var(--money-d);
+  transform-style: preserve-3d;
+  animation: moneyFloat 7.5s ease-in-out infinite;
+}
+
+.moneyStack {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  /* Matches the moneySpin start frame so there is no pose jump */
+  transform: rotateX(56deg) rotateZ(0deg);
+  animation: moneySpin 34s linear infinite;
+}
+
+.moneyFace,
+.moneyBand,
+.moneyLoose {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  backface-visibility: hidden;
+}
+
+.moneyTop,
+.moneyBottom,
+.moneyLoose {
+  width: var(--money-w);
+  height: var(--money-d);
+}
+
+.moneyTop {
+  background: #9b998c;
+  transform: translate(-50%, -50%) translateZ(calc(var(--money-h) / 2));
+}
+
+.moneyBottom {
+  background: #7f7d6e;
+  transform: translate(-50%, -50%) rotateX(180deg) translateZ(calc(var(--money-h) / 2));
+}
+
+/* Paper edges: thin repeating sheet lines + per-face shading.
+   Shading always runs dark at the stack's top side and picks up a warm
+   rim at the stack's bottom (the uplight below). Each face maps the
+   stack axis onto a different local direction, hence four gradients. */
+.moneyEdgeFront,
+.moneyEdgeBack {
+  width: var(--money-w);
+  height: var(--money-h);
+}
+
+.moneyEdgeLeft,
+.moneyEdgeRight {
+  width: var(--money-h);
+  height: var(--money-d);
+}
+
+.moneyEdgeFront {
+  background:
+    linear-gradient(to bottom, rgba(15, 18, 15, 0.34), transparent 40% 62%, rgba(236, 196, 126, 0.18)),
+    repeating-linear-gradient(
+      to bottom,
+      #a19f92 0 1.4px,
+      #8a8879 1.4px 2.2px,
+      #969488 2.2px 3.1px
+    );
+  transform: translate(-50%, -50%) rotateX(-90deg) translateZ(calc(var(--money-d) / 2));
+}
+
+.moneyEdgeBack {
+  background:
+    linear-gradient(to top, rgba(15, 18, 15, 0.34), transparent 40% 62%, rgba(236, 196, 126, 0.18)),
+    repeating-linear-gradient(
+      to bottom,
+      #a19f92 0 1.4px,
+      #8a8879 1.4px 2.2px,
+      #969488 2.2px 3.1px
+    );
+  transform: translate(-50%, -50%) rotateX(90deg) translateZ(calc(var(--money-d) / 2));
+}
+
+.moneyEdgeRight {
+  background:
+    linear-gradient(to right, rgba(15, 18, 15, 0.34), transparent 40% 62%, rgba(236, 196, 126, 0.18)),
+    repeating-linear-gradient(
+      to right,
+      #a19f92 0 1.4px,
+      #8a8879 1.4px 2.2px,
+      #969488 2.2px 3.1px
+    );
+  transform: translate(-50%, -50%) rotateY(90deg) translateZ(calc(var(--money-w) / 2));
+}
+
+.moneyEdgeLeft {
+  background:
+    linear-gradient(to left, rgba(15, 18, 15, 0.34), transparent 40% 62%, rgba(236, 196, 126, 0.18)),
+    repeating-linear-gradient(
+      to right,
+      #a19f92 0 1.4px,
+      #8a8879 1.4px 2.2px,
+      #969488 2.2px 3.1px
+    );
+  transform: translate(-50%, -50%) rotateY(-90deg) translateZ(calc(var(--money-w) / 2));
+}
+
+/* Currency strap: four strips forming a ring around the stack middle.
+   Mustard is the real-world colour code for a $10,000 strap of $100s. */
+.moneyBand {
+  width: var(--money-band-w);
+  background:
+    linear-gradient(to right, rgba(84, 56, 12, 0.3), transparent 22% 78%, rgba(84, 56, 12, 0.3)),
+    #8a6a25;
+  border-left: 1.5px solid rgba(255, 246, 220, 0.28);
+  border-right: 1.5px solid rgba(255, 246, 220, 0.28);
+}
+
+/* The strap rides above the loose bills so it visually wraps the pack */
+.moneyBandTop {
+  height: var(--money-d);
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%) translateZ(calc(var(--money-h) / 2 + 4.5px));
+}
+
+.moneyBandBottom {
+  height: var(--money-d);
+  transform: translate(-50%, -50%) rotateX(180deg) translateZ(calc(var(--money-h) / 2 + 2px));
+}
+
+.moneyBandFront {
+  height: var(--money-h);
+  transform: translate(-50%, -50%) rotateX(-90deg) translateZ(calc(var(--money-d) / 2 + 2px));
+}
+
+.moneyBandBack {
+  height: var(--money-h);
+  transform: translate(-50%, -50%) rotateX(90deg) translateZ(calc(var(--money-d) / 2 + 2px));
+}
+
+.moneyBandSign {
+  font-family: var(--font-narrow);
+  font-size: calc(var(--money-band-w) * 0.24);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  color: #3a290e;
+  transform: rotate(90deg);
+  white-space: nowrap;
+}
+
+/* Loose bills resting on top of the strapped stack */
+.moneyLoose {
+  background: #9b998c;
+  box-shadow: 0 1px 2px rgba(16, 26, 18, 0.28);
+}
+
+.moneyLoose1 {
+  transform: translate(-50%, -50%) translateZ(calc(var(--money-h) / 2 + 2px))
+    rotateZ(-6.5deg) translate(1.6%, -2%);
+}
+
+.moneyLoose2 {
+  transform: translate(-50%, -50%) translateZ(calc(var(--money-h) / 2 + 3.5px))
+    rotateZ(3.5deg) translate(-1.2%, 1.4%);
+}
+
+.moneyBillArt {
   display: block;
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  /* Tone the scan down so it sits in the night scene instead of
+     glowing like a sticker on black */
+  filter: brightness(0.62) saturate(0.82) contrast(1.05);
 }
 
-/* Wrapper that lets stars fade in independently of the moon's drop animation.
+/* Wrapper that lets stars fade in independently of the stack's drop animation.
    Positioned at the .hero level to span the full viewport. */
 .heroStarsLayer {
   position: absolute;
@@ -483,14 +704,13 @@
   overflow: hidden;
 }
 
-/* Full-screen starfield with moon area masked out */
+/* Full-screen starfield with the money-stack area masked out */
 .heroStars {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  /* Mask: transparent circle in center (moon area), white everywhere else */
-  -webkit-mask-image: radial-gradient(circle 18vw at 50% 44%, transparent 80%, black 100%);
-  mask-image: radial-gradient(circle 18vw at 50% 44%, transparent 80%, black 100%);
+  /* Mask: transparent ellipse in center (stack area), white everywhere else */
+  mask-image: radial-gradient(ellipse 15vw 8vw at 50% 30%, transparent 75%, black 100%);
   background-image:
     /* Large bright stars — spread across full screen */
     radial-gradient(2.8px 2.8px at 3% 5%, rgba(255, 255, 255, 1), transparent 50%),
@@ -582,25 +802,32 @@
   animation: heroStarsTwinkle 6s ease-in-out infinite;
 }
 
-@keyframes heroMoonBreath {
-  0%, 100% {
-    transform: scale(1);
-    filter: brightness(1);
+@keyframes moneySpin {
+  from {
+    transform: rotateX(56deg) rotateZ(0deg);
   }
-  50% {
-    transform: scale(1.012);
-    filter: brightness(1.04);
+  to {
+    transform: rotateX(56deg) rotateZ(360deg);
   }
 }
 
-@keyframes heroMoonHalo {
+@keyframes moneyFloat {
   0%, 100% {
-    opacity: 0.85;
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-11px);
+  }
+}
+
+@keyframes heroMoneyHalo {
+  0%, 100% {
+    opacity: 0.8;
     transform: scale(1);
   }
   50% {
     opacity: 1;
-    transform: scale(1.04);
+    transform: scale(1.05);
   }
 }
 
@@ -614,8 +841,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  -webkit-mask-image: radial-gradient(circle 18vw at 50% 44%, transparent 80%, black 100%);
-  mask-image: radial-gradient(circle 18vw at 50% 44%, transparent 80%, black 100%);
+  mask-image: radial-gradient(ellipse 15vw 8vw at 50% 30%, transparent 75%, black 100%);
   background-image:
     /* Extra large bright stars in corners and edges */
     radial-gradient(3.0px 3.0px at 1% 2%, rgba(255, 255, 255, 1), transparent 50%),
@@ -745,18 +971,25 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .heroMoon,
-  .heroMoonHalo,
+  .moneyFloat,
+  .moneyStack,
+  .heroMoneyHalo,
   .heroStars,
   .heroStars2,
   .shootingStar {
     animation: none;
+  }
+
+  /* Static three-quarter view instead of the spin */
+  .moneyStack {
+    transform: rotateX(56deg) rotateZ(24deg);
   }
 }
 
 /* Fewer stars on mobile — chaotic scatter, no grid pattern */
 @media (max-width: 720px) {
   .heroStars {
+    mask-image: radial-gradient(ellipse 26vw 11vw at 50% 33%, transparent 72%, black 100%);
     background-image:
       /* Bright stars — scattered irregularly */
       radial-gradient(2.7px 2.7px at 3% 6%, rgba(255, 255, 255, 1), transparent 50%),
@@ -829,29 +1062,27 @@
   position: relative;
   z-index: 2;
   margin: 0;
-  font-family: var(--font-script-formal);
-  font-size: clamp(3rem, 16vw, 14rem);
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 0.95;
-  color: var(--text-strong);
-  max-width: none;
   width: 100%;
-  white-space: nowrap;
-  /* Soft glow to lift the title off the moon disc */
-  text-shadow:
-    0 2px 24px rgba(0, 0, 0, 0.55),
-    0 0 60px rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
 }
 
-.heroTitleAccent {
-  display: inline-block;
-  white-space: nowrap;
+/* The wordmark is SVG text stretched to a fixed textLength, so it always
+   scales to the container width and can never overflow the viewport. */
+.heroTitleSvg {
+  width: 100%;
+  max-width: 1200px;
+  height: auto;
+  overflow: visible;
+  /* Soft glow to lift the title off the money stack */
+  filter: drop-shadow(0 2px 24px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 46px rgba(0, 0, 0, 0.4));
+}
+
+.heroTitleSvg text {
   font-family: var(--font-script-formal);
-  font-style: normal;
+  font-size: 100px;
   font-weight: 400;
-  letter-spacing: -0.005em;
-  color: var(--text-strong);
+  fill: var(--text-strong);
 }
 
 .heroAuthorWrap {
@@ -1460,7 +1691,7 @@
   border-top: 1px solid var(--border);
 }
 
-/* Soft moonlight glow rising from the top edge to tie the footer to the hero */
+/* Soft night glow rising from the top edge to tie the footer to the hero */
 .footer::before {
   content: "";
   position: absolute;

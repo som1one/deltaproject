@@ -21,7 +21,7 @@ export const JourneyShell = ({
   <main className={styles.shell}>
     <header className={styles.shellHeader}>
       <Link href="/" className={styles.brand}>
-        <span className={styles.brandTitle}>looney moon</span>
+        <span className={styles.brandTitle}>moneymaxxxing</span>
         <span className={styles.brandSub}>{brandSub}</span>
       </Link>
       {links && links.length > 0 ? (

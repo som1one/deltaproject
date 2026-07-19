@@ -22,7 +22,7 @@ export const AgencyNav = () => {
   return (
     <header className={styles.topBar}>
       <Link href="/" className={styles.brand}>
-        <span className={styles.brandMark}>looney moon</span>
+        <span className={styles.brandMark}>moneymaxxxing</span>
         <span className={styles.brandSub}>сообщество</span>
       </Link>
 
