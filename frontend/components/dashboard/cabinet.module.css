@@ -725,48 +725,6 @@
   color: var(--status-danger);
 }
 
-/* --- Маркетплейс-выводы: hairline-история под формой --- */
-
-.wdList {
-  margin: 1.1rem 0 0;
-  padding: 0;
-  list-style: none;
-  border-top: 1px solid var(--border-faint);
-}
-
-.wdRow {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  align-items: baseline;
-  gap: 0.3rem 1rem;
-  padding: 0.62rem 0.1rem;
-  border-bottom: 1px solid var(--border-faint);
-}
-
-.wdAmount {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 0.98rem;
-  letter-spacing: -0.02em;
-  color: var(--text-strong);
-  font-variant-numeric: tabular-nums;
-}
-
-.wdDate {
-  font-size: 0.78rem;
-  color: var(--text-soft);
-  justify-self: end;
-  font-variant-numeric: tabular-nums;
-}
-
-.wdError {
-  grid-column: 1 / -1;
-  margin: 0;
-  font-size: 0.78rem;
-  color: var(--status-danger);
-  line-height: 1.4;
-}
-
 /* =========================================================
    Ledger: десктопная таблица + мобильный hairline-список.
    ========================================================= */

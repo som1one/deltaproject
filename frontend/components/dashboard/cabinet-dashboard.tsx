@@ -8,12 +8,11 @@ import { api } from "@/lib/api";
 import { appConfig } from "@/lib/config";
 import { useAuth } from "@/lib/auth-context";
 import { tokenStorage } from "@/lib/storage";
-import { formatDateTime, formatMoney, formatNumber, formatRole } from "@/lib/format";
+import { formatMoney, formatNumber, formatRole } from "@/lib/format";
 import type {
   LedgerEntryRead,
   LedgerEntryStatus,
   MarketplaceWithdrawalRead,
-  MarketplaceWithdrawalStatus,
   UserMeRead,
 } from "@/lib/types";
 import {
@@ -22,7 +21,6 @@ import {
   Message,
   PageSurface,
   SelectInput,
-  StatusPill,
   TextInput,
   TopNav,
   TwoColumn,
@@ -269,19 +267,31 @@ type PayoutControls = ReturnType<typeof usePayoutRequest>;
 
 /* =========================================================
    Marketplace withdraw — вывод заработка маркетплейса
-   (marketplace_balance_kopeks) на привязанную карту
+   (marketplace_balance_kopeks) на привязанную карту.
+   Запрос уходит администратору; в «Истории операций» вывод
+   показывается общей строкой леджера.
    ========================================================= */
 
-const WITHDRAWAL_STATUS_LABELS: Record<MarketplaceWithdrawalStatus, string> = {
-  pending: "В обработке",
-  completed: "Выплачено",
-  failed: "Ошибка",
-};
+const withdrawalToLedgerEntry = (w: MarketplaceWithdrawalRead): LedgerEntryRead => ({
+  id: w.id,
+  user_id: w.user_id,
+  deal_id: null,
+  amount_kopeks: -w.amount_kopeks,
+  status: w.status === "completed" ? "completed" : w.status === "failed" ? "rejected" : "payout_request",
+  created_at: w.created_at,
+  updated_at: w.updated_at,
+  idempotency_key: null,
+  note: w.status === "failed" ? w.error_message || null : "Вывод на привязанную карту",
+  yookassa_payout_id: w.yookassa_payout_id,
+});
 
-const withdrawalTone = (
-  status: MarketplaceWithdrawalStatus,
-): "active" | "success" | "danger" =>
-  status === "completed" ? "success" : status === "failed" ? "danger" : "active";
+const mergeLedgerWithWithdrawals = (
+  ledger: LedgerEntryRead[],
+  withdrawals: MarketplaceWithdrawalRead[],
+): LedgerEntryRead[] =>
+  [...ledger, ...withdrawals.map(withdrawalToLedgerEntry)].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
 
 const useMarketplaceWithdraw = (me: UserMeRead, onToast: (toast: Toast) => void) => {
   const queryClient = useQueryClient();
@@ -290,14 +300,10 @@ const useMarketplaceWithdraw = (me: UserMeRead, onToast: (toast: Toast) => void)
 
   const mutation = useMutation({
     mutationFn: (amountKopeks: number) => api.createMarketplaceWithdrawal(amountKopeks),
-    onSuccess: (withdrawal) => {
-      if (withdrawal.status === "failed") {
-        setError(withdrawal.error_message || "Выплата не прошла. Попробуйте позже.");
-      } else {
-        onToast({ tone: "success", text: "Выплата отправлена — деньги уйдут на привязанную карту." });
-        setAmount("");
-        setError(null);
-      }
+    onSuccess: () => {
+      onToast({ tone: "success", text: "Запрос на вывод отправлен — статус будет в истории операций." });
+      setAmount("");
+      setError(null);
       queryClient.invalidateQueries({ queryKey: ["me"] });
       queryClient.invalidateQueries({ queryKey: ["marketplace", "withdrawals"] });
     },
@@ -349,8 +355,6 @@ const FinanceTab = ({
   payout,
   widgetEnabled,
   withdraw,
-  withdrawals,
-  withdrawalsLoading,
   ledgerItems,
   ledgerLoading,
   filter,
@@ -361,8 +365,6 @@ const FinanceTab = ({
   payout: PayoutControls;
   widgetEnabled: boolean;
   withdraw: WithdrawControls;
-  withdrawals: MarketplaceWithdrawalRead[];
-  withdrawalsLoading: boolean;
   ledgerItems: LedgerEntryRead[];
   ledgerLoading: boolean;
   /* Фильтр живёт у родителя, чтобы выбор переживал переключение вкладок. */
@@ -379,7 +381,7 @@ const FinanceTab = ({
     <div className={styles.stack}>
       <Section
         label="Вывод средств"
-        lead="Заработок на маркетплейсе. Деньги уходят на привязанную карту сразу после запроса."
+        lead="Заработок на маркетплейсе. Запрос обрабатывает администратор — после подтверждения деньги придут на привязанную карту."
       >
         <div className={styles.payoutRow}>
           <div className={styles.payoutField}>
@@ -423,24 +425,6 @@ const FinanceTab = ({
             </p>
           ) : null}
         </div>
-        {withdrawalsLoading ? (
-          <SkeletonTable rows={2} />
-        ) : withdrawals.length > 0 ? (
-          <ul className={styles.wdList}>
-            {withdrawals.map((w) => (
-              <li key={w.id} className={styles.wdRow}>
-                <span className={styles.wdAmount}>−{formatMoney(w.amount_kopeks)}</span>
-                <StatusPill tone={withdrawalTone(w.status)}>
-                  {WITHDRAWAL_STATUS_LABELS[w.status]}
-                </StatusPill>
-                <span className={styles.wdDate}>{formatDateTime(w.created_at)}</span>
-                {w.status === "failed" && w.error_message ? (
-                  <p className={styles.wdError}>{w.error_message}</p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : null}
       </Section>
 
       {/* Остаток прежней программы начислений: показываем, только если он есть.
@@ -806,7 +790,12 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
     queryFn: api.getMarketplaceWithdrawals,
   });
 
-  const ledger = ledgerQuery.data?.items || [];
+  /* Выводы маркетплейса — часть общей истории операций. */
+  const withdrawalItems = withdrawalsQuery.data?.items;
+  const ledger = useMemo(
+    () => mergeLedgerWithWithdrawals(ledgerQuery.data?.items || [], withdrawalItems || []),
+    [ledgerQuery.data, withdrawalItems],
+  );
 
   const tabs: TabDef[] = [
     { id: "overview", label: "Обзор", iconPath: ICONS.overview },
@@ -862,10 +851,8 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
             payout={payout}
             widgetEnabled={Boolean(payoutWidgetQuery.data?.enabled)}
             withdraw={withdraw}
-            withdrawals={withdrawalsQuery.data?.items || []}
-            withdrawalsLoading={withdrawalsQuery.isLoading}
             ledgerItems={ledger}
-            ledgerLoading={ledgerQuery.isLoading}
+            ledgerLoading={ledgerQuery.isLoading || withdrawalsQuery.isLoading}
             filter={ledgerFilter}
             onFilterChange={setLedgerFilter}
             onSelectEntry={(entry) => setActiveLedgerId(entry.id)}
@@ -949,7 +936,12 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
     queryFn: api.getMarketplaceWithdrawals,
   });
 
-  const ledger = ledgerQuery.data?.items || [];
+  /* Выводы маркетплейса — часть общей истории операций. */
+  const withdrawalItems = withdrawalsQuery.data?.items;
+  const ledger = useMemo(
+    () => mergeLedgerWithWithdrawals(ledgerQuery.data?.items || [], withdrawalItems || []),
+    [ledgerQuery.data, withdrawalItems],
+  );
 
   const tabs: TabDef[] = [
     { id: "overview", label: "Обзор", iconPath: ICONS.overview },
@@ -984,10 +976,8 @@ const BloggerCabinet = ({ me }: { me: UserMeRead }) => {
             payout={payout}
             widgetEnabled={Boolean(payoutWidgetQuery.data?.enabled)}
             withdraw={withdraw}
-            withdrawals={withdrawalsQuery.data?.items || []}
-            withdrawalsLoading={withdrawalsQuery.isLoading}
             ledgerItems={ledger}
-            ledgerLoading={ledgerQuery.isLoading}
+            ledgerLoading={ledgerQuery.isLoading || withdrawalsQuery.isLoading}
             filter={ledgerFilter}
             onFilterChange={setLedgerFilter}
             onSelectEntry={(entry) => setActiveLedgerId(entry.id)}

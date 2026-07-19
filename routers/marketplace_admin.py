@@ -14,6 +14,9 @@ Endpoints:
 - PUT  /admin/marketplace/payment-requisites — сохранить реквизиты оплаты
 - GET  /admin/settlement-account — получить реквизиты р/с
 - PUT  /admin/settlement-account — сохранить реквизиты р/с
+- GET  /admin/marketplace/withdrawals — запросы на вывод средств
+- PATCH /admin/marketplace/withdrawals/{id}/complete — подтвердить выплату
+- PATCH /admin/marketplace/withdrawals/{id}/reject — отклонить с возвратом баланса
 """
 
 from __future__ import annotations
@@ -25,7 +28,7 @@ from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -36,6 +39,7 @@ from enums.marketplace import (
     MarketplaceOrderStatus,
     PremiumRequestStatus,
     SupportTicketStatus,
+    WithdrawalStatus,
 )
 from enums.user import UserRole
 from models.blogger_audience_submission import BloggerAudienceSubmission
@@ -46,6 +50,7 @@ from models.marketplace_order import MarketplaceOrder
 from models.marketplace_premium_request import MarketplacePremiumRequest
 from models.marketplace_service_type import MarketplaceServiceType
 from models.marketplace_settings import MarketplaceSettings
+from models.marketplace_withdrawal import MarketplaceWithdrawal
 from models.order_status_history import OrderStatusHistory
 from models.support_ticket import SupportTicket
 from models.user import User
@@ -91,6 +96,11 @@ from schemas.marketplace_payment_settings import (
     PaymentSettingsUpsert,
 )
 from schemas.marketplace_support import TicketResponse
+from schemas.marketplace_withdrawals import (
+    AdminWithdrawalItem,
+    AdminWithdrawalListResponse,
+    AdminWithdrawalRejectRequest,
+)
 from schemas.settlement_account import SettlementAccountResponse, SettlementAccountUpsert
 from services import marketplace_payment_settings_service, notification_service
 from services.marketplace_escrow_service import calculate_distribution, confirm_payment, distribute_funds, process_refund, refund_to_client
@@ -1382,3 +1392,143 @@ async def admin_resolve_premium_request(
         blogger_name=name,
         blogger_email=email,
     )
+
+
+# ---------------------------------------------------------------------------
+# Withdrawals — ручное подтверждение выводов средств
+# ---------------------------------------------------------------------------
+
+
+def _withdrawal_admin_item(withdrawal: MarketplaceWithdrawal, user: User) -> AdminWithdrawalItem:
+    return AdminWithdrawalItem(
+        id=withdrawal.id,
+        user_id=withdrawal.user_id,
+        amount_kopeks=withdrawal.amount_kopeks,
+        status=withdrawal.status,
+        error_message=withdrawal.error_message,
+        created_at=withdrawal.created_at,
+        completed_at=withdrawal.completed_at,
+        user_name=user.name,
+        user_email=user.email,
+        user_role=user.role.value,
+        card_last4=user.payout_card_last4,
+        card_brand=user.payout_card_brand,
+        card_bank=user.payout_card_bank,
+        card_holder=user.payout_card_holder,
+    )
+
+
+async def _get_withdrawal_with_user(
+    withdrawal_id: uuid.UUID, db: AsyncSession, *, for_update: bool = False
+) -> tuple[MarketplaceWithdrawal, User]:
+    query = (
+        select(MarketplaceWithdrawal, User)
+        .join(User, User.id == MarketplaceWithdrawal.user_id)
+        .where(MarketplaceWithdrawal.id == withdrawal_id)
+    )
+    if for_update:
+        # Лочим только строку вывода: User в outer-таблице лочить не нужно,
+        # баланс меняется атомарным UPDATE.
+        query = query.with_for_update(of=MarketplaceWithdrawal)
+    row = (await db.execute(query)).one_or_none()
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Запрос на вывод не найден"
+        )
+    return row
+
+
+@router.get("/withdrawals", response_model=AdminWithdrawalListResponse)
+async def admin_list_withdrawals(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+    withdrawal_status: str | None = Query(default=None, alias="status"),
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> AdminWithdrawalListResponse:
+    """Запросы блогеров и воркеров на вывод маркетплейс-баланса."""
+    conditions = []
+    if withdrawal_status in {s.value for s in WithdrawalStatus}:
+        conditions.append(MarketplaceWithdrawal.status == withdrawal_status)
+
+    total = (
+        await db.execute(
+            select(func.count())
+            .select_from(MarketplaceWithdrawal)
+            .where(*conditions)
+        )
+    ).scalar_one()
+
+    rows = (
+        await db.execute(
+            select(MarketplaceWithdrawal, User)
+            .join(User, User.id == MarketplaceWithdrawal.user_id)
+            .where(*conditions)
+            .order_by(MarketplaceWithdrawal.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+    ).all()
+
+    return AdminWithdrawalListResponse(
+        items=[_withdrawal_admin_item(w, user) for w, user in rows],
+        total=total,
+    )
+
+
+@router.patch("/withdrawals/{withdrawal_id}/complete", response_model=AdminWithdrawalItem)
+async def admin_complete_withdrawal(
+    withdrawal_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> AdminWithdrawalItem:
+    """Подтвердить выплату: деньги переведены получателю вручную.
+
+    Баланс уже списан при создании запроса — здесь только фиксируем факт.
+    """
+    withdrawal, user = await _get_withdrawal_with_user(withdrawal_id, db, for_update=True)
+
+    if withdrawal.status != WithdrawalStatus.PENDING.value:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Запрос уже обработан",
+        )
+
+    withdrawal.status = WithdrawalStatus.COMPLETED.value
+    withdrawal.completed_at = datetime.now(_tz.utc)
+    await db.commit()
+    await db.refresh(withdrawal)
+
+    return _withdrawal_admin_item(withdrawal, user)
+
+
+@router.patch("/withdrawals/{withdrawal_id}/reject", response_model=AdminWithdrawalItem)
+async def admin_reject_withdrawal(
+    withdrawal_id: uuid.UUID,
+    body: AdminWithdrawalRejectRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> AdminWithdrawalItem:
+    """Отклонить запрос на вывод и вернуть сумму на маркетплейс-баланс."""
+    withdrawal, user = await _get_withdrawal_with_user(withdrawal_id, db, for_update=True)
+
+    if withdrawal.status != WithdrawalStatus.PENDING.value:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Запрос уже обработан",
+        )
+
+    withdrawal.status = WithdrawalStatus.FAILED.value
+    withdrawal.error_message = (body.reason or "Отклонено администратором")[:500]
+    await db.execute(
+        update(User)
+        .where(User.id == withdrawal.user_id)
+        .values(
+            marketplace_balance_kopeks=User.marketplace_balance_kopeks
+            + withdrawal.amount_kopeks,
+        )
+    )
+    await db.commit()
+    await db.refresh(withdrawal)
+
+    return _withdrawal_admin_item(withdrawal, user)

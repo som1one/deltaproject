@@ -128,6 +128,28 @@ type PremiumRequest = {
   blogger_email: string | null;
 };
 
+type AdminWithdrawal = {
+  id: string;
+  user_id: string;
+  amount_kopeks: number;
+  status: string;
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+  user_name: string;
+  user_email: string;
+  user_role: string;
+  card_last4: string | null;
+  card_brand: string | null;
+  card_bank: string | null;
+  card_holder: string | null;
+};
+
+type AdminWithdrawalsResponse = {
+  items: AdminWithdrawal[];
+  total: number;
+};
+
 export type AdminMarketplaceTab =
   | "dashboard"
   | "orders"
@@ -138,7 +160,8 @@ export type AdminMarketplaceTab =
   | "hero"
   | "services"
   | "moderation"
-  | "premium";
+  | "premium"
+  | "withdrawals";
 
 /* ---------- Helpers ---------- */
 
@@ -202,6 +225,7 @@ export function AdminMarketplacePanel({ tab }: { tab: AdminMarketplaceTab }) {
       {tab === "moderation" && <ModerationTab />}
       {tab === "premium" && <PremiumTab />}
       {tab === "hero" && <HeroTab />}
+      {tab === "withdrawals" && <WithdrawalsTab />}
     </div>
   );
 }
@@ -1392,6 +1416,193 @@ function HeroAuthorPicker({
               {a.category ? ` · ${a.category}` : ""}
             </button>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Withdrawals Tab (выводы средств, ручное подтверждение) ---------- */
+
+const WITHDRAWAL_STATUSES = [
+  { value: "pending", label: "Ожидают подтверждения" },
+  { value: "completed", label: "Выплаченные" },
+  { value: "failed", label: "Отклонённые" },
+  { value: "", label: "Все статусы" },
+];
+
+function formatWithdrawalStatus(status: string): string {
+  switch (status) {
+    case "pending": return "Ожидает";
+    case "completed": return "Выплачен";
+    case "failed": return "Отклонён";
+    default: return status;
+  }
+}
+
+function formatWithdrawalRole(role: string): string {
+  switch (role) {
+    case "Bloger": return "Автор";
+    case "Worker": return "Воркер";
+    default: return role;
+  }
+}
+
+/* Суммы выводов показываем с копейками — админ переводит ровно столько. */
+function formatRublesExact(kopeks: number): string {
+  return new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: "RUB",
+    minimumFractionDigits: kopeks % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(kopeks / 100);
+}
+
+function WithdrawalsTab() {
+  const queryClient = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [error, setError] = useState("");
+
+  const { data, isLoading } = useQuery<AdminWithdrawalsResponse>({
+    queryKey: ["admin-marketplace-withdrawals", statusFilter],
+    queryFn: () => {
+      const qs = statusFilter ? `?status=${statusFilter}` : "";
+      return apiRequest<AdminWithdrawalsResponse>(`/admin/marketplace/withdrawals${qs}`, { auth: true });
+    },
+  });
+
+  const actionMutation = useMutation({
+    mutationFn: ({ id, action, reason }: { id: string; action: "complete" | "reject"; reason?: string }) =>
+      apiRequest(`/admin/marketplace/withdrawals/${id}/${action}`, {
+        method: "PATCH",
+        auth: true,
+        body: action === "reject" ? JSON.stringify({ reason: reason || null }) : JSON.stringify({}),
+      }),
+    onSuccess: () => {
+      setError("");
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-withdrawals"] });
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  const handleComplete = (w: AdminWithdrawal) => {
+    const card = w.card_last4 ? `на карту •••• ${w.card_last4}` : "получателю";
+    if (window.confirm(`Подтвердить выплату ${formatRublesExact(w.amount_kopeks)} ${card} — «${w.user_name}»? Отметьте только после реального перевода.`)) {
+      actionMutation.mutate({ id: w.id, action: "complete" });
+    }
+  };
+
+  const handleReject = (w: AdminWithdrawal) => {
+    const reason = window.prompt("Причина отклонения (увидит получатель, сумма вернётся на баланс):");
+    if (reason === null) return;
+    actionMutation.mutate({ id: w.id, action: "reject", reason: reason.trim() || undefined });
+  };
+
+  return (
+    <div className={styles.section}>
+      <h2 className={styles.sectionTitle}>Запросы на вывод средств</h2>
+      <p style={{ fontSize: "0.85rem", color: "var(--mp-text-muted)", marginTop: 0 }}>
+        Баланс уже списан при создании запроса. Переведите деньги на карту получателя и подтвердите
+        выплату; при отклонении сумма вернётся на баланс.
+      </p>
+
+      <div className={styles.filters}>
+        <select
+          className={styles.filterSelect}
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          aria-label="Фильтр выводов по статусу"
+        >
+          {WITHDRAWAL_STATUSES.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {error && <p className={styles.errorMsg}>{error}</p>}
+      {isLoading && <LoadingSpinner size="small" />}
+
+      {data && data.items.length === 0 && (
+        <p className={styles.emptyText}>Нет запросов с этим статусом.</p>
+      )}
+
+      {data && data.items.length > 0 && (
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Получатель</th>
+                <th>Сумма</th>
+                <th>Карта</th>
+                <th>Статус</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.items.map((w) => (
+                <tr key={w.id}>
+                  <td>{formatDateTime(w.created_at)}</td>
+                  <td>
+                    {w.user_name}
+                    <span style={{ display: "block", fontSize: "0.8rem", color: "var(--mp-text-muted)" }}>
+                      {formatWithdrawalRole(w.user_role)} · {w.user_email}
+                    </span>
+                  </td>
+                  <td style={{ whiteSpace: "nowrap", fontWeight: 600 }}>{formatRublesExact(w.amount_kopeks)}</td>
+                  <td>
+                    {w.card_last4 ? (
+                      <>
+                        •••• {w.card_last4}
+                        <span style={{ display: "block", fontSize: "0.8rem", color: "var(--mp-text-muted)" }}>
+                          {[w.card_bank, w.card_holder].filter(Boolean).join(" · ") || "—"}
+                        </span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    <span className={styles.statusBadge}>{formatWithdrawalStatus(w.status)}</span>
+                    {w.status === "failed" && w.error_message && (
+                      <span style={{ display: "block", fontSize: "0.8rem", color: "var(--mp-text-muted)", maxWidth: 220 }}>
+                        {w.error_message}
+                      </span>
+                    )}
+                    {w.status === "completed" && w.completed_at && (
+                      <span style={{ display: "block", fontSize: "0.8rem", color: "var(--mp-text-muted)" }}>
+                        {formatDateTime(w.completed_at)}
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    {w.status === "pending" ? (
+                      <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }}>
+                        <button
+                          type="button"
+                          className={styles.btnPrimary}
+                          onClick={() => handleComplete(w)}
+                          disabled={actionMutation.isPending}
+                        >
+                          Выплачено
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.resolveBtn}
+                          onClick={() => handleReject(w)}
+                          disabled={actionMutation.isPending}
+                        >
+                          Отклонить
+                        </button>
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

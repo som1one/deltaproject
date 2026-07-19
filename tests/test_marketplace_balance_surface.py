@@ -1,11 +1,12 @@
-"""HTTP: маркетплейс-баланс виден в /me, гард выплат при ненастроенном шлюзе.
+"""HTTP: маркетплейс-баланс виден в /me, ручной флоу вывода средств.
 
 Регрессия на «деньги начислены, но их никто не видит»: distribute_funds
 кредитует marketplace_balance_kopeks, а кабинеты читали только легаси balance.
 """
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -14,6 +15,7 @@ from dependencies.auth import get_current_user
 from dependencies.database import get_db
 from enums.user import UserRole
 from main import create_app
+from models.marketplace_withdrawal import MarketplaceWithdrawal
 
 
 def _make_user(role: UserRole, marketplace_balance_kopeks: int = 0) -> MagicMock:
@@ -66,11 +68,12 @@ async def test_me_includes_marketplace_balance() -> None:
 
 
 @pytest.mark.asyncio
-async def test_withdrawal_503_when_gateway_inactive() -> None:
-    """POST /marketplace/withdrawals без настроенной ЮKassa — 503 до списания.
+async def test_withdrawal_creates_pending_manual_request() -> None:
+    """POST /marketplace/withdrawals — ручной флоу: PENDING-запрос без ЮKassa.
 
-    Раньше запрос доходил до create_payout, падал после списания и отвечал
-    фантомной PENDING-записью, которую откатывал teardown сессии.
+    Выплату подтверждает или отклоняет администратор в админке;
+    платёжный шлюз в создании запроса не участвует и его отсутствие
+    не должно блокировать вывод.
     """
     app = create_app()
     user = _make_user(UserRole.BLOGER, marketplace_balance_kopeks=50_000)
@@ -78,24 +81,36 @@ async def test_withdrawal_503_when_gateway_inactive() -> None:
     app.dependency_overrides[get_current_user] = lambda: user
 
     session = AsyncMock()
+    lock_result = MagicMock()
+    lock_result.scalar_one = MagicMock(return_value=user)
+    session.execute = AsyncMock(return_value=lock_result)
+    session.add = MagicMock()
+
+    async def fake_refresh(obj: MarketplaceWithdrawal) -> None:
+        # Поля, которые в проде проставляет БД (default/server_default)
+        obj.id = uuid.uuid4()
+        now = datetime.now(timezone.utc)
+        obj.created_at = now
+        obj.updated_at = now
+
+    session.refresh = AsyncMock(side_effect=fake_refresh)
 
     async def fake_db():
         yield session
 
     app.dependency_overrides[get_db] = fake_db
-    creds = MagicMock()
-    creds.active = False
     try:
-        with patch(
-            "services.marketplace_payment_settings_service.get_effective_yookassa",
-            new=AsyncMock(return_value=creds),
-        ):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-                r = await ac.post("/marketplace/withdrawals", json={"amount_kopeks": 10_000})
-        assert r.status_code == 503
-        assert "шлюз" in r.json()["detail"]
-        # Ни списания, ни записи вывода не создавалось
-        session.execute.assert_not_awaited()
-        session.add.assert_not_called()
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.post("/marketplace/withdrawals", json={"amount_kopeks": 10_000})
+        assert r.status_code == 201
+        body = r.json()
+        assert body["status"] == "pending"
+        assert body["amount_kopeks"] == 10_000
+        assert body["yookassa_payout_id"] is None
+        # Создана запись вывода и закоммичено списание баланса
+        added = session.add.call_args.args[0]
+        assert isinstance(added, MarketplaceWithdrawal)
+        assert added.amount_kopeks == 10_000
+        session.commit.assert_awaited()
     finally:
         app.dependency_overrides.clear()

@@ -50,3 +50,35 @@ class WithdrawalListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class AdminWithdrawalItem(BaseModel):
+    """Запрос на вывод в админке — с данными получателя и карты."""
+
+    id: uuid.UUID
+    user_id: uuid.UUID
+    amount_kopeks: int
+    status: WithdrawalStatus
+    error_message: str | None = None
+    created_at: datetime
+    completed_at: datetime | None = None
+    user_name: str
+    user_email: str
+    user_role: str
+    card_last4: str | None = None
+    card_brand: str | None = None
+    card_bank: str | None = None
+    card_holder: str | None = None
+
+
+class AdminWithdrawalListResponse(BaseModel):
+    """Список запросов на вывод для админки."""
+
+    items: list[AdminWithdrawalItem]
+    total: int
+
+
+class AdminWithdrawalRejectRequest(BaseModel):
+    """Отклонение запроса на вывод администратором."""
+
+    reason: str | None = Field(default=None, max_length=500)

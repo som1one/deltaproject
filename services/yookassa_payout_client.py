@@ -67,7 +67,9 @@ async def create_payout(
     headers = {
         "Authorization": f"Basic {token}",
         "Content-Type": "application/json",
-        "Idempotency-Key": idempotency_key[:64],
+        # ЮKassa принимает именно Idempotence-Key; с "Idempotency-Key"
+        # API отвечает 400 "Idempotence key is missing".
+        "Idempotence-Key": idempotency_key[:64],
     }
 
     async with httpx.AsyncClient(timeout=60.0) as client:

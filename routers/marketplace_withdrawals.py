@@ -3,6 +3,10 @@
 POST /marketplace/withdrawals — создать запрос на вывод
 GET  /marketplace/withdrawals — список выводов пользователя
 GET  /marketplace/withdrawals/{id} — детали вывода
+
+Выплата ручная: запрос создаётся в статусе PENDING со списанием баланса,
+администратор подтверждает или отклоняет его в админ-панели
+(PATCH /admin/marketplace/withdrawals/{id}/complete|reject).
 """
 
 from __future__ import annotations
@@ -26,7 +30,6 @@ from schemas.marketplace_withdrawals import (
     WithdrawalRequest,
     WithdrawalResponse,
 )
-from services.marketplace_payment_service import PaymentService, PaymentServiceError
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +65,8 @@ async def create_withdrawal(
     - amount_kopeks <= marketplace_balance_kopeks
     - У пользователя привязана карта (payout_card_hash)
 
+    Баланс списывается сразу, запись остаётся в PENDING до решения
+    администратора; при отклонении сумма возвращается.
     Использует SELECT FOR UPDATE на строке пользователя для защиты от гонок.
     """
     _assert_withdrawal_role(user)
@@ -71,17 +76,6 @@ async def create_withdrawal(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Необходимо привязать банковскую карту перед выводом средств",
-        )
-
-    # Шлюз проверяем до списания: иначе создали бы запись и списали баланс,
-    # которые всё равно откатятся на teardown, а клиент увидел бы фантомный PENDING.
-    from services.marketplace_payment_settings_service import get_effective_yookassa
-
-    creds = await get_effective_yookassa(db)
-    if not creds.active:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Выплаты временно недоступны: платёжный шлюз не настроен",
         )
 
     # Lock user row for concurrent withdrawal protection
@@ -108,43 +102,13 @@ async def create_withdrawal(
         .values(marketplace_balance_kopeks=new_balance)
     )
 
-    # Create withdrawal record
+    # Create withdrawal record — ждёт решения администратора
     withdrawal = MarketplaceWithdrawal(
         user_id=user.id,
         amount_kopeks=body.amount_kopeks,
         status=WithdrawalStatus.PENDING.value,
     )
     db.add(withdrawal)
-    await db.flush()  # Get the ID before commit
-
-    # Attempt payout via YooKassa
-    try:
-        payout_result = await PaymentService.create_payout(
-            user_id=user.id,
-            amount_kopeks=body.amount_kopeks,
-            payout_token=locked_user.payout_card_hash,
-            db=db,
-            withdrawal_id=withdrawal.id,
-        )
-        # payout_id is already stored on withdrawal by PaymentService
-    except PaymentServiceError as exc:
-        # Ветка YookassaPayoutError уже закоммитила FAILED + возврат баланса.
-        # Если же ошибка случилась до попытки выплаты (коммита не было) —
-        # откатываемся и честно отвечаем 502 вместо фантомной PENDING-записи.
-        await db.rollback()
-        committed = (
-            await db.execute(
-                select(MarketplaceWithdrawal).where(
-                    MarketplaceWithdrawal.id == withdrawal.id
-                )
-            )
-        ).scalar_one_or_none()
-        if committed is not None:
-            return WithdrawalResponse.model_validate(committed)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Не удалось создать выплату: {exc}",
-        ) from exc
 
     await db.commit()
     await db.refresh(withdrawal)
