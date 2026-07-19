@@ -123,184 +123,20 @@ import { SiteFooter } from "@/components/common/site-footer";
 
 /* =========================================================
    Moon artwork
-   Inline SVG of the full Moon, near side: the maria follow the
-   real arrangement (Procellarum along the west, Imbrium and
-   Serenitatis up top, Crisium as the lone oval by the east limb),
-   plus the Tycho ray crater to the south. Lighting is face-on
-   with gentle limb darkening — a full moon, not a half-lit ball.
+   Pre-rendered sprite: a bump-lit full moon with the near-side
+   maria, Tycho/Copernicus ray systems and cratered southern
+   highlands, baked into a transparent PNG.
+   Regenerate with: node frontend/scripts/generate-moon.mjs
    ========================================================= */
 
 const HeroMoonArt = () => (
-  <svg
+  <img
     className={styles.heroMoonSvg}
-    viewBox="0 0 520 520"
+    src="/images/moon-surface.png"
+    alt=""
     aria-hidden="true"
-    focusable="false"
-  >
-    <defs>
-      <radialGradient id="lm-base" cx="40%" cy="34%" r="72%">
-        <stop offset="0%" stopColor="#efede6" />
-        <stop offset="38%" stopColor="#dfdcd2" />
-        <stop offset="60%" stopColor="#ccc8bb" />
-        <stop offset="78%" stopColor="#b1ac9e" />
-        <stop offset="90%" stopColor="#948f82" />
-        <stop offset="100%" stopColor="#7b766a" />
-      </radialGradient>
-
-      {/* A whisper of shade toward the lower-right keeps the disc
-         spherical without drowning half of it in darkness */}
-      <radialGradient id="lm-term" cx="34%" cy="30%" r="105%">
-        <stop offset="0%" stopColor="#0b0908" stopOpacity="0" />
-        <stop offset="58%" stopColor="#0b0908" stopOpacity="0" />
-        <stop offset="72%" stopColor="#100e0b" stopOpacity="0.1" />
-        <stop offset="86%" stopColor="#0a0908" stopOpacity="0.22" />
-        <stop offset="100%" stopColor="#060505" stopOpacity="0.34" />
-      </radialGradient>
-
-      <radialGradient id="lm-sheen" cx="36%" cy="30%" r="46%">
-        <stop offset="0%" stopColor="#fdfdf9" stopOpacity="0.14" />
-        <stop offset="50%" stopColor="#fdfdf9" stopOpacity="0.05" />
-        <stop offset="100%" stopColor="#fdfdf9" stopOpacity="0" />
-      </radialGradient>
-
-      {/* Shared crater shading: shallow bowl, faint far rim */}
-      <radialGradient id="lm-crater">
-        <stop offset="0%" stopColor="#000000" stopOpacity="0.03" />
-        <stop offset="52%" stopColor="#000000" stopOpacity="0.09" />
-        <stop offset="70%" stopColor="#000000" stopOpacity="0.22" />
-        <stop offset="80%" stopColor="#000000" stopOpacity="0.1" />
-        <stop offset="86%" stopColor="#f6f5ef" stopOpacity="0.16" />
-        <stop offset="100%" stopColor="#f6f5ef" stopOpacity="0" />
-      </radialGradient>
-
-      {/* Maria coastlines: a light warp for organic edges, then soften.
-         The displacement is kept small so shapes stay recognizable. */}
-      <filter id="lm-maria" x="-30%" y="-30%" width="160%" height="160%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="2" seed="11" result="warp" />
-        <feDisplacementMap in="SourceGraphic" in2="warp" scale="22" xChannelSelector="R" yChannelSelector="G" />
-        <feGaussianBlur stdDeviation="5.5" />
-      </filter>
-
-      {/* Soft halo behind the bright ray craters */}
-      <filter id="lm-soft" x="-80%" y="-80%" width="260%" height="260%">
-        <feGaussianBlur stdDeviation="6" />
-      </filter>
-
-      {/* Large-scale tonal mottling of the surface */}
-      <filter id="lm-mottle" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
-        <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="4" seed="7" stitchTiles="stitch" />
-        <feColorMatrix type="saturate" values="0" />
-        <feComponentTransfer>
-          <feFuncR type="linear" slope="0.75" intercept="0.14" />
-          <feFuncG type="linear" slope="0.75" intercept="0.14" />
-          <feFuncB type="linear" slope="0.75" intercept="0.14" />
-          <feFuncA type="linear" slope="0" intercept="1" />
-        </feComponentTransfer>
-      </filter>
-
-      {/* Fine regolith relief, lit from the top-left */}
-      <filter id="lm-relief" x="0" y="0" width="100%" height="100%" colorInterpolationFilters="sRGB">
-        <feTurbulence type="fractalNoise" baseFrequency="0.16" numOctaves="3" seed="21" stitchTiles="stitch" result="noise" />
-        <feDiffuseLighting in="noise" lightingColor="#ffffff" surfaceScale="1.8" diffuseConstant="0.62" result="lit">
-          <feDistantLight azimuth="225" elevation="58" />
-        </feDiffuseLighting>
-        <feComponentTransfer>
-          <feFuncA type="linear" slope="0" intercept="1" />
-        </feComponentTransfer>
-      </filter>
-
-      <clipPath id="lm-clip">
-        <circle cx="260" cy="260" r="260" />
-      </clipPath>
-    </defs>
-
-    <g clipPath="url(#lm-clip)" style={{ isolation: "isolate" }}>
-      <circle cx="260" cy="260" r="260" fill="url(#lm-base)" />
-
-      {/* Maria, laid out after the near side (north up). Every mare is a
-         round impact basin, so the complexes are unions of overlapping
-         circles: west — Imbrium into Oceanus Procellarum, Humorum,
-         Nubium; east — Serenitatis into Tranquillitatis, Nectaris,
-         Fecunditatis; Crisium alone by the east limb */}
-      <g filter="url(#lm-maria)" fill="#5b574d" opacity="0.36" style={{ mixBlendMode: "multiply" }}>
-        <circle cx="190" cy="130" r="55" />
-        <circle cx="150" cy="185" r="32" />
-        <circle cx="118" cy="225" r="38" />
-        <circle cx="112" cy="280" r="34" />
-        <circle cx="135" cy="320" r="26" />
-        <circle cx="150" cy="340" r="20" />
-        <circle cx="185" cy="280" r="14" />
-        <circle cx="180" cy="310" r="18" />
-        <circle cx="205" cy="330" r="27" />
-        <circle cx="298" cy="132" r="42" />
-        <circle cx="345" cy="195" r="40" />
-        <circle cx="320" cy="215" r="22" />
-        <circle cx="332" cy="255" r="14" />
-        <circle cx="328" cy="288" r="19" />
-        <circle cx="375" cy="225" r="16" />
-        <circle cx="392" cy="258" r="26" />
-        <ellipse cx="424" cy="148" rx="28" ry="22" transform="rotate(-15 424 148)" />
-      </g>
-
-      {/* Darker basin cores give the plains internal depth */}
-      <g filter="url(#lm-maria)" fill="#5b574d" opacity="0.16" style={{ mixBlendMode: "multiply" }}>
-        <circle cx="190" cy="135" r="34" />
-        <circle cx="345" cy="200" r="24" />
-        <circle cx="115" cy="255" r="22" />
-        <circle cx="392" cy="260" r="14" />
-        <ellipse cx="424" cy="148" rx="16" ry="12" transform="rotate(-15 424 148)" />
-      </g>
-
-      <rect width="520" height="520" filter="url(#lm-mottle)" opacity="0.42" style={{ mixBlendMode: "soft-light" }} />
-      <rect width="520" height="520" filter="url(#lm-relief)" opacity="0.3" style={{ mixBlendMode: "soft-light" }} />
-
-      {/* Tycho — bright collar, pit and a fan of faint rays */}
-      <g>
-        <circle cx="242" cy="402" r="16" fill="#f2f1ea" opacity="0.12" filter="url(#lm-soft)" />
-        <g stroke="#f2f1ea" strokeWidth="2.5" strokeLinecap="round">
-          <line x1="228" y1="386" x2="150" y2="296" opacity="0.055" />
-          <line x1="240" y1="380" x2="226" y2="282" opacity="0.07" />
-          <line x1="252" y1="384" x2="306" y2="286" opacity="0.06" />
-          <line x1="258" y1="394" x2="352" y2="344" opacity="0.05" />
-          <line x1="222" y1="398" x2="140" y2="378" opacity="0.05" />
-          <line x1="256" y1="408" x2="322" y2="436" opacity="0.055" />
-          <line x1="234" y1="412" x2="196" y2="452" opacity="0.05" />
-        </g>
-        <circle cx="242" cy="402" r="7" fill="url(#lm-crater)" />
-        <circle cx="242" cy="402" r="2.4" fill="#efeee7" opacity="0.2" />
-      </g>
-
-      {/* Copernicus and Kepler — small ray craters in the west */}
-      <g>
-        <circle cx="196" cy="214" r="12" fill="#f2f1ea" opacity="0.08" filter="url(#lm-soft)" />
-        <circle cx="196" cy="214" r="6.5" fill="url(#lm-crater)" />
-        <circle cx="126" cy="236" r="9" fill="#f2f1ea" opacity="0.06" filter="url(#lm-soft)" />
-        <circle cx="126" cy="236" r="4.5" fill="url(#lm-crater)" />
-      </g>
-
-      {/* Southern highlands — the heavily cratered band along the bottom */}
-      <g>
-        <circle cx="452" cy="216" r="4" fill="url(#lm-crater)" />
-        <circle cx="76" cy="176" r="3.5" fill="url(#lm-crater)" />
-        <circle cx="416" cy="348" r="4.5" fill="url(#lm-crater)" />
-        <circle cx="330" cy="384" r="3.5" fill="url(#lm-crater)" />
-        <circle cx="160" cy="392" r="5" fill="url(#lm-crater)" />
-        <circle cx="190" cy="424" r="3.5" fill="url(#lm-crater)" />
-        <circle cx="218" cy="448" r="4.5" fill="url(#lm-crater)" />
-        <circle cx="252" cy="468" r="3" fill="url(#lm-crater)" />
-        <circle cx="282" cy="442" r="5.5" fill="url(#lm-crater)" />
-        <circle cx="308" cy="464" r="3.5" fill="url(#lm-crater)" />
-        <circle cx="342" cy="446" r="4" fill="url(#lm-crater)" />
-        <circle cx="372" cy="416" r="5" fill="url(#lm-crater)" />
-        <circle cx="300" cy="416" r="3" fill="url(#lm-crater)" />
-        <circle cx="146" cy="360" r="3" fill="url(#lm-crater)" />
-      </g>
-
-      {/* Face-on lighting: gentle shade to lower-right, sheen at top-left */}
-      <circle cx="260" cy="260" r="260" fill="url(#lm-term)" />
-      <circle cx="260" cy="260" r="260" fill="url(#lm-sheen)" style={{ mixBlendMode: "screen" }} />
-    </g>
-  </svg>
+    draggable={false}
+  />
 );
 
 /* =========================================================
