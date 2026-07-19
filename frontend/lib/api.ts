@@ -4,6 +4,7 @@ import type {
   AdminAuditListResponse,
   AdminBalanceAdjustmentResponse,
   AdminBloggerCreateResponse,
+  AdminDailySeriesResponse,
   AdminOverviewResponse,
   AdminPaymentDetails,
   AdminPaymentDetailsSet,
@@ -176,6 +177,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ ticket }),
     }),
+  /** Повторная проверка подписки на канал: без нового прохода Telegram OAuth. */
+  recheckTelegramSubscription: (token: string) =>
+    request<AuthTokensResponse>("/auth/telegram/recheck", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    }),
   bloggerLogin: (body: { nickname: string; password: string }) =>
     request<AuthTokensResponse>("/auth/blogger-login", {
       method: "POST",
@@ -318,6 +325,8 @@ export const api = {
       body: JSON.stringify(body),
     }),
   getAdminOverview: () => request<AdminOverviewResponse>("/admin/overview", { auth: true }),
+  getAdminDailyLogins: (days = 30) =>
+    request<AdminDailySeriesResponse>(`/admin/stats/logins-daily?days=${days}`, { auth: true }),
   getAdminUsers: (query = "") => request<AdminUserListResponse>(`/admin/users${query}`, { auth: true }),
   getAdminUser: (id: string) => request<AdminUserRead>(`/admin/users/${id}`, { auth: true }),
   patchAdminUser: (id: string, body: Record<string, unknown>) =>
@@ -474,6 +483,8 @@ export const api = {
     }),
   getAdminTelegramChannelStats: (query = "") =>
     request<TelegramChannelStatsResponse>(`/admin/telegram-channel/stats${query}`, { auth: true }),
+  getAdminTelegramChannelDailyStats: (days = 30) =>
+    request<AdminDailySeriesResponse>(`/admin/telegram-channel/stats/daily?days=${days}`, { auth: true }),
   checkAdminTelegramSubscription: (telegramUserId: string) =>
     request<{ subscribed: boolean; channel_id?: string; reason?: string }>(
       `/admin/telegram-channel/check/${telegramUserId}`,

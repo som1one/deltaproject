@@ -18,6 +18,7 @@ from schemas.admin import (
     AdminBalanceAdjustmentResponse,
     AdminBloggerCreateRequest,
     AdminBloggerCreateResponse,
+    AdminDailySeriesResponse,
     AdminOverviewResponse,
     AdminPartnerCardSet,
     AdminUserLedgerResponse,
@@ -48,6 +49,7 @@ from schemas.finance import (
 from schemas.ledger import AdminLedgerStatusPatch, LedgerEntryRead, LedgerListResponse
 from services.admin_audit_service import list_admin_audit
 from services.admin_overview_service import admin_get_overview
+from services.session_service import get_daily_login_series
 from services.admin_payment_details_service import (
     get_admin_payment_details_masked,
     set_admin_payment_details,
@@ -98,6 +100,17 @@ async def get_admin_overview(
 ) -> AdminOverviewResponse:
     data = await admin_get_overview(db)
     return AdminOverviewResponse.model_validate(data)
+
+
+@router.get("/stats/logins-daily", response_model=AdminDailySeriesResponse)
+async def get_admin_daily_logins(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+    days: int = Query(default=30, ge=7, le=180),
+) -> AdminDailySeriesResponse:
+    """Уникальные вошедшие пользователи по дням — для раздела «Статистика»."""
+    series = await get_daily_login_series(db, days)
+    return AdminDailySeriesResponse(days=days, series=series)
 
 
 @router.get("/users", response_model=AdminUserListResponse)

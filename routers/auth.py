@@ -24,6 +24,7 @@ from schemas.auth import (
     RefreshRequest,
     TelegramAuthExchangeRequest,
     TelegramOAuthConfigResponse,
+    TelegramSubscriptionRecheckRequest,
 )
 from services.session_service import (
     assert_login_allowed_for_ip,
@@ -39,7 +40,9 @@ from services.telegram_oauth_client import (
 from services.telegram_oauth_store import (
     consume_exchange_ticket,
     create_exchange_ticket,
+    create_recheck_token,
     create_signed_state,
+    verify_recheck_token,
     verify_signed_state,
 )
 from services.telegram_user_service import find_or_create_worker_by_telegram, find_or_create_client_by_telegram
@@ -174,6 +177,69 @@ async def telegram_oauth_start(
     return RedirectResponse(auth_url, status_code=302)
 
 
+class _TelegramAccountError(Exception):
+    """Бизнес-ошибка завершения Telegram-входа; ``code`` — код для фронта."""
+
+    def __init__(self, code: str):
+        super().__init__(code)
+        self.code = code
+
+
+async def _resolve_telegram_user(
+    db: AsyncSession,
+    *,
+    role: str,
+    linked_to: str | None,
+    telegram_id: str,
+    username: str,
+    name: str,
+) -> User:
+    """Находит/создаёт пользователя после подтверждённого Telegram-входа.
+
+    Общая часть callback'а и повторной проверки подписки (/telegram/recheck).
+    """
+    linked_to_uuid: UUID | None = None
+    if linked_to and role == "WORKER":
+        try:
+            linked_to_uuid = UUID(linked_to)
+        except (TypeError, ValueError):
+            linked_to_uuid = None
+
+    try:
+        if role == "CLIENT":
+            client_referred_by: UUID | None = None
+            if linked_to:
+                client_referred_by = await resolve_referral(linked_to, db)
+
+            user = await find_or_create_client_by_telegram(
+                db,
+                telegram_id=telegram_id,
+                username=username,
+                name=name,
+                marketplace_referred_by=client_referred_by,
+            )
+        else:
+            user = await find_or_create_worker_by_telegram(
+                db,
+                telegram_id=telegram_id,
+                username=username,
+                name=name,
+                linked_to=linked_to_uuid,
+            )
+    except Exception:
+        logger.exception("Telegram: ошибка создания/поиска пользователя tg_id=%s", telegram_id)
+        await db.rollback()
+        raise _TelegramAccountError("account_error")
+
+    if not user.is_active:
+        raise _TelegramAccountError("user_disabled")
+    if role == "WORKER" and user.role != UserRole.WORKER:
+        raise _TelegramAccountError("not_worker")
+    if role == "CLIENT" and user.role != UserRole.CLIENT:
+        raise _TelegramAccountError("not_client")
+    return user
+
+
 @router.get("/telegram/callback")
 async def telegram_oauth_callback(
     request: Request,
@@ -210,60 +276,42 @@ async def telegram_oauth_callback(
     if channel_config is not None and channel_config.is_enabled:
         subscribed = await check_user_subscribed(str(claims.sub), channel_config.channel_id)
         if not subscribed:
-            # Redirect to frontend with error + channel info for UI
-            from urllib.parse import urlencode as _urlencode
+            # Redirect to frontend with error + channel info for UI.
+            # recheck-токен позволяет кнопке «Я подписался» завершить вход
+            # без повторного прохода через Telegram OAuth.
+            recheck = create_recheck_token(
+                telegram_id=str(claims.sub),
+                username=claims.preferred_username or "",
+                name=claims.name or "",
+                linked_to=state_entry.linked_to,
+                client_ip=state_entry.client_ip,
+                role=state_entry.role,
+            )
             target = _frontend_callback_url()
             params = {
                 "error": "channel_not_subscribed",
                 "channel_url": channel_config.channel_url or "",
                 "channel_title": channel_config.channel_title or "",
+                "recheck": recheck,
             }
-            target = f"{target}?{_urlencode(params)}"
+            target = f"{target}?{urlencode(params)}"
             return RedirectResponse(target, status_code=302)
         # Record subscription for analytics
         client_ip = state_entry.client_ip if hasattr(state_entry, "client_ip") else None
         await record_subscription(db, str(claims.sub), channel_config.channel_id, client_ip)
         await db.commit()
 
-    linked_to_uuid: UUID | None = None
-    if state_entry.linked_to and state_entry.role == "WORKER":
-        try:
-            linked_to_uuid = UUID(state_entry.linked_to)
-        except (TypeError, ValueError):
-            linked_to_uuid = None
-
     try:
-        if state_entry.role == "CLIENT":
-            client_referred_by: UUID | None = None
-            if state_entry.linked_to:
-                client_referred_by = await resolve_referral(state_entry.linked_to, db)
-
-            user = await find_or_create_client_by_telegram(
-                db,
-                telegram_id=claims.sub,
-                username=claims.preferred_username,
-                name=claims.name,
-                marketplace_referred_by=client_referred_by,
-            )
-        else:
-            user = await find_or_create_worker_by_telegram(
-                db,
-                telegram_id=claims.sub,
-                username=claims.preferred_username,
-                name=claims.name,
-                linked_to=linked_to_uuid,
-            )
-    except Exception as exc:
-        logger.exception("Telegram callback: ошибка создания/поиска пользователя tg_id=%s", claims.sub)
-        await db.rollback()
-        return _frontend_redirect(error="account_error")
-
-    if not user.is_active:
-        return _frontend_redirect(error="user_disabled")
-    if state_entry.role == "WORKER" and user.role != UserRole.WORKER:
-        return _frontend_redirect(error="not_worker")
-    if state_entry.role == "CLIENT" and user.role != UserRole.CLIENT:
-        return _frontend_redirect(error="not_client")
+        user = await _resolve_telegram_user(
+            db,
+            role=state_entry.role,
+            linked_to=state_entry.linked_to,
+            telegram_id=str(claims.sub),
+            username=claims.preferred_username,
+            name=claims.name,
+        )
+    except _TelegramAccountError as exc:
+        return _frontend_redirect(error=exc.code)
 
     access = create_access_token(user.id)
     refresh = create_refresh_token(user.id)
@@ -313,6 +361,65 @@ async def telegram_oauth_exchange(
         message="Login successful",
         token=entry.access_token,
         refresh_token=entry.refresh_token,
+    )
+
+
+@router.post("/telegram/recheck", response_model=AuthTokensResponse)
+@limiter.limit(settings.rate_limit_login)
+async def telegram_subscription_recheck(
+    request: Request,
+    body: TelegramSubscriptionRecheckRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Повторная проверка подписки на канал без нового прохода Telegram OAuth.
+
+    Кнопка «Я подписался» шлёт recheck-токен из callback-редиректа; claims в
+    нём уже подтверждены OIDC-обменом. Если подписка появилась — сразу выдаём
+    JWT-пары. 409 — подписки всё ещё нет; 410 — токен истёк, нужен полный
+    заход через Telegram.
+    """
+    entry = verify_recheck_token(body.token)
+    if entry is None:
+        raise HTTPException(status_code=410, detail="recheck_expired")
+
+    channel_config = await get_channel_config(db)
+    if channel_config is not None and channel_config.is_enabled:
+        subscribed = await check_user_subscribed(entry.telegram_id, channel_config.channel_id)
+        if not subscribed:
+            raise HTTPException(status_code=409, detail="still_not_subscribed")
+        await record_subscription(
+            db, entry.telegram_id, channel_config.channel_id, entry.client_ip or None
+        )
+        await db.commit()
+
+    try:
+        user = await _resolve_telegram_user(
+            db,
+            role=entry.role,
+            linked_to=entry.linked_to,
+            telegram_id=entry.telegram_id,
+            username=entry.username,
+            name=entry.name,
+        )
+    except _TelegramAccountError as exc:
+        raise HTTPException(status_code=403, detail=exc.code)
+
+    # Журнал сессии — best-effort, вход уже подтверждён.
+    try:
+        await record_user_session(
+            db,
+            get_client_ip(request),
+            request.headers.get("user-agent", ""),
+            user_id=user.id,
+            session_kind="login",
+        )
+    except Exception:  # pragma: no cover
+        pass
+
+    return AuthTokensResponse(
+        message="Login successful",
+        token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
     )
 
 

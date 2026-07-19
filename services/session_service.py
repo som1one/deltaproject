@@ -102,6 +102,34 @@ async def assert_referral_registration_allowed_for_ip(
         )
 
 
+async def get_daily_login_series(db: AsyncSession, days: int) -> list[dict]:
+    """Уникальные вошедшие пользователи по дням за ``days`` дней (zero-filled, UTC).
+
+    Считаем DISTINCT user_id по сессиям kind='login' — «сколько человек
+    пришло» в продукт в конкретный день, а не сырое число входов.
+    """
+    now = datetime.now(timezone.utc)
+    start = (now - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    day = func.date_trunc("day", UserSession.created_at)
+    result = await db.execute(
+        select(day.label("day"), func.count(func.distinct(UserSession.user_id)))
+        .where(
+            UserSession.created_at >= start,
+            UserSession.session_kind == "login",
+            UserSession.user_id.is_not(None),
+        )
+        .group_by(day)
+        .order_by(day)
+    )
+    counts = {row[0].date().isoformat(): row[1] for row in result.all()}
+    return [
+        {"date": (start + timedelta(days=offset)).date().isoformat(),
+         "count": counts.get((start + timedelta(days=offset)).date().isoformat(), 0)}
+        for offset in range(days)
+    ]
+
+
 async def record_user_session(
     db: AsyncSession,
     ip: str,

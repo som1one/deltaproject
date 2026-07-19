@@ -61,3 +61,4 @@ marketplace/.turbo/
 
 # Локальные планы инструмента
 .kilo/
+frontend/.next-*/

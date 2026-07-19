@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from dependencies.auth import get_current_admin_or_tech
 from dependencies.database import get_db
 from models.user import User
+from schemas.admin import AdminDailySeriesResponse
 from schemas.telegram_channel import (
     TelegramChannelConfigRead,
     TelegramChannelConfigSet,
@@ -19,6 +20,7 @@ from schemas.telegram_channel import (
 from services.telegram_channel_service import (
     check_user_subscribed,
     get_channel_config,
+    get_daily_subscription_series,
     get_subscription_stats,
     upsert_channel_config,
 )
@@ -65,6 +67,17 @@ async def admin_get_channel_stats(
 ):
     stats = await get_subscription_stats(db, period_start, period_end)
     return TelegramChannelStatsResponse(**stats)
+
+
+@router.get("/admin/telegram-channel/stats/daily", response_model=AdminDailySeriesResponse)
+async def admin_get_channel_daily_stats(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    _admin: Annotated[User, Depends(get_current_admin_or_tech)],
+    days: int = Query(default=30, ge=7, le=180),
+):
+    """Подписки на канал по дням — для графика в разделе «Статистика»."""
+    series = await get_daily_subscription_series(db, days)
+    return AdminDailySeriesResponse(days=days, series=series)
 
 
 @router.get("/admin/telegram-channel/check/{telegram_user_id}")

@@ -149,6 +149,20 @@ class AdminBloggerCabinetStatsRead(BloggerMeStatsRead):
 AdminUserStatsResponse = Union[AdminWorkerCabinetStatsRead, AdminBloggerCabinetStatsRead]
 
 
+class DailyCountPoint(BaseModel):
+    """Одна точка дневного ряда (дата ISO YYYY-MM-DD + счётчик)."""
+
+    date: str
+    count: int
+
+
+class AdminDailySeriesResponse(BaseModel):
+    """Дневной ряд для графиков раздела «Статистика» (zero-filled)."""
+
+    days: int
+    series: list[DailyCountPoint]
+
+
 class AdminOverviewResponse(BaseModel):
     users_total: int
     users_active: int

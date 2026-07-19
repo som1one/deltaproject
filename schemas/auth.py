@@ -64,6 +64,12 @@ class TelegramAuthExchangeRequest(BaseModel):
     ticket: Annotated[str, Field(min_length=10, max_length=128)]
 
 
+class TelegramSubscriptionRecheckRequest(BaseModel):
+    """Подписанный recheck-токен из URL фронта (?recheck=...)."""
+
+    token: Annotated[str, Field(min_length=10, max_length=2048)]
+
+
 class PlatformAuthorizeRequest(BaseModel):
     """Запрос выдачи одноразового кода для SSO-входа в маркетплейс."""
 

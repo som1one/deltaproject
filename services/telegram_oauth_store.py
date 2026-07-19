@@ -25,6 +25,7 @@ from core.settings import settings
 
 STATE_TTL_SECONDS = 5 * 60   # время на прохождение Telegram-авторизации
 EXCHANGE_TTL_SECONDS = 2 * 60  # время от callback до /exchange на фронте
+RECHECK_TTL_SECONDS = 30 * 60  # окно, чтобы подписаться на канал и нажать «Я подписался»
 TOKEN_BYTES = 24
 
 
@@ -100,6 +101,81 @@ def verify_signed_state(state_token: str) -> OAuthState | None:
     client_ip = payload.get("ip") if isinstance(payload.get("ip"), str) else ""
     role = payload.get("r") if isinstance(payload.get("r"), str) else "WORKER"
     return OAuthState(state=state_token, nonce=nonce, linked_to=linked_to, client_ip=client_ip, role=role)
+
+
+@dataclass(frozen=True)
+class SubscriptionRecheck:
+    """Проверенные OIDC-claims, замороженные на время подписки на канал.
+
+    Выдаётся фронту вместе с ошибкой ``channel_not_subscribed``; кнопка
+    «Я подписался» возвращает токен в ``/auth/telegram/recheck``, и вход
+    завершается без повторного прохода через Telegram OAuth.
+    """
+
+    telegram_id: str
+    username: str
+    name: str
+    linked_to: str | None
+    client_ip: str
+    role: str
+
+
+def create_recheck_token(
+    *,
+    telegram_id: str,
+    username: str,
+    name: str,
+    linked_to: str | None,
+    client_ip: str,
+    role: str,
+) -> str:
+    payload = {
+        "k": "recheck",
+        "sub": telegram_id,
+        "u": username,
+        "nm": name,
+        "l": linked_to,
+        "ip": client_ip,
+        "r": role,
+        "t": _now(),
+    }
+    body = _b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
+    sig = hmac.new(_state_secret(), body.encode("ascii"), hashlib.sha256).digest()
+    return f"{body}.{_b64encode(sig)}"
+
+
+def verify_recheck_token(token: str) -> SubscriptionRecheck | None:
+    """Проверяет HMAC и TTL recheck-токена. None — невалидный или истёк."""
+    if not token or "." not in token:
+        return None
+    body, sig_b64 = token.rsplit(".", 1)
+    try:
+        expected_sig = hmac.new(_state_secret(), body.encode("ascii"), hashlib.sha256).digest()
+        actual_sig = _b64decode(sig_b64)
+    except (ValueError, TypeError):
+        return None
+    if not hmac.compare_digest(expected_sig, actual_sig):
+        return None
+    try:
+        payload = json.loads(_b64decode(body).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    if not isinstance(payload, dict) or payload.get("k") != "recheck":
+        return None
+    telegram_id = payload.get("sub")
+    issued_at = payload.get("t")
+    if not isinstance(telegram_id, str) or not telegram_id or not isinstance(issued_at, int):
+        return None
+    if _now() - issued_at > RECHECK_TTL_SECONDS:
+        return None
+    return SubscriptionRecheck(
+        telegram_id=telegram_id,
+        username=payload.get("u") if isinstance(payload.get("u"), str) else "",
+        name=payload.get("nm") if isinstance(payload.get("nm"), str) else "",
+        linked_to=payload.get("l") if isinstance(payload.get("l"), str) else None,
+        client_ip=payload.get("ip") if isinstance(payload.get("ip"), str) else "",
+        role=payload.get("r") if isinstance(payload.get("r"), str) else "WORKER",
+    )
 
 
 @dataclass

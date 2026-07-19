@@ -163,6 +163,28 @@ async def get_subscription_stats(
     }
 
 
+async def get_daily_subscription_series(db: AsyncSession, days: int) -> list[dict]:
+    """Подписки по дням за последние ``days`` дней (zero-filled, UTC)."""
+    from datetime import timedelta
+
+    now = datetime.now(timezone.utc)
+    start = (now - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    day = func.date_trunc("day", TelegramChannelSubscription.confirmed_at)
+    result = await db.execute(
+        select(day.label("day"), func.count(TelegramChannelSubscription.id))
+        .where(TelegramChannelSubscription.confirmed_at >= start)
+        .group_by(day)
+        .order_by(day)
+    )
+    counts = {row[0].date().isoformat(): row[1] for row in result.all()}
+    return [
+        {"date": (start + timedelta(days=offset)).date().isoformat(),
+         "count": counts.get((start + timedelta(days=offset)).date().isoformat(), 0)}
+        for offset in range(days)
+    ]
+
+
 async def upsert_channel_config(
     db: AsyncSession,
     *,

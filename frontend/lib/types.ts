@@ -405,3 +405,13 @@ export type TelegramChannelStatsResponse = {
   this_month: number;
   period_count: number | null;
 };
+
+export type DailyCountPoint = {
+  date: string;
+  count: number;
+};
+
+export type AdminDailySeriesResponse = {
+  days: number;
+  series: DailyCountPoint[];
+};

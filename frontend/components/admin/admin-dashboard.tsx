@@ -45,12 +45,13 @@ import {
   TwoColumn,
 } from "@/components/common/ui";
 import styles from "@/components/admin/admin.module.css";
+import { ChartRangeSwitch, DailyBarsChart, type ChartRange } from "@/components/admin/stat-charts";
 import { CopyButton } from "@/components/common/copy-button";
 import { PayoutCardInput } from "@/components/common/payout-card-input";
 import { AdminMarketplacePanel, type AdminMarketplaceTab } from "@/components/admin/marketplace-panel";
 
 type AdminSection =
-  | "overview" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "deals" | "ledger" | "schemes" | "finance" | "finance-requisites" | "finance-analytics" | "scripts" | "telegram"
+  | "overview" | "stats" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "deals" | "ledger" | "schemes" | "finance" | "finance-requisites" | "finance-analytics" | "scripts" | "telegram"
   | "mp-dashboard" | "mp-orders" | "mp-payments" | "mp-settings" | "mp-tickets" | "mp-bloggers" | "mp-services" | "mp-moderation" | "mp-premium" | "mp-hero";
 
 type AdminModalState =
@@ -98,6 +99,11 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
     label: "Обзор",
     title: "Обзор площадки",
     lead: "Сводная статистика по пользователям, сделкам и балансам.",
+  },
+  stats: {
+    label: "Статистика",
+    title: "Статистика",
+    lead: "Приток людей по дням: подписки на канал и активность входов. Раздел будет пополняться новыми графиками.",
   },
   users: {
     label: "Пользователи",
@@ -267,6 +273,19 @@ export const AdminDashboard = () => {
     queryKey: ["admin", "workerScripts"],
     queryFn: api.getAdminWorkerScripts,
     enabled: Boolean(isAuthenticated),
+  });
+
+  // Статистика: дневные ряды для графиков
+  const [statsRange, setStatsRange] = useState<ChartRange>(30);
+  const statsSubsDailyQuery = useQuery({
+    queryKey: ["admin", "statsSubsDaily", statsRange],
+    queryFn: () => api.getAdminTelegramChannelDailyStats(statsRange),
+    enabled: Boolean(isAuthenticated) && section === "stats",
+  });
+  const statsLoginsDailyQuery = useQuery({
+    queryKey: ["admin", "statsLoginsDaily", statsRange],
+    queryFn: () => api.getAdminDailyLogins(statsRange),
+    enabled: Boolean(isAuthenticated) && section === "stats",
   });
 
   // Telegram channel
@@ -2640,6 +2659,52 @@ export const AdminDashboard = () => {
       );
     }
 
+    if (section === "stats") {
+      const stats = telegramStatsQuery.data;
+      const subsSeries = statsSubsDailyQuery.data?.series ?? [];
+      const loginsSeries = statsLoginsDailyQuery.data?.series ?? [];
+      const subsPeriodTotal = subsSeries.reduce((acc, point) => acc + point.count, 0);
+      const loginsPeriodTotal = loginsSeries.reduce((acc, point) => acc + point.count, 0);
+      return (
+        <Stack>
+          <StatsGrid>
+            <StatCard label="Подписок всего" value={stats ? formatNumber(stats.total) : "—"} />
+            <StatCard label="Сегодня" value={stats ? formatNumber(stats.today) : "—"} />
+            <StatCard label="За неделю" value={stats ? formatNumber(stats.this_week) : "—"} />
+            <StatCard label="За месяц" value={stats ? formatNumber(stats.this_month) : "—"} />
+          </StatsGrid>
+
+          <ChartRangeSwitch value={statsRange} onChange={setStatsRange} />
+
+          <SectionCard
+            title="Подписки на канал по дням"
+            lead={`Сколько человек подтвердили подписку при регистрации. За период: ${formatNumber(subsPeriodTotal)}.`}
+          >
+            {statsSubsDailyQuery.data ? (
+              <DailyBarsChart points={subsSeries} ariaLabel="Подписки на канал по дням" />
+            ) : statsSubsDailyQuery.isError ? (
+              <Message tone="error">Не удалось загрузить график подписок.</Message>
+            ) : (
+              <Message>Загружаем график…</Message>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            title="Активность входов по дням"
+            lead={`Уникальные пользователи, которые входили на платформу. За период: ${formatNumber(loginsPeriodTotal)}.`}
+          >
+            {statsLoginsDailyQuery.data ? (
+              <DailyBarsChart points={loginsSeries} ariaLabel="Активность входов по дням" />
+            ) : statsLoginsDailyQuery.isError ? (
+              <Message tone="error">Не удалось загрузить график входов.</Message>
+            ) : (
+              <Message>Загружаем график…</Message>
+            )}
+          </SectionCard>
+        </Stack>
+      );
+    }
+
     if (section === "telegram") {
       const stats = telegramStatsQuery.data;
       return (
@@ -2748,6 +2813,15 @@ export const AdminDashboard = () => {
           onClick={() => { setSection("overview"); setActiveMenu(null); setDrawerOpen(false); }}
         >
           Обзор
+        </button>
+
+        {/* Статистика — прямая ссылка */}
+        <button
+          type="button"
+          className={`${styles.headerSection}${section === "stats" ? ` ${styles.headerSectionPrimary}` : ""}`}
+          onClick={() => { setSection("stats"); setActiveMenu(null); setDrawerOpen(false); }}
+        >
+          Статистика
         </button>
 
         {/* Пользователи — dropdown */}

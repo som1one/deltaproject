@@ -60,11 +60,13 @@ export const TelegramCallback = () => {
   const errorParam = params.get("error");
   const channelUrl = params.get("channel_url");
   const channelTitle = params.get("channel_title");
+  const recheckToken = params.get("recheck");
 
   const isChannelGate = errorParam === "channel_not_subscribed";
 
   const [error, setError] = useState<string>(errorParam ? humanizeError(errorParam) : "");
   const [retrying, setRetrying] = useState(false);
+  const [gateNotice, setGateNotice] = useState("");
 
   useEffect(() => {
     // Подписка на канал — терминальное состояние без авторедиректов:
@@ -141,14 +143,49 @@ export const TelegramCallback = () => {
     };
   }, [errorParam, isChannelGate, router, setSession, ticket]);
 
-  // Повторный вход через Telegram: бэкенд заново проверит подписку и,
-  // если она появилась, завершит вход без лишних действий пользователя.
-  // linked_to переживает round-trip в sessionStorage (см. TelegramButton).
-  const handleSubscriptionConfirm = () => {
+  // Fallback: полный заход через Telegram OAuth (когда recheck-токена нет
+  // или он истёк). linked_to переживает round-trip в sessionStorage.
+  const restartTelegramLogin = () => {
     setRetrying(true);
     const linkedTo = telegramStorage.getLinkedTo();
     const search = linkedTo ? `?linked_to=${encodeURIComponent(linkedTo)}` : "";
     window.location.href = `${appConfig.apiBaseUrl}/auth/telegram/start${search}`;
+  };
+
+  // «Я подписался»: проверяем подписку по recheck-токену — бэкенд дёргает
+  // getChatMember и сразу выдаёт JWT-пары, без нового прохода Telegram OAuth.
+  const handleSubscriptionConfirm = async () => {
+    if (!recheckToken) {
+      restartTelegramLogin();
+      return;
+    }
+    setRetrying(true);
+    setGateNotice("");
+    try {
+      const tokens = await api.recheckTelegramSubscription(recheckToken);
+      setSession(tokens.token, tokens.refresh_token);
+      telegramStorage.clearLinkedTo();
+      window.location.replace("/cabinet");
+    } catch (nextError) {
+      if (nextError instanceof ApiError && nextError.status === 409) {
+        setGateNotice(
+          "Пока не видим подписку. Проверьте, что подписались на канал, подождите пару секунд и попробуйте ещё раз.",
+        );
+        setRetrying(false);
+        return;
+      }
+      if (nextError instanceof ApiError && nextError.status === 410) {
+        // Токен истёк — единственный путь дальше: заново через Telegram.
+        restartTelegramLogin();
+        return;
+      }
+      setGateNotice(
+        nextError instanceof ApiError
+          ? humanizeError(nextError.message)
+          : "Не удалось проверить подписку. Попробуйте ещё раз.",
+      );
+      setRetrying(false);
+    }
   };
 
   return (
@@ -173,11 +210,14 @@ export const TelegramCallback = () => {
               : "Обмениваем результат Telegram на сессию. Это занимает пару секунд."}
         </JourneyLead>
         {isChannelGate ? (
-          <JourneyChannelGate
-            channelUrl={channelUrl}
-            confirming={retrying}
-            onConfirm={handleSubscriptionConfirm}
-          />
+          <>
+            <JourneyChannelGate
+              channelUrl={channelUrl}
+              confirming={retrying}
+              onConfirm={() => void handleSubscriptionConfirm()}
+            />
+            {gateNotice ? <JourneyFeedback tone="error">{gateNotice}</JourneyFeedback> : null}
+          </>
         ) : error ? (
           <JourneyFeedback tone="error">{error}</JourneyFeedback>
         ) : (

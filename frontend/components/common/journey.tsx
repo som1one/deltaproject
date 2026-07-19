@@ -215,7 +215,7 @@ export const JourneyChannelGate = ({
   <div className={styles.channelGate}>
     {channelUrl ? (
       <a
-        className={styles.channelLink}
+        className={`${styles.formSubmit} ${styles.channelLink}`}
         href={channelUrl}
         target="_blank"
         rel="noopener noreferrer"
