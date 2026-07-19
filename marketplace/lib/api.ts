@@ -8,6 +8,7 @@ import type {
   BloggerSelfProfile,
   CatalogResponse,
   ChatMessage,
+  ChatUploadResult,
   Conversation,
   HeroConfigResponse,
   Order,
@@ -30,9 +31,13 @@ type RequestInitWithAuth = RequestInit & {
   auth?: boolean;
 };
 
-/** Лимит загрузки изображений — совпадает с MAX_UPLOAD_BYTES бэкенда. */
+/** Лимит загрузки изображений (аватары, скриншоты) — совпадает с MAX_UPLOAD_BYTES бэкенда. */
 export const MAX_UPLOAD_MB = 15;
 export const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
+/** Лимит вложений чата — совпадает с MAX_CHAT_UPLOAD_BYTES бэкенда. */
+export const MAX_CHAT_UPLOAD_MB = 100;
+export const MAX_CHAT_UPLOAD_BYTES = MAX_CHAT_UPLOAD_MB * 1024 * 1024;
 
 export class ApiError extends Error {
   status: number;
@@ -125,6 +130,34 @@ const stringifyDetail = (detail: unknown): string => {
   return "";
 };
 
+/**
+ * Человеческий текст для ответов без JSON-объяснения. Так бывает, когда
+ * запрос срезал не бэкенд, а прокси: nginx на 413 отдаёт HTML-страницу
+ * "Request Entity Too Large" — её нельзя показывать как есть.
+ */
+const friendlyHttpError = (status: number): string => {
+  if (status === 413) return "Файл слишком большой — сервер отклонил загрузку.";
+  if (status === 415) return "Такой формат файла не поддерживается.";
+  if (status === 429) return "Слишком много запросов. Подождите немного и попробуйте снова.";
+  if (status === 502 || status === 503 || status === 504) {
+    return "Сервер временно недоступен. Попробуйте через минуту.";
+  }
+  if (status >= 500) return "Ошибка на сервере. Попробуйте ещё раз.";
+  return "Что-то пошло не так";
+};
+
+/** Достаёт detail из тела ответа; не-JSON (HTML от прокси) → понятный текст. */
+const errorFromBody = (raw: string, status: number): ApiError => {
+  let detail = "";
+  try {
+    const payload = JSON.parse(raw) as { detail?: unknown };
+    detail = stringifyDetail(payload.detail);
+  } catch {
+    detail = "";
+  }
+  return new ApiError(detail || friendlyHttpError(status), status);
+};
+
 const handleResponse = async <T>(response: Response): Promise<T> => {
   if (response.ok) {
     if (response.status === 204) {
@@ -133,16 +166,7 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
     return (await response.json()) as T;
   }
 
-  let detail = "Что-то пошло не так";
-  try {
-    const payload = (await response.json()) as { detail?: unknown };
-    const text = stringifyDetail(payload.detail);
-    if (text) detail = text;
-  } catch {
-    detail = response.statusText || detail;
-  }
-
-  throw new ApiError(detail, response.status);
+  throw errorFromBody(await response.text(), response.status);
 };
 
 async function request<T>(path: string, init: RequestInitWithAuth = {}): Promise<T> {
@@ -357,6 +381,49 @@ export const api = {
     return handleResponse<{ url: string }>(response);
   },
 
+  /**
+   * Вложение чата (фото, видео, документ — до 100 МБ). Через XHR, а не
+   * fetch: только он умеет прогресс отправки, без которого стомегабайтная
+   * загрузка выглядит как зависание.
+   */
+  uploadChatFile: async (
+    file: File,
+    onProgress?: (fraction: number) => void,
+  ): Promise<ChatUploadResult> => {
+    if (file.size > MAX_CHAT_UPLOAD_BYTES) {
+      throw new ApiError(
+        `Файл больше ${MAX_CHAT_UPLOAD_MB} МБ — сожмите видео или разбейте архив на части.`,
+        413,
+      );
+    }
+
+    const doUpload = (token: string) =>
+      new Promise<{ status: number; body: string }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${appConfig.apiBaseUrl}/marketplace/uploads/chat`);
+        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
+        };
+        xhr.onload = () => resolve({ status: xhr.status, body: xhr.responseText });
+        xhr.onerror = () => reject(new ApiError("Не удалось загрузить файл. Проверьте связь.", 0));
+        xhr.ontimeout = () => reject(new ApiError("Загрузка оборвалась по таймауту. Попробуйте ещё раз.", 0));
+        const formData = new FormData();
+        formData.append("file", file);
+        xhr.send(formData);
+      });
+
+    let result = await doUpload(tokenStorage.readAccessToken());
+    if (result.status === 401 && tokenStorage.readRefreshToken()) {
+      const freshToken = await refreshAccessToken();
+      result = await doUpload(freshToken);
+    }
+    if (result.status >= 200 && result.status < 300) {
+      return JSON.parse(result.body) as ChatUploadResult;
+    }
+    throw errorFromBody(result.body, result.status);
+  },
+
   // ─── Премиум-размещение ───────────────────────────────────────────────────
   createPremiumRequest: (comment?: string) =>
     request<PremiumRequest>("/marketplace/premium/requests", {
@@ -377,7 +444,13 @@ export const api = {
       auth: true,
     }),
 
-  sendMessage: (body: { recipient_id: string; text: string; attachment_url?: string }) =>
+  sendMessage: (body: {
+    recipient_id: string;
+    text: string;
+    attachment_url?: string;
+    attachment_name?: string;
+    attachment_size?: number;
+  }) =>
     request<ChatMessage>("/marketplace/messages", {
       method: "POST",
       auth: true,

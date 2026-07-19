@@ -43,7 +43,34 @@ export const dayKey = (iso: string): string => {
 export const previewText = (message: ChatMessage): string => {
   if (message.kind === "offer") return "📋 Предложение услуги";
   if (message.kind === "image") return message.text ? `📷 ${message.text}` : "📷 Фото";
+  if (message.kind === "video") return message.text ? `🎬 ${message.text}` : "🎬 Видео";
+  if (message.kind === "file") {
+    if (message.text) return `📎 ${message.text}`;
+    return `📎 ${message.payload?.attachment_name ?? "Файл"}`;
+  }
   return message.text;
+};
+
+/** Срок хранения вложений чата — совпадает с CHAT_RETENTION_DAYS бэкенда. */
+export const ATTACHMENT_TTL_DAYS = 7;
+
+/** Файл вложения уже удалён с сервера (старше недели)? */
+export const attachmentExpired = (message: ChatMessage): boolean => {
+  const url = message.payload?.attachment_url ?? "";
+  // Чистится только /uploads/chat/ — старые вложения в корне живут вечно
+  if (!url.startsWith("/uploads/chat/")) return false;
+  const created = new Date(message.created_at).getTime();
+  return Date.now() - created > ATTACHMENT_TTL_DAYS * 86_400_000;
+};
+
+/** «12,4 МБ» / «640 КБ» — размер файла для карточки вложения. */
+export const humanSize = (bytes: number | null | undefined): string | null => {
+  if (!bytes || bytes <= 0) return null;
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1) {
+    return `${mb.toLocaleString("ru-RU", { maximumFractionDigits: 1 })} МБ`;
+  }
+  return `${Math.max(1, Math.round(bytes / 1024))} КБ`;
 };
 
 /** Роль собеседника человеческим словом. */

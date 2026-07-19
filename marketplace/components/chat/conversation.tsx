@@ -15,6 +15,8 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   BadgeCheck,
+  FileText,
+  FileX2,
   Loader2,
   PackagePlus,
   Paperclip,
@@ -28,8 +30,16 @@ import { Modal, Portrait, StarRating } from "@/components/ui/bits";
 import { categoryLabel } from "@/components/catalog/blogger-card";
 import { OfferCard } from "@/components/chat/offer-card";
 import { OfferModal } from "@/components/chat/offer-modal";
-import { dayKey, dayLabel, plural, roleCaption, timeShort } from "@/components/chat/chat-utils";
-import { api, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "@/lib/api";
+import {
+  attachmentExpired,
+  dayKey,
+  dayLabel,
+  humanSize,
+  plural,
+  roleCaption,
+  timeShort,
+} from "@/components/chat/chat-utils";
+import { api, MAX_CHAT_UPLOAD_BYTES, MAX_CHAT_UPLOAD_MB } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { resolveUploadUrl } from "@/lib/config";
 import type { ChatMessage, Conversation as ConversationData, UserPeek } from "@/lib/types";
@@ -40,6 +50,16 @@ import { useNestedLenis } from "@/components/chat/use-nested-lenis";
 
 const SAFETY_KEY = "mp-chat-safety-dismissed";
 const MAX_COMPOSER_HEIGHT = 132; // ~6 строк
+
+// Совпадает с _CHAT_FORMATS бэкенда (routers/marketplace_uploads.py)
+const ACCEPT_EXTS = [
+  ".jpg", ".jpeg", ".png", ".webp", ".gif",
+  ".mp4", ".mov", ".m4v", ".webm", ".mkv",
+  ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+  ".txt", ".csv", ".zip", ".rar",
+];
+const FORMATS_HUMAN =
+  "фото (JPEG, PNG, WebP, GIF), видео (MP4, MOV, WebM, MKV), PDF, Word, Excel, PowerPoint, TXT, CSV, ZIP и RAR";
 
 const appear = {
   initial: { opacity: 0, y: 6 },
@@ -212,26 +232,40 @@ export function Conversation({ partnerId }: { partnerId: string }) {
     }
   };
 
-  /* ── Вложения: загрузка картинки → сообщение kind=image ──── */
+  /* ── Вложения: фото/видео/документ → сообщение image|video|file ── */
   const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  // null — нет загрузки; 0..1 — доля отправленного (для полосы прогресса)
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
+  const [uploadName, setUploadName] = useState("");
+  const uploading = uploadPct !== null;
 
   const sendAttachment = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setSendError("Можно отправлять только изображения: JPEG, PNG, WebP, GIF.");
+    const dot = file.name.lastIndexOf(".");
+    const ext = dot >= 0 ? file.name.slice(dot).toLowerCase() : "";
+    if (!ACCEPT_EXTS.includes(ext)) {
+      setSendError(`Такой формат не поддерживается. Можно отправлять: ${FORMATS_HUMAN}.`);
       return;
     }
-    if (file.size > MAX_UPLOAD_BYTES) {
-      setSendError(`Файл больше ${MAX_UPLOAD_MB} МБ — сожмите изображение и попробуйте снова.`);
+    if (file.size > MAX_CHAT_UPLOAD_BYTES) {
+      setSendError(
+        `Файл больше ${MAX_CHAT_UPLOAD_MB} МБ — сожмите видео или разбейте архив на части.`,
+      );
       return;
     }
     setSendError(null);
-    setUploading(true);
+    setUploadName(file.name);
+    setUploadPct(0);
     try {
-      const { url } = await api.uploadImage(file);
-      // Текст из композера уходит подписью к фото
+      const uploaded = await api.uploadChatFile(file, setUploadPct);
+      // Текст из композера уходит подписью к вложению
       const caption = text.trim();
-      await api.sendMessage({ recipient_id: partnerId, text: caption, attachment_url: url });
+      await api.sendMessage({
+        recipient_id: partnerId,
+        text: caption,
+        attachment_url: uploaded.url,
+        attachment_name: uploaded.name,
+        attachment_size: uploaded.size_bytes,
+      });
       if (caption) {
         setText("");
         requestAnimationFrame(autogrow);
@@ -242,7 +276,8 @@ export function Conversation({ partnerId }: { partnerId: string }) {
     } catch (e) {
       setSendError(e instanceof Error && e.message ? e.message : "Не удалось отправить файл.");
     } finally {
-      setUploading(false);
+      setUploadPct(null);
+      setUploadName("");
       if (fileRef.current) fileRef.current.value = "";
     }
   };
@@ -357,6 +392,19 @@ export function Conversation({ partnerId }: { partnerId: string }) {
       {/* Композер */}
       <div className={st.composerBox}>
         {sendError && <div className={`${ui.noticeDanger} ${st.sendError}`}>{sendError}</div>}
+        {uploading && (
+          <div className={st.uploadRow} role="status">
+            <span className={st.uploadLabel}>
+              Загрузка «{uploadName}» — {Math.round((uploadPct ?? 0) * 100)}%
+            </span>
+            <span className={st.uploadTrack} aria-hidden="true">
+              <span
+                className={st.uploadFill}
+                style={{ width: `${Math.round((uploadPct ?? 0) * 100)}%` }}
+              />
+            </span>
+          </div>
+        )}
         <div className={st.composer}>
           <button
             type="button"
@@ -372,8 +420,8 @@ export function Conversation({ partnerId }: { partnerId: string }) {
             className={st.plusBtn}
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            aria-label="Прикрепить изображение"
-            title="Прикрепить изображение"
+            aria-label="Прикрепить файл"
+            title={`Прикрепить файл: ${FORMATS_HUMAN} — до ${MAX_CHAT_UPLOAD_MB} МБ`}
           >
             {uploading ? (
               <Loader2 size={18} strokeWidth={2} className={st.spin} />
@@ -384,7 +432,7 @@ export function Conversation({ partnerId }: { partnerId: string }) {
           <input
             ref={fileRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
+            accept={ACCEPT_EXTS.join(",")}
             hidden
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -460,21 +508,51 @@ function MessageRow({ msg, partnerId }: { msg: ChatMessage; partnerId: string })
     );
   }
 
-  if (msg.kind === "image") {
+  if (msg.kind === "image" || msg.kind === "video" || msg.kind === "file") {
     const src = resolveUploadUrl(msg.payload?.attachment_url ?? null);
+    const expired = attachmentExpired(msg);
+    const isMedia = msg.kind !== "file" && !expired;
+    const size = humanSize(msg.payload?.attachment_size);
+
     return (
       <motion.div className={`${st.msgRow} ${mine ? st.msgRowOut : ""}`.trim()} {...appear}>
         <div
-          className={`${st.bubble} ${st.bubbleImg} ${mine ? st.bubbleOut : st.bubbleIn} ${pending ? st.pending : ""}`.trim()}
+          className={`${st.bubble} ${isMedia ? st.bubbleImg : st.bubbleFile} ${mine ? st.bubbleOut : st.bubbleIn} ${pending ? st.pending : ""}`.trim()}
         >
-          {src && (
-            <a href={src} target="_blank" rel="noopener noreferrer" className={st.msgImageLink}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt="Изображение из чата" className={st.msgImage} loading="lazy" />
-            </a>
+          {expired ? (
+            <span className={st.fileExpired}>
+              <FileX2 size={17} strokeWidth={1.8} />
+              <span>Срок хранения вложения истёк — файлы живут в чате 7 дней</span>
+            </span>
+          ) : msg.kind === "image" ? (
+            src && (
+              <a href={src} target="_blank" rel="noopener noreferrer" className={st.msgImageLink}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="Изображение из чата" className={st.msgImage} loading="lazy" />
+              </a>
+            )
+          ) : msg.kind === "video" ? (
+            src && (
+              // eslint-disable-next-line jsx-a11y/media-has-caption
+              <video src={src} className={st.msgVideo} controls playsInline preload="metadata" />
+            )
+          ) : (
+            src && (
+              <a href={src} target="_blank" rel="noopener noreferrer" className={st.fileChip}>
+                <span className={st.fileIcon}>
+                  <FileText size={19} strokeWidth={1.8} />
+                </span>
+                <span className={st.fileMeta}>
+                  <span className={st.fileName}>{msg.payload?.attachment_name ?? "Файл"}</span>
+                  <span className={st.fileHint}>{size ? `${size} · скачать` : "скачать"}</span>
+                </span>
+              </a>
+            )
           )}
           {msg.text && <span className={st.msgImageCaption}>{msg.text}</span>}
-          <span className={`${st.bubbleTime} ${msg.text ? "" : st.bubbleTimeOverlay}`.trim()}>
+          <span
+            className={`${st.bubbleTime} ${!msg.text && isMedia ? st.bubbleTimeOverlay : ""}`.trim()}
+          >
             {timeShort(msg.created_at)}
           </span>
         </div>

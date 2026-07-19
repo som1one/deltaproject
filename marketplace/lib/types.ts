@@ -249,7 +249,15 @@ export type OrderDetail = Order & {
 
 /* ── Чаты ──────────────────────────────────────────────────── */
 
-export type MessageKind = "text" | "image" | "offer" | "system";
+export type MessageKind = "text" | "image" | "video" | "file" | "offer" | "system";
+
+/** Ответ /marketplace/uploads/chat. */
+export type ChatUploadResult = {
+  url: string;
+  kind: "image" | "video" | "file";
+  name: string;
+  size_bytes: number;
+};
 
 export type ChatMessage = {
   id: string;
@@ -268,6 +276,8 @@ export type ChatMessage = {
     message?: string;
     status?: string;
     attachment_url?: string;
+    attachment_name?: string;
+    attachment_size?: number;
   } | null;
   is_read: boolean;
   created_at: string;

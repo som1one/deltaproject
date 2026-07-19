@@ -98,6 +98,8 @@ async def send_message(
             recipient_id=body.recipient_id,
             text=body.text,
             attachment_url=body.attachment_url,
+            attachment_name=body.attachment_name,
+            attachment_size=body.attachment_size,
         )
     except ValueError as e:
         raise HTTPException(

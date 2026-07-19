@@ -10,13 +10,16 @@ from pydantic import BaseModel, Field, model_validator
 class MessageSendRequest(BaseModel):
     """Запрос на отправку сообщения на маркетплейсе.
 
-    Либо текст, либо картинка из /marketplace/uploads (можно вместе).
+    Либо текст, либо вложение из /marketplace/uploads[/chat] (можно вместе).
     """
 
     recipient_id: uuid.UUID
     text: Annotated[str, Field(max_length=2000)] = ""
-    # Путь вида /uploads/<uuid>.<ext>, выданный эндпоинтом загрузки
+    # Путь вида /uploads/[chat/]<uuid>.<ext>, выданный эндпоинтом загрузки
     attachment_url: Annotated[str, Field(max_length=300)] | None = None
+    # Оригинальное имя и размер файла — для карточки вложения в чате
+    attachment_name: Annotated[str, Field(max_length=200)] | None = None
+    attachment_size: Annotated[int, Field(ge=0, le=200 * 1024 * 1024)] | None = None
 
     @model_validator(mode="after")
     def validate_content(self) -> "MessageSendRequest":

@@ -100,6 +100,31 @@ async def _order_autocomplete_loop() -> None:
             logger.exception("Ошибка фоновой авто-приёмки заказов")
 
 
+async def _chat_uploads_cleanup_loop() -> None:
+    """Вложения чата храним неделю: раз в час удаляем устаревшие файлы.
+
+    Чистится только uploads/chat — аватары и скриншоты статистики
+    в корне uploads/ живут бессрочно.
+    """
+    import time
+
+    from routers.marketplace_uploads import CHAT_RETENTION_DAYS, chat_uploads_root
+
+    while True:
+        try:
+            cutoff = time.time() - CHAT_RETENTION_DAYS * 86400
+            removed = 0
+            for item in chat_uploads_root().iterdir():
+                if item.is_file() and item.stat().st_mtime < cutoff:
+                    item.unlink(missing_ok=True)
+                    removed += 1
+            if removed:
+                logger.info("Чистка вложений чата: удалено файлов — %d", removed)
+        except Exception:  # pragma: no cover
+            logger.exception("Ошибка чистки вложений чата")
+        await asyncio.sleep(3600)
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     setup_logging(settings.log_level)
@@ -110,12 +135,16 @@ async def lifespan(_app: FastAPI):
     autocomplete_task = asyncio.create_task(
         _order_autocomplete_loop(), name="order-autocomplete"
     )
+    uploads_cleanup_task = asyncio.create_task(
+        _chat_uploads_cleanup_loop(), name="chat-uploads-cleanup"
+    )
 
     yield
 
     purge_task.cancel()
     autocomplete_task.cancel()
-    for task in (purge_task, autocomplete_task):
+    uploads_cleanup_task.cancel()
+    for task in (purge_task, autocomplete_task, uploads_cleanup_task):
         try:
             await task
         except (asyncio.CancelledError, Exception):  # pragma: no cover

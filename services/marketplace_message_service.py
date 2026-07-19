@@ -19,6 +19,24 @@ from models.notification import Notification
 from models.user import User
 
 
+_IMAGE_EXTS = {"jpg", "jpeg", "png", "webp", "gif"}
+_VIDEO_EXTS = {"mp4", "mov", "m4v", "webm", "mkv"}
+
+
+def attachment_kind(url: str) -> str:
+    """Вид вложения по расширению ссылки: image | video | file.
+
+    Реестр допустимых форматов живёт в routers/marketplace_uploads.py
+    (_CHAT_FORMATS) — сюда попадают только выданные им ссылки.
+    """
+    ext = url.rsplit(".", 1)[-1].lower() if "." in url else ""
+    if ext in _IMAGE_EXTS:
+        return "image"
+    if ext in _VIDEO_EXTS:
+        return "video"
+    return "file"
+
+
 async def send_message(
     db: AsyncSession,
     sender_id: uuid.UUID,
@@ -28,6 +46,8 @@ async def send_message(
     order_id: uuid.UUID | None = None,
     payload: dict | None = None,
     attachment_url: str | None = None,
+    attachment_name: str | None = None,
+    attachment_size: int | None = None,
 ) -> MarketplaceMessage:
     """Отправить сообщение на маркетплейсе.
 
@@ -40,10 +60,13 @@ async def send_message(
         sender_id: UUID отправителя.
         recipient_id: UUID получателя.
         text: Текст сообщения.
-        kind: 'text' | 'image' | 'offer' | 'system'.
+        kind: 'text' | 'image' | 'video' | 'file' | 'offer' | 'system'.
         order_id: Привязка к заказу для offer/system-сообщений.
         payload: Снапшот условий оффера для карточки в чате.
-        attachment_url: Картинка из /marketplace/uploads (kind станет 'image').
+        attachment_url: Файл из /marketplace/uploads[/chat]; kind станет
+            image/video/file по расширению.
+        attachment_name: Оригинальное имя файла (для карточки документа).
+        attachment_size: Размер файла в байтах.
 
     Returns:
         Созданный объект MarketplaceMessage.
@@ -69,8 +92,12 @@ async def send_message(
         raise ValueError("Получатель недоступен для переписки")
 
     if attachment_url is not None:
-        kind = "image"
+        kind = attachment_kind(attachment_url)
         payload = {**(payload or {}), "attachment_url": attachment_url}
+        if attachment_name:
+            payload["attachment_name"] = attachment_name
+        if attachment_size is not None:
+            payload["attachment_size"] = attachment_size
 
     message = MarketplaceMessage(
         sender_id=sender_id,
@@ -83,13 +110,18 @@ async def send_message(
     db.add(message)
     await db.flush()
 
+    # Для вложений без подписи превью в уведомлении — вид файла
+    preview = text.strip()[:100]
+    if not preview and attachment_url is not None:
+        preview = {"image": "📷 Фото", "video": "🎬 Видео"}.get(kind, "📎 Файл")
+
     notification = Notification(
         user_id=recipient_id,
         event_type="new_message",
         payload={
             "message_id": str(message.id),
             "sender_id": str(sender_id),
-            "text_preview": text[:100],
+            "text_preview": preview,
         },
     )
     db.add(notification)
