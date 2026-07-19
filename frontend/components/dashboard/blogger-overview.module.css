@@ -324,7 +324,9 @@
     display: none;
   }
   .ctaPoint {
-    font-size: 0.6rem;
+    /* С реальным narrow-шрифтом 0.6rem/0.16em не влезали в 375px. */
+    font-size: 0.56rem;
+    letter-spacing: 0.12em;
   }
   .ctaPoint:not(:first-child)::before {
     content: none;
