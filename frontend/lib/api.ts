@@ -391,49 +391,11 @@ export const api = {
       `/admin/finance/dashboard${period ? `?period=${period}` : ""}`,
       { auth: true },
     ),
-  getAdminDeals: (query = "") => request<DealRead[]>(`/admin/deals${query}`, { auth: true }),
-  getAdminDeal: (id: string) => request<DealRead>(`/admin/deals/${id}`, { auth: true }),
-  patchAdminDealStatus: (id: string, body: { status: string; reason: string }) =>
-    request<DealRead>(`/admin/deals/${id}/status`, {
-      method: "PATCH",
-      auth: true,
-      body: JSON.stringify(body),
-    }),
-  patchAdminDealPrice: (id: string, body: { agreed_price_kopeks: number; reason: string }) =>
-    request<DealRead>(`/admin/deals/${id}/agreed-price`, {
-      method: "PATCH",
-      auth: true,
-      body: JSON.stringify(body),
-    }),
-  recalcAdminDealFinance: (id: string, body: { reason: string }) =>
-    request<DealRead>(`/admin/deals/${id}/recalc-finance`, {
-      method: "POST",
-      auth: true,
-      body: JSON.stringify(body),
-    }),
   getAdminPaymentDetails: () =>
     request<AdminPaymentDetails>("/admin/payment-details", { auth: true }),
   setAdminPaymentDetails: (body: AdminPaymentDetailsSet) =>
     request<AdminPaymentDetails>("/admin/payment-details", {
       method: "PUT",
-      auth: true,
-      body: JSON.stringify(body),
-    }),
-  confirmDealReceipt: (id: string, body: { reason: string }) =>
-    request<DealRead>(`/admin/deals/${id}/confirm-receipt`, {
-      method: "POST",
-      auth: true,
-      body: JSON.stringify(body),
-    }),
-  distributeDeal: (id: string, body: { reason: string }) =>
-    request<DealRead>(`/admin/deals/${id}/distribute`, {
-      method: "POST",
-      auth: true,
-      body: JSON.stringify(body),
-    }),
-  refundDeal: (id: string, body: { reason: string }) =>
-    request<DealRead>(`/admin/deals/${id}/refund`, {
-      method: "POST",
       auth: true,
       body: JSON.stringify(body),
     }),

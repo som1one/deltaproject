@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import {
-  dealStatusTone,
   formatDateTime,
   formatDealStatus,
   formatLedgerStatus,
@@ -18,7 +17,6 @@ import {
 import type {
   AdminMarketplaceBloggerProfile,
   AdminUserRead,
-  DealRead,
   LedgerEntryRead,
   ReportingPeriod,
   WorkerMessageScriptRead,
@@ -52,17 +50,11 @@ import { PayoutCardInput } from "@/components/common/payout-card-input";
 import { AdminMarketplacePanel, type AdminMarketplaceTab } from "@/components/admin/marketplace-panel";
 
 type AdminSection =
-  | "overview" | "stats" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "deals" | "ledger" | "schemes" | "finance" | "finance-requisites" | "finance-analytics" | "scripts" | "telegram"
+  | "overview" | "stats" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "ledger" | "schemes" | "finance" | "finance-requisites" | "finance-analytics" | "scripts" | "telegram"
   | "mp-dashboard" | "mp-stats" | "mp-orders" | "mp-payments" | "mp-settings" | "mp-tickets" | "mp-bloggers" | "mp-services" | "mp-moderation" | "mp-premium" | "mp-hero" | "mp-withdrawals";
 
 type AdminModalState =
   | { kind: "delete-user"; user: AdminUserRead }
-  | { kind: "deal-status"; deal: DealRead; status: string; reason: string; title: string; submitLabel: string }
-  | { kind: "deal-price"; deal: DealRead; agreedRub: string; reason: string }
-  | { kind: "deal-recalc"; deal: DealRead; reason: string }
-  | { kind: "deal-confirm-receipt"; deal: DealRead; reason: string }
-  | { kind: "deal-distribute"; deal: DealRead; reason: string }
-  | { kind: "deal-refund"; deal: DealRead; reason: string }
   | { kind: "ledger-status"; entry: LedgerEntryRead; status: string; note: string }
   | { kind: "payout-complete"; entry: LedgerEntryRead }
   | { kind: "delete-script"; script: WorkerMessageScriptRead }
@@ -131,7 +123,7 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
   overview: {
     label: "Обзор",
     title: "Обзор площадки",
-    lead: "Сводная статистика по пользователям, сделкам и балансам.",
+    lead: "Сводная статистика по пользователям и балансам.",
   },
   stats: {
     label: "Статистика",
@@ -142,11 +134,6 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
     label: "Пользователи",
     title: "Пользователи",
     lead: "Единое управление: воркеры, блогеры, заказчики и администраторы. Профили, баланс, бан.",
-  },
-  deals: {
-    label: "Сделки",
-    title: "Сделки",
-    lead: "Подтверждение, отметка об оплате, завершение и отклонение — каждое действие фиксируется в журнале.",
   },
   ledger: {
     label: "Леджер",
@@ -273,7 +260,6 @@ export const AdminDashboard = () => {
   const [section, setSection] = useState<AdminSection>("overview");
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [selectedUserId, setSelectedUserId] = useState("");
-  const [selectedDealId, setSelectedDealId] = useState("");
   const [selectedLedgerId, setSelectedLedgerId] = useState("");
   const [selectedSchemeId, setSelectedSchemeId] = useState("");
   const [selectedScriptId, setSelectedScriptId] = useState("");
@@ -332,7 +318,6 @@ export const AdminDashboard = () => {
     queryFn: () => api.getAdminUsers(usersFilterQueryString),
     enabled: Boolean(isAuthenticated),
   });
-  const dealsQuery = useQuery({ queryKey: ["admin", "deals"], queryFn: () => api.getAdminDeals(), enabled: Boolean(isAuthenticated) });
   const ledgerQuery = useQuery({ queryKey: ["admin", "ledger"], queryFn: () => api.getAdminLedger(), enabled: Boolean(isAuthenticated) });
   const schemesQuery = useQuery({
     queryKey: ["admin", "financeSchemes"],
@@ -410,11 +395,6 @@ export const AdminDashboard = () => {
     queryFn: () => api.getAdminUserLedger(selectedUserId),
     enabled: Boolean(selectedUserId),
   });
-  const dealDetailQuery = useQuery({
-    queryKey: ["admin", "deal", selectedDealId],
-    queryFn: () => api.getAdminDeal(selectedDealId),
-    enabled: Boolean(selectedDealId),
-  });
   const ledgerDetailQuery = useQuery({
     queryKey: ["admin", "ledgerEntry", selectedLedgerId],
     queryFn: () => api.getAdminLedgerEntry(selectedLedgerId),
@@ -477,12 +457,6 @@ export const AdminDashboard = () => {
       setSelectedUserId(usersQuery.data.items[0].id);
     }
   }, [selectedUserId, usersQuery.data]);
-
-  useEffect(() => {
-    if (!selectedDealId && dealsQuery.data?.length) {
-      setSelectedDealId(dealsQuery.data[0].id);
-    }
-  }, [dealsQuery.data, selectedDealId]);
 
   useEffect(() => {
     if (!selectedLedgerId && ledgerQuery.data?.items.length) {
@@ -744,48 +718,6 @@ export const AdminDashboard = () => {
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
 
-  const dealStatusMutation = useMutation({
-    mutationFn: ({ id, status, reason }: { id: string; status: string; reason: string }) =>
-      api.patchAdminDealStatus(id, { status, reason }),
-    onSuccess: async () => {
-      setMessage({ tone: "success", text: "Статус сделки обновлён." });
-      setModal(null);
-      await invalidateAdmin(
-        ["admin", "deals"],
-        ["admin", "deal", selectedDealId],
-        ["admin", "overview"],
-        ["admin", "ledger"],
-      );
-    },
-    onError: (error) => setMessage({ tone: "error", text: error.message }),
-  });
-
-  const dealPriceMutation = useMutation({
-    mutationFn: ({ id, agreedKopeks, reason }: { id: string; agreedKopeks: number; reason: string }) =>
-      api.patchAdminDealPrice(id, { agreed_price_kopeks: agreedKopeks, reason }),
-    onSuccess: async () => {
-      setMessage({ tone: "success", text: "Согласованная цена сохранена." });
-      setModal(null);
-      await invalidateAdmin(["admin", "deals"], ["admin", "deal", selectedDealId]);
-    },
-    onError: (error) => setMessage({ tone: "error", text: error.message }),
-  });
-
-  const dealRecalcMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.recalcAdminDealFinance(id, { reason }),
-    onSuccess: async () => {
-      setMessage({ tone: "success", text: "Финансы сделки пересчитаны." });
-      setModal(null);
-      await invalidateAdmin(
-        ["admin", "deals"],
-        ["admin", "deal", selectedDealId],
-        ["admin", "ledger"],
-        ["admin", "financeSchemes"],
-      );
-    },
-    onError: (error) => setMessage({ tone: "error", text: error.message }),
-  });
-
   const paymentDetailsMutation = useMutation({
     mutationFn: async () => {
       // Ссылку отправляем всегда (текстовое поле отражает текущее значение,
@@ -808,51 +740,6 @@ export const AdminDashboard = () => {
       setMessage({ tone: "success", text: "Реквизиты приёма сохранены." });
       setCollectionCardDraft(null);
       await invalidateAdmin(["admin", "paymentDetails"]);
-    },
-    onError: (error) => setMessage({ tone: "error", text: error.message }),
-  });
-
-  const dealConfirmReceiptMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.confirmDealReceipt(id, { reason }),
-    onSuccess: async () => {
-      setMessage({ tone: "success", text: "Получение средств подтверждено." });
-      setModal(null);
-      await invalidateAdmin(
-        ["admin", "deals"],
-        ["admin", "deal", selectedDealId],
-        ["admin", "overview"],
-        ["admin", "ledger"],
-      );
-    },
-    onError: (error) => setMessage({ tone: "error", text: error.message }),
-  });
-
-  const dealDistributeMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.distributeDeal(id, { reason }),
-    onSuccess: async () => {
-      setMessage({ tone: "success", text: "Средства распределены участникам." });
-      setModal(null);
-      await invalidateAdmin(
-        ["admin", "deals"],
-        ["admin", "deal", selectedDealId],
-        ["admin", "overview"],
-        ["admin", "ledger"],
-      );
-    },
-    onError: (error) => setMessage({ tone: "error", text: error.message }),
-  });
-
-  const dealRefundMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.refundDeal(id, { reason }),
-    onSuccess: async () => {
-      setMessage({ tone: "success", text: "Средства возвращены." });
-      setModal(null);
-      await invalidateAdmin(
-        ["admin", "deals"],
-        ["admin", "deal", selectedDealId],
-        ["admin", "overview"],
-        ["admin", "ledger"],
-      );
     },
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
@@ -973,27 +860,6 @@ export const AdminDashboard = () => {
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
 
-  const dealStatusActions = useMemo(
-    () =>
-      (deal: DealRead): { status: string; label: string; title: string }[] => {
-        switch (deal.status) {
-          case "NEW":
-            return [];
-          case "REVIEW":
-            return [{ status: "CONFIRMED", label: "Подтвердить", title: "Подтверждение сделки" }];
-          case "CONFIRMED":
-            // Прямой переход CONFIRMED → PAID запрещён: оплата идёт через эскроу
-            // (Подтвердить получение → Распределить). См. кнопки эскроу ниже.
-            return [];
-          case "PAID":
-            return [{ status: "COMPLETED", label: "Завершить", title: "Завершение сделки" }];
-          default:
-            return [];
-        }
-      },
-    [],
-  );
-
   const renderModal = () => {
     if (!modal) {
       return null;
@@ -1045,195 +911,6 @@ export const AdminDashboard = () => {
                 сессии и вход на маркетплейс будут закрыты.
               </Message>
               <Field label="Причина" help="Пользователь увидит её при попытке входа; причина попадёт в аудит.">
-                <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
-              </Field>
-            </Stack>
-          </Modal>
-        );
-      case "deal-status":
-        return (
-          <Modal
-            title={modal.title}
-            onClose={() => setModal(null)}
-            actions={
-              <>
-                <Button type="button" kind="ghost" onClick={() => setModal(null)}>
-                  Отмена
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => dealStatusMutation.mutate({ id: modal.deal.id, status: modal.status, reason: modal.reason })}
-                  disabled={dealStatusMutation.isPending || modal.reason.trim().length === 0}
-                >
-                  {modal.submitLabel}
-                </Button>
-              </>
-            }
-          >
-            <Stack>
-              <PillRow>
-                <Pill>{modal.deal.item_name}</Pill>
-                <Pill tone="accent">Статус → {formatDealStatus(modal.status)}</Pill>
-              </PillRow>
-              <Field label="Причина" help="Сообщение попадёт в журнал админ-действий.">
-                <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
-              </Field>
-            </Stack>
-          </Modal>
-        );
-      case "deal-price":
-        return (
-          <Modal
-            title="Согласованная цена"
-            onClose={() => setModal(null)}
-            actions={
-              <>
-                <Button type="button" kind="ghost" onClick={() => setModal(null)}>
-                  Отмена
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() =>
-                    dealPriceMutation.mutate({
-                      id: modal.deal.id,
-                      agreedKopeks: Math.round(Number(modal.agreedRub) * 100),
-                      reason: modal.reason,
-                    })
-                  }
-                  disabled={dealPriceMutation.isPending || modal.reason.trim().length === 0 || Number(modal.agreedRub) <= 0}
-                >
-                  Сохранить
-                </Button>
-              </>
-            }
-          >
-            <Stack>
-              <Field label="Согласованная сумма, ₽">
-                <TextInput
-                  value={modal.agreedRub}
-                  inputMode="decimal"
-                  onChange={(event) => setModal({ ...modal, agreedRub: event.target.value })}
-                />
-              </Field>
-              <Field label="Причина">
-                <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
-              </Field>
-            </Stack>
-          </Modal>
-        );
-      case "deal-recalc":
-        return (
-          <Modal
-            title="Пересчитать финансы сделки"
-            onClose={() => setModal(null)}
-            actions={
-              <>
-                <Button type="button" kind="ghost" onClick={() => setModal(null)}>
-                  Отмена
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => dealRecalcMutation.mutate({ id: modal.deal.id, reason: modal.reason })}
-                  disabled={dealRecalcMutation.isPending || modal.reason.trim().length === 0}
-                >
-                  Пересчитать
-                </Button>
-              </>
-            }
-          >
-            <Field label="Причина пересчёта">
-              <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
-            </Field>
-          </Modal>
-        );
-      case "deal-confirm-receipt":
-        return (
-          <Modal
-            title="Подтвердить получение"
-            onClose={() => setModal(null)}
-            actions={
-              <>
-                <Button type="button" kind="ghost" onClick={() => setModal(null)}>
-                  Отмена
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => dealConfirmReceiptMutation.mutate({ id: modal.deal.id, reason: modal.reason })}
-                  disabled={dealConfirmReceiptMutation.isPending || modal.reason.trim().length === 0}
-                >
-                  Подтвердить
-                </Button>
-              </>
-            }
-          >
-            <Stack>
-              <PillRow>
-                <Pill>{modal.deal.item_name}</Pill>
-                <Pill tone="accent">Статус → {formatDealStatus("ESCROW_HELD")}</Pill>
-              </PillRow>
-              <Field label="Причина" help="Сообщение попадёт в журнал админ-действий.">
-                <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
-              </Field>
-            </Stack>
-          </Modal>
-        );
-      case "deal-distribute":
-        return (
-          <Modal
-            title="Распределить средства"
-            onClose={() => setModal(null)}
-            actions={
-              <>
-                <Button type="button" kind="ghost" onClick={() => setModal(null)}>
-                  Отмена
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => dealDistributeMutation.mutate({ id: modal.deal.id, reason: modal.reason })}
-                  disabled={dealDistributeMutation.isPending || modal.reason.trim().length === 0}
-                >
-                  Распределить
-                </Button>
-              </>
-            }
-          >
-            <Stack>
-              <PillRow>
-                <Pill>{modal.deal.item_name}</Pill>
-                <Pill tone="accent">Статус → {formatDealStatus("PAID")}</Pill>
-              </PillRow>
-              <Field label="Причина" help="Сообщение попадёт в журнал админ-действий.">
-                <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
-              </Field>
-            </Stack>
-          </Modal>
-        );
-      case "deal-refund":
-        return (
-          <Modal
-            title="Возврат средств"
-            onClose={() => setModal(null)}
-            actions={
-              <>
-                <Button type="button" kind="ghost" onClick={() => setModal(null)}>
-                  Отмена
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => dealRefundMutation.mutate({ id: modal.deal.id, reason: modal.reason })}
-                  disabled={dealRefundMutation.isPending || modal.reason.trim().length === 0}
-                >
-                  Оформить возврат
-                </Button>
-              </>
-            }
-          >
-            <Stack>
-              <PillRow>
-                <Pill>{modal.deal.item_name}</Pill>
-                <Pill tone="accent">Статус → {formatDealStatus("REFUNDED")}</Pill>
-              </PillRow>
-              <Field label="Причина" help="Сообщение попадёт в журнал админ-действий.">
                 <TextArea value={modal.reason} onChange={(event) => setModal({ ...modal, reason: event.target.value })} />
               </Field>
             </Stack>
@@ -1402,23 +1079,11 @@ export const AdminDashboard = () => {
             <StatsGrid>
               <StatCard label="Всего пользователей" value={formatNumber(overviewQuery.data.users_total)} />
               <StatCard label="Активных" value={formatNumber(overviewQuery.data.users_active)} />
-              <StatCard label="Сделок" value={formatNumber(overviewQuery.data.deals_total)} />
               <StatCard label="Баланс системы" value={formatMoney(overviewQuery.data.balance_total_kopeks)} />
             </StatsGrid>
           ) : (
             <Message>Загружаем сводку…</Message>
           )}
-          {overviewQuery.data ? (
-            <SectionCard title="Сделки по статусам" lead="Распределение по жизненному циклу.">
-              <PillRow>
-                {Object.entries(overviewQuery.data.deals_by_status).map(([statusKey, count]) => (
-                  <Pill key={statusKey} tone={statusKey === "PAID" || statusKey === "COMPLETED" ? "accent" : "default"}>
-                    {formatDealStatus(statusKey)}: {formatNumber(count)}
-                  </Pill>
-                ))}
-              </PillRow>
-            </SectionCard>
-          ) : null}
           {overviewQuery.data ? (
             <SectionCard title="Пользователи по ролям" lead="Сколько воркеров, блогеров и администраторов.">
               <PillRow>
@@ -2062,284 +1727,6 @@ export const AdminDashboard = () => {
             </div>
           </Stack>
         </SectionCard>
-      );
-    }
-
-    if (section === "deals") {
-      return (
-        <div className={styles.sideLayout}>
-          <SectionCard title="Список сделок" lead="Активные сделки сверху. Кликните по строке, чтобы открыть действия.">
-            {dealsQuery.data ? (
-              dealsQuery.data.length === 0 ? (
-                <Message>Сделок пока нет.</Message>
-              ) : (
-                <TableWrap>
-                  <DataTable>
-                    <thead>
-                      <tr>
-                        <th>Товар</th>
-                        <th>Статус</th>
-                        <th>Цена</th>
-                        <th>Создано</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dealsQuery.data.map((deal) => (
-                        <tr
-                          key={deal.id}
-                          className={`${styles.selectable}${selectedDealId === deal.id ? ` ${styles.selected}` : ""}`}
-                          onClick={() => setSelectedDealId(deal.id)}
-                        >
-                          <td>{deal.item_name}</td>
-                          <td>
-                            <StatusPill tone={dealStatusTone(deal.status)}>{formatDealStatus(deal.status)}</StatusPill>
-                          </td>
-                          <td>{formatMoney(deal.effective_price_kopeks || deal.price)}</td>
-                          <td>{formatDateTime(deal.created_at)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </DataTable>
-                </TableWrap>
-              )
-            ) : (
-              <Message>Загружаем сделки…</Message>
-            )}
-          </SectionCard>
-
-          <SectionCard
-            title="Действия по сделке"
-            lead={dealDetailQuery.data ? `${dealDetailQuery.data.item_name}` : "Выберите сделку слева."}
-          >
-            {dealDetailQuery.data ? (
-              <Stack>
-                <PillRow>
-                  <Pill tone="accent">{formatDealStatus(dealDetailQuery.data.status)}</Pill>
-                  <Pill>{formatMoney(dealDetailQuery.data.effective_price_kopeks || dealDetailQuery.data.price)}</Pill>
-                  <Pill>Воркер: {dealDetailQuery.data.worker_id.slice(0, 8)}…</Pill>
-                  <Pill>Блогер: {dealDetailQuery.data.bloger_id.slice(0, 8)}…</Pill>
-                </PillRow>
-
-                <div className={styles.actionRow}>
-                  {dealStatusActions(dealDetailQuery.data).map((action) => (
-                    <Button
-                      key={action.status}
-                      type="button"
-                      onClick={() =>
-                        setModal({
-                          kind: "deal-status",
-                          deal: dealDetailQuery.data,
-                          status: action.status,
-                          reason: "",
-                          title: action.title,
-                          submitLabel: action.label,
-                        })
-                      }
-                    >
-                      {action.label}
-                    </Button>
-                  ))}
-
-                  {(dealDetailQuery.data.status === "NEW" || dealDetailQuery.data.status === "REVIEW") ? (
-                    <Button
-                      type="button"
-                      kind="ghost"
-                      onClick={() =>
-                        setModal({
-                          kind: "deal-status",
-                          deal: dealDetailQuery.data,
-                          status: "REJECTED",
-                          reason: "",
-                          title: "Отклонить сделку",
-                          submitLabel: "Отклонить",
-                        })
-                      }
-                    >
-                      Отклонить
-                    </Button>
-                  ) : null}
-
-                  {dealDetailQuery.data.status === "CONFIRMED" ? (
-                    <Button
-                      type="button"
-                      kind="secondary"
-                      onClick={() =>
-                        setModal({
-                          kind: "deal-price",
-                          deal: dealDetailQuery.data,
-                          agreedRub: String(
-                            dealDetailQuery.data.agreed_price_kopeks
-                              ? dealDetailQuery.data.agreed_price_kopeks / 100
-                              : dealDetailQuery.data.price / 100,
-                          ),
-                          reason: "",
-                        })
-                      }
-                    >
-                      Согласовать цену
-                    </Button>
-                  ) : null}
-
-                  {dealDetailQuery.data.status === "CONFIRMED" ? (
-                    <Button
-                      type="button"
-                      onClick={() =>
-                        setModal({
-                          kind: "deal-confirm-receipt",
-                          deal: dealDetailQuery.data,
-                          reason: "",
-                        })
-                      }
-                    >
-                      Подтвердить получение
-                    </Button>
-                  ) : null}
-
-                  {dealDetailQuery.data.status === "ESCROW_HELD" ? (
-                    <Button
-                      type="button"
-                      onClick={() =>
-                        setModal({
-                          kind: "deal-distribute",
-                          deal: dealDetailQuery.data,
-                          reason: "",
-                        })
-                      }
-                    >
-                      Распределить
-                    </Button>
-                  ) : null}
-
-                  {dealDetailQuery.data.status === "ESCROW_HELD" ? (
-                    <Button
-                      type="button"
-                      kind="ghost"
-                      onClick={() =>
-                        setModal({
-                          kind: "deal-refund",
-                          deal: dealDetailQuery.data,
-                          reason: "",
-                        })
-                      }
-                    >
-                      Возврат
-                    </Button>
-                  ) : null}
-
-                  {(dealDetailQuery.data.status === "PAID" || dealDetailQuery.data.status === "COMPLETED") ? (
-                    <Button
-                      type="button"
-                      kind="ghost"
-                      onClick={() =>
-                        setModal({
-                          kind: "deal-recalc",
-                          deal: dealDetailQuery.data,
-                          reason: "",
-                        })
-                      }
-                    >
-                      Пересчитать финансы
-                    </Button>
-                  ) : null}
-                </div>
-
-                <Stack>
-                  <Field label="Магазин">
-                    <TextInput value={dealDetailQuery.data.shop_link} disabled readOnly />
-                  </Field>
-                  {dealDetailQuery.data.status === "REJECTED" ? (
-                    <Field label="Причина отклонения">
-                      <TextArea
-                        value={dealDetailQuery.data.rejection_reason || "Причина не указана"}
-                        disabled
-                        readOnly
-                      />
-                    </Field>
-                  ) : null}
-                  <TwoColumn>
-                    <Field label="Telegram продавца">
-                      <TextInput value={dealDetailQuery.data.seller_tg} disabled readOnly />
-                    </Field>
-                    <Field label="Телефон продавца">
-                      <TextInput value={dealDetailQuery.data.seller_number} disabled readOnly />
-                    </Field>
-                  </TwoColumn>
-                  {dealDetailQuery.data.preview_worker_kopeks !== null ||
-                  dealDetailQuery.data.preview_blogger_kopeks !== null ||
-                  dealDetailQuery.data.preview_platform_kopeks !== null ? (
-                    <PillRow>
-                      {dealDetailQuery.data.preview_worker_kopeks !== null ? (
-                        <Pill>Воркер: {formatMoney(dealDetailQuery.data.preview_worker_kopeks)}</Pill>
-                      ) : null}
-                      {dealDetailQuery.data.preview_blogger_kopeks !== null ? (
-                        <Pill>Блогер: {formatMoney(dealDetailQuery.data.preview_blogger_kopeks)}</Pill>
-                      ) : null}
-                      {dealDetailQuery.data.preview_platform_kopeks !== null ? (
-                        <Pill>Платформа: {formatMoney(dealDetailQuery.data.preview_platform_kopeks)}</Pill>
-                      ) : null}
-                    </PillRow>
-                  ) : null}
-
-                  {dealDetailQuery.data.status === "CONFIRMED" && dealDetailQuery.data.payment_requisites ? (
-                    dealDetailQuery.data.payment_requisites.available ? (
-                      <div className={styles.requisitesBox}>
-                        <p className={styles.requisitesTitle}>Реквизиты приёма платежей</p>
-                        {dealDetailQuery.data.payment_requisites.collection_card_full ? (
-                          <div className={styles.requisitesRow}>
-                            <div className={styles.requisitesField}>
-                              <span className={styles.requisitesLabel}>Карта приёма</span>
-                              <code className={styles.requisitesValue}>
-                                {dealDetailQuery.data.payment_requisites.collection_card_full}
-                              </code>
-                            </div>
-                            <Button
-                              type="button"
-                              kind="ghost"
-                              onClick={() => {
-                                void navigator.clipboard.writeText(
-                                  dealDetailQuery.data.payment_requisites?.collection_card_full || "",
-                                );
-                                setMessage({ tone: "success", text: "Номер карты скопирован." });
-                              }}
-                            >
-                              Копировать
-                            </Button>
-                          </div>
-                        ) : null}
-                        {dealDetailQuery.data.payment_requisites.payment_link ? (
-                          <div className={styles.requisitesRow}>
-                            <div className={styles.requisitesField}>
-                              <span className={styles.requisitesLabel}>Платёжная ссылка</span>
-                              <code className={styles.requisitesValue}>
-                                {dealDetailQuery.data.payment_requisites.payment_link}
-                              </code>
-                            </div>
-                            <Button
-                              type="button"
-                              kind="ghost"
-                              onClick={() => {
-                                void navigator.clipboard.writeText(
-                                  dealDetailQuery.data.payment_requisites?.payment_link || "",
-                                );
-                                setMessage({ tone: "success", text: "Ссылка скопирована." });
-                              }}
-                            >
-                              Копировать
-                            </Button>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <Message>Реквизиты приёма не настроены</Message>
-                    )
-                  ) : null}
-                </Stack>
-              </Stack>
-            ) : (
-              <Message>Выберите сделку, чтобы увидеть действия.</Message>
-            )}
-          </SectionCard>
-        </div>
       );
     }
 
@@ -3286,10 +2673,10 @@ export const AdminDashboard = () => {
   };
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<"users" | "deals" | "finance" | "marketplace" | "tools" | null>(null);
+  const [activeMenu, setActiveMenu] = useState<"users" | "marketplace" | "tools" | null>(null);
   const hoverTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const openMenu = (menu: "users" | "deals" | "finance" | "marketplace" | "tools") => {
+  const openMenu = (menu: "users" | "marketplace" | "tools") => {
     if (hoverTimeout.current) { clearTimeout(hoverTimeout.current); hoverTimeout.current = null; }
     setActiveMenu(menu);
     setDrawerOpen(true);
@@ -3404,102 +2791,6 @@ export const AdminDashboard = () => {
           )}
         </div>
 
-        {/* Сделки — dropdown */}
-        <div
-          className={styles.headerDropdownWrap}
-          onMouseEnter={() => openMenu("deals")}
-          onMouseLeave={closeMenu}
-        >
-          <button
-            type="button"
-            className={`${styles.headerSection}${section === "deals" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "deals" ? ` ${styles.headerSectionHover}` : ""}`}
-            onClick={() => { activeMenu === "deals" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("deals"); }}
-          >
-            Сделки
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className={activeMenu === "deals" ? styles.chevronOpen : undefined}>
-              <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          {activeMenu === "deals" && (
-            <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
-              <p className={styles.dropdownGroupTitle}>Операции</p>
-              <button
-                type="button"
-                className={`${styles.dropdownItem}${section === "deals" ? ` ${styles.dropdownItemActive}` : ""}`}
-                onClick={() => { setSection("deals"); setActiveMenu(null); setDrawerOpen(false); }}
-              >
-                <span className={styles.dropdownItemLabel}>Все сделки</span>
-                <span className={styles.dropdownItemDesc}>Подтверждение, оплата, завершение и отклонение.</span>
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Финансы — dropdown */}
-        <div
-          className={styles.headerDropdownWrap}
-          onMouseEnter={() => openMenu("finance")}
-          onMouseLeave={closeMenu}
-        >
-          <button
-            type="button"
-            className={`${styles.headerSection}${section === "schemes" || section === "finance" || section === "finance-requisites" || section === "finance-analytics" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "finance" ? ` ${styles.headerSectionHover}` : ""}`}
-            onClick={() => { activeMenu === "finance" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("finance"); }}
-          >
-            Финансы
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true" className={activeMenu === "finance" ? styles.chevronOpen : undefined}>
-              <path d="M2.5 3.75L5 6.25L7.5 3.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-          {activeMenu === "finance" && (
-            <div className={styles.dropdown} onMouseEnter={cancelClose} onMouseLeave={closeMenu}>
-              <p className={styles.dropdownGroupTitle}>Платформа</p>
-              <button
-                type="button"
-                className={`${styles.dropdownItem}${section === "finance" ? ` ${styles.dropdownItemActive}` : ""}`}
-                onClick={() => { setSection("finance"); setActiveMenu(null); setDrawerOpen(false); }}
-              >
-                <span className={styles.dropdownItemLabel}>Сводка платформы</span>
-                <span className={styles.dropdownItemDesc}>Прибыль, баланс, обязательства, оборот.</span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.dropdownItem}${section === "finance-requisites" ? ` ${styles.dropdownItemActive}` : ""}`}
-                onClick={() => { setSection("finance-requisites"); setActiveMenu(null); setDrawerOpen(false); }}
-              >
-                <span className={styles.dropdownItemLabel}>Реквизиты приёма</span>
-                <span className={styles.dropdownItemDesc}>Карта и платёжная ссылка для плательщиков.</span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.dropdownItem}${section === "finance-analytics" ? ` ${styles.dropdownItemActive}` : ""}`}
-                onClick={() => { setSection("finance-analytics"); setActiveMenu(null); setDrawerOpen(false); }}
-              >
-                <span className={styles.dropdownItemLabel}>Аналитика</span>
-                <span className={styles.dropdownItemDesc}>Обороты, заработок по ролям, динамика, топы.</span>
-              </button>
-              <div className={styles.dropdownDivider} />
-              <p className={styles.dropdownGroupTitle}>Схемы и выплаты</p>
-              <button
-                type="button"
-                className={`${styles.dropdownItem}${section === "schemes" ? ` ${styles.dropdownItemActive}` : ""}`}
-                onClick={() => { setSection("schemes"); setActiveMenu(null); setDrawerOpen(false); }}
-              >
-                <span className={styles.dropdownItemLabel}>Финансовые схемы</span>
-                <span className={styles.dropdownItemDesc}>Веса распределения долей по каждому блогеру.</span>
-              </button>
-              <button
-                type="button"
-                className={`${styles.dropdownItem}${section === "ledger" ? ` ${styles.dropdownItemActive}` : ""}`}
-                onClick={() => { setSection("ledger"); setActiveMenu(null); setDrawerOpen(false); }}
-              >
-                <span className={styles.dropdownItemLabel}>Леджер и выплаты</span>
-                <span className={styles.dropdownItemDesc}>Начисления, запросы на выплаты, подтверждения.</span>
-              </button>
-            </div>
-          )}
-        </div>
-
         {/* Маркетплейс — dropdown */}
         <div
           className={styles.headerDropdownWrap}
@@ -3508,7 +2799,7 @@ export const AdminDashboard = () => {
         >
           <button
             type="button"
-            className={`${styles.headerSection}${section.startsWith("mp-") ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "marketplace" ? ` ${styles.headerSectionHover}` : ""}`}
+            className={`${styles.headerSection}${section.startsWith("mp-") || section === "finance" || section === "finance-requisites" || section === "finance-analytics" || section === "schemes" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "marketplace" ? ` ${styles.headerSectionHover}` : ""}`}
             onClick={() => { activeMenu === "marketplace" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("marketplace"); }}
           >
             Маркетплейс
@@ -3621,6 +2912,49 @@ export const AdminDashboard = () => {
                 >
                   <span className={styles.dropdownItemLabel}>Витрина</span>
                   <span className={styles.dropdownItemDesc}>Ниши и авторы на главной странице.</span>
+                </button>
+              </div>
+              <div className={styles.dropdownCol}>
+                <p className={styles.dropdownGroupTitle}>Платформа</p>
+                <button
+                  type="button"
+                  className={`${styles.dropdownItem}${section === "finance" ? ` ${styles.dropdownItemActive}` : ""}`}
+                  onClick={() => { setSection("finance"); setActiveMenu(null); setDrawerOpen(false); }}
+                >
+                  <span className={styles.dropdownItemLabel}>Сводка платформы</span>
+                  <span className={styles.dropdownItemDesc}>Прибыль, баланс, обязательства, оборот.</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.dropdownItem}${section === "finance-analytics" ? ` ${styles.dropdownItemActive}` : ""}`}
+                  onClick={() => { setSection("finance-analytics"); setActiveMenu(null); setDrawerOpen(false); }}
+                >
+                  <span className={styles.dropdownItemLabel}>Аналитика</span>
+                  <span className={styles.dropdownItemDesc}>Обороты, заработок по ролям, динамика, топы.</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.dropdownItem}${section === "finance-requisites" ? ` ${styles.dropdownItemActive}` : ""}`}
+                  onClick={() => { setSection("finance-requisites"); setActiveMenu(null); setDrawerOpen(false); }}
+                >
+                  <span className={styles.dropdownItemLabel}>Реквизиты приёма</span>
+                  <span className={styles.dropdownItemDesc}>Карта и платёжная ссылка для плательщиков.</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.dropdownItem}${section === "schemes" ? ` ${styles.dropdownItemActive}` : ""}`}
+                  onClick={() => { setSection("schemes"); setActiveMenu(null); setDrawerOpen(false); }}
+                >
+                  <span className={styles.dropdownItemLabel}>Финансовые схемы</span>
+                  <span className={styles.dropdownItemDesc}>Веса распределения долей по каждому блогеру.</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.dropdownItem}${section === "ledger" ? ` ${styles.dropdownItemActive}` : ""}`}
+                  onClick={() => { setSection("ledger"); setActiveMenu(null); setDrawerOpen(false); }}
+                >
+                  <span className={styles.dropdownItemLabel}>Леджер и выплаты</span>
+                  <span className={styles.dropdownItemDesc}>Начисления, запросы на выплаты, подтверждения.</span>
                 </button>
               </div>
             </div>

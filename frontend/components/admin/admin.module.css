@@ -208,10 +208,10 @@
 /* Широкий дропдаун: группы колонками, а не простынёй */
 .dropdownWide {
   display: grid;
-  grid-template-columns: repeat(3, minmax(200px, 220px));
+  grid-template-columns: repeat(4, minmax(185px, 210px));
   gap: 0 0.6rem;
   width: max-content;
-  max-width: min(92vw, 780px);
+  max-width: min(94vw, 920px);
 }
 
 .dropdownCol {
