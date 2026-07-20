@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useSessionTarget } from "@/lib/use-session-target";
 import {
   JourneyActions,
+  JourneyCash,
   JourneyEyebrow,
   JourneyFeedback,
   JourneyField,
@@ -17,7 +18,6 @@ import {
   JourneyInput,
   JourneyLead,
   JourneyList,
-  JourneyMoon,
   JourneyPanel,
   JourneyShell,
   JourneySteps,
@@ -95,7 +95,7 @@ export const AdminLoginPanels = () => {
   return (
     <JourneyShell brandSub="админ-панель" links={[...meta.headerLinks]}>
       <JourneyPanel tone="light">
-        <JourneyMoon />
+        <JourneyCash />
         <JourneyEyebrow>{meta.eyebrow}</JourneyEyebrow>
         <JourneyTitle>{meta.title}</JourneyTitle>
         <JourneyLead>{meta.lead}</JourneyLead>

@@ -247,16 +247,33 @@ export const JourneyChannelGate = ({
 );
 
 /**
- * Decorative CSS-only moon used at the top of auth/onboarding screens
- * in place of role-specific illustrations. Inherits the same visual
- * language as the landing hero moon.
+ * Decorative fan of real US $100 bills at the top of auth/onboarding
+ * screens — the counterpart of the landing hero money stack (same
+ * public-domain series-2009 scan, same toned-down grade for the night
+ * scene).
  */
-export const JourneyMoon = () => (
-  <div className={styles.moonStage} aria-hidden>
-    <div className={styles.moonHalo} />
-    <div className={styles.moon}>
-      <span className={styles.moonShade} />
-      <span className={styles.moonCraters} />
+export const JourneyCash = () => (
+  <div className={styles.cashStage} aria-hidden>
+    <div className={styles.cashHalo} />
+    <div className={styles.cashFan}>
+      <img
+        className={`${styles.cashBill} ${styles.cashBillBack}`}
+        src="/images/usd-100-front.jpg"
+        alt=""
+        draggable={false}
+      />
+      <img
+        className={`${styles.cashBill} ${styles.cashBillMid}`}
+        src="/images/usd-100-front.jpg"
+        alt=""
+        draggable={false}
+      />
+      <img
+        className={`${styles.cashBill} ${styles.cashBillTop}`}
+        src="/images/usd-100-front.jpg"
+        alt=""
+        draggable={false}
+      />
     </div>
   </div>
 );

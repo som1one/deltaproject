@@ -8,11 +8,11 @@ import { appConfig } from "@/lib/config";
 import { useAuth } from "@/lib/auth-context";
 import { telegramStorage } from "@/lib/storage";
 import {
+  JourneyCash,
   JourneyChannelGate,
   JourneyEyebrow,
   JourneyFeedback,
   JourneyLead,
-  JourneyMoon,
   JourneyPanel,
   JourneyShell,
   JourneyTitle,
@@ -197,7 +197,7 @@ export const TelegramCallback = () => {
       ]}
     >
       <JourneyPanel tone="light">
-        <JourneyMoon />
+        <JourneyCash />
         <JourneyEyebrow>Telegram</JourneyEyebrow>
         <JourneyTitle>
           {isChannelGate ? "Остался один шаг" : error ? "Не получилось войти" : "Завершаем вход"}
