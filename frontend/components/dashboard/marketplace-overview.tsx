@@ -302,7 +302,7 @@ export const MarketplaceOverview = ({
               </button>
             </div>
             {!hasBalance && hasCard ? (
-              <p className={styles.sideHint}>Баланс пуст — приглашайте заказчиков по ссылке ниже.</p>
+              <p className={styles.sideHint}>Баланс пуст — начните с реферальной ссылки ниже.</p>
             ) : null}
           </div>
 
@@ -354,8 +354,7 @@ export const MarketplaceOverview = ({
         </Section>
       ) : null}
 
-      {/* ---- Метрики: тихая типографская строка.
-           Ставку не дублируем — она уже на карте баланса. ---- */}
+      {/* ---- Метрики: тихая типографская строка ---- */}
       <div className={styles.metrics}>
         <div className={styles.metric}>
           {/* Коротко: длинный «Заработано всего» ломал строку метрик на мобиле. */}
@@ -397,7 +396,7 @@ export const MarketplaceOverview = ({
           <div className={styles.activityEmpty}>
             <p className={styles.activityEmptyTitle}>Пока нет комиссий</p>
             <p className={styles.activityEmptyText}>
-              Приглашайте заказчиков по реферальной ссылке — комиссия начислится автоматически после оплаты.
+              Появятся после первого оплаченного заказа приведённого заказчика.
             </p>
           </div>
         ) : (
@@ -424,28 +423,48 @@ export const MarketplaceOverview = ({
         )}
       </Section>
 
-      {/* ---- Как это работает ---- */}
-      <Section label="Как работает платформа">
+      {/* ---- Как работать ---- */}
+      <Section label="Как работать">
         <ol className={styles.howSteps}>
           <li className={styles.howStep}>
             <span className={styles.howStepNum}>01</span>
-            <span className={styles.howStepTitle}>Скопируйте ссылку</span>
-            <span className={styles.howStepDesc}>Отправьте реферальную ссылку потенциальному заказчику</span>
+            <span className={styles.howStepTitle}>Найдите заказчика</span>
+            <span className={styles.howStepDesc}>
+              Реклама у блогеров нужна предпринимателям, экспертам и магазинам —
+              ищите их в бизнес-чатах, среди знакомых и бывших клиентов.
+            </span>
           </li>
           <li className={styles.howStep}>
             <span className={styles.howStepNum}>02</span>
-            <span className={styles.howStepTitle}>Заказчик регистрируется</span>
-            <span className={styles.howStepDesc}>Он навсегда привязывается к вам — все его заказы ваши</span>
+            <span className={styles.howStepTitle}>Напишите по скрипту</span>
+            <span className={styles.howStepDesc}>
+              Готовые первые сообщения и ответы на возражения — в «Скриптах
+              сообщений». Разговор завершайте отправкой реферальной ссылки.
+            </span>
           </li>
           <li className={styles.howStep}>
             <span className={styles.howStepNum}>03</span>
-            <span className={styles.howStepTitle}>Сделка оплачивается</span>
-            <span className={styles.howStepDesc}>Администратор подтверждает оплату по факту</span>
+            <span className={styles.howStepTitle}>Заказчик оформляет заказ</span>
+            <span className={styles.howStepDesc}>
+              По ссылке он попадает в каталог блогеров и регистрируется. Дальше
+              каждый его заказ — сколько бы их ни было — засчитывается вам.
+            </span>
           </li>
           <li className={styles.howStep}>
             <span className={styles.howStepNum}>04</span>
-            <span className={styles.howStepTitle}>Получите комиссию</span>
-            <span className={styles.howStepDesc}>Деньги на балансе — выводите на карту в любое время</span>
+            <span className={styles.howStepTitle}>Комиссия начисляется сама</span>
+            <span className={styles.howStepDesc}>
+              После оплаты заказа ваш процент автоматически падает на баланс.
+              Свежие начисления — здесь в обзоре, полная история — в «Финансах».
+            </span>
+          </li>
+          <li className={styles.howStep}>
+            <span className={styles.howStepNum}>05</span>
+            <span className={styles.howStepTitle}>Выводите на карту</span>
+            <span className={styles.howStepDesc}>
+              Привяжите карту в профиле и запросите выплату в «Финансах» —
+              заявку обработает администратор.
+            </span>
           </li>
         </ol>
       </Section>

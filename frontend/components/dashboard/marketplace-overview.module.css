@@ -354,27 +354,30 @@
   margin-inline: auto;
 }
 
-/* ---------- Как работает платформа ----------
-   Последовательность без декора: моно-номер + текст,
-   hairline сверху каждого шага. */
+/* ---------- Как работать ----------
+   Шаги — строками выписки: моно-номер, узкая колонка заголовка,
+   развёрнутое описание; hairline между строками, как в списке
+   комиссий. Держит любое число шагов без раггед-сетки. */
 
 .howSteps {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1.6rem;
-  counter-reset: none;
 }
 
 .howStep {
   display: grid;
-  gap: 0.45rem;
-  align-content: start;
-  padding-top: 0.9rem;
-  border-top: 1px solid var(--border);
+  grid-template-columns: 2.2rem minmax(0, 15rem) 1fr;
+  column-gap: 1.4rem;
+  row-gap: 0.3rem;
+  align-items: baseline;
+  padding: 0.85rem 0.15rem;
+  border-bottom: 1px solid var(--border-faint);
   min-width: 0;
+}
+
+.howStep:first-child {
+  border-top: 1px solid var(--border-faint);
 }
 
 .howStepNum {
@@ -394,9 +397,9 @@
 }
 
 .howStepDesc {
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   color: var(--text-muted);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* ---------- Responsive ---------- */
@@ -414,10 +417,6 @@
   .side {
     padding: 0.4rem 0 0;
     gap: 1.6rem;
-  }
-  .howSteps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1.2rem;
   }
 }
 
@@ -453,11 +452,12 @@
     width: 100%;
     padding: 0.6rem 1rem;
   }
-}
-
-@media (max-width: 480px) {
-  .howSteps {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+  /* Шаг складывается: номер + заголовок строкой, описание под ними. */
+  .howStep {
+    grid-template-columns: 2.2rem 1fr;
+    row-gap: 0.35rem;
+  }
+  .howStepDesc {
+    grid-column: 2 / 3;
   }
 }
