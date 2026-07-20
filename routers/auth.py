@@ -275,7 +275,15 @@ async def telegram_oauth_callback(
     # ─── Mandatory channel subscription check ───────────────────────────────
     channel_config = await get_channel_config(db)
     if channel_config is not None and channel_config.is_enabled:
-        subscribed = await check_user_subscribed(str(claims.sub), channel_config.channel_id)
+        # Bot API понимает только клейм ``id`` (числовой user id); sub — опаковое
+        # пространство OAuth-шлюза, getChatMember по нему всегда «не подписан».
+        check_id = claims.bot_api_id or str(claims.sub)
+        if claims.bot_api_id is None:
+            logger.warning(
+                "id claim missing in id_token for sub=%s — subscription check "
+                "falls back to sub and will most likely fail", claims.sub,
+            )
+        subscribed = await check_user_subscribed(check_id, channel_config.channel_id)
         if not subscribed:
             # Redirect to frontend with error + channel info for UI.
             # recheck-токен позволяет кнопке «Я подписался» завершить вход
@@ -287,6 +295,7 @@ async def telegram_oauth_callback(
                 linked_to=state_entry.linked_to,
                 client_ip=state_entry.client_ip,
                 role=state_entry.role,
+                check_id=check_id,
             )
             target = _frontend_callback_url()
             params = {
@@ -299,7 +308,7 @@ async def telegram_oauth_callback(
             return RedirectResponse(target, status_code=302)
         # Record subscription for analytics
         client_ip = state_entry.client_ip if hasattr(state_entry, "client_ip") else None
-        await record_subscription(db, str(claims.sub), channel_config.channel_id, client_ip)
+        await record_subscription(db, check_id, channel_config.channel_id, client_ip)
         await db.commit()
 
     try:
@@ -385,11 +394,13 @@ async def telegram_subscription_recheck(
 
     channel_config = await get_channel_config(db)
     if channel_config is not None and channel_config.is_enabled:
-        subscribed = await check_user_subscribed(entry.telegram_id, channel_config.channel_id)
+        # check_id = клейм ``id`` (Bot API user id); entry.telegram_id (sub)
+        # остаётся ключом аккаунта и для getChatMember непригоден.
+        subscribed = await check_user_subscribed(entry.check_id, channel_config.channel_id)
         if not subscribed:
             raise HTTPException(status_code=409, detail="still_not_subscribed")
         await record_subscription(
-            db, entry.telegram_id, channel_config.channel_id, entry.client_ip or None
+            db, entry.check_id, channel_config.channel_id, entry.client_ip or None
         )
         await db.commit()
 

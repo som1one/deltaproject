@@ -33,10 +33,14 @@ _JWKS_CACHE_TTL = 300  # 5 минут
 
 @dataclass(frozen=True)
 class TelegramOIDCClaims:
-    sub: str               # уникальный telegram user id (числовой, как строка)
+    sub: str               # опаковый идентификатор OAuth-шлюза (НЕ Bot API id!)
     name: str
     preferred_username: str  # @username без @
     picture: str | None
+    # Клейм ``id`` (scope profile) — настоящий числовой telegram user id,
+    # который понимает Bot API (getChatMember и т.п.). ``sub`` для этого
+    # непригоден: это отдельное 64-битное пространство oauth.telegram.org.
+    bot_api_id: str | None = None
 
 
 class TelegramOAuthError(Exception):
@@ -216,6 +220,11 @@ async def verify_id_token(*, id_token: str, expected_nonce: str) -> TelegramOIDC
     picture_raw = decoded.get("picture")
     picture = picture_raw if isinstance(picture_raw, str) and picture_raw else None
 
+    bot_api_raw = decoded.get("id")
+    bot_api_id = (
+        str(bot_api_raw) if isinstance(bot_api_raw, (str, int)) and str(bot_api_raw).strip() else None
+    )
+
     if not name:
         name = f"@{username}" if username else f"tg-{sub_str}"
 
@@ -224,4 +233,5 @@ async def verify_id_token(*, id_token: str, expected_nonce: str) -> TelegramOIDC
         name=name,
         preferred_username=username,
         picture=picture,
+        bot_api_id=bot_api_id,
     )

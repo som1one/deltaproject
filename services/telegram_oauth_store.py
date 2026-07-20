@@ -118,6 +118,9 @@ class SubscriptionRecheck:
     linked_to: str | None
     client_ip: str
     role: str
+    # Настоящий Bot API user id (клейм ``id``) для getChatMember.
+    # ``telegram_id`` (= sub) — ключ аккаунта, для Bot API непригоден.
+    check_id: str = ""
 
 
 def create_recheck_token(
@@ -128,6 +131,7 @@ def create_recheck_token(
     linked_to: str | None,
     client_ip: str,
     role: str,
+    check_id: str | None = None,
 ) -> str:
     payload = {
         "k": "recheck",
@@ -139,6 +143,8 @@ def create_recheck_token(
         "r": role,
         "t": _now(),
     }
+    if check_id:
+        payload["tid"] = check_id
     body = _b64encode(json.dumps(payload, separators=(",", ":")).encode("utf-8"))
     sig = hmac.new(_state_secret(), body.encode("ascii"), hashlib.sha256).digest()
     return f"{body}.{_b64encode(sig)}"
@@ -168,6 +174,7 @@ def verify_recheck_token(token: str) -> SubscriptionRecheck | None:
         return None
     if _now() - issued_at > RECHECK_TTL_SECONDS:
         return None
+    tid = payload.get("tid")
     return SubscriptionRecheck(
         telegram_id=telegram_id,
         username=payload.get("u") if isinstance(payload.get("u"), str) else "",
@@ -175,6 +182,9 @@ def verify_recheck_token(token: str) -> SubscriptionRecheck | None:
         linked_to=payload.get("l") if isinstance(payload.get("l"), str) else None,
         client_ip=payload.get("ip") if isinstance(payload.get("ip"), str) else "",
         role=payload.get("r") if isinstance(payload.get("r"), str) else "WORKER",
+        # Легаси-токены без tid откатываются на sub (проверка почти наверняка
+        # снова отобьёт, но TTL 30 минут быстро вымоет такие вкладки).
+        check_id=tid if isinstance(tid, str) and tid else telegram_id,
     )
 
 
