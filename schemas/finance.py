@@ -70,14 +70,26 @@ class TopParticipant(BaseModel):
     user_id: uuid.UUID
     earnings_kopeks: int
     paid_deals_count: int
+    name: str = ""  # имя из профиля; пустое, если пользователь удалён
+    nickname: str | None = None
 
 
 class TimeSeriesPoint(BaseModel):
-    """Точка дневной динамики оборота и доли платформы."""
+    """Точка дневной динамики оборота и доли платформы.
+
+    Две базы отсчёта, не путать: `turnover_kopeks`/`deals_created`/
+    `paid_deals_count` — когорта по дате создания сделки, а
+    `turnover_paid_kopeks`/`payments_count`/`accrued_platform_share_kopeks` —
+    по дате распределения долей, то есть реально прошедшие в этот день деньги.
+    """
 
     date: date  # день (UTC)
-    turnover_kopeks: int  # оборот за день
-    accrued_platform_share_kopeks: int  # накопленная доля платформы за день
+    turnover_kopeks: int  # оборот сделок, созданных в этот день
+    accrued_platform_share_kopeks: int  # доля платформы, начисленная в этот день
+    deals_created: int = 0  # создано сделок за день (любой статус)
+    paid_deals_count: int = 0  # из них дошли до PAID/COMPLETED
+    turnover_paid_kopeks: int = 0  # сумма сделок, распределённых в этот день
+    payments_count: int = 0  # сколько сделок распределено в этот день
 
 
 class ReferralShareByBlogger(BaseModel):
@@ -85,6 +97,54 @@ class ReferralShareByBlogger(BaseModel):
 
     upline_blogger_id: uuid.UUID
     amount_kopeks: int
+    name: str = ""
+    nickname: str | None = None
+
+
+class FunnelStage(BaseModel):
+    """Шаг воронки: сколько сделок когорты периода дошло до этого статуса."""
+
+    key: str  # created / review / confirmed / escrow / paid / completed
+    count: int
+
+
+class AmountBucket(BaseModel):
+    """Корзина гистограммы чеков оплаченных сделок."""
+
+    label: str  # человекочитаемый диапазон, например «5–10 тыс»
+    count: int
+    amount_kopeks: int
+
+
+class PeriodComparison(BaseModel):
+    """Те же показатели за предыдущий отрезок такой же длины (для дельт)."""
+
+    turnover_kopeks: int  # когорта: сделки, созданные в том отрезке
+    turnover_paid_kopeks: int  # деньги, распределённые в том отрезке
+    platform_share_kopeks: int
+    deals_created: int
+    paid_deals_count: int
+
+
+class ParticipantCounts(BaseModel):
+    """Люди платформы: сколько всего и сколько реально работало за период."""
+
+    workers_total: int
+    bloggers_total: int
+    clients_total: int
+    active_workers: int  # воркеры с оплаченными сделками за период
+    active_bloggers: int  # блогеры с оплаченными сделками за период
+    banned_total: int
+
+
+class PayoutQueue(BaseModel):
+    """Очередь выплат по журналу (записи без привязки к сделке)."""
+
+    pending_count: int  # payout_request + pending_confirmation + freeze
+    pending_kopeks: int
+    completed_count: int
+    completed_kopeks: int
+    rejected_count: int
 
 
 class ActiveReferralLinks(BaseModel):
@@ -137,3 +197,29 @@ class PlatformFinanceDashboard(BaseModel):
     total_referral_share_to_uplines_kopeks: int
     referral_share_by_blogger: list[ReferralShareByBlogger]
     active_referral_links: ActiveReferralLinks
+
+    # H. Расширенная аналитика периода
+    # Всё в этой группе считается по выбранному периоду (в отличие от базовых
+    # накопительных показателей выше), чтобы переключатель периода имел смысл.
+    deals_created_period: int
+    paid_deals_period: int
+    # Деньги периода по дате распределения долей: с ними сходится
+    # period_platform_share_kopeks, в отличие от когортного turnover_total_kopeks.
+    turnover_paid_period_kopeks: int
+    payments_period_count: int
+    period_platform_share_kopeks: int  # доля платформы, начисленная в периоде
+    earnings_by_role_period_kopeks: dict[str, int]  # {"Worker","Bloger","Upline","Platform"}
+    previous_period: PeriodComparison | None  # None для периода `all`
+    funnel: list[FunnelStage]  # когорта сделок, созданных в периоде
+    take_rate_pct: float  # доля платформы от оборота оплаченных сделок
+    conversion_to_paid_pct: float
+    rejection_rate_pct: float
+    refund_rate_pct: float
+    avg_hours_to_payment: float | None  # от создания сделки до распределения долей
+    avg_hours_to_first_contact: float | None  # от создания до контакта с клиентом
+    median_order_value_kopeks: int
+    max_order_value_kopeks: int
+    amounts_histogram: list[AmountBucket]
+    participants: ParticipantCounts
+    payouts: PayoutQueue
+    deals_heatmap: list[list[int]]  # 7×24 создание сделок, МСК; [пн..вс][0..23]

@@ -275,6 +275,22 @@
   opacity: 1;
 }
 
+.hbarRowClickable {
+  cursor: pointer;
+}
+
+.hbarRowClickable:hover .hbarLabel,
+.hbarRowClickable:focus-visible .hbarLabel {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.hbarRowClickable:focus-visible {
+  outline: 1px solid var(--border-strong, rgba(255, 255, 255, 0.22));
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
 /* Воронка */
 
 .funnelList {

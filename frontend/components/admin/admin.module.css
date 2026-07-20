@@ -688,6 +688,39 @@
   color: var(--text-strong);
 }
 
+/* Подпись под значением: сравнение с прошлым периодом, база расчёта и т.п. */
+.metricHint {
+  font-size: 0.72rem;
+  color: var(--text-soft);
+  letter-spacing: -0.005em;
+}
+
+.deltaUp {
+  color: var(--status-success);
+}
+
+.deltaDown {
+  color: var(--status-danger);
+}
+
+/* Ряд KPI, который сам решает, сколько колонок поместится. */
+.metricRowAuto {
+  display: grid;
+  gap: 0.9rem 1.4rem;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+}
+
+.metricRowAuto .metric {
+  border-top: none;
+  border-left: 1px solid var(--border-faint);
+  padding: 0.15rem 0 0.15rem 0.9rem;
+}
+
+.metricRowAuto .metric:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+
 /* ---------- Payment requisites (collection card / payment link) ---------- */
 
 .requisitesBox {

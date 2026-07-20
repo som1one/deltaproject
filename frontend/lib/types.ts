@@ -258,17 +258,63 @@ export type TopParticipant = {
   user_id: string;
   earnings_kopeks: number;
   paid_deals_count: number;
+  name: string;
+  nickname: string | null;
 };
 
 export type TimeSeriesPoint = {
   date: string;
+  // Когорта по дате создания сделки.
   turnover_kopeks: number;
+  deals_created: number;
+  paid_deals_count: number;
+  // По дате распределения долей — деньги, реально прошедшие в этот день.
   accrued_platform_share_kopeks: number;
+  turnover_paid_kopeks: number;
+  payments_count: number;
 };
 
 export type ReferralShareByBlogger = {
   upline_blogger_id: string;
   amount_kopeks: number;
+  name: string;
+  nickname: string | null;
+};
+
+export type FinanceFunnelStage = {
+  key: string;
+  count: number;
+};
+
+export type FinanceAmountBucket = {
+  label: string;
+  count: number;
+  amount_kopeks: number;
+};
+
+export type FinancePeriodComparison = {
+  turnover_kopeks: number;
+  turnover_paid_kopeks: number;
+  platform_share_kopeks: number;
+  deals_created: number;
+  paid_deals_count: number;
+};
+
+export type FinanceParticipantCounts = {
+  workers_total: number;
+  bloggers_total: number;
+  clients_total: number;
+  active_workers: number;
+  active_bloggers: number;
+  banned_total: number;
+};
+
+export type FinancePayoutQueue = {
+  pending_count: number;
+  pending_kopeks: number;
+  completed_count: number;
+  completed_kopeks: number;
+  rejected_count: number;
 };
 
 export type ActiveReferralLinks = {
@@ -317,6 +363,28 @@ export type PlatformFinanceDashboard = {
   total_referral_share_to_uplines_kopeks: number;
   referral_share_by_blogger: ReferralShareByBlogger[];
   active_referral_links: ActiveReferralLinks;
+
+  // H. Расширенная аналитика периода
+  deals_created_period: number;
+  paid_deals_period: number;
+  turnover_paid_period_kopeks: number;
+  payments_period_count: number;
+  period_platform_share_kopeks: number;
+  earnings_by_role_period_kopeks: Record<string, number>;
+  previous_period: FinancePeriodComparison | null;
+  funnel: FinanceFunnelStage[];
+  take_rate_pct: number;
+  conversion_to_paid_pct: number;
+  rejection_rate_pct: number;
+  refund_rate_pct: number;
+  avg_hours_to_payment: number | null;
+  avg_hours_to_first_contact: number | null;
+  median_order_value_kopeks: number;
+  max_order_value_kopeks: number;
+  amounts_histogram: FinanceAmountBucket[];
+  participants: FinanceParticipantCounts;
+  payouts: FinancePayoutQueue;
+  deals_heatmap: number[][];
 };
 
 export type AdminAuditEntry = {

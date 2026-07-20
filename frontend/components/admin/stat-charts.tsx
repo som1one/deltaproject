@@ -573,7 +573,14 @@ export const DonutChart = ({
 /* Горизонтальные бары: топы, услуги, оценки                           */
 /* ------------------------------------------------------------------ */
 
-export type HBarItem = { label: string; value: number; valueLabel: string; hint?: string };
+export type HBarItem = {
+  label: string;
+  value: number;
+  valueLabel: string;
+  hint?: string;
+  /** Задан — строка кликабельна (например, переход в карточку участника). */
+  onSelect?: () => void;
+};
 
 export const HBarList = ({ items, emptyText }: { items: HBarItem[]; emptyText: string }) => {
   const max = items.reduce((acc, item) => Math.max(acc, item.value), 0);
@@ -582,8 +589,24 @@ export const HBarList = ({ items, emptyText }: { items: HBarItem[]; emptyText: s
   }
   return (
     <ul className={styles.hbarList}>
-      {items.map((item) => (
-        <li key={item.label} className={styles.hbarRow}>
+      {items.map((item, index) => (
+        <li
+          key={`${item.label}-${index}`}
+          className={`${styles.hbarRow}${item.onSelect ? ` ${styles.hbarRowClickable}` : ""}`}
+          onClick={item.onSelect}
+          onKeyDown={
+            item.onSelect
+              ? (event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    item.onSelect?.();
+                  }
+                }
+              : undefined
+          }
+          role={item.onSelect ? "button" : undefined}
+          tabIndex={item.onSelect ? 0 : undefined}
+        >
           <div className={styles.hbarHead}>
             <span className={styles.hbarLabel} title={item.label}>
               {item.label}

@@ -45,6 +45,7 @@ import {
 } from "@/components/common/ui";
 import styles from "@/components/admin/admin.module.css";
 import { ChartRangeSwitch, DailyBarsChart, type ChartRange } from "@/components/admin/stat-charts";
+import { FinanceAnalyticsTab } from "@/components/admin/finance-analytics";
 import { CopyButton } from "@/components/common/copy-button";
 import { AdminMarketplacePanel, type AdminMarketplaceTab } from "@/components/admin/marketplace-panel";
 
@@ -379,7 +380,7 @@ export const AdminDashboard = () => {
   const financeDashboardQuery = useQuery({
     queryKey: ["admin", "financeDashboard", financePeriod],
     queryFn: () => api.getPlatformFinanceDashboard(financePeriod),
-    enabled: Boolean(isAuthenticated) && section === "finance",
+    enabled: Boolean(isAuthenticated) && (section === "finance" || section === "finance-analytics"),
   });
 
   useEffect(() => {
@@ -1716,37 +1717,12 @@ export const AdminDashboard = () => {
 
     if (section === "finance" || section === "finance-analytics") {
       const dash = financeDashboardQuery.data;
-      const participantLabel = (key: string): string => {
-        switch (key.toLowerCase()) {
-          case "worker": return "Воркер";
-          case "bloger": case "blogger": return "Блогер";
-          case "upline": return "Аплайн";
-          case "platform": return "Платформа";
-          default: return key;
-        }
-      };
       const periodOptions: { value: ReportingPeriod; label: string }[] = [
         { value: "today", label: "Сегодня" },
         { value: "week", label: "Неделя" },
         { value: "month", label: "Месяц" },
         { value: "all", label: "Всё время" },
       ];
-      const dealStatusOrder = [
-        "NEW",
-        "REVIEW",
-        "CONFIRMED",
-        "ESCROW_HELD",
-        "PAID",
-        "COMPLETED",
-        "REJECTED",
-        "REFUNDED",
-      ] as const;
-      const maxSeriesTurnover = dash
-        ? Math.max(1, ...dash.time_series.map((point) => point.turnover_kopeks))
-        : 1;
-      const maxSeriesShare = dash
-        ? Math.max(1, ...dash.time_series.map((point) => point.accrued_platform_share_kopeks))
-        : 1;
       if (section === "finance") {
       return (
         <Stack>
@@ -1845,338 +1821,17 @@ export const AdminDashboard = () => {
 
       /* section === "finance-analytics" */
       return (
-        <Stack>
-          <SectionCard
-            title="Период"
-            lead="Фильтрация аналитики по выбранному периоду."
-          >
-            <PillRow>
-              {periodOptions.map((option) => (
-                <Button
-                  key={option.value}
-                  type="button"
-                  kind={financePeriod === option.value ? "primary" : "ghost"}
-                  onClick={() => setFinancePeriod(option.value)}
-                >
-                  {option.label}
-                </Button>
-              ))}
-            </PillRow>
-          </SectionCard>
-
-          {financeDashboardQuery.isLoading ? <Message>Загружаем аналитику…</Message> : null}
-          {financeDashboardQuery.isError ? (
-            <Message tone="error">Не удалось загрузить аналитику.</Message>
-          ) : null}
-
-          {dash ? (
-            <>
-              <div className={styles.financeHero}>
-                <div className={styles.financeHeroMain}>
-                  <p className={styles.financeHeroLabel}>Чистая прибыль</p>
-                  <p className={styles.financeHeroValue}>{formatMoney(dash.net_profit_kopeks)}</p>
-                  <p className={styles.financeHeroHint}>
-                    Накоплено {formatMoney(dash.accrued_platform_share_kopeks)} · выведено{" "}
-                    {formatMoney(dash.platform_withdrawn_kopeks)}
-                  </p>
-                </div>
-                <div className={styles.financeHeroAside}>
-                  <div className={styles.financeHeroStat}>
-                    <span className={styles.financeMiniLabel}>Баланс платформы</span>
-                    <span className={styles.financeMiniValue}>{formatMoney(dash.platform_balance_kopeks)}</span>
-                  </div>
-                  <div className={styles.financeHeroStat}>
-                    <span className={styles.financeMiniLabel}>Свободные средства</span>
-                    <span className={styles.financeMiniValue}>{formatMoney(dash.net_free_funds_kopeks)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.metricGroups}>
-                <section className={styles.metricGroup}>
-                  <h3 className={styles.metricGroupTitle}>Резерв и обязательства</h3>
-                  <div className={styles.metricRow}>
-                    <div className={styles.metric}>
-                      <span className={styles.metricLabel}>Обязательства</span>
-                      <span className={styles.metricValue}>{formatMoney(dash.platform_liabilities_kopeks)}</span>
-                    </div>
-                    <div className={styles.metric}>
-                      <span className={styles.metricLabel}>В ожидании</span>
-                      <span className={styles.metricValue}>{formatMoney(dash.platform_pending_funds_kopeks)}</span>
-                    </div>
-                    <div className={styles.metric}>
-                      <span className={styles.metricLabel}>Доступно к выводу</span>
-                      <span className={styles.metricValue}>{formatMoney(dash.available_for_payout_kopeks)}</span>
-                    </div>
-                    <div className={styles.metric}>
-                      <span className={styles.metricLabel}>Выплачено всем</span>
-                      <span className={styles.metricValue}>{formatMoney(dash.total_completed_payouts_kopeks)}</span>
-                    </div>
-                  </div>
-                </section>
-
-                <section className={styles.metricGroup}>
-                  <h3 className={styles.metricGroupTitle}>Оборот</h3>
-                  <div className={styles.metricRow}>
-                    <div className={styles.metric}>
-                      <span className={styles.metricLabel}>Оборот</span>
-                      <span className={styles.metricValue}>{formatMoney(dash.turnover_total_kopeks)}</span>
-                    </div>
-                    <div className={styles.metric}>
-                      <span className={styles.metricLabel}>Средний чек</span>
-                      <span className={styles.metricValue}>{formatMoney(dash.average_order_value_kopeks)}</span>
-                    </div>
-                    <div className={styles.metric}>
-                      <span className={styles.metricLabel}>Средняя комиссия</span>
-                      <span className={styles.metricValue}>{formatMoney(dash.average_platform_commission_kopeks)}</span>
-                    </div>
-                  </div>
-                </section>
-              </div>
-
-              <div className={styles.sideLayout}>
-                <SectionCard title="Оборот и сделки по статусам" lead="Базовая сумма и количество сделок в разрезе статусов.">
-                  <TableWrap>
-                    <DataTable>
-                      <thead>
-                        <tr>
-                          <th>Статус</th>
-                          <th>Оборот</th>
-                          <th>Сделок</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dealStatusOrder.map((statusKey) => (
-                          <tr key={statusKey}>
-                            <td>{formatDealStatus(statusKey)}</td>
-                            <td>{formatMoney(dash.turnover_by_status_kopeks[statusKey] ?? 0)}</td>
-                            <td>{formatNumber(dash.deal_counts_by_status[statusKey] ?? 0)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </DataTable>
-                  </TableWrap>
-                </SectionCard>
-
-                <SectionCard title="Заработок по ролям" lead="Сумма посделочных начислений по роли получателя.">
-                  <TableWrap>
-                    <DataTable>
-                      <thead>
-                        <tr>
-                          <th>Роль</th>
-                          <th>Начислено</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {Object.entries(dash.earnings_by_role_kopeks).map(([role, amount]) => (
-                          <tr key={role}>
-                            <td>{participantLabel(role)}</td>
-                            <td>{formatMoney(amount)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </DataTable>
-                  </TableWrap>
-                </SectionCard>
-              </div>
-
-              <SectionCard
-                title="Динамика по дням"
-                lead="Оборот и накопленная доля платформы за день в пределах периода."
-              >
-                {dash.time_series.length === 0 ? (
-                  <Message>За выбранный период данных нет.</Message>
-                ) : (
-                  <TableWrap>
-                    <DataTable>
-                      <thead>
-                        <tr>
-                          <th>Дата</th>
-                          <th>Оборот</th>
-                          <th>Доля платформы</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {dash.time_series.map((point) => (
-                          <tr key={point.date}>
-                            <td>{point.date}</td>
-                            <td>
-                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                <span
-                                  style={{
-                                    display: "inline-block",
-                                    height: "0.5rem",
-                                    borderRadius: "2px",
-                                    minWidth: "2px",
-                                    width: `${Math.round((point.turnover_kopeks / maxSeriesTurnover) * 100)}%`,
-                                    background: "#7fd4a8",
-                                  }}
-                                  aria-hidden
-                                />
-                                <span>{formatMoney(point.turnover_kopeks)}</span>
-                              </div>
-                            </td>
-                            <td>
-                              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                <span
-                                  style={{
-                                    display: "inline-block",
-                                    height: "0.5rem",
-                                    borderRadius: "2px",
-                                    minWidth: "2px",
-                                    width: `${Math.round((point.accrued_platform_share_kopeks / maxSeriesShare) * 100)}%`,
-                                    background: "#a78bff",
-                                  }}
-                                  aria-hidden
-                                />
-                                <span>{formatMoney(point.accrued_platform_share_kopeks)}</span>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </DataTable>
-                  </TableWrap>
-                )}
-              </SectionCard>
-
-              <div className={styles.sideLayout}>
-                <SectionCard title="Топ блогеров" lead="До 10 блогеров по убыванию заработка.">
-                  {dash.top_bloggers.length === 0 ? (
-                    <Message>Начислений блогерам пока нет.</Message>
-                  ) : (
-                    <TableWrap>
-                      <DataTable>
-                        <thead>
-                          <tr>
-                            <th>Блогер</th>
-                            <th>Заработок</th>
-                            <th>Сделок</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {dash.top_bloggers.map((participant) => (
-                            <tr
-                              key={participant.user_id}
-                              className={styles.selectable}
-                              onClick={() => {
-                                setSelectedUserId(participant.user_id);
-                                setSection("users");
-                              }}
-                            >
-                              <td className={styles.linkCell}>{participant.user_id.slice(0, 8)}…</td>
-                              <td>{formatMoney(participant.earnings_kopeks)}</td>
-                              <td>{formatNumber(participant.paid_deals_count)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </DataTable>
-                    </TableWrap>
-                  )}
-                </SectionCard>
-
-                <SectionCard title="Топ воркеров" lead="До 10 воркеров по убыванию заработка.">
-                  {dash.top_workers.length === 0 ? (
-                    <Message>Начислений воркерам пока нет.</Message>
-                  ) : (
-                    <TableWrap>
-                      <DataTable>
-                        <thead>
-                          <tr>
-                            <th>Воркер</th>
-                            <th>Заработок</th>
-                            <th>Сделок</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {dash.top_workers.map((participant) => (
-                            <tr
-                              key={participant.user_id}
-                              className={styles.selectable}
-                              onClick={() => {
-                                setSelectedUserId(participant.user_id);
-                                setSection("users");
-                              }}
-                            >
-                              <td className={styles.linkCell}>{participant.user_id.slice(0, 8)}…</td>
-                              <td>{formatMoney(participant.earnings_kopeks)}</td>
-                              <td>{formatNumber(participant.paid_deals_count)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </DataTable>
-                    </TableWrap>
-                  )}
-                </SectionCard>
-              </div>
-
-              <div className={styles.sideLayout}>
-                <SectionCard title="Реферальная аналитика" lead="Начисленная реферальная доля аплайнам и активные связи.">
-                  <Stack>
-                    <PillRow>
-                      <Pill>
-                        Всего аплайнам: {formatMoney(dash.total_referral_share_to_uplines_kopeks)}
-                      </Pill>
-                      <Pill>Блогеров с аплайном: {formatNumber(dash.active_referral_links.bloggers_with_upline)}</Pill>
-                      <Pill>Воркеров со связью: {formatNumber(dash.active_referral_links.workers_with_link)}</Pill>
-                    </PillRow>
-                    {dash.referral_share_by_blogger.length === 0 ? (
-                      <Message>Реферальных начислений пока нет.</Message>
-                    ) : (
-                      <TableWrap>
-                        <DataTable>
-                          <thead>
-                            <tr>
-                              <th>Аплайн-блогер</th>
-                              <th>Начислено</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {dash.referral_share_by_blogger.map((row) => (
-                              <tr key={row.upline_blogger_id}>
-                                <td>{row.upline_blogger_id.slice(0, 8)}…</td>
-                                <td>{formatMoney(row.amount_kopeks)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </DataTable>
-                      </TableWrap>
-                    )}
-                  </Stack>
-                </SectionCard>
-
-                <SectionCard
-                  title="Ожидаемые начисления"
-                  lead="Итог по сделкам в статусе CONFIRMED и будущие доли по участникам."
-                >
-                  <Stack>
-                    <PillRow>
-                      <Pill tone="accent">Итого: {formatMoney(dash.expected_accruals_total_kopeks)}</Pill>
-                    </PillRow>
-                    <TableWrap>
-                      <DataTable>
-                        <thead>
-                          <tr>
-                            <th>Участник</th>
-                            <th>Будущая доля</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(dash.expected_future_shares_kopeks).map(([key, amount]) => (
-                            <tr key={key}>
-                              <td>{participantLabel(key)}</td>
-                              <td>{formatMoney(amount)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </DataTable>
-                    </TableWrap>
-                  </Stack>
-                </SectionCard>
-              </div>
-            </>
-          ) : null}
-        </Stack>
+        <FinanceAnalyticsTab
+          dash={dash}
+          period={financePeriod}
+          onPeriodChange={setFinancePeriod}
+          isLoading={financeDashboardQuery.isLoading}
+          isError={financeDashboardQuery.isError}
+          onSelectUser={(userId) => {
+            setSelectedUserId(userId);
+            setSection("users");
+          }}
+        />
       );
     }
 
