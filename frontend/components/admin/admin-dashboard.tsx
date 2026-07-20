@@ -46,11 +46,10 @@ import {
 import styles from "@/components/admin/admin.module.css";
 import { ChartRangeSwitch, DailyBarsChart, type ChartRange } from "@/components/admin/stat-charts";
 import { CopyButton } from "@/components/common/copy-button";
-import { PayoutCardInput } from "@/components/common/payout-card-input";
 import { AdminMarketplacePanel, type AdminMarketplaceTab } from "@/components/admin/marketplace-panel";
 
 type AdminSection =
-  | "overview" | "stats" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "ledger" | "schemes" | "finance" | "finance-requisites" | "finance-analytics" | "scripts" | "telegram"
+  | "overview" | "stats" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "ledger" | "finance" | "finance-analytics" | "scripts" | "telegram"
   | "mp-dashboard" | "mp-stats" | "mp-orders" | "mp-payments" | "mp-settings" | "mp-tickets" | "mp-bloggers" | "mp-services" | "mp-moderation" | "mp-premium" | "mp-hero" | "mp-withdrawals";
 
 type AdminModalState =
@@ -140,20 +139,10 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
     title: "Леджер и выплаты",
     lead: "Все начисления и запросы на выплаты. Подтверждайте выплаты вручную.",
   },
-  schemes: {
-    label: "Схемы",
-    title: "Финансовые схемы",
-    lead: "Веса распределения долей по каждому блогеру. Превью считает суммы для конкретной интеграции.",
-  },
   finance: {
     label: "Финансы платформы",
     title: "Сводка платформы",
     lead: "Прибыль, баланс, обязательства и оборот за выбранный период.",
-  },
-  "finance-requisites": {
-    label: "Реквизиты приёма",
-    title: "Реквизиты приёма платежей",
-    lead: "Карта приёма и платёжная ссылка для плательщиков.",
   },
   "finance-analytics": {
     label: "Аналитика",
@@ -261,7 +250,6 @@ export const AdminDashboard = () => {
   const [message, setMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedLedgerId, setSelectedLedgerId] = useState("");
-  const [selectedSchemeId, setSelectedSchemeId] = useState("");
   const [selectedScriptId, setSelectedScriptId] = useState("");
   const [userForm, setUserForm] = useState(emptyUserForm);
   const [userRoleFilter, setUserRoleFilter] = useState<UsersRoleFilter>("all");
@@ -271,23 +259,10 @@ export const AdminDashboard = () => {
   const [mpProfileForm, setMpProfileForm] = useState(emptyMpProfileForm);
   const [bloggerForm, setBloggerForm] = useState(emptyBloggerForm);
   const [scriptForm, setScriptForm] = useState(emptyScriptForm);
-  const [financeForm, setFinanceForm] = useState({
-    weight_worker: "2000",
-    weight_bloger: "5000",
-    weight_upline: "1000",
-    weight_platform: "8000",
-  });
-  const [previewPriceRub, setPreviewPriceRub] = useState("15000");
   const [modal, setModal] = useState<AdminModalState>(null);
   const [financePeriod, setFinancePeriod] = useState<ReportingPeriod>("all");
   const [balanceAdjustForm, setBalanceAdjustForm] = useState({ amountRub: "", reason: "" });
   const [partnerCardForm, setPartnerCardForm] = useState("");
-  // Реквизиты приёма: ссылку отражаем в текстовом поле (всегда отправляется),
-  // карту вводим через PayoutCardInput. Признак "карту меняли" — collectionCardDraft.
-  const [collectionCardBrand, setCollectionCardBrand] = useState<string | null>(null);
-  const [collectionCardHolder, setCollectionCardHolder] = useState<string | null>(null);
-  const [paymentLinkForm, setPaymentLinkForm] = useState("");
-  const [collectionCardDraft, setCollectionCardDraft] = useState<string | null>(null);
 
   const meQuery = useQuery({
     queryKey: ["me"],
@@ -319,11 +294,6 @@ export const AdminDashboard = () => {
     enabled: Boolean(isAuthenticated),
   });
   const ledgerQuery = useQuery({ queryKey: ["admin", "ledger"], queryFn: () => api.getAdminLedger(), enabled: Boolean(isAuthenticated) });
-  const schemesQuery = useQuery({
-    queryKey: ["admin", "financeSchemes"],
-    queryFn: () => api.getFinanceSchemes(),
-    enabled: Boolean(isAuthenticated),
-  });
   const scriptsQuery = useQuery({
     queryKey: ["admin", "workerScripts"],
     queryFn: api.getAdminWorkerScripts,
@@ -400,18 +370,6 @@ export const AdminDashboard = () => {
     queryFn: () => api.getAdminLedgerEntry(selectedLedgerId),
     enabled: Boolean(selectedLedgerId),
   });
-  const schemeDetailQuery = useQuery({
-    queryKey: ["admin", "financeScheme", selectedSchemeId],
-    queryFn: () => api.getFinanceScheme(selectedSchemeId),
-    enabled: Boolean(selectedSchemeId),
-  });
-  const previewPriceKopeks = Math.max(0, Math.round(Number(previewPriceRub) * 100));
-  const financePreviewQuery = useQuery({
-    queryKey: ["admin", "financePreview", selectedSchemeId, previewPriceKopeks],
-    queryFn: () => api.getFinancePreview(selectedSchemeId, previewPriceKopeks),
-    enabled: Boolean(selectedSchemeId && previewPriceKopeks > 0),
-  });
-
   const userAuditQuery = useQuery({
     queryKey: ["admin", "userAudit", selectedUserId],
     queryFn: () => api.getUserAudit(selectedUserId),
@@ -421,12 +379,6 @@ export const AdminDashboard = () => {
   const financeDashboardQuery = useQuery({
     queryKey: ["admin", "financeDashboard", financePeriod],
     queryFn: () => api.getPlatformFinanceDashboard(financePeriod),
-    enabled: Boolean(isAuthenticated) && section === "finance",
-  });
-
-  const paymentDetailsQuery = useQuery({
-    queryKey: ["admin", "paymentDetails"],
-    queryFn: api.getAdminPaymentDetails,
     enabled: Boolean(isAuthenticated) && section === "finance",
   });
 
@@ -463,12 +415,6 @@ export const AdminDashboard = () => {
       setSelectedLedgerId(ledgerQuery.data.items[0].id);
     }
   }, [ledgerQuery.data, selectedLedgerId]);
-
-  useEffect(() => {
-    if (!selectedSchemeId && schemesQuery.data?.items.length) {
-      setSelectedSchemeId(schemesQuery.data.items[0].blogger_id);
-    }
-  }, [schemesQuery.data, selectedSchemeId]);
 
   useEffect(() => {
     if (!selectedScriptId && scriptsQuery.data?.length) {
@@ -535,26 +481,6 @@ export const AdminDashboard = () => {
       });
     }
   }, [scriptsQuery.data, selectedScriptId]);
-
-  useEffect(() => {
-    if (schemeDetailQuery.data) {
-      setFinanceForm({
-        weight_worker: String(schemeDetailQuery.data.weight_worker),
-        weight_bloger: String(schemeDetailQuery.data.weight_bloger),
-        weight_upline: String(schemeDetailQuery.data.weight_upline),
-        weight_platform: String(schemeDetailQuery.data.weight_platform),
-      });
-    }
-  }, [schemeDetailQuery.data]);
-
-  useEffect(() => {
-    // Текстовое поле ссылки отражает текущее значение реквизитов.
-    // Черновик карты сбрасываем — последние 4 цифры показываем отдельно.
-    if (paymentDetailsQuery.data) {
-      setPaymentLinkForm(paymentDetailsQuery.data.payment_link || "");
-      setCollectionCardDraft(null);
-    }
-  }, [paymentDetailsQuery.data]);
 
   const invalidateAdmin = async (...keys: readonly (readonly unknown[])[]) => {
     await Promise.all(keys.map((key) => queryClient.invalidateQueries({ queryKey: [...key] })));
@@ -702,7 +628,7 @@ export const AdminDashboard = () => {
     onSuccess: async (payload) => {
       setBloggerForm(emptyBloggerForm);
       setModal({ kind: "blogger-created", nickname: payload.nickname, password: payload.generated_password });
-      await invalidateAdmin(["admin", "users"], ["admin", "usersFiltered"], ["admin", "overview"], ["admin", "financeSchemes"]);
+      await invalidateAdmin(["admin", "users"], ["admin", "usersFiltered"], ["admin", "overview"]);
     },
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
@@ -713,33 +639,7 @@ export const AdminDashboard = () => {
       setMessage({ tone: "success", text: "Пользователь удалён." });
       setModal(null);
       setSelectedUserId("");
-      await invalidateAdmin(["admin", "users"], ["admin", "usersFiltered"], ["admin", "overview"], ["admin", "financeSchemes"]);
-    },
-    onError: (error) => setMessage({ tone: "error", text: error.message }),
-  });
-
-  const paymentDetailsMutation = useMutation({
-    mutationFn: async () => {
-      // Ссылку отправляем всегда (текстовое поле отражает текущее значение,
-      // пустая строка очищает её). Карту включаем в payload только если админ
-      // ввёл новый номер (collectionCardDraft), иначе опускаем поле, чтобы
-      // сохранить прежнюю карту (пустая строка её бы очистила).
-      const payload: { payment_link: string } = {
-        payment_link: paymentLinkForm.trim(),
-      };
-      if (collectionCardDraft !== null && collectionCardBrand !== null && collectionCardHolder !== null) {
-        await api.setPartnerPayoutCard(selectedUserId, {
-          card_number: collectionCardDraft,
-          card_brand: collectionCardBrand,
-          card_holder: collectionCardHolder,
-        });
-      }
-      return api.setAdminPaymentDetails(payload);
-    },
-    onSuccess: async () => {
-      setMessage({ tone: "success", text: "Реквизиты приёма сохранены." });
-      setCollectionCardDraft(null);
-      await invalidateAdmin(["admin", "paymentDetails"]);
+      await invalidateAdmin(["admin", "users"], ["admin", "usersFiltered"], ["admin", "overview"]);
     },
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
@@ -761,25 +661,6 @@ export const AdminDashboard = () => {
       setMessage({ tone: "success", text: "Выплата отмечена как завершённая." });
       setModal(null);
       await invalidateAdmin(["admin", "ledger"], ["admin", "ledgerEntry", selectedLedgerId], ["admin", "overview"]);
-    },
-    onError: (error) => setMessage({ tone: "error", text: error.message }),
-  });
-
-  const financeMutation = useMutation({
-    mutationFn: () =>
-      api.putFinanceScheme(selectedSchemeId, {
-        weight_worker: Number(financeForm.weight_worker),
-        weight_bloger: Number(financeForm.weight_bloger),
-        weight_upline: Number(financeForm.weight_upline),
-        weight_platform: Number(financeForm.weight_platform),
-      }),
-    onSuccess: async () => {
-      setMessage({ tone: "success", text: "Схема распределения обновлена." });
-      await invalidateAdmin(
-        ["admin", "financeSchemes"],
-        ["admin", "financeScheme", selectedSchemeId],
-        ["admin", "financePreview", selectedSchemeId, previewPriceKopeks],
-      );
     },
     onError: (error) => setMessage({ tone: "error", text: error.message }),
   });
@@ -1833,92 +1714,6 @@ export const AdminDashboard = () => {
       );
     }
 
-    if (section === "schemes") {
-      return (
-        <div className={styles.sideLayout}>
-          <SectionCard title="Финансовые схемы" lead="Веса распределения долей по каждому блогеру.">
-            {schemesQuery.data ? (
-              schemesQuery.data.items.length === 0 ? (
-                <Message>Создайте блогера, чтобы появилась первая схема.</Message>
-              ) : (
-                <TableWrap>
-                  <DataTable>
-                    <thead>
-                      <tr>
-                        <th>Блогер</th>
-                        <th>Воркер</th>
-                        <th>Блогер</th>
-                        <th>Платформа</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {schemesQuery.data.items.map((scheme) => (
-                        <tr
-                          key={scheme.blogger_id}
-                          className={`${styles.selectable}${selectedSchemeId === scheme.blogger_id ? ` ${styles.selected}` : ""}`}
-                          onClick={() => setSelectedSchemeId(scheme.blogger_id)}
-                        >
-                          <td>{scheme.blogger_name}</td>
-                          <td>{scheme.weight_worker}</td>
-                          <td>{scheme.weight_bloger}</td>
-                          <td>{scheme.weight_platform}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </DataTable>
-                </TableWrap>
-              )
-            ) : (
-              <Message>Загружаем схемы…</Message>
-            )}
-          </SectionCard>
-
-          <SectionCard title="Редактор схемы" lead={schemeDetailQuery.data ? schemeDetailQuery.data.blogger_email : "Выберите блогера слева."}>
-            {schemeDetailQuery.data ? (
-              <Stack>
-                <TwoColumn>
-                  <Field label="Воркер">
-                    <TextInput value={financeForm.weight_worker} onChange={(event) => setFinanceForm((current) => ({ ...current, weight_worker: event.target.value }))} />
-                  </Field>
-                  <Field label="Блогер">
-                    <TextInput value={financeForm.weight_bloger} onChange={(event) => setFinanceForm((current) => ({ ...current, weight_bloger: event.target.value }))} />
-                  </Field>
-                  <Field label="Аплайн-блогер">
-                    <TextInput value={financeForm.weight_upline} onChange={(event) => setFinanceForm((current) => ({ ...current, weight_upline: event.target.value }))} />
-                  </Field>
-                  <Field label="Платформа">
-                    <TextInput value={financeForm.weight_platform} onChange={(event) => setFinanceForm((current) => ({ ...current, weight_platform: event.target.value }))} />
-                  </Field>
-                </TwoColumn>
-                <div className={styles.actionRow}>
-                  <Button type="button" onClick={() => financeMutation.mutate()} disabled={financeMutation.isPending}>
-                    {financeMutation.isPending ? "Сохраняем…" : "Сохранить схему"}
-                  </Button>
-                </div>
-                <Field label="Сумма для предпросмотра, ₽">
-                  <TextInput
-                    value={previewPriceRub}
-                    inputMode="decimal"
-                    onChange={(event) => setPreviewPriceRub(event.target.value)}
-                  />
-                </Field>
-                {financePreviewQuery.data ? (
-                  <PillRow>
-                    <Pill>Воркер: {formatMoney(financePreviewQuery.data.worker_kopeks)}</Pill>
-                    <Pill>Блогер: {formatMoney(financePreviewQuery.data.bloger_kopeks)}</Pill>
-                    <Pill>Аплайн: {formatMoney(financePreviewQuery.data.upline_kopeks)}</Pill>
-                    <Pill>Платформа: {formatMoney(financePreviewQuery.data.platform_kopeks)}</Pill>
-                  </PillRow>
-                ) : null}
-              </Stack>
-            ) : (
-              <Message>Выберите финансовую схему.</Message>
-            )}
-          </SectionCard>
-        </div>
-      );
-    }
-
     if (section === "finance" || section === "finance-analytics") {
       const dash = financeDashboardQuery.data;
       const participantLabel = (key: string): string => {
@@ -2385,39 +2180,6 @@ export const AdminDashboard = () => {
       );
     }
 
-    if (section === "finance-requisites") {
-      return (
-        <SectionCard title="Реквизиты приёма платежей" lead="Карта приёма и платёжная ссылка для плательщиков.">
-          <Stack>
-            <div className={styles.requisitesBox}>
-              <div className={styles.requisitesRow}>
-                <div className={styles.requisitesField}>
-                  <span className={styles.requisitesLabel}>Карта приёма</span>
-                  <code className={styles.requisitesValue}>{paymentDetailsQuery.data?.collection_card_last4 ? `•••• ${paymentDetailsQuery.data.collection_card_last4}` : "не настроена"}</code>
-                </div>
-                <div className={styles.requisitesField}>
-                  <span className={styles.requisitesLabel}>Платёжная ссылка</span>
-                  <code className={styles.requisitesValue}>{paymentDetailsQuery.data?.payment_link || "не настроена"}</code>
-                </div>
-              </div>
-            </div>
-            {paymentDetailsQuery.isLoading ? <Message>Загружаем реквизиты…</Message> : null}
-            {paymentDetailsQuery.isError ? <Message tone="error">Не удалось загрузить реквизиты.</Message> : null}
-            <Field label="Платёжная ссылка" help="Абсолютный HTTPS-URL. Пустое поле очистит сохранённую ссылку.">
-              <TextInput value={paymentLinkForm} inputMode="url" placeholder="https://" onChange={(event) => setPaymentLinkForm(event.target.value)} />
-            </Field>
-            <Field label="Карта приёма" help={collectionCardDraft !== null ? "Новый номер будет сохранён при нажатии «Сохранить реквизиты»." : "Введите номер, чтобы заменить карту."}>
-              <PayoutCardInput savedLast4={paymentDetailsQuery.data?.collection_card_last4 ?? null} pending={paymentDetailsMutation.isPending} onSubmit={(rawDigits, holder, brand) => { setCollectionCardDraft(rawDigits); setCollectionCardBrand(brand); setCollectionCardHolder(holder); setMessage({ tone: "success", text: "Карта готова — нажмите «Сохранить реквизиты»." }); }} />
-            </Field>
-            <div className={styles.actionRow}>
-              <Button type="button" onClick={() => paymentDetailsMutation.mutate()} disabled={paymentDetailsMutation.isPending}>{paymentDetailsMutation.isPending ? "Сохраняем…" : "Сохранить реквизиты"}</Button>
-              {collectionCardDraft !== null ? <Pill tone="accent">Новая карта •••• {collectionCardDraft.slice(-4)}</Pill> : null}
-            </div>
-          </Stack>
-        </SectionCard>
-      );
-    }
-
     if (section === "scripts") {
       return (
         <div className={styles.sideLayout}>
@@ -2799,7 +2561,7 @@ export const AdminDashboard = () => {
         >
           <button
             type="button"
-            className={`${styles.headerSection}${section.startsWith("mp-") || section === "finance" || section === "finance-requisites" || section === "finance-analytics" || section === "schemes" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "marketplace" ? ` ${styles.headerSectionHover}` : ""}`}
+            className={`${styles.headerSection}${section.startsWith("mp-") || section === "finance" || section === "finance-analytics" || section === "ledger" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "marketplace" ? ` ${styles.headerSectionHover}` : ""}`}
             onClick={() => { activeMenu === "marketplace" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("marketplace"); }}
           >
             Маркетплейс
@@ -2931,22 +2693,6 @@ export const AdminDashboard = () => {
                 >
                   <span className={styles.dropdownItemLabel}>Аналитика</span>
                   <span className={styles.dropdownItemDesc}>Обороты, заработок по ролям, динамика, топы.</span>
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.dropdownItem}${section === "finance-requisites" ? ` ${styles.dropdownItemActive}` : ""}`}
-                  onClick={() => { setSection("finance-requisites"); setActiveMenu(null); setDrawerOpen(false); }}
-                >
-                  <span className={styles.dropdownItemLabel}>Реквизиты приёма</span>
-                  <span className={styles.dropdownItemDesc}>Карта и платёжная ссылка для плательщиков.</span>
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.dropdownItem}${section === "schemes" ? ` ${styles.dropdownItemActive}` : ""}`}
-                  onClick={() => { setSection("schemes"); setActiveMenu(null); setDrawerOpen(false); }}
-                >
-                  <span className={styles.dropdownItemLabel}>Финансовые схемы</span>
-                  <span className={styles.dropdownItemDesc}>Веса распределения долей по каждому блогеру.</span>
                 </button>
                 <button
                   type="button"

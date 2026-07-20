@@ -7,17 +7,12 @@ import type {
   AdminDailySeriesResponse,
   AdminMarketplaceBloggerProfile,
   AdminOverviewResponse,
-  AdminPaymentDetails,
-  AdminPaymentDetailsSet,
   AdminUserListResponse,
   AdminUserRead,
   AdminUserStatsResponse,
   AuthTokensResponse,
   BloggerOptionRead,
   DealRead,
-  FinancePreviewResponse,
-  FinanceSchemeAdminListResponse,
-  FinanceSchemeAdminRead,
   LedgerEntryRead,
   LedgerListResponse,
   MarketplaceWithdrawalListResponse,
@@ -391,14 +386,6 @@ export const api = {
       `/admin/finance/dashboard${period ? `?period=${period}` : ""}`,
       { auth: true },
     ),
-  getAdminPaymentDetails: () =>
-    request<AdminPaymentDetails>("/admin/payment-details", { auth: true }),
-  setAdminPaymentDetails: (body: AdminPaymentDetailsSet) =>
-    request<AdminPaymentDetails>("/admin/payment-details", {
-      method: "PUT",
-      auth: true,
-      body: JSON.stringify(body),
-    }),
   getAdminLedger: (query = "") => request<LedgerListResponse>(`/admin/ledger${query}`, { auth: true }),
   getAdminLedgerEntry: (id: string) => request<LedgerEntryRead>(`/admin/ledger/${id}`, { auth: true }),
   patchAdminLedgerEntry: (id: string, body: { status: string; note?: string }) =>
@@ -412,29 +399,6 @@ export const api = {
       method: "POST",
       auth: true,
     }),
-  getFinanceSchemes: (query = "") =>
-    request<FinanceSchemeAdminListResponse>(`/admin/finance-schemes${query}`, { auth: true }),
-  getFinanceScheme: (id: string) =>
-    request<FinanceSchemeAdminRead>(`/admin/finance-schemes/${id}`, { auth: true }),
-  putFinanceScheme: (
-    id: string,
-    body: {
-      weight_worker: number;
-      weight_bloger: number;
-      weight_upline: number;
-      weight_platform: number;
-    },
-  ) =>
-    request<FinanceSchemeAdminRead>(`/admin/finance-schemes/${id}`, {
-      method: "PUT",
-      auth: true,
-      body: JSON.stringify(body),
-    }),
-  getFinancePreview: (bloggerId: string, priceKopeks: number) =>
-    request<FinancePreviewResponse>(
-      `/admin/finance/preview?bloger_id=${bloggerId}&price_kopeks=${priceKopeks}`,
-      { auth: true },
-    ),
   getAdminWorkerScripts: () => request<WorkerMessageScriptRead[]>("/admin/worker-message-scripts", { auth: true }),
   getAdminWorkerScriptCategories: () =>
     request<WorkerScriptCategoriesResponse>("/admin/worker-message-scripts/categories", { auth: true }),

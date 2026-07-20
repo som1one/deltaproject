@@ -252,35 +252,6 @@ export type AdminUserStatsResponse = {
   balance_pending_confirmation_kopeks: number;
 };
 
-export type FinanceSchemeAdminRead = {
-  blogger_id: string;
-  blogger_name: string;
-  blogger_email: string;
-  scheme_id: string | null;
-  weight_worker: number;
-  weight_bloger: number;
-  weight_upline: number;
-  weight_platform: number;
-};
-
-export type FinanceSchemeAdminListResponse = {
-  items: FinanceSchemeAdminRead[];
-  total: number;
-};
-
-export type FinancePreviewResponse = {
-  bloger_id: string;
-  price_kopeks: number;
-  worker_kopeks: number;
-  bloger_kopeks: number;
-  upline_kopeks: number;
-  platform_kopeks: number;
-  weight_worker: number;
-  weight_bloger: number;
-  weight_upline: number;
-  weight_platform: number;
-};
-
 export type ReportingPeriod = "today" | "week" | "month" | "all";
 
 export type TopParticipant = {
@@ -394,17 +365,6 @@ export type BloggerProfile = {
   audience_size?: number;
   price_per_post?: number;
   gender?: string;
-};
-
-export type AdminPaymentDetails = {
-  payment_link: string | null;
-  collection_card_last4: string | null;
-  is_active: boolean;
-};
-
-export type AdminPaymentDetailsSet = {
-  collection_card?: string | null;
-  payment_link?: string | null;
 };
 
 // ─── Telegram Channel Subscription ─────────────────────────────────────────
