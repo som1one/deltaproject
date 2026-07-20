@@ -1164,72 +1164,70 @@
   margin-top: 1rem;
 }
 
-/* The pair reads as one deliberate unit: same size, same tracking, same
-   pill — only the fill separates the primary path from the secondary.
-   Tracked-out narrow caps are the site's own button voice (see roleCardCta). */
+/* The pair reads as one deliberate unit: same size, same face — the
+   site's chunky 3D-press buttons (radius-md, 2px border, hard
+   undershadow, press-down active). */
 .heroActionPrimary,
 .heroActionGhost {
-  font-family: var(--font-narrow);
-  font-weight: 600;
-  font-size: 0.78rem;
-  letter-spacing: 0.2em;
-  min-width: 15.5rem;
-  padding: 1.15rem 2.2rem;
-  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.94rem;
+  letter-spacing: 0.04em;
+  padding: 0.95rem 1.6rem;
+  border-radius: var(--radius-md);
   text-transform: uppercase;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.55rem;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   text-decoration: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition:
-    transform var(--transition-base),
+    transform 80ms ease,
+    box-shadow 80ms ease,
     background var(--transition-base),
     border-color var(--transition-base),
-    box-shadow var(--transition-base),
     color var(--transition-base);
-}
-
-.heroActionPrimary:hover,
-.heroActionGhost:hover {
-  transform: translateY(-2px);
 }
 
 .heroActionPrimary:focus-visible,
 .heroActionGhost:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.6);
-  outline-offset: 4px;
+  outline: 3px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 3px;
 }
 
 .heroActionPrimary:active,
 .heroActionGhost:active {
-  transform: translateY(0);
+  transform: translateY(4px);
+  box-shadow: 0 0 0 0 transparent;
 }
 
 .heroActionPrimary {
   background: var(--text-strong);
   color: var(--accent-ink);
   border-color: var(--text-strong);
+  box-shadow: 0 4px 0 0 #b3b3b3;
 }
 
 .heroActionPrimary:hover {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  background: var(--text-strong);
+  border-color: var(--text-strong);
 }
 
 .heroActionGhost {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-raised);
   color: var(--text-strong);
-  border-color: rgba(255, 255, 255, 0.26);
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 0 0 rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(8px);
 }
 
 .heroActionGhost:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: var(--surface-hover);
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
 @media (max-width: 600px) {
@@ -1246,11 +1244,11 @@
 
   .heroActionPrimary,
   .heroActionGhost {
-    min-width: 0;
     text-align: center;
-    padding: 0.9rem 0.5rem;
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    border-radius: var(--radius-sm, 8px);
   }
 }
 
