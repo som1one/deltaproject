@@ -4,6 +4,7 @@ Uses the existing TELEGRAM_OAUTH_BOT_TOKEN to call getChatMember.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 
@@ -68,11 +69,20 @@ async def is_subscription_required(db: AsyncSession) -> bool:
     return config is not None and config.is_enabled
 
 
+# Telegram троттлит общие egress-IP Cloudflare Workers (на них живут тысячи
+# ботов), поэтому единичный 429/5xx — норма, а не приговор. Fail-closed
+# проверка подписки без ретраев превращала каждый такой чих в «не подписан».
+_RETRYABLE_CODES = {429, 500, 502, 503, 504}
+_BOT_API_ATTEMPTS = 3
+
+
 async def _bot_api_call(method: str, params: dict) -> dict:
     """Вызов Telegram Bot API (с учётом прокси). Возвращает распарсенный JSON.
 
-    На сетевых ошибках возвращает ``{"ok": False, "description": <текст>}`` —
-    вызывающие сами решают, fail-open или fail-closed.
+    Транзиентные сбои (сеть, 429, 5xx) ретраит до трёх попыток с короткой
+    паузой. На окончательной ошибке возвращает ``{"ok": False,
+    "description": <текст>}`` — вызывающие сами решают, fail-open или
+    fail-closed.
     """
     bot_token = settings.telegram_oauth_bot_token.strip()
     if not bot_token:
@@ -95,15 +105,41 @@ async def _bot_api_call(method: str, params: dict) -> dict:
     if proxy_secret:
         headers["X-Proxy-Secret"] = proxy_secret
 
-    try:
-        async with httpx.AsyncClient(
-            timeout=15.0, transport=transport, trust_env=False,
-        ) as client:
-            resp = await client.get(url, params=params, headers=headers)
-            return resp.json()
-    except Exception as exc:
-        logger.exception("Telegram Bot API %s failed", method)
-        return {"ok": False, "description": f"network_error: {exc}"}
+    last: dict = {"ok": False, "description": "no_attempts"}
+    for attempt in range(1, _BOT_API_ATTEMPTS + 1):
+        data: dict | None = None
+        try:
+            async with httpx.AsyncClient(
+                timeout=15.0, transport=transport, trust_env=False,
+            ) as client:
+                resp = await client.get(url, params=params, headers=headers)
+                data = resp.json()
+        except Exception as exc:
+            logger.warning(
+                "Telegram Bot API %s attempt %d/%d failed: %s",
+                method, attempt, _BOT_API_ATTEMPTS, exc,
+            )
+            last = {"ok": False, "description": f"network_error: {exc}"}
+
+        if data is not None:
+            if data.get("ok") or data.get("error_code") not in _RETRYABLE_CODES:
+                return data
+            logger.warning(
+                "Telegram Bot API %s attempt %d/%d got retryable %s: %s",
+                method, attempt, _BOT_API_ATTEMPTS,
+                data.get("error_code"), data.get("description", ""),
+            )
+            last = data
+
+        if attempt < _BOT_API_ATTEMPTS:
+            retry_after = 0.0
+            if data is not None and isinstance(data.get("parameters"), dict):
+                try:
+                    retry_after = float(data["parameters"].get("retry_after") or 0)
+                except (TypeError, ValueError):
+                    retry_after = 0.0
+            await asyncio.sleep(min(max(0.6, retry_after), 2.5))
+    return last
 
 
 async def check_user_subscribed(telegram_user_id: str, channel_id: str) -> bool:
