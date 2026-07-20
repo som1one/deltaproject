@@ -332,6 +332,20 @@
 /* ---------- Hero (video bg) ---------- */
 
 .hero {
+  /* Money-pack geometry lives here so the hero content can reserve space
+     for the pack from the same numbers the pack itself is built from. */
+  --money-anchor: clamp(220px, 38vw, 520px);
+  --money-w: calc(var(--money-anchor) * 0.66);
+  --money-d: calc(var(--money-w) / 2.35);
+  --money-h: calc(var(--money-w) * 0.15);
+  --money-band-w: calc(var(--money-w) * 0.26);
+  /* How far the pack rides above the hero content box... */
+  --money-lift: 26.5%;
+  /* ...and the matching gap the content leaves for it, so the pack and the
+     wordmark are one centred composition instead of two stacked ones.
+     Unitless on purpose — calc() cannot multiply a length by a percentage. */
+  --money-reserve: 0.47;
+
   position: relative;
   min-height: 100vh;
   display: grid;
@@ -386,13 +400,17 @@
   width: min(1600px, 100%);
   text-align: center;
   display: grid;
-  gap: 2.2rem;
+  gap: 1.7rem;
   justify-items: center;
+  /* The pack hangs in this reserve. Because the reserve is part of the
+     centred box, the whole composition — pack, wordmark, CTAs — balances
+     in the hero on its own at every viewport height. */
+  padding-top: calc(var(--money-anchor) * var(--money-reserve));
 }
 
 @media (max-width: 720px) {
   .heroContent {
-    gap: 1rem;
+    gap: 1.3rem;
   }
 }
 
@@ -403,27 +421,24 @@
    The stack footprint derives from the anchor square so both share
    the same breakpoints. */
 .heroMoneyAnchor {
-  --money-w: calc(clamp(220px, 38vw, 520px) * 0.66);
-  --money-d: calc(var(--money-w) / 2.35);
-  --money-h: calc(var(--money-w) * 0.15);
-  --money-band-w: calc(var(--money-w) * 0.26);
   position: absolute;
   left: 50%;
   top: 0;
-  /* Hover the pack over the top of the wordmark: low enough to sit in
-     the composition, its lower edge layered behind the title glyphs. */
-  transform: translate(-50%, -44%);
-  width: clamp(220px, 38vw, 520px);
+  /* The pack hovers clear of the wordmark inside the content's reserve —
+     the two read as one composition, not as a collision. */
+  transform: translate(-50%, calc(-1 * var(--money-lift)));
+  width: var(--money-anchor);
   aspect-ratio: 1 / 1;
   z-index: 0;
   pointer-events: none;
 }
 
 @media (max-width: 720px) {
-  .heroMoneyAnchor {
-    --money-w: calc(clamp(200px, 64vw, 360px) * 0.74);
-    transform: translate(-50%, -56%);
-    width: clamp(200px, 64vw, 360px);
+  .hero {
+    --money-anchor: clamp(200px, 70vw, 360px);
+    --money-w: calc(var(--money-anchor) * 0.74);
+    --money-lift: 26%;
+    --money-reserve: 0.46;
   }
 }
 
@@ -492,6 +507,9 @@
 /* Static night-light vignette over the scene: the pack centre stays lit
    while its ends sink into the dark. Painted above the 3D subtree and
    does not rotate with the stack, so it reads as overhead lighting.
+   It has to fade back to transparent before the scene box ends — the
+   scene is square, so any darkness left at its corners cuts a visible
+   rectangle out of the starfield behind it.
    The second layer is a faint warm wrap where the uplight kisses the
    pack's underside. */
 .moneyScene::after {
@@ -504,8 +522,8 @@
       ellipse 52% 36% at 50% 50%,
       transparent 30%,
       rgba(0, 0, 0, 0.28) 62%,
-      rgba(0, 0, 0, 0.55) 88%,
-      rgba(0, 0, 0, 0.7) 100%
+      rgba(0, 0, 0, 0.4) 84%,
+      transparent 100%
     ),
     radial-gradient(
       ellipse 38% 18% at 50% 67%,
@@ -527,9 +545,9 @@
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  /* Matches the moneySpin start frame so there is no pose jump */
-  transform: rotateX(56deg) rotateZ(0deg);
-  animation: moneySpin 34s linear infinite;
+  /* Matches the moneySway start frame so there is no pose jump */
+  transform: rotateX(56deg) rotateZ(-13deg);
+  animation: moneySway 19s ease-in-out infinite;
 }
 
 .moneyFace,
@@ -802,12 +820,15 @@
   animation: heroStarsTwinkle 6s ease-in-out infinite;
 }
 
-@keyframes moneySpin {
-  from {
-    transform: rotateX(56deg) rotateZ(0deg);
+/* A slow sway rather than a full turntable spin: the pack keeps its face
+   and its strap to the viewer instead of rolling through the half of the
+   turn where "$10,000" reads upside down and the blank underside shows. */
+@keyframes moneySway {
+  0%, 100% {
+    transform: rotateX(56deg) rotateZ(-13deg);
   }
-  to {
-    transform: rotateX(56deg) rotateZ(360deg);
+  50% {
+    transform: rotateX(56deg) rotateZ(13deg);
   }
 }
 
@@ -980,9 +1001,9 @@
     animation: none;
   }
 
-  /* Static three-quarter view instead of the spin */
+  /* Held at one end of the sway instead of animating through it */
   .moneyStack {
-    transform: rotateX(56deg) rotateZ(24deg);
+    transform: rotateX(56deg) rotateZ(13deg);
   }
 }
 
@@ -1067,15 +1088,23 @@
   justify-content: center;
 }
 
-/* The wordmark is SVG text stretched to a fixed textLength, so it always
-   scales to the container width and can never overflow the viewport. */
+/* The wordmark is SVG text, so it scales to the container width and can
+   never overflow the viewport. Width is capped short of the full measure
+   so the word sits on the page instead of straining against its edges. */
 .heroTitleSvg {
-  width: 100%;
-  max-width: 1200px;
+  width: min(1120px, 76vw);
   height: auto;
   overflow: visible;
-  /* Soft glow to lift the title off the money stack */
-  filter: drop-shadow(0 2px 24px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 46px rgba(0, 0, 0, 0.4));
+  /* Soft glow to lift the title off the night scene */
+  filter: drop-shadow(0 4px 28px rgba(0, 0, 0, 0.7));
+}
+
+/* Narrow screens have room to spare beside the wordmark, not above it —
+   let the word run closer to the edges so the hero still lands hard. */
+@media (max-width: 720px) {
+  .heroTitleSvg {
+    width: 88vw;
+  }
 }
 
 .heroTitleSvg text {
@@ -1091,24 +1120,24 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 1.25rem;
   margin: 0 auto;
 }
 
 .heroAuthorOrn {
   display: inline-block;
-  width: 3rem;
+  width: clamp(2.5rem, 6vw, 5rem);
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
 }
 
 .heroAuthor {
   margin: 0;
   font-family: var(--font-serif);
   font-style: italic;
-  color: var(--text-muted);
-  font-size: clamp(0.95rem, 1.5vw, 1.18rem);
-  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: clamp(1.05rem, 1.7vw, 1.42rem);
+  letter-spacing: 0.06em;
   font-weight: 400;
   white-space: nowrap;
 }
@@ -1121,98 +1150,107 @@
   color: var(--text-muted);
 }
 
+/* Equal columns, so the pair is one unit rather than two buttons that
+   happen to sit together — 1fr under fit-content sizing gives both the
+   width of the longer label. */
 .heroActions {
   position: relative;
   z-index: 2;
-  display: flex;
-  gap: 0.7rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.9rem;
   justify-content: center;
-  margin-top: 0.6rem;
+  margin-top: 1rem;
 }
 
+/* The pair reads as one deliberate unit: same size, same tracking, same
+   pill — only the fill separates the primary path from the secondary.
+   Tracked-out narrow caps are the site's own button voice (see roleCardCta). */
 .heroActionPrimary,
 .heroActionGhost {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.94rem;
-  padding: 0.95rem 1.6rem;
-  border-radius: var(--radius-md);
+  font-family: var(--font-narrow);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.2em;
+  min-width: 15.5rem;
+  padding: 1.15rem 2.2rem;
+  border-radius: var(--radius-pill);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.55rem;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   text-decoration: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition:
-    transform 80ms ease,
-    box-shadow 80ms ease,
+    transform var(--transition-base),
     background var(--transition-base),
     border-color var(--transition-base),
+    box-shadow var(--transition-base),
     color var(--transition-base);
+}
+
+.heroActionPrimary:hover,
+.heroActionGhost:hover {
+  transform: translateY(-2px);
 }
 
 .heroActionPrimary:focus-visible,
 .heroActionGhost:focus-visible {
-  outline: 3px solid rgba(255, 255, 255, 0.35);
-  outline-offset: 3px;
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 4px;
 }
 
 .heroActionPrimary:active,
 .heroActionGhost:active {
-  transform: translateY(4px);
-  box-shadow: 0 0 0 0 transparent;
+  transform: translateY(0);
 }
 
 .heroActionPrimary {
   background: var(--text-strong);
   color: var(--accent-ink);
   border-color: var(--text-strong);
-  box-shadow: 0 4px 0 0 #b3b3b3;
 }
 
 .heroActionPrimary:hover {
-  background: var(--text-strong);
-  border-color: var(--text-strong);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 
 .heroActionGhost {
-  background: var(--surface-raised);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text-strong);
-  border-color: var(--border-strong);
-  box-shadow: 0 4px 0 0 rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.26);
   backdrop-filter: blur(8px);
 }
 
 .heroActionGhost:hover {
-  background: var(--surface-hover);
-  border-color: rgba(255, 255, 255, 0.24);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 @media (max-width: 600px) {
   .heroActions {
-    flex-wrap: nowrap;
+    grid-auto-flow: row;
+    grid-template-columns: 1fr 1fr;
     align-items: stretch;
     gap: 0.5rem;
     width: 100%;
-    max-width: 340px;
+    max-width: 360px;
     margin-left: auto;
     margin-right: auto;
   }
 
   .heroActionPrimary,
   .heroActionGhost {
-    flex: 1 1 0;
-    justify-content: center;
+    min-width: 0;
     text-align: center;
-    padding: 0.75rem 0.5rem;
-    font-size: 0.68rem;
-    letter-spacing: 0.06em;
-    border-radius: var(--radius-sm, 8px);
+    padding: 0.9rem 0.5rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
   }
 }
 

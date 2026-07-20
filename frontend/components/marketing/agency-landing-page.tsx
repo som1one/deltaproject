@@ -315,21 +315,19 @@ export const AgencyLandingPage = () => {
           </div>
 
           <h1 className={styles.heroTitle} aria-label="moneymaxxxing">
-            {/* SVG text stretched to a fixed textLength scales with the
-               container, so the wordmark can never overflow the viewport. */}
+            {/* SVG text scales with its container, so the wordmark can never
+               overflow the viewport. The viewBox is the measured ink box of
+               the word in Marck Script at font-size 100 (603.5 x 125, ascent
+               86 / descent 39 around the baseline) plus ~6u of padding — so
+               the glyphs keep their natural proportions and the box carries
+               no invisible slack that would break the vertical rhythm. */}
             <svg
               className={styles.heroTitleSvg}
-              viewBox="0 0 600 148"
+              viewBox="-8 0 616 137"
               aria-hidden="true"
               focusable="false"
             >
-              <text
-                x="300"
-                y="102"
-                textAnchor="middle"
-                textLength="576"
-                lengthAdjust="spacingAndGlyphs"
-              >
+              <text x="300" y="92" textAnchor="middle">
                 moneymaxxxing
               </text>
             </svg>
