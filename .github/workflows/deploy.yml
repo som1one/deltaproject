@@ -90,4 +90,11 @@ jobs:
             swapon --show || true
             free -h || true
             cd ${{ secrets.DEPLOY_PATH }}
+            # Обновляем репо ДО запуска remote-deploy.sh. Скрипт делает git reset
+            # сам, но bash к тому моменту уже держит открытым СТАРЫЙ файл, поэтому
+            # правки в нём доезжали только следующим прогоном. Здесь же скрипт
+            # стартует уже из свежего коммита; внутренний git reset остаётся
+            # no-op'ом и страхует ручные запуски.
+            git fetch --all --prune
+            git reset --hard origin/main
             ./deploy/remote-deploy.sh

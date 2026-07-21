@@ -47,6 +47,35 @@ echo "[deploy] git pull"
 git fetch --all --prune
 git reset --hard origin/main
 
+# Главный домен сайта. От него зависят redirect-URL'ы Telegram OAuth в .env:
+# .env деплоем не перезаписывается, поэтому при переезде домена они остались на
+# старом (looneymoon.ru). Вход при этом не падал, но уносил пользователя на
+# чужой origin: JWT ложился в localStorage старого домена, и на новом сайте
+# юзер оставался гостем. Синхронизируем только эти два ключа, остальное .env
+# не трогаем.
+MAIN_DOMAIN="${MAIN_DOMAIN:-moneymaxxxing.ru}"
+
+# Точечно правит ключ в .env — только если значение разъехалось.
+sync_env_kv() {
+  local key="$1" value="$2" file="$REPO_DIR/.env"
+  local current
+  [[ -f "$file" ]] || return 0
+  if ! grep -qE "^$key=" "$file"; then
+    printf '%s=%s\n' "$key" "$value" >> "$file"
+    echo "[deploy] .env: добавил $key=$value"
+    return 0
+  fi
+  current=$(grep -m1 -E "^$key=" "$file" | cut -d= -f2-)
+  if [[ "$current" != "$value" ]]; then
+    sed -i "s#^$key=.*#$key=$value#" "$file"
+    echo "[deploy] .env: $key: $current → $value"
+  fi
+}
+
+echo "[deploy] telegram oauth urls → $MAIN_DOMAIN"
+sync_env_kv TELEGRAM_OAUTH_REDIRECT_URI "https://$MAIN_DOMAIN/api/auth/telegram/callback"
+sync_env_kv TELEGRAM_OAUTH_FRONTEND_CALLBACK_URL "https://$MAIN_DOMAIN/tg/callback"
+
 echo "[deploy] python deps"
 if [[ ! -d .venv ]]; then
   python3 -m venv .venv
