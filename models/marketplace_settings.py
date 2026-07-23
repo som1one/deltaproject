@@ -24,6 +24,12 @@ class MarketplaceSettings(Base):
         nullable=False,
         server_default=text("5.00"),
     )
+    # 2-й уровень: комиссия блогера, приведшего воркера (0 = выключить уровень)
+    blogger_referral_commission_pct: Mapped[Decimal] = mapped_column(
+        Numeric(precision=5, scale=2),
+        nullable=False,
+        server_default=text("5.00"),
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

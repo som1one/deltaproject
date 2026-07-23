@@ -293,10 +293,145 @@
 }
 
 /* ============================================================
+   Реферальная сеть (2-й уровень) — «нагон» + ссылка + метрики.
+   Без коробок: типографика, hairline-разделители, реф-ссылка
+   моноширинным шрифтом — как в кабинете воркера.
+   ============================================================ */
+
+.refBlock {
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+}
+
+.nudgeText {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 56ch;
+}
+
+.nudgeStrong {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.refUrl {
+  margin: 0;
+  max-width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.refCopyBtn {
+  appearance: none;
+  align-self: flex-start;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-strong);
+  font: inherit;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base),
+    color var(--transition-base);
+}
+
+.refCopyBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.refCopyBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.refCopied {
+  border-color: var(--status-success-edge);
+  color: var(--status-success);
+}
+
+.metrics {
+  display: flex;
+  align-items: stretch;
+  padding: 0.2rem 0;
+  margin-top: 0.3rem;
+}
+
+.metric {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+  padding: 0.3rem 1.7rem;
+  border-left: 1px solid var(--border-faint);
+  min-width: 0;
+}
+
+.metric:first-child {
+  border-left: 0;
+  padding-left: 0.15rem;
+}
+
+.metricLabel {
+  font-family: var(--font-narrow);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+
+.metricValue {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ============================================================
    Responsive
    ============================================================ */
 
 @media (max-width: 540px) {
+  .refUrl {
+    white-space: normal;
+    word-break: break-all;
+    line-height: 1.45;
+  }
+  .refCopyBtn {
+    align-self: stretch;
+    width: 100%;
+    padding: 0.6rem 1rem;
+  }
+  .metric {
+    padding: 0.3rem 1rem;
+  }
+  .metric:first-child {
+    padding-left: 0.15rem;
+  }
+  .metricValue {
+    font-size: 1.15rem;
+  }
+
   .root {
     gap: 2rem;
   }

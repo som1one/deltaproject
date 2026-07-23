@@ -7,7 +7,7 @@ Validates: Requirements 9.3, 9.4
 import uuid
 
 import pytest
-from hypothesis import assume, given, settings
+from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 from pydantic import ValidationError
 
@@ -292,6 +292,7 @@ class TestCommissionValidationProperty:
             CommissionSettingsRequest(
                 platform_commission_pct=platform_pct,
                 worker_referral_commission_pct=worker_pct,
+                blogger_referral_commission_pct=_Decimal("0.00"),
             )
 
     @given(
@@ -320,6 +321,7 @@ class TestCommissionValidationProperty:
             CommissionSettingsRequest(
                 platform_commission_pct=platform_pct,
                 worker_referral_commission_pct=worker_pct,
+                blogger_referral_commission_pct=_Decimal("0.00"),
             )
 
     @given(
@@ -349,6 +351,7 @@ class TestCommissionValidationProperty:
             CommissionSettingsRequest(
                 platform_commission_pct=platform_pct,
                 worker_referral_commission_pct=worker_pct,
+                blogger_referral_commission_pct=_Decimal("0.00"),
             )
 
     @given(
@@ -377,6 +380,7 @@ class TestCommissionValidationProperty:
             CommissionSettingsRequest(
                 platform_commission_pct=platform_pct,
                 worker_referral_commission_pct=worker_pct,
+                blogger_referral_commission_pct=_Decimal("0.00"),
             )
 
     @given(
@@ -405,6 +409,7 @@ class TestCommissionValidationProperty:
         result = CommissionSettingsRequest(
             platform_commission_pct=platform_pct,
             worker_referral_commission_pct=worker_pct,
+            blogger_referral_commission_pct=_Decimal("0.00"),
         )
         assert result.platform_commission_pct == platform_pct
         assert result.worker_referral_commission_pct == worker_pct
@@ -425,7 +430,10 @@ class TestCommissionValidationProperty:
             allow_infinity=False,
         ),
     )
-    @settings(max_examples=200)
+    @settings(
+        max_examples=200,
+        suppress_health_check=[HealthCheck.filter_too_much],
+    )
     def test_sum_exceeding_80_rejected(
         self, platform_pct: _Decimal, worker_pct: _Decimal
     ) -> None:
@@ -435,6 +443,7 @@ class TestCommissionValidationProperty:
             CommissionSettingsRequest(
                 platform_commission_pct=platform_pct,
                 worker_referral_commission_pct=worker_pct,
+                blogger_referral_commission_pct=_Decimal("0.00"),
             )
 
     @given(
@@ -462,9 +471,71 @@ class TestCommissionValidationProperty:
         result = CommissionSettingsRequest(
             platform_commission_pct=platform_pct,
             worker_referral_commission_pct=worker_pct,
+            blogger_referral_commission_pct=_Decimal("0.00"),
         )
         assert result.platform_commission_pct == platform_pct
         assert result.worker_referral_commission_pct == worker_pct
+
+    @given(
+        blogger_pct=st.decimals(
+            min_value=_Decimal("-100"),
+            max_value=_Decimal("200"),
+            places=2,
+            allow_nan=False,
+            allow_infinity=False,
+        ),
+    )
+    @settings(max_examples=200)
+    def test_blogger_commission_out_of_range_rejected(
+        self, blogger_pct: _Decimal
+    ) -> None:
+        """blogger_referral_commission_pct вне [0, 30] отклоняется."""
+        assume(blogger_pct < _Decimal("0") or blogger_pct > _Decimal("30"))
+        with pytest.raises(ValidationError):
+            CommissionSettingsRequest(
+                platform_commission_pct=_Decimal("25.00"),
+                worker_referral_commission_pct=_Decimal("5.00"),
+                blogger_referral_commission_pct=blogger_pct,
+            )
+
+    @given(
+        platform_pct=st.decimals(
+            min_value=_Decimal("40"),
+            max_value=_Decimal("50"),
+            places=2,
+            allow_nan=False,
+            allow_infinity=False,
+        ),
+        worker_pct=st.decimals(
+            min_value=_Decimal("20"),
+            max_value=_Decimal("30"),
+            places=2,
+            allow_nan=False,
+            allow_infinity=False,
+        ),
+        blogger_pct=st.decimals(
+            min_value=_Decimal("20"),
+            max_value=_Decimal("30"),
+            places=2,
+            allow_nan=False,
+            allow_infinity=False,
+        ),
+    )
+    @settings(
+        max_examples=200,
+        suppress_health_check=[HealthCheck.filter_too_much],
+    )
+    def test_three_way_sum_exceeding_80_rejected(
+        self, platform_pct: _Decimal, worker_pct: _Decimal, blogger_pct: _Decimal
+    ) -> None:
+        """Сумма platform + worker + blogger > 80% отклоняется, даже при валидных полях."""
+        assume(platform_pct + worker_pct + blogger_pct > _Decimal("80"))
+        with pytest.raises(ValidationError):
+            CommissionSettingsRequest(
+                platform_commission_pct=platform_pct,
+                worker_referral_commission_pct=worker_pct,
+                blogger_referral_commission_pct=blogger_pct,
+            )
 
 
 # ---------------------------------------------------------------------------

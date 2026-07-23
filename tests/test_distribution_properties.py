@@ -1,6 +1,6 @@
 """Property-based tests for marketplace escrow distribution logic.
 
-Feature: worker-referral-orders
+Feature: worker-referral-orders (+ blogger referral 2nd level)
 Uses Hypothesis for property-based testing of the distribution formula.
 """
 
@@ -34,6 +34,15 @@ worker_pct_strategy = st.decimals(
     allow_infinity=False,
 )
 
+# blogger_referrer_commission_pct: от 0.00 до 30.00 (0 — нет блогера-реферера)
+blogger_pct_strategy = st.decimals(
+    min_value=Decimal("0.00"),
+    max_value=Decimal("30.00"),
+    places=2,
+    allow_nan=False,
+    allow_infinity=False,
+)
+
 
 # --- Property 2: Корректность формулы распределения ---
 # Feature: worker-referral-orders, Property 2: Корректность формулы распределения
@@ -43,30 +52,33 @@ worker_pct_strategy = st.decimals(
     amount=amount_strategy,
     platform_pct=platform_pct_strategy,
     worker_pct=worker_pct_strategy,
+    blogger_pct=blogger_pct_strategy,
 )
 @settings(max_examples=200)
 def test_distribution_formula_correctness(
     amount: int,
     platform_pct: Decimal,
     worker_pct: Decimal,
+    blogger_pct: Decimal,
 ) -> None:
-    """Property 2: Корректность формулы распределения.
-
-    **Validates: Requirements 5.1, 5.2, 5.3, 5.4**
+    """Property 2: Корректность формулы распределения (4-сторонний сплит).
 
     Для любой суммы заказа и допустимых комиссий:
     1. platform_share == floor(amount × platform_pct / 100)
     2. worker_share == floor(amount × worker_pct / 100)
-    3. blogger_share == amount - platform_share - worker_share
-    4. Если worker_pct == 0: worker_share == 0 и blogger_share == amount - platform_share
+    3. blogger_referral_share == floor(amount × blogger_pct / 100)
+    4. blogger_share == amount - platform - worker - blogger_referral (остаток автору)
+    5. Инвариант сохранения: сумма всех долей == amount
     """
-    blogger_share, worker_share, platform_share = calculate_distribution(
-        amount_kopeks=amount,
-        platform_commission_pct=platform_pct,
-        worker_commission_pct=worker_pct,
+    blogger_share, worker_share, blogger_referral_share, platform_share = (
+        calculate_distribution(
+            amount_kopeks=amount,
+            platform_commission_pct=platform_pct,
+            worker_commission_pct=worker_pct,
+            blogger_referrer_commission_pct=blogger_pct,
+        )
     )
 
-    # Ожидаемые значения по формуле
     expected_platform = int(
         (Decimal(amount) * platform_pct / Decimal(100)).to_integral_value(
             rounding="ROUND_FLOOR"
@@ -77,35 +89,30 @@ def test_distribution_formula_correctness(
             rounding="ROUND_FLOOR"
         )
     )
-    expected_blogger = amount - expected_platform - expected_worker
-
-    # 1. platform_share == floor(amount × platform_pct / 100)
-    assert platform_share == expected_platform, (
-        f"platform_share mismatch: got {platform_share}, expected {expected_platform} "
-        f"(amount={amount}, platform_pct={platform_pct})"
+    expected_blogger_referral = int(
+        (Decimal(amount) * blogger_pct / Decimal(100)).to_integral_value(
+            rounding="ROUND_FLOOR"
+        )
+    )
+    expected_blogger = (
+        amount - expected_platform - expected_worker - expected_blogger_referral
     )
 
-    # 2. worker_share == floor(amount × worker_pct / 100)
-    assert worker_share == expected_worker, (
-        f"worker_share mismatch: got {worker_share}, expected {expected_worker} "
-        f"(amount={amount}, worker_pct={worker_pct})"
+    assert platform_share == expected_platform
+    assert worker_share == expected_worker
+    assert blogger_referral_share == expected_blogger_referral
+    assert blogger_share == expected_blogger
+
+    # Инвариант сохранения суммы
+    assert (
+        blogger_share + worker_share + blogger_referral_share + platform_share == amount
     )
 
-    # 3. blogger_share == amount - platform_share - worker_share
-    assert blogger_share == expected_blogger, (
-        f"blogger_share mismatch: got {blogger_share}, expected {expected_blogger} "
-        f"(amount={amount}, platform_pct={platform_pct}, worker_pct={worker_pct})"
-    )
-
-    # 4. Когда worker_pct == 0: worker_share == 0 и blogger_share == amount - platform_share
+    # Когда pct == 0 — соответствующая доля обнуляется
+    if blogger_pct == Decimal("0") or blogger_pct == Decimal("0.00"):
+        assert blogger_referral_share == 0
     if worker_pct == Decimal("0") or worker_pct == Decimal("0.00"):
-        assert worker_share == 0, (
-            f"worker_share should be 0 when worker_pct=0, got {worker_share}"
-        )
-        assert blogger_share == amount - platform_share, (
-            f"blogger_share should be amount - platform_share when worker_pct=0, "
-            f"got blogger_share={blogger_share}, expected={amount - platform_share}"
-        )
+        assert worker_share == 0
 
 
 # --- Property 3: Идемпотентность распределения средств ---
@@ -116,49 +123,38 @@ def test_distribution_formula_correctness(
     amount=amount_strategy,
     platform_pct=platform_pct_strategy,
     worker_pct=worker_pct_strategy,
+    blogger_pct=blogger_pct_strategy,
 )
 @settings(max_examples=200)
 def test_distribution_idempotency(
     amount: int,
     platform_pct: Decimal,
     worker_pct: Decimal,
+    blogger_pct: Decimal,
 ) -> None:
-    """Property 3: Идемпотентность распределения средств.
+    """Property 3: calculate_distribution — чистая детерминированная функция.
 
-    **Validates: Requirements 5.7**
-
-    Для любых входных данных, calculate_distribution является чистой функцией:
-    повторный вызов с теми же аргументами возвращает идентичный результат.
-    Это документирует гарантию идемпотентности на уровне вычислений —
-    вызов distribute_funds дважды на одном заказе не создаст дублей,
-    т.к. результат расчёта детерминирован, а idempotency_key предотвращает
-    повторную запись в журнал.
+    Повторный вызов с теми же аргументами возвращает идентичный результат.
     """
-    # Первый вызов
     result_1 = calculate_distribution(
         amount_kopeks=amount,
         platform_commission_pct=platform_pct,
         worker_commission_pct=worker_pct,
+        blogger_referrer_commission_pct=blogger_pct,
     )
-
-    # Второй вызов с теми же входными данными
     result_2 = calculate_distribution(
         amount_kopeks=amount,
         platform_commission_pct=platform_pct,
         worker_commission_pct=worker_pct,
+        blogger_referrer_commission_pct=blogger_pct,
     )
 
-    # Идемпотентность: результаты идентичны
-    assert result_1 == result_2, (
-        f"calculate_distribution is not idempotent! "
-        f"First call: {result_1}, Second call: {result_2} "
-        f"(amount={amount}, platform_pct={platform_pct}, worker_pct={worker_pct})"
-    )
+    assert result_1 == result_2
 
-    # Дополнительно: структура результата — три неотрицательных целых числа
-    blogger_1, worker_1, platform_1 = result_1
-    blogger_2, worker_2, platform_2 = result_2
+    blogger_1, worker_1, blogger_ref_1, platform_1 = result_1
+    blogger_2, worker_2, blogger_ref_2, platform_2 = result_2
 
-    assert blogger_1 == blogger_2, "blogger_share differs between calls"
-    assert worker_1 == worker_2, "worker_share differs between calls"
-    assert platform_1 == platform_2, "platform_share differs between calls"
+    assert blogger_1 == blogger_2
+    assert worker_1 == worker_2
+    assert blogger_ref_1 == blogger_ref_2
+    assert platform_1 == platform_2

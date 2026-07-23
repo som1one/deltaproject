@@ -596,6 +596,18 @@ async def confirm_order(
             },
         )
 
+    if order.blogger_referrer_id is not None:
+        await notification_service.notify(
+            db=db,
+            user_id=order.blogger_referrer_id,
+            event_type="order_completed_blogger_commission",
+            payload={
+                "order_id": str(order.id),
+                "amount": order.amount_kopeks,
+                "client_name": user.name,
+            },
+        )
+
     await marketplace_order_flow_service.send_system_message(
         db,
         order=order,

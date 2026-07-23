@@ -18,6 +18,7 @@ class MarketplaceOrder(Base):
         Index("ix_mkt_orders_client_status", "client_id", "status"),
         Index("ix_mkt_orders_blogger_id", "blogger_id"),
         Index("ix_mkt_orders_worker_id", "worker_id"),
+        Index("ix_mkt_orders_blogger_referrer_id", "blogger_referrer_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -36,6 +37,13 @@ class MarketplaceOrder(Base):
         nullable=False,
     )
     worker_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    # 2-й уровень рефералки: блогер, приведший воркера этого заказа
+    # (снапшот worker.linked_to на момент создания заказа). Получает override.
+    blogger_referrer_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
@@ -89,6 +97,12 @@ class MarketplaceOrder(Base):
         nullable=False,
     )
     worker_commission_pct: Mapped[Decimal] = mapped_column(
+        Numeric(precision=5, scale=2),
+        nullable=False,
+        server_default=text("0"),
+    )
+    # Снапшот процента блогера-реферера (2-й уровень); 0 если реферера нет
+    blogger_referrer_commission_pct: Mapped[Decimal] = mapped_column(
         Numeric(precision=5, scale=2),
         nullable=False,
         server_default=text("0"),

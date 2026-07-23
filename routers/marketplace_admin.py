@@ -390,14 +390,19 @@ async def get_marketplace_order_detail(
 
     # Calculate distribution breakdown based on commission snapshot
     worker_pct = order.worker_commission_pct if order.worker_id else Decimal("0")
-    blogger_share, worker_share, platform_share = calculate_distribution(
+    blogger_ref_pct = (
+        order.blogger_referrer_commission_pct if order.blogger_referrer_id else Decimal("0")
+    )
+    blogger_share, worker_share, blogger_referral_share, platform_share = calculate_distribution(
         amount_kopeks=order.amount_kopeks,
         platform_commission_pct=order.platform_commission_pct,
         worker_commission_pct=worker_pct,
+        blogger_referrer_commission_pct=blogger_ref_pct,
     )
     distribution = DistributionBreakdown(
         blogger_share=blogger_share,
         worker_share=worker_share,
+        blogger_referral_share=blogger_referral_share,
         platform_share=platform_share,
     )
 
@@ -589,6 +594,7 @@ async def get_marketplace_settings(
     return CommissionSettingsResponse(
         platform_commission_pct=settings.platform_commission_pct,
         worker_referral_commission_pct=settings.worker_referral_commission_pct,
+        blogger_referral_commission_pct=settings.blogger_referral_commission_pct,
     )
 
 
@@ -602,6 +608,7 @@ async def update_marketplace_settings(
 
     - platform_commission_pct: 1–50%, макс. 2 знака после запятой
     - worker_referral_commission_pct: 1–30%, макс. 2 знака после запятой
+    - blogger_referral_commission_pct: 0–30% (0 = выключить 2-й уровень)
     - сумма комиссий не более 80%
 
     Применяется к новым сделкам: в заказ проценты попадают снимком при создании.
@@ -610,6 +617,7 @@ async def update_marketplace_settings(
     settings = await _get_or_create_settings(db)
     settings.platform_commission_pct = body.platform_commission_pct
     settings.worker_referral_commission_pct = body.worker_referral_commission_pct
+    settings.blogger_referral_commission_pct = body.blogger_referral_commission_pct
     settings.updated_by = admin.id
 
     await db.flush()
@@ -619,6 +627,7 @@ async def update_marketplace_settings(
     return CommissionSettingsResponse(
         platform_commission_pct=settings.platform_commission_pct,
         worker_referral_commission_pct=settings.worker_referral_commission_pct,
+        blogger_referral_commission_pct=settings.blogger_referral_commission_pct,
     )
 
 

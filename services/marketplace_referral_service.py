@@ -173,6 +173,82 @@ def get_worker_id_for_order(user: User) -> uuid.UUID | None:
     return user.marketplace_referred_by
 
 
+async def resolve_blogger_referrer_id(
+    worker_id: uuid.UUID | None,
+    db: AsyncSession,
+) -> uuid.UUID | None:
+    """Определить блогера-реферера 2-го уровня для заказа.
+
+    Возвращает `linked_to` воркера (блогера, который его пригласил), если тот
+    существует, активен и имеет роль Bloger. Иначе None. Используется в
+    create_offer для снапшота blogger_referrer_id на заказе (2-й уровень
+    реферальной цепочки: блогер → воркер → заказчик).
+
+    Args:
+        worker_id: ID воркера, привязанного к заказу (может быть None).
+        db: Database session.
+
+    Returns:
+        UUID блогера-реферера или None.
+    """
+    if worker_id is None:
+        return None
+    worker = await db.get(User, worker_id)
+    if worker is None or worker.linked_to is None:
+        return None
+    blogger = await db.get(User, worker.linked_to)
+    if blogger is None or not blogger.is_active or blogger.role != UserRole.BLOGER:
+        return None
+    return blogger.id
+
+
+async def get_recruited_workers(
+    blogger_id: uuid.UUID,
+    page: int,
+    db: AsyncSession,
+) -> tuple[list[dict], int]:
+    """Список воркеров, приведённых этим блогером (linked_to == blogger_id).
+
+    Args:
+        blogger_id: ID блогера.
+        page: Номер страницы (1-based).
+        db: Database session.
+
+    Returns:
+        Кортеж (список воркеров с id/name/email, общее количество).
+    """
+    offset = (max(1, page) - 1) * _PAGE_SIZE
+
+    count_stmt = select(func.count(User.id)).where(
+        User.linked_to == blogger_id,
+        User.role == UserRole.WORKER,
+    )
+    total = int((await db.execute(count_stmt)).scalar_one())
+
+    stmt = (
+        select(User)
+        .where(
+            User.linked_to == blogger_id,
+            User.role == UserRole.WORKER,
+        )
+        .order_by(User.id)
+        .limit(_PAGE_SIZE)
+        .offset(offset)
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+
+    workers = [
+        {
+            "id": str(user.id),
+            "name": user.name,
+            "email": user.email,
+        }
+        for user in rows
+    ]
+
+    return workers, total
+
+
 async def get_referred_clients(
     worker_id: uuid.UUID,
     page: int,

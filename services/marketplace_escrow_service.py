@@ -31,6 +31,7 @@ class DistributionResult:
 
     blogger_share: int
     worker_share: int
+    blogger_referral_share: int
     platform_share: int
     order_id: uuid.UUID
 
@@ -39,23 +40,29 @@ def calculate_distribution(
     amount_kopeks: int,
     platform_commission_pct: Decimal,
     worker_commission_pct: Decimal,
-) -> tuple[int, int, int]:
+    blogger_referrer_commission_pct: Decimal = Decimal("0"),
+) -> tuple[int, int, int, int]:
     """Рассчитать распределение средств.
 
     Returns:
-        (blogger_share, worker_share, platform_share) — все в копейках.
+        (blogger_share, worker_share, blogger_referral_share, platform_share) —
+        все в копейках.
 
     Правила:
     - platform_share = floor(amount * platform_pct / 100)
-    - worker_share = floor(amount * worker_pct / 100), 0 если нет реферала
-    - blogger_share = amount - platform_share - worker_share (остаток блогеру)
-    - Инвариант: blogger_share + worker_share + platform_share == amount
+    - worker_share = floor(amount * worker_pct / 100), 0 если нет реферала-воркера
+    - blogger_referral_share = floor(amount * blogger_ref_pct / 100), 0 если нет
+      блогера, приведшего воркера (2-й уровень рефералки)
+    - blogger_share = amount - platform - worker - blogger_referral
+      (остаток автору-продавцу; именно из него «вычитаются» рефкомиссии)
+    - Инвариант: blogger + worker + blogger_referral + platform == amount
     """
     # Используем Decimal для точного вычисления, затем floor → int
     platform_share = int((Decimal(amount_kopeks) * platform_commission_pct / Decimal(100)).to_integral_value(rounding="ROUND_FLOOR"))
     worker_share = int((Decimal(amount_kopeks) * worker_commission_pct / Decimal(100)).to_integral_value(rounding="ROUND_FLOOR"))
-    blogger_share = amount_kopeks - platform_share - worker_share
-    return blogger_share, worker_share, platform_share
+    blogger_referral_share = int((Decimal(amount_kopeks) * blogger_referrer_commission_pct / Decimal(100)).to_integral_value(rounding="ROUND_FLOOR"))
+    blogger_share = amount_kopeks - platform_share - worker_share - blogger_referral_share
+    return blogger_share, worker_share, blogger_referral_share, platform_share
 
 
 async def freeze_funds(
@@ -363,22 +370,30 @@ async def distribute_funds(
                 select(MarketplaceEscrowEntry).where(
                     MarketplaceEscrowEntry.order_id == order_id,
                     MarketplaceEscrowEntry.entry_type.in_(
-                        ["release_blogger", "release_worker", "release_platform"]
+                        [
+                            "release_blogger",
+                            "release_worker",
+                            "release_blogger_referral",
+                            "release_platform",
+                        ]
                     ),
                 )
             )
         ).scalars().all()
-        blogger_share = worker_share = platform_share = 0
+        blogger_share = worker_share = blogger_referral_share = platform_share = 0
         for e in entries:
             if e.entry_type == "release_blogger":
                 blogger_share = e.amount_kopeks
             elif e.entry_type == "release_worker":
                 worker_share = e.amount_kopeks
+            elif e.entry_type == "release_blogger_referral":
+                blogger_referral_share = e.amount_kopeks
             elif e.entry_type == "release_platform":
                 platform_share = e.amount_kopeks
         return DistributionResult(
             blogger_share=blogger_share,
             worker_share=worker_share,
+            blogger_referral_share=blogger_referral_share,
             platform_share=platform_share,
             order_id=order_id,
         )
@@ -394,12 +409,16 @@ async def distribute_funds(
     if order is None:
         raise ValueError(f"Заказ {order_id} не найден")
 
-    # Рассчитать доли — если worker_id отсутствует, worker_pct = 0 → вся доля блогеру
+    # Рассчитать доли — если участник не привязан, его pct = 0 → доля уходит автору
     worker_pct = order.worker_commission_pct if order.worker_id else Decimal("0")
-    blogger_share, worker_share, platform_share = calculate_distribution(
+    blogger_ref_pct = (
+        order.blogger_referrer_commission_pct if order.blogger_referrer_id else Decimal("0")
+    )
+    blogger_share, worker_share, blogger_referral_share, platform_share = calculate_distribution(
         amount_kopeks=order.amount_kopeks,
         platform_commission_pct=order.platform_commission_pct,
         worker_commission_pct=worker_pct,
+        blogger_referrer_commission_pct=blogger_ref_pct,
     )
 
     platform_user_id = settings.platform_revenue_user_id
@@ -427,6 +446,19 @@ async def distribute_funds(
                 amount_kopeks=worker_share,
                 note="Реферальная комиссия воркера",
                 idempotency_key=f"{order_id}:release_worker",
+            )
+        )
+
+    # Запись блогера-реферера, 2-й уровень (только если есть комиссия и реферер привязан)
+    if blogger_referral_share > 0 and order.blogger_referrer_id:
+        db.add(
+            MarketplaceEscrowEntry(
+                order_id=order_id,
+                user_id=order.blogger_referrer_id,
+                entry_type="release_blogger_referral",
+                amount_kopeks=blogger_referral_share,
+                note="Реферальная комиссия блогера (2-й уровень)",
+                idempotency_key=f"{order_id}:release_blogger_referral",
             )
         )
 
@@ -462,6 +494,16 @@ async def distribute_funds(
         if worker_user is not None:
             worker_user.marketplace_balance_kopeks += worker_share
 
+    # Блогер-реферер, 2-й уровень (если есть комиссия)
+    if blogger_referral_share > 0 and order.blogger_referrer_id:
+        blogger_ref_user = (
+            await db.execute(
+                select(User).where(User.id == order.blogger_referrer_id).with_for_update()
+            )
+        ).scalar_one_or_none()
+        if blogger_ref_user is not None:
+            blogger_ref_user.marketplace_balance_kopeks += blogger_referral_share
+
     # Платформа — кредитовать системного пользователя
     platform_user = (
         await db.execute(
@@ -476,6 +518,7 @@ async def distribute_funds(
     return DistributionResult(
         blogger_share=blogger_share,
         worker_share=worker_share,
+        blogger_referral_share=blogger_referral_share,
         platform_share=platform_share,
         order_id=order_id,
     )

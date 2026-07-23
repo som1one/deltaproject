@@ -77,6 +77,7 @@ class DistributionBreakdown(BaseModel):
 
     blogger_share: int
     worker_share: int
+    blogger_referral_share: int = 0
     platform_share: int
 
 
@@ -144,6 +145,7 @@ class CommissionSettingsResponse(BaseModel):
 
     platform_commission_pct: Decimal
     worker_referral_commission_pct: Decimal
+    blogger_referral_commission_pct: Decimal
 
 
 class CommissionSettingsRequest(BaseModel):
@@ -167,10 +169,27 @@ class CommissionSettingsRequest(BaseModel):
             description="Реферальная комиссия воркера (1–30%, до 2 знаков после запятой)",
         ),
     ]
+    blogger_referral_commission_pct: Annotated[
+        Decimal,
+        Field(
+            ge=Decimal("0"),
+            le=Decimal("30"),
+            decimal_places=2,
+            description=(
+                "Реферальная комиссия блогера, приведшего воркера "
+                "(0–30%, 0 = выключить 2-й уровень)"
+            ),
+        ),
+    ]
 
     @model_validator(mode="after")
     def check_total(self) -> "CommissionSettingsRequest":
-        if self.platform_commission_pct + self.worker_referral_commission_pct > Decimal("80"):
+        total = (
+            self.platform_commission_pct
+            + self.worker_referral_commission_pct
+            + self.blogger_referral_commission_pct
+        )
+        if total > Decimal("80"):
             raise ValueError("Сумма комиссий не может превышать 80%")
         return self
 

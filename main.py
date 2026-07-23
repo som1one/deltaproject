@@ -28,6 +28,7 @@ from routers import (
     marketplace,
     marketplace_admin,
     marketplace_auth,
+    marketplace_blogger_dashboard,
     marketplace_blogger_profile,
     marketplace_messages,
     marketplace_notifications,
@@ -195,6 +196,7 @@ def create_app() -> FastAPI:
     app.include_router(marketplace_withdrawals.router)
     app.include_router(marketplace_notifications.router)
     app.include_router(marketplace_worker_dashboard.router)
+    app.include_router(marketplace_blogger_dashboard.router)
 
     # Загруженные изображения (аватары, скриншоты статистики)
     from fastapi.staticfiles import StaticFiles

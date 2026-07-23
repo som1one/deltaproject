@@ -56,6 +56,7 @@ type AdminOrdersResponse = {
 type CommissionSettings = {
   platform_commission_pct: string;
   worker_referral_commission_pct: string;
+  blogger_referral_commission_pct: string;
 };
 
 type SupportTicket = {
@@ -877,11 +878,17 @@ function parsePct(raw: string): number | null {
   return value;
 }
 
-function validatePcts(platform: number | null, worker: number | null): string {
-  if (platform === null || worker === null) return "Укажите оба процента (до 2 знаков после запятой)";
+function validatePcts(
+  platform: number | null,
+  worker: number | null,
+  blogger: number | null,
+): string {
+  if (platform === null || worker === null || blogger === null)
+    return "Укажите все проценты (до 2 знаков после запятой)";
   if (platform < 1 || platform > 50) return "Комиссия платформы должна быть от 1 до 50%";
   if (worker < 1 || worker > 30) return "Комиссия воркера должна быть от 1 до 30%";
-  if (platform + worker > 80) return "Сумма комиссий не может превышать 80%";
+  if (blogger < 0 || blogger > 30) return "Комиссия блогера должна быть от 0 до 30%";
+  if (platform + worker + blogger > 80) return "Сумма комиссий не может превышать 80%";
   return "";
 }
 
@@ -889,6 +896,7 @@ function SettingsTab() {
   const queryClient = useQueryClient();
   const [platformPct, setPlatformPct] = useState("");
   const [workerPct, setWorkerPct] = useState("");
+  const [bloggerPct, setBloggerPct] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -898,6 +906,7 @@ function SettingsTab() {
       const d = await apiRequest<CommissionSettings>("/admin/marketplace/settings", { auth: true });
       setPlatformPct(d.platform_commission_pct);
       setWorkerPct(d.worker_referral_commission_pct);
+      setBloggerPct(d.blogger_referral_commission_pct);
       return d;
     },
   });
@@ -910,6 +919,7 @@ function SettingsTab() {
         body: JSON.stringify({
           platform_commission_pct: platformPct,
           worker_referral_commission_pct: workerPct,
+          blogger_referral_commission_pct: bloggerPct,
         }),
       }),
     onSuccess: () => {
@@ -927,18 +937,30 @@ function SettingsTab() {
 
   const platform = parsePct(platformPct);
   const worker = parsePct(workerPct);
-  const validationError = validatePcts(platform, worker);
+  const blogger = parsePct(bloggerPct);
+  const validationError = validatePcts(platform, worker, blogger);
 
-  // Распределение считается как в эскроу: доли платформы и воркера — floor, остаток — автору.
-  let breakdown: { platform: number; worker: number; bloggerWithWorker: number; bloggerAlone: number } | null = null;
-  if (!validationError && platform !== null && worker !== null) {
+  // Распределение считается как в эскроу: доли платформы/воркера/блогера-реферера —
+  // floor, остаток — автору. bloggerReferral начисляется, только если воркера
+  // пригласил блогер (2-й уровень цепочки).
+  let breakdown: {
+    platform: number;
+    worker: number;
+    bloggerReferral: number;
+    authorFullChain: number;
+    authorAlone: number;
+  } | null = null;
+  if (!validationError && platform !== null && worker !== null && blogger !== null) {
     const platformShare = Math.floor((SETTINGS_PREVIEW_AMOUNT_KOPEKS * platform) / 100);
     const workerShare = Math.floor((SETTINGS_PREVIEW_AMOUNT_KOPEKS * worker) / 100);
+    const bloggerRefShare = Math.floor((SETTINGS_PREVIEW_AMOUNT_KOPEKS * blogger) / 100);
     breakdown = {
       platform: platformShare,
       worker: workerShare,
-      bloggerWithWorker: SETTINGS_PREVIEW_AMOUNT_KOPEKS - platformShare - workerShare,
-      bloggerAlone: SETTINGS_PREVIEW_AMOUNT_KOPEKS - platformShare,
+      bloggerReferral: bloggerRefShare,
+      authorFullChain:
+        SETTINGS_PREVIEW_AMOUNT_KOPEKS - platformShare - workerShare - bloggerRefShare,
+      authorAlone: SETTINGS_PREVIEW_AMOUNT_KOPEKS - platformShare,
     };
   }
 
@@ -985,6 +1007,22 @@ function SettingsTab() {
           <span className={styles.settingsNote}>начисляется, только если заказчик пришёл по ссылке воркера</span>
         </div>
 
+        <div className={styles.settingsRow}>
+          <span className={styles.settingsLabel}>Комиссия блогера (0–30%)</span>
+          <input
+            type="number"
+            className={styles.settingsInput}
+            value={bloggerPct}
+            onChange={(e) => setBloggerPct(e.target.value)}
+            min={0}
+            max={30}
+            step={0.01}
+            aria-label="Комиссия блогера, приведшего воркера"
+          />
+          <span className={styles.settingsSuffix}>%</span>
+          <span className={styles.settingsNote}>начисляется блогеру, приведшему воркера; 0 — выключить 2-й уровень</span>
+        </div>
+
         {validationError ? (
           <p className={styles.errorMsg}>{validationError}</p>
         ) : breakdown ? (
@@ -995,8 +1033,8 @@ function SettingsTab() {
             <div className={styles.settingsPreviewRow}>
               <span>Автор</span>
               <span>
-                {formatRubles(breakdown.bloggerAlone)}
-                <span className={styles.settingsPreviewMuted}> · с воркером {formatRubles(breakdown.bloggerWithWorker)}</span>
+                {formatRubles(breakdown.authorAlone)}
+                <span className={styles.settingsPreviewMuted}> · с реф-цепочкой {formatRubles(breakdown.authorFullChain)}</span>
               </span>
             </div>
             <div className={styles.settingsPreviewRow}>
@@ -1006,6 +1044,10 @@ function SettingsTab() {
             <div className={styles.settingsPreviewRow}>
               <span>Воркер (по реферальной ссылке)</span>
               <span>{formatRubles(breakdown.worker)}</span>
+            </div>
+            <div className={styles.settingsPreviewRow}>
+              <span>Блогер (привёл воркера)</span>
+              <span>{formatRubles(breakdown.bloggerReferral)}</span>
             </div>
           </div>
         ) : null}

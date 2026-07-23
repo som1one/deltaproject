@@ -23,7 +23,10 @@ from models.marketplace_service_type import MarketplaceServiceType
 from models.marketplace_settings import MarketplaceSettings
 from models.user import User
 from services import marketplace_escrow_service, marketplace_message_service, notification_service
-from services.marketplace_referral_service import get_worker_id_for_order
+from services.marketplace_referral_service import (
+    get_worker_id_for_order,
+    resolve_blogger_referrer_id,
+)
 from services.order_state_machine import transition_order
 
 logger = logging.getLogger(__name__)
@@ -137,15 +140,25 @@ async def create_offer(
         else Decimal("0.00")
     )
 
+    # 2-й уровень: блогер, приведший этого воркера (снапшот на момент заказа)
+    blogger_referrer_id = await resolve_blogger_referrer_id(worker_id, db)
+    blogger_referrer_commission_pct = (
+        settings_row.blogger_referral_commission_pct
+        if blogger_referrer_id is not None
+        else Decimal("0.00")
+    )
+
     order = MarketplaceOrder(
         client_id=client_id,
         blogger_id=blogger_id,
         worker_id=worker_id,
+        blogger_referrer_id=blogger_referrer_id,
         status=MarketplaceOrderStatus.OFFER_PENDING.value,
         amount_kopeks=amount_kopeks,
         message=message,
         platform_commission_pct=settings_row.platform_commission_pct,
         worker_commission_pct=worker_commission_pct,
+        blogger_referrer_commission_pct=blogger_referrer_commission_pct,
         service_type_id=service_type.id if service_type else None,
         service_type_name=service_type.name if service_type else None,
         offered_by=sender.id,
@@ -410,6 +423,16 @@ async def auto_complete_overdue_reviews(db: AsyncSession) -> int:
                         db=db,
                         user_id=order.worker_id,
                         event_type="order_completed_worker_commission",
+                        payload={
+                            "order_id": str(order.id),
+                            "amount": order.amount_kopeks,
+                        },
+                    )
+                if order.blogger_referrer_id is not None:
+                    await notification_service.notify(
+                        db=db,
+                        user_id=order.blogger_referrer_id,
+                        event_type="order_completed_blogger_commission",
                         payload={
                             "order_id": str(order.id),
                             "amount": order.amount_kopeks,
