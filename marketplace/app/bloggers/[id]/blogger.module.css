@@ -90,12 +90,22 @@
 
 /* ── Раскладка ────────────────────────────────────────────── */
 
+/* minmax(0, 1fr), а не 1fr: у auto-минимума трека размер по min-content, и одна
+   длинная неразрывная строка (ссылка на профиль с ?igsh=…) распирала колонку
+   шире вьюпорта — вся страница уезжала за правый край. */
 .layout {
   display: grid;
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: minmax(0, 1fr) 400px;
   gap: 56px;
   align-items: start;
   margin-top: clamp(32px, 4vw, 48px);
+}
+
+/* Грид-элементы по умолчанию не ужимаются ниже своего min-content — длинная
+   ссылка или моно-цена внутри тогда выдавливает колонку наружу. */
+.layout > *,
+.mainCol > * {
+  min-width: 0;
 }
 
 .portrait {
@@ -212,7 +222,7 @@
   border-radius: var(--r-md);
   background: var(--surface);
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 22px;
 }
 
@@ -268,7 +278,7 @@
 
 .audienceRow {
   display: grid;
-  grid-template-columns: 52px 1fr 40px;
+  grid-template-columns: 52px minmax(0, 1fr) 40px;
   align-items: center;
   gap: 12px;
   font-size: 13px;
@@ -492,6 +502,7 @@
 .portfolioItem {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface);
@@ -593,7 +604,7 @@
 
 @media (max-width: 520px) {
   .portfolioGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -609,6 +620,7 @@
 .socialBtn {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 12px;
   padding: 11px 13px;
   border: 1px solid var(--hairline);
@@ -677,7 +689,7 @@
 
 @media (max-width: 520px) {
   .socialGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -967,18 +979,32 @@
 
 @media (max-width: 940px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 40px;
   }
 
-  /* На узких экранах цена и CTA поднимаются к началу — под шапку с именем,
-     а не в самый низ страницы после портфолио («в подвал») */
+  /* Левая колонка «растворяется» в гриде (display: contents), чтобы портрет и
+     карточка сделки получили собственный порядок: сначала лицо автора, следом
+     цена и CTA, и только потом досье — а не «цена вперёд аватара». */
+  .mainCol {
+    display: contents;
+  }
+
+  .portrait {
+    order: -2;
+    max-width: 100%;
+  }
+
+  /* Цена и CTA всё так же высоко — сразу под портретом, а не «в подвале»
+     страницы после портфолио. */
   .orderCard {
     position: static;
     order: -1;
   }
 
-  .portrait {
-    max-width: 100%;
+  /* Ритм между секциями теперь задаёт gap грида — собственный отступ убираем,
+     иначе он складывается с ним в двойной. */
+  .block {
+    margin-top: 0;
   }
 }

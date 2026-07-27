@@ -424,8 +424,9 @@ export default function BloggerProfilePage() {
               </Reveal>
 
               <div className={styles.layout}>
-                {/* Левая колонка — портрет и нарратив */}
-                <div>
+                {/* Левая колонка — портрет и нарратив. На мобильном обёртка
+                    становится display:contents, и порядок задаёт сам грид. */}
+                <div className={styles.mainCol}>
                   <Portrait
                     name={blogger.name}
                     photoUrl={blogger.photo_url}
