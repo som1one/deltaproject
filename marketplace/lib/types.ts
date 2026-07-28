@@ -125,6 +125,13 @@ export type HeroConfigResponse = {
   authors_by_category: Record<string, BloggerCard[]>;
 };
 
+/** Действующие тарифы платформы — для публичных документов (оферта). */
+export type MarketplaceTariffs = {
+  platform_commission_pct: number;
+  worker_referral_commission_pct: number;
+  blogger_referral_commission_pct: number;
+};
+
 /** Распределение аудитории по группам с процентами (сумма = 100). */
 export type AudienceGroup = { label: string; percent: number };
 

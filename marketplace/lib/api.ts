@@ -11,6 +11,7 @@ import type {
   ChatUploadResult,
   Conversation,
   HeroConfigResponse,
+  MarketplaceTariffs,
   Order,
   OrderDetail,
   OrdersResponse,
@@ -315,6 +316,9 @@ export const api = {
 
   getHeroConfig: () =>
     request<HeroConfigResponse>("/marketplace/hero-config", {}),
+
+  getTariffs: () =>
+    request<MarketplaceTariffs>("/marketplace/tariffs", {}),
 
   // ─── Профиль автора (кабинет) ─────────────────────────────────────────────
   getSelfProfile: () =>

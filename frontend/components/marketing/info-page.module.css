@@ -670,6 +670,49 @@
   font-weight: 500;
 }
 
+/* Таблица тарифов — hairline-строки, без коробок */
+.tariffs {
+  width: 100%;
+  margin: 0 0 1rem;
+  border-collapse: collapse;
+}
+
+.tariffs th,
+.tariffs td {
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tariffs th {
+  font-family: var(--font-narrow);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.tariffs td {
+  font-size: 0.96rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.tariffs th:last-child,
+.tariffs td:last-child {
+  padding-left: 1.2rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tariffs td:last-child {
+  color: var(--text-strong);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .legalContent a {
   color: var(--text-strong);
   text-decoration: underline;

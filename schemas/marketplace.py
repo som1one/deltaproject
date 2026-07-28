@@ -415,3 +415,15 @@ class HeroConfigPublicResponse(BaseModel):
     categories: list[MarketplaceCategoryResponse] = Field(default_factory=list)
     authors_all: list[BloggerCardResponse] = Field(default_factory=list)
     authors_by_category: dict[str, list[BloggerCardResponse]] = Field(default_factory=dict)
+
+
+class MarketplaceTariffsResponse(BaseModel):
+    """Публичные тарифы платформы — показываются в оферте и условиях.
+
+    Значения соответствуют действующим настройкам маркетплейса; к конкретной
+    Сделке применяется снапшот, зафиксированный в момент направления Оффера.
+    """
+
+    platform_commission_pct: float
+    worker_referral_commission_pct: float
+    blogger_referral_commission_pct: float

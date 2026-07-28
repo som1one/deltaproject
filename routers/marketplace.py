@@ -13,6 +13,7 @@ from models.blogger_price_item import BloggerPriceItem
 from models.blogger_profile import BloggerProfile
 from models.marketplace_hero_config import MarketplaceHeroConfig
 from models.marketplace_service_type import MarketplaceServiceType
+from models.marketplace_settings import MarketplaceSettings
 from models.user import User
 from schemas.marketplace import (
     BloggerCardResponse,
@@ -20,6 +21,7 @@ from schemas.marketplace import (
     BloggerProfileResponse,
     HeroConfigPublicResponse,
     MarketplaceCategoryResponse,
+    MarketplaceTariffsResponse,
     PriceItemPublic,
     ServiceTypeResponse,
 )
@@ -111,6 +113,31 @@ async def list_service_types(
         )
     ).scalars()
     return [ServiceTypeResponse.model_validate(st) for st in rows]
+
+
+@router.get("/tariffs", response_model=MarketplaceTariffsResponse)
+async def get_tariffs(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> MarketplaceTariffsResponse:
+    """Действующие тарифы платформы для публичных документов (оферта, условия).
+
+    Читает singleton-настройки маркетплейса; если запись ещё не создана —
+    возвращает базовые значения (совпадают с server_default модели).
+    """
+    row = (
+        await db.execute(select(MarketplaceSettings).where(MarketplaceSettings.id == 1))
+    ).scalar_one_or_none()
+    if row is None:
+        return MarketplaceTariffsResponse(
+            platform_commission_pct=25.0,
+            worker_referral_commission_pct=5.0,
+            blogger_referral_commission_pct=5.0,
+        )
+    return MarketplaceTariffsResponse(
+        platform_commission_pct=float(row.platform_commission_pct),
+        worker_referral_commission_pct=float(row.worker_referral_commission_pct),
+        blogger_referral_commission_pct=float(row.blogger_referral_commission_pct),
+    )
 
 
 @router.get("/categories", response_model=list[MarketplaceCategoryResponse])
