@@ -11,6 +11,7 @@ Endpoints:
 - PATCH /admin/marketplace/support/tickets/{id}/resolve — закрытие тикета
 - GET  /admin/marketplace/bloggers — список блогеров маркетплейса
 - PATCH /admin/marketplace/bloggers/{id} — редактирование профиля блогера
+- POST /admin/marketplace/bloggers/{id}/impersonate — одноразовая ссылка входа в маркетплейс от имени автора
 - GET  /admin/marketplace/payment-requisites — реквизиты оплаты (карта + ЮKassa)
 - PUT  /admin/marketplace/payment-requisites — сохранить реквизиты оплаты
 - GET  /admin/settlement-account — получить реквизиты р/с
@@ -22,17 +23,20 @@ Endpoints:
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime
 from datetime import timezone as _tz
 from decimal import Decimal
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
+from core.settings import settings
 from dependencies.auth import get_current_admin_or_tech
 from dependencies.database import get_db
 from enums.marketplace import (
@@ -73,6 +77,7 @@ from schemas.marketplace_admin import (
     AdminOrderResponse,
     AdminTicketItem,
     AdminTicketListResponse,
+    BloggerImpersonateResponse,
     CommissionSettingsRequest,
     CommissionSettingsResponse,
     DashboardResponse,
@@ -103,16 +108,25 @@ from schemas.marketplace_withdrawals import (
 )
 from schemas.settlement_account import SettlementAccountResponse, SettlementAccountUpsert
 from services import marketplace_payment_settings_service, notification_service
+from services.admin_audit_service import record_admin_audit
 from services.marketplace_escrow_service import calculate_distribution, confirm_payment, distribute_funds, process_refund, refund_to_client
 from services.marketplace_stats_service import get_marketplace_stats
 from services.settlement_account_service import (
     get_settlement_account,
     upsert_settlement_account,
 )
+from services.telegram_oauth_store import EXCHANGE_TTL_SECONDS, create_exchange_ticket
+from utils.jwt_tokens import create_access_token
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin/marketplace", tags=["admin-marketplace"])
 
 settlement_router = APIRouter(prefix="/admin", tags=["admin-settlement-account"])
+
+# Куда приземляется админ, вошедший от имени автора: карточка и профиль
+# редактируются в кабинете маркетплейса.
+_IMPERSONATE_LANDING = "/cabinet"
 
 
 # ---------------------------------------------------------------------------
@@ -895,6 +909,10 @@ async def list_marketplace_bloggers(
             "user_id": str(profile.user_id),
             "name": name,
             "category": profile.category,
+            # Пол автора — по нему работает фильтр «Автор» в каталоге;
+            # в онбординге его не спрашивают, поэтому админ должен видеть и
+            # уметь проставить его здесь.
+            "gender": profile.gender if profile.gender in {"female", "male", "other"} else None,
             "subscriber_count": profile.subscriber_count,
             "average_price_kopeks": profile.average_price_kopeks,
             "engagement_rate": (
@@ -957,6 +975,88 @@ async def get_marketplace_blogger_by_user(
         )
     user = await db.get(User, profile.user_id)
     return _blogger_profile_response(profile, user.name if user else "")
+
+
+@router.post(
+    "/bloggers/{blogger_profile_id}/impersonate",
+    response_model=BloggerImpersonateResponse,
+)
+async def impersonate_marketplace_blogger(
+    blogger_profile_id: uuid.UUID,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    admin: Annotated[User, Depends(get_current_admin_or_tech)],
+) -> BloggerImpersonateResponse:
+    """Одноразовая ссылка входа в маркетплейс от имени автора.
+
+    Нужна поддержке, чтобы починить карточку/профиль руками и чтобы по запросу
+    контролирующих органов можно было показать, кто и когда заходил в аккаунт.
+    Поэтому вход всегда попадает в журнал аудита (`admin_audit_logs`, поле
+    `impersonation`) и виден в карточке пользователя.
+
+    Сессия намеренно урезана: access-токен на час и БЕЗ refresh-токена, то есть
+    продлить её молча нельзя — по истечении маркетплейс разлогинит вкладку.
+    Переиспользуем SSO-обмен блогера: код одноразовый и живёт пару минут, сам
+    токен в ссылку не попадает.
+    """
+    profile = await db.get(BloggerProfile, blogger_profile_id)
+    if profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Профиль блогера не найден",
+        )
+
+    target = await db.get(User, profile.user_id)
+    if target is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Пользователь автора не найден",
+        )
+
+    # Вход под другим админом — это обход разделения прав, а не поддержка.
+    if target.role in (UserRole.ADMIN, UserRole.TECH_ADMIN):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Нельзя войти под администратором",
+        )
+
+    # У заблокированного аккаунта токен отвергает get_current_user — вместо
+    # молчаливого 401 в маркетплейсе объясняем это здесь.
+    if not target.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Аккаунт заблокирован — снимите бан, чтобы войти под ним",
+        )
+
+    ticket = await create_exchange_ticket(
+        access_token=create_access_token(target.id),
+        refresh_token="",
+    )
+
+    await record_admin_audit(
+        db,
+        actor_id=admin.id,
+        target_user_id=target.id,
+        field="impersonation",
+        old_value=None,
+        new_value="вход в маркетплейс от имени автора",
+    )
+    await db.commit()
+
+    logger.warning(
+        "Админ %s (%s) вошёл в маркетплейс от имени автора %s (%s)",
+        admin.name,
+        admin.id,
+        target.name,
+        target.id,
+    )
+
+    base = settings.marketplace_frontend_url.strip().rstrip("/")
+    return BloggerImpersonateResponse(
+        url=f"{base}/auth/platform/callback?code={quote(ticket.ticket)}&next={quote(_IMPERSONATE_LANDING)}",
+        user_id=target.id,
+        name=target.name,
+        expires_in=EXCHANGE_TTL_SECONDS,
+    )
 
 
 @router.patch("/bloggers/{blogger_profile_id}", response_model=BloggerProfileResponse)

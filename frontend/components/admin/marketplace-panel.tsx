@@ -82,6 +82,7 @@ type BloggerAdmin = {
   user_id: string;
   name: string;
   category: string;
+  gender?: "female" | "male" | "other" | null;
   subscriber_count: number;
   average_price_kopeks: number;
   engagement_rate?: number | null;
@@ -93,6 +94,14 @@ type BloggerAdmin = {
 type BloggersResponse = {
   items: BloggerAdmin[];
   total: number;
+};
+
+/** Одноразовая ссылка входа в маркетплейс от имени автора. */
+type ImpersonateResponse = {
+  url: string;
+  user_id: string;
+  name: string;
+  expires_in: number;
 };
 
 type ServiceType = {
@@ -1266,6 +1275,7 @@ function BloggerMetricEditor({ blogger }: { blogger: BloggerAdmin }) {
   const queryClient = useQueryClient();
   const [er, setEr] = useState(blogger.engagement_rate != null ? String(blogger.engagement_rate) : "");
   const [rating, setRating] = useState(blogger.rating != null ? String(blogger.rating) : "");
+  const [gender, setGender] = useState(blogger.gender ?? "");
 
   const save = useMutation({
     mutationFn: () =>
@@ -1275,6 +1285,7 @@ function BloggerMetricEditor({ blogger }: { blogger: BloggerAdmin }) {
         body: JSON.stringify({
           engagement_rate: er.trim() === "" ? null : Number(er),
           rating: rating.trim() === "" ? null : Number(rating),
+          gender: gender === "" ? null : gender,
         }),
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-marketplace-bloggers"] }),
@@ -1282,6 +1293,20 @@ function BloggerMetricEditor({ blogger }: { blogger: BloggerAdmin }) {
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+      {/* Пол — в онбординге его не спрашивают, а от него зависит фильтр
+          «Автор» в каталоге; без этого селекта проставить его было негде. */}
+      <select
+        className={styles.settingsInput}
+        style={{ width: 96 }}
+        value={gender}
+        onChange={(e) => setGender(e.target.value)}
+        aria-label={`Пол ${blogger.name}`}
+      >
+        <option value="">Пол —</option>
+        <option value="female">Женский</option>
+        <option value="male">Мужской</option>
+        <option value="other">Другое</option>
+      </select>
       <input
         type="number"
         className={styles.settingsInput}
@@ -1320,11 +1345,50 @@ function BloggerMetricEditor({ blogger }: { blogger: BloggerAdmin }) {
 
 function BloggersTab() {
   const queryClient = useQueryClient();
+  const [enterError, setEnterError] = useState("");
+  // Запасная ссылка: если блокировщик срезал новую вкладку, её открывает сам админ.
+  const [enterFallback, setEnterFallback] = useState<{ name: string; url: string } | null>(null);
 
   const { data, isLoading } = useQuery<BloggersResponse>({
     queryKey: ["admin-marketplace-bloggers"],
     queryFn: () => apiRequest<BloggersResponse>("/admin/marketplace/bloggers", { auth: true }),
   });
+
+  const enterMutation = useMutation({
+    mutationFn: async (blogger: BloggerAdmin) => {
+      // Вкладку открываем до запроса: после await жест пользователя «протухает»
+      // и всплывающее окно блокируется браузером.
+      const tab = window.open("", "_blank");
+      try {
+        const data = await apiRequest<ImpersonateResponse>(
+          `/admin/marketplace/bloggers/${blogger.id}/impersonate`,
+          { method: "POST", auth: true },
+        );
+        if (tab) tab.location.href = data.url;
+        else setEnterFallback({ name: data.name, url: data.url });
+      } catch (err) {
+        tab?.close();
+        throw err;
+      }
+    },
+    onMutate: () => {
+      setEnterError("");
+      setEnterFallback(null);
+    },
+    onError: (err: Error) => setEnterError(err.message),
+  });
+
+  const handleEnterAs = (blogger: BloggerAdmin) => {
+    if (
+      window.confirm(
+        `Войти в маркетплейс от имени «${blogger.name}»?\n\n` +
+          "Вход попадёт в журнал аудита пользователя. В этом браузере ваша " +
+          "собственная сессия маркетплейса заменится на сессию автора.",
+      )
+    ) {
+      enterMutation.mutate(blogger);
+    }
+  };
 
   const toggleMutation = useMutation({
     mutationFn: ({ bloggerId, isActive }: { bloggerId: string; isActive: boolean }) =>
@@ -1357,6 +1421,22 @@ function BloggersTab() {
   return (
     <div className={styles.section}>
       <h2 className={styles.sectionTitle}>Управление блогерами</h2>
+      <p style={{ fontSize: "0.85rem", color: "var(--mp-text-muted)", marginTop: 0 }}>
+        «Войти» открывает маркетплейс от имени автора — для правки карточки и профиля.
+        Сессия живёт до часа и не продлевается, каждый вход пишется в журнал аудита пользователя.
+      </p>
+
+      {enterError && <p className={styles.errorMsg}>{enterError}</p>}
+
+      {enterFallback && (
+        <p className={styles.emptyText}>
+          Браузер заблокировал новую вкладку.{" "}
+          <a href={enterFallback.url} target="_blank" rel="noreferrer">
+            Открыть вход как «{enterFallback.name}»
+          </a>{" "}
+          — ссылка одноразовая и действует пару минут.
+        </p>
+      )}
 
       {data && data.items.length === 0 && (
         <p className={styles.emptyText}>Нет зарегистрированных блогеров.</p>
@@ -1374,6 +1454,15 @@ function BloggersTab() {
               </div>
               <div className={styles.bloggerActions}>
                 <BloggerMetricEditor blogger={blogger} />
+                <button
+                  type="button"
+                  className={styles.toggleBtn}
+                  onClick={() => handleEnterAs(blogger)}
+                  disabled={enterMutation.isPending}
+                  title={`Открыть маркетплейс от имени «${blogger.name}»`}
+                >
+                  {enterMutation.isPending && enterMutation.variables?.id === blogger.id ? "…" : "Войти"}
+                </button>
                 <button
                   type="button"
                   className={`${styles.toggleBtn} ${blogger.is_active ? styles.toggleBtnActive : ""}`}
