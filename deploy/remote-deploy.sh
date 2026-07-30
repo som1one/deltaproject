@@ -160,6 +160,31 @@ if [[ ! -d /etc/letsencrypt/live/$MARKETPLACE_DOMAIN ]]; then
   $SUDO certbot --nginx -d "$MARKETPLACE_DOMAIN" --non-interactive --agree-tos --email admin@looneymoon.ru --redirect || echo "[deploy] certbot failed (DNS may not be ready yet)"
 fi
 
+# --- Alias-домен маркетплейса под брендом moneymaxxxing: 301 → канонический ---
+# Приложение на новом origin НЕ сервим (SSO-вход блогера и CORS завязаны на
+# канонический marketplace.looneymoon.ru) — только редирект. Отдельный конфиг и
+# отдельный LE-лейнедж: живой конфиг marketplace и его сертификат не трогаем,
+# --expand по ним запрещён. Оба шага идемпотентны; пока DNS-записи нет, certbot
+# мягко падает и повторяется следующим деплоем.
+MARKETPLACE_ALIAS="marketplace.moneymaxxxing.ru"
+ALIAS_CONF=/etc/nginx/sites-available/marketplace-moneymaxxxing
+if [[ ! -f "$ALIAS_CONF" ]]; then
+  echo "[deploy] installing marketplace alias nginx config ($MARKETPLACE_ALIAS)"
+  $SUDO cp deploy/nginx-marketplace-moneymaxxxing.conf "$ALIAS_CONF"
+  $SUDO ln -sf "$ALIAS_CONF" /etc/nginx/sites-enabled/marketplace-moneymaxxxing
+  if $SUDO nginx -t; then
+    $SUDO systemctl reload nginx
+  else
+    echo "[deploy] WARNING: nginx -t failed после alias-конфига — откатываю его" >&2
+    $SUDO rm -f /etc/nginx/sites-enabled/marketplace-moneymaxxxing "$ALIAS_CONF"
+  fi
+fi
+if [[ -f "$ALIAS_CONF" && ! -d /etc/letsencrypt/live/$MARKETPLACE_ALIAS ]]; then
+  echo "[deploy] obtaining SSL certificate for $MARKETPLACE_ALIAS (отдельный лейнедж)"
+  $SUDO certbot --nginx --cert-name "$MARKETPLACE_ALIAS" -d "$MARKETPLACE_ALIAS" --non-interactive --agree-tos --email admin@looneymoon.ru --redirect \
+    || echo "[deploy] certbot для $MARKETPLACE_ALIAS не прошёл (DNS-запись ещё не создана?) — повторится следующим деплоем"
+fi
+
 echo "[deploy] restart services"
 $SUDO systemctl restart "$BACKEND_UNIT"
 $SUDO systemctl restart "$FRONTEND_UNIT"
