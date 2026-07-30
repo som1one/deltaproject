@@ -15,8 +15,9 @@ export const AgencyNav = () => {
   const session = useSessionTarget();
   const isLoggedIn = session.ready && session.isAuthenticated && Boolean(session.href);
 
+  // В шапке места мало — берём короткий лейбл, иначе на телефоне обрезается.
   const cta = isLoggedIn
-    ? { href: session.href as string, label: session.label as string }
+    ? { href: session.href as string, label: session.shortLabel as string }
     : { href: "/register", label: "Войти" };
 
   return (

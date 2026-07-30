@@ -24,15 +24,17 @@ export type SessionTarget = {
   role: UserRole | null;
   href: string | null;
   label: string | null;
+  /** Одно слово — для тесных мест вроде верхней навигации на телефоне. */
+  shortLabel: string | null;
 };
 
-const HOME_BY_ROLE: Record<UserRole, { href: string; label: string }> = {
-  Admin: { href: "/admin", label: "Открыть админку" },
-  Tech_Admin: { href: "/admin", label: "Открыть админку" },
-  Worker: { href: "/cabinet", label: "Открыть кабинет" },
-  Bloger: { href: "/cabinet", label: "Открыть кабинет" },
+const HOME_BY_ROLE: Record<UserRole, { href: string; label: string; shortLabel: string }> = {
+  Admin: { href: "/admin", label: "Открыть админку", shortLabel: "Админка" },
+  Tech_Admin: { href: "/admin", label: "Открыть админку", shortLabel: "Админка" },
+  Worker: { href: "/cabinet", label: "Открыть кабинет", shortLabel: "Кабинет" },
+  Bloger: { href: "/cabinet", label: "Открыть кабинет", shortLabel: "Кабинет" },
   // Заказчики живут на маркетплейсе — на основном сайте кабинета у них нет.
-  Client: { href: appConfig.marketplaceUrl, label: "Открыть маркетплейс" },
+  Client: { href: appConfig.marketplaceUrl, label: "Открыть маркетплейс", shortLabel: "Маркетплейс" },
 };
 
 export const useSessionTarget = (): SessionTarget => {
@@ -56,16 +58,16 @@ export const useSessionTarget = (): SessionTarget => {
   }, [isAuthenticated, meQuery.error, clearSession]);
 
   if (!isHydrated) {
-    return { ready: false, isAuthenticated: false, role: null, href: null, label: null };
+    return { ready: false, isAuthenticated: false, role: null, href: null, label: null, shortLabel: null };
   }
 
   if (!isAuthenticated) {
-    return { ready: true, isAuthenticated: false, role: null, href: null, label: null };
+    return { ready: true, isAuthenticated: false, role: null, href: null, label: null, shortLabel: null };
   }
 
   if (!meQuery.data) {
     // Запрос ещё в полёте — нельзя ни редиректить, ни показывать guest-CTA.
-    return { ready: false, isAuthenticated: true, role: null, href: null, label: null };
+    return { ready: false, isAuthenticated: true, role: null, href: null, label: null, shortLabel: null };
   }
 
   const target = HOME_BY_ROLE[meQuery.data.role];
@@ -75,5 +77,6 @@ export const useSessionTarget = (): SessionTarget => {
     role: meQuery.data.role,
     href: target.href,
     label: target.label,
+    shortLabel: target.shortLabel,
   };
 };
