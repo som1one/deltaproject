@@ -79,7 +79,7 @@ export function ChatsShell({
                 <span className={st.winDot} />
                 <span className={st.winDot} />
               </span>
-              <span className={st.winUrl}>marketplace.looneymoon.ru/chats</span>
+              <span className={st.winUrl}>marketplace.moneymaxxxing.ru/chats</span>
             </div>
             <div className={st.winBody}>
               <aside className={st.side}>

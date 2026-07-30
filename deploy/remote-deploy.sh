@@ -55,9 +55,10 @@ git reset --hard origin/main
 # не трогаем.
 MAIN_DOMAIN="${MAIN_DOMAIN:-moneymaxxxing.ru}"
 
-# Точечно правит ключ в .env — только если значение разъехалось.
+# Точечно правит ключ в env-файле (по умолчанию $REPO_DIR/.env) — только если
+# значение разъехалось. Отсутствующий файл — no-op (тогда работает дефолт кода).
 sync_env_kv() {
-  local key="$1" value="$2" file="$REPO_DIR/.env"
+  local key="$1" value="$2" file="${3:-$REPO_DIR/.env}"
   local current
   [[ -f "$file" ]] || return 0
   if ! grep -qE "^$key=" "$file"; then
@@ -75,6 +76,13 @@ sync_env_kv() {
 echo "[deploy] telegram oauth urls → $MAIN_DOMAIN"
 sync_env_kv TELEGRAM_OAUTH_REDIRECT_URI "https://$MAIN_DOMAIN/api/auth/telegram/callback"
 sync_env_kv TELEGRAM_OAUTH_FRONTEND_CALLBACK_URL "https://$MAIN_DOMAIN/tg/callback"
+
+# Канонический домен маркетплейса. Из него бэкенд строит реф-ссылки воркеров,
+# return_url ЮKassa, allow-list redirect_uri SSO-входа блогера и ссылку
+# админ-импersonation; главный сайт — кнопку «в маркетплейс» (вшивается в билд).
+echo "[deploy] marketplace canonical domain → marketplace.moneymaxxxing.ru"
+sync_env_kv MARKETPLACE_FRONTEND_URL "https://marketplace.moneymaxxxing.ru"
+sync_env_kv NEXT_PUBLIC_MARKETPLACE_URL "https://marketplace.moneymaxxxing.ru" "$REPO_DIR/frontend/.env.local"
 
 echo "[deploy] python deps"
 if [[ ! -d .venv ]]; then
@@ -102,12 +110,12 @@ echo "[deploy] marketplace build"
 # что покрывает и /marketplace/*, и /auth/* (SSO-обмен блогера), и /me — без
 # коллизий с фронтовыми /auth/*-страницами. Базовый URL = https://<домен>/api,
 # без http://IP:8000, без mixed-content и без CORS.
-MARKETPLACE_DOMAIN="marketplace.looneymoon.ru"
+MARKETPLACE_DOMAIN="marketplace.moneymaxxxing.ru"
 echo "[deploy] writing marketplace/.env.local"
 cat > marketplace/.env.local << EOF
 NEXT_PUBLIC_API_BASE_URL=https://$MARKETPLACE_DOMAIN/api
 NEXT_PUBLIC_APP_URL=https://$MARKETPLACE_DOMAIN
-NEXT_PUBLIC_MAIN_APP_URL=https://looneymoon.ru
+NEXT_PUBLIC_MAIN_APP_URL=https://$MAIN_DOMAIN
 EOF
 cd marketplace
 $NPM_BIN ci
@@ -160,12 +168,11 @@ if [[ ! -d /etc/letsencrypt/live/$MARKETPLACE_DOMAIN ]]; then
   $SUDO certbot --nginx -d "$MARKETPLACE_DOMAIN" --non-interactive --agree-tos --email admin@looneymoon.ru --redirect || echo "[deploy] certbot failed (DNS may not be ready yet)"
 fi
 
-# --- Alias-домен маркетплейса под брендом moneymaxxxing: 301 → канонический ---
-# Приложение на новом origin НЕ сервим (SSO-вход блогера и CORS завязаны на
-# канонический marketplace.looneymoon.ru) — только редирект. Отдельный конфиг и
-# отдельный LE-лейнедж: живой конфиг marketplace и его сертификат не трогаем,
-# --expand по ним запрещён. Оба шага идемпотентны; пока DNS-записи нет, certbot
-# мягко падает и повторяется следующим деплоем.
+# --- Домен marketplace.moneymaxxxing.ru: bootstrap конфига и сертификата ---
+# На свежем сервере: ставим стартовый конфиг (:80), certbot выпускает ОТДЕЛЬНЫЙ
+# лейнедж (--expand по чужим лейнеджам запрещён) и дописывает 443. Канонический
+# вид обоих доменов затем приводит canonical_switch ниже. Оба шага идемпотентны;
+# пока DNS-записи нет, certbot мягко падает и повторяется следующим деплоем.
 MARKETPLACE_ALIAS="marketplace.moneymaxxxing.ru"
 ALIAS_CONF=/etc/nginx/sites-available/marketplace-moneymaxxxing
 if [[ ! -f "$ALIAS_CONF" ]]; then
@@ -184,6 +191,55 @@ if [[ -f "$ALIAS_CONF" && ! -d /etc/letsencrypt/live/$MARKETPLACE_ALIAS ]]; then
   $SUDO certbot --nginx --cert-name "$MARKETPLACE_ALIAS" -d "$MARKETPLACE_ALIAS" --non-interactive --agree-tos --email admin@looneymoon.ru --redirect \
     || echo "[deploy] certbot для $MARKETPLACE_ALIAS не прошёл (DNS-запись ещё не создана?) — повторится следующим деплоем"
 fi
+
+# --- Переворот канона: маркетплейс живёт на marketplace.moneymaxxxing.ru ---
+# Новый домен сервит приложение; старый marketplace.looneymoon.ru — 301 на
+# новый, но /api/ и /marketplace/ на нём ПРОДОЛЖАЮТ проксироваться: туда
+# смотрит вебхук ЮKassa и возможные легаси-интеграции (POST не переживёт 301).
+# Идемпотентно по маркеру «canonical:» в живых файлах; требует оба LE-лейнеджа
+# и certbot-обвязку — иначе откладывается до следующего деплоя. nginx -t
+# с откатом из бэкапов; деплой из-за этого шага не валим.
+CANON_MARK="# canonical: marketplace.moneymaxxxing.ru"
+NGX_NEW=/etc/nginx/sites-available/marketplace-moneymaxxxing
+NGX_OLD=/etc/nginx/sites-available/marketplace
+canonical_switch() {
+  if $SUDO grep -qsF "$CANON_MARK" "$NGX_NEW" && $SUDO grep -qsF "$CANON_MARK" "$NGX_OLD"; then
+    return 0
+  fi
+  local f missing=0
+  for f in \
+    /etc/letsencrypt/live/marketplace.moneymaxxxing.ru/fullchain.pem \
+    /etc/letsencrypt/live/marketplace.looneymoon.ru/fullchain.pem \
+    /etc/letsencrypt/options-ssl-nginx.conf \
+    /etc/letsencrypt/ssl-dhparams.pem
+  do
+    if ! $SUDO test -f "$f"; then
+      echo "[deploy] canonical-switch: нет $f — шаг отложен до следующего деплоя"
+      missing=1
+    fi
+  done
+  if [[ "$missing" -eq 1 ]]; then
+    return 0
+  fi
+  local ts
+  ts=$(date +%s)
+  $SUDO cp -a "$NGX_NEW" "$NGX_NEW.bak.$ts" 2>/dev/null || true
+  $SUDO cp -a "$NGX_OLD" "$NGX_OLD.bak.$ts" 2>/dev/null || true
+  $SUDO cp deploy/nginx-marketplace-canonical.conf "$NGX_NEW"
+  $SUDO cp deploy/nginx-marketplace-redirect.conf "$NGX_OLD"
+  $SUDO ln -sf "$NGX_NEW" /etc/nginx/sites-enabled/marketplace-moneymaxxxing
+  $SUDO ln -sf "$NGX_OLD" /etc/nginx/sites-enabled/marketplace
+  if $SUDO nginx -t; then
+    $SUDO systemctl reload nginx
+    echo "[deploy] canonical-switch: готово — канон marketplace.moneymaxxxing.ru, старый домен редиректит"
+  else
+    echo "[deploy] WARNING: canonical-switch: nginx -t упал — откатываю из бэкапов" >&2
+    if $SUDO test -f "$NGX_NEW.bak.$ts"; then $SUDO cp -a "$NGX_NEW.bak.$ts" "$NGX_NEW"; fi
+    if $SUDO test -f "$NGX_OLD.bak.$ts"; then $SUDO cp -a "$NGX_OLD.bak.$ts" "$NGX_OLD"; fi
+    { $SUDO nginx -t && $SUDO systemctl reload nginx; } || true
+  fi
+}
+canonical_switch || echo "[deploy] canonical-switch пропущен из-за ошибки — прежняя схема доменов продолжает работать"
 
 echo "[deploy] restart services"
 $SUDO systemctl restart "$BACKEND_UNIT"

@@ -13,7 +13,7 @@ export const PrivacyPage = () => (
           Политика конфиденциальности
         </h1>
         <p className={styles.heroLead}>
-          Последнее обновление: 28 июля 2026 года. Настоящая политика описывает, как мы
+          Последнее обновление: 30 июля 2026 года. Настоящая политика описывает, как мы
           собираем, используем и защищаем вашу информацию.
         </p>
       </section>
@@ -31,11 +31,11 @@ export const PrivacyPage = () => (
         <p>
           <strong>Платформа</strong> — информационно-технический сервис, размещённый в сети
           Интернет по адресу{" "}
-          <a href="https://looneymoon.ru" target="_blank" rel="noreferrer">looneymoon.ru</a>,
+          <a href="https://moneymaxxxing.ru" target="_blank" rel="noreferrer">moneymaxxxing.ru</a>,
           включая все его поддомены (в том числе маркетплейс{" "}
-          <a href="https://marketplace.looneymoon.ru" target="_blank" rel="noreferrer">
-            marketplace.looneymoon.ru
-          </a>) и личные кабинеты пользователей. Платформа обеспечивает взаимодействие
+          <a href="https://marketplace.moneymaxxxing.ru" target="_blank" rel="noreferrer">
+            marketplace.moneymaxxxing.ru
+          </a>), прежний адрес looneymoon.ru и личные кабинеты пользователей. Платформа обеспечивает взаимодействие
           блогеров, исполнителей и заказчиков рекламы: размещение предложений, проведение
           сделок, учёт расчётов и выплат.
         </p>
@@ -215,7 +215,7 @@ export const PrivacyPage = () => (
           Платформа предназначена для лиц, достигших 18 лет. Несовершеннолетние
           от 14 до 18 лет допускаются к работе на Платформе только в порядке,
           установленном{" "}
-          <a href="https://marketplace.looneymoon.ru/offer" target="_blank" rel="noreferrer">
+          <a href="https://marketplace.moneymaxxxing.ru/offer" target="_blank" rel="noreferrer">
             Публичной офертой маркетплейса
           </a>: при наличии письменного согласия законного представителя, которое
           охватывает в том числе обработку персональных данных несовершеннолетнего.

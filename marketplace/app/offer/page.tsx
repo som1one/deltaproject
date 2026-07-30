@@ -51,7 +51,7 @@ export default function OfferPage() {
           <p className={styles.eyebrow}>Юридическая информация</p>
           <h1 className={styles.title}>Публичная оферта</h1>
           <p className={styles.updated}>
-            Редакция от 28 июля 2026 года. Регистрируясь на Looney Moon Market или оформляя
+            Редакция от 30 июля 2026 года. Регистрируясь на Looney Moon Market или оформляя
             сделку, вы принимаете условия настоящей оферты.
           </p>
 
@@ -61,11 +61,12 @@ export default function OfferPage() {
               Настоящая публичная оферта (далее — «Оферта») определяет условия использования
               маркетплейса <strong>Looney Moon Market</strong> — сервиса, размещённого в сети
               Интернет по адресу{" "}
-              <a href="https://marketplace.looneymoon.ru" target="_blank" rel="noreferrer">
-                marketplace.looneymoon.ru
+              <a href="https://marketplace.moneymaxxxing.ru" target="_blank" rel="noreferrer">
+                marketplace.moneymaxxxing.ru
               </a>{" "}
-              и входящего в платформу{" "}
-              <a href="https://looneymoon.ru" target="_blank" rel="noreferrer">looney moon</a>{" "}
+              (прежний адрес marketplace.looneymoon.ru перенаправляет на текущий) и входящего
+              в платформу{" "}
+              <a href="https://moneymaxxxing.ru" target="_blank" rel="noreferrer">moneymaxxxing</a>{" "}
               (далее — «Платформа», «Маркетплейс»).
             </p>
             <p>В Оферте используются следующие термины:</p>
@@ -506,10 +507,10 @@ export default function OfferPage() {
             </p>
             <p>
               По вопросам, не урегулированным Офертой, применяются{" "}
-              <a href="https://looneymoon.ru/terms" target="_blank" rel="noreferrer">
+              <a href="https://moneymaxxxing.ru/terms" target="_blank" rel="noreferrer">
                 Условия использования
               </a>{" "}
-              платформы looney moon.
+              платформы moneymaxxxing.
             </p>
 
             <h2>19. Контакты</h2>

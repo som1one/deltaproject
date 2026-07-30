@@ -55,7 +55,7 @@ export const TermsPage = () => {
             Условия использования
           </h1>
           <p className={styles.heroLead}>
-            Последнее обновление: 28 июля 2026 года. Используя платформу moneymaxxxing, вы
+            Последнее обновление: 30 июля 2026 года. Используя платформу moneymaxxxing, вы
             соглашаетесь с настоящими условиями.
           </p>
         </section>
@@ -71,19 +71,20 @@ export const TermsPage = () => {
           <p>
             <strong>Платформа</strong> — информационно-технический сервис, размещённый в сети
             Интернет по адресу{" "}
-            <a href="https://looneymoon.ru" target="_blank" rel="noreferrer">looneymoon.ru</a>,
-            включая все его поддомены и личные кабинеты пользователей. Платформа обеспечивает
+            <a href="https://moneymaxxxing.ru" target="_blank" rel="noreferrer">moneymaxxxing.ru</a>,
+            включая все его поддомены, прежний адрес looneymoon.ru и личные кабинеты
+            пользователей. Платформа обеспечивает
             взаимодействие участников: воркеры приводят заказчиков рекламы и получают
             вознаграждение — процент с оплаченных заказов приведённых заказчиков, блогеры
             выполняют рекламные интеграции, Платформа ведёт учёт сделок, начислений и выплат.
           </p>
           <p>
             Сделки между заказчиками и авторами заключаются на маркетплейсе{" "}
-            <a href="https://marketplace.looneymoon.ru" target="_blank" rel="noreferrer">
-              marketplace.looneymoon.ru
+            <a href="https://marketplace.moneymaxxxing.ru" target="_blank" rel="noreferrer">
+              marketplace.moneymaxxxing.ru
             </a>{" "}
             и регулируются его{" "}
-            <a href="https://marketplace.looneymoon.ru/offer" target="_blank" rel="noreferrer">
+            <a href="https://marketplace.moneymaxxxing.ru/offer" target="_blank" rel="noreferrer">
               Публичной офертой
             </a>. При противоречии между настоящими Условиями и офертой маркетплейса к сделкам
             на маркетплейсе применяется оферта.
@@ -112,7 +113,7 @@ export const TermsPage = () => {
           <p>
             Несовершеннолетние от 14 до 18 лет допускаются к работе на Платформе
             в роли воркера или блогера — в порядке, установленном разделом 3{" "}
-            <a href="https://marketplace.looneymoon.ru/offer" target="_blank" rel="noreferrer">
+            <a href="https://marketplace.moneymaxxxing.ru/offer" target="_blank" rel="noreferrer">
               Публичной оферты маркетплейса
             </a>: письменное согласие законного представителя с подтверждающими
             документами, выплаты только на карту, оформленную на самого
@@ -202,7 +203,7 @@ export const TermsPage = () => {
             значения действуют только для сделок, офферы по которым направлены после
             публикации изменений. Полные правила сделок, распределения средств и пределы
             изменения тарифов установлены{" "}
-            <a href="https://marketplace.looneymoon.ru/offer" target="_blank" rel="noreferrer">
+            <a href="https://marketplace.moneymaxxxing.ru/offer" target="_blank" rel="noreferrer">
               Публичной офертой маркетплейса
             </a>{" "}
             (разделы 10–12).

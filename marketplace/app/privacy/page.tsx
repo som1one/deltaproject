@@ -15,7 +15,7 @@ export default function PrivacyPage() {
           <p className={styles.eyebrow}>Юридическая информация</p>
           <h1 className={styles.title}>Политика конфиденциальности</h1>
           <p className={styles.updated}>
-            Последнее обновление: 28 июля 2026 года. Настоящая политика описывает, как
+            Последнее обновление: 30 июля 2026 года. Настоящая политика описывает, как
             Looney Moon Market собирает, использует и защищает ваши данные.
           </p>
 
@@ -25,21 +25,22 @@ export default function PrivacyPage() {
               Настоящая Политика конфиденциальности (далее — «Политика») определяет порядок
               обработки персональных данных пользователей маркетплейса{" "}
               <strong>Looney Moon Market</strong>, размещённого по адресу{" "}
-              <a href="https://marketplace.looneymoon.ru" target="_blank" rel="noreferrer">
-                marketplace.looneymoon.ru
+              <a href="https://marketplace.moneymaxxxing.ru" target="_blank" rel="noreferrer">
+                marketplace.moneymaxxxing.ru
               </a>{" "}
-              (далее — «Маркетплейс»), и разработана в соответствии с требованиями
+              (прежний адрес marketplace.looneymoon.ru перенаправляет на текущий; далее —
+              «Маркетплейс»), и разработана в соответствии с требованиями
               законодательства Российской Федерации, включая Федеральный закон № 152-ФЗ
               «О персональных данных».
             </p>
             <p>
               Маркетплейс входит в платформу{" "}
-              <a href="https://looneymoon.ru" target="_blank" rel="noreferrer">looney moon</a>.
+              <a href="https://moneymaxxxing.ru" target="_blank" rel="noreferrer">moneymaxxxing</a>.
               Оператором персональных данных выступает администрация платформы (далее —
               «Администрация», «мы»). Настоящая Политика конкретизирует применительно
               к Маркетплейсу{" "}
-              <a href="https://looneymoon.ru/privacy" target="_blank" rel="noreferrer">
-                Политику конфиденциальности платформы looney moon
+              <a href="https://moneymaxxxing.ru/privacy" target="_blank" rel="noreferrer">
+                Политику конфиденциальности платформы moneymaxxxing
               </a>{" "}
               и дополняет <Link href="/offer">Публичную оферту</Link>.
             </p>
@@ -59,7 +60,7 @@ export default function PrivacyPage() {
               </li>
               <li>
                 <strong>Данные Автора:</strong> Авторы входят через единый аккаунт платформы
-                looney moon; данные аккаунта используются в рамках единой платформы.
+                moneymaxxxing; данные аккаунта используются в рамках единой платформы.
               </li>
               <li>
                 <strong>Публичный профиль Автора:</strong> имя, описание, категории, цены
@@ -159,7 +160,7 @@ export default function PrivacyPage() {
                 возвратов и проведения выплат.
               </li>
               <li>
-                В рамках единой платформы looney moon — для работы единого аккаунта Автора
+                В рамках единой платформы moneymaxxxing — для работы единого аккаунта Автора
                 и сквозных функций.
               </li>
               <li>

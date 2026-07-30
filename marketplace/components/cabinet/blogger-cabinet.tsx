@@ -173,7 +173,7 @@ export function BloggerCabinet() {
               <span className={s.winDot} />
               <span className={s.winDot} />
             </span>
-            <span className={s.winUrl}>marketplace.looneymoon.ru/cabinet</span>
+            <span className={s.winUrl}>marketplace.moneymaxxxing.ru/cabinet</span>
           </div>
           <div className={s.winBody}>
             {/* Мобайл: плейсхолдер строки-переключателя, чтобы контент не прыгал после загрузки */}
@@ -210,7 +210,7 @@ export function BloggerCabinet() {
               <span className={s.winDot} />
               <span className={s.winDot} />
             </span>
-            <span className={s.winUrl}>marketplace.looneymoon.ru/cabinet</span>
+            <span className={s.winUrl}>marketplace.moneymaxxxing.ru/cabinet</span>
           </div>
 
           <div className={s.winBody}>

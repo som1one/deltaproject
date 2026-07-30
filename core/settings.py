@@ -250,7 +250,7 @@ class Settings(BaseSettings):
     )
 
     marketplace_frontend_url: str = Field(
-        default="https://marketplace.looneymoon.ru",
+        default="https://marketplace.moneymaxxxing.ru",
         validation_alias="MARKETPLACE_FRONTEND_URL",
         description="Базовый URL фронтенда маркетплейса: реф-ссылки + allow-list "
         "redirect_uri для SSO-входа блогера (см. _validate_marketplace_redirect)",

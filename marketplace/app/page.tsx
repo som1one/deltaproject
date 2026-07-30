@@ -353,7 +353,7 @@ export default function HomePage() {
                   <span className={s.winDot} />
                   <span className={s.winDot} />
                 </span>
-                <span className={s.winUrl}>marketplace.looneymoon.ru/catalog</span>
+                <span className={s.winUrl}>marketplace.moneymaxxxing.ru/catalog</span>
                 <span className={s.winUser} aria-hidden="true">
                   <span className={s.winUserDot} />
                 </span>

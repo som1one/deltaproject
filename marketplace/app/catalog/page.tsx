@@ -225,7 +225,7 @@ function CatalogContent() {
               <span className={styles.winDot} />
               <span className={styles.winDot} />
             </span>
-            <span className={styles.winUrl}>marketplace.looneymoon.ru/catalog</span>
+            <span className={styles.winUrl}>marketplace.moneymaxxxing.ru/catalog</span>
           </div>
 
           <div className={styles.winBody}>
