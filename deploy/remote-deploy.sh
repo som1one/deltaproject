@@ -94,6 +94,12 @@ fi
 echo "[deploy] alembic upgrade"
 "$PYTHON_BIN" -m alembic upgrade head
 
+# Скрипты сообщений воркеров: идемпотентный сид (вставляет недостающие по
+# title, чистит легаси-набор; админ-правки существующих текстов не трогает).
+echo "[deploy] seed worker scripts"
+"$PYTHON_BIN" -m scripts.seed_worker_scripts \
+  || echo "[deploy] seed_worker_scripts не отработал — кабинеты живут со старым набором, посмотрите лог"
+
 echo "[deploy] frontend build"
 cd frontend
 $NPM_BIN ci
