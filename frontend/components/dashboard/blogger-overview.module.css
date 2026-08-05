@@ -15,7 +15,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
   gap: 1.4rem;
-  align-items: stretch;
+  /* start, не stretch: карта остаётся пропорциональной, даже когда
+     сайд-колонка длиннее (рефералка + строка бота) */
+  align-items: start;
 }
 
 @media (max-width: 900px) {

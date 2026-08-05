@@ -32,7 +32,7 @@
 .text {
   font-size: 0.82rem;
   line-height: 1.5;
-  color: var(--text-muted);
+  color: var(--text);
   min-width: 0;
 }
 
@@ -47,11 +47,13 @@
   flex-shrink: 0;
 }
 
+/* Залитая — единственная «громкая» кнопка сайд-колонки:
+   подключение бота важнее остальных действий. */
 .connectBtn {
   appearance: none;
-  border: 1px solid var(--border-strong);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-strong);
+  border: 1px solid var(--text-strong);
+  background: var(--text-strong);
+  color: var(--surface-base);
   font: inherit;
   font-family: var(--font-display);
   font-weight: 600;
@@ -67,7 +69,8 @@
 }
 
 .connectBtn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border-color: #ffffff;
 }
 
 @media (max-width: 540px) {
