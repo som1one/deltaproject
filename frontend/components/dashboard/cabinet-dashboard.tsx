@@ -31,6 +31,7 @@ import { CopyButton } from "@/components/common/copy-button";
 import { PayoutCardInput } from "@/components/common/payout-card-input";
 import { MarketplaceOverview } from "@/components/dashboard/marketplace-overview";
 import { BloggerOverview } from "@/components/dashboard/blogger-overview";
+import { TelegramConnectBanner } from "@/components/dashboard/telegram-connect-banner";
 import { Section } from "@/components/dashboard/section";
 import { LedgerTable, LedgerDetailsModal } from "@/components/dashboard/ledger";
 import styles from "@/components/dashboard/cabinet.module.css";
@@ -850,6 +851,8 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
   return (
     <>
       <IdentityHeader me={me} stats={headerStats} />
+
+      <TelegramConnectBanner />
 
       <div role="status" aria-live="polite">
         {toast ? <Message tone={toast.tone === "info" ? "default" : toast.tone}>{toast.text}</Message> : null}

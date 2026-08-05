@@ -1,0 +1,102 @@
+/* =========================================================
+   Баннер «подключите бота» — типографская строка выписки:
+   hairline-линейки сверху и снизу, никакой коробки.
+   ========================================================= */
+
+.banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  padding: 1rem 0.15rem;
+  border-top: 1px solid var(--border-faint);
+  border-bottom: 1px solid var(--border-faint);
+  margin-bottom: 1.4rem;
+}
+
+.textCol {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+  flex: 1 1 24rem;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-narrow);
+  font-size: 0.62rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 46rem;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-shrink: 0;
+}
+
+.connectBtn {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-strong);
+  font: inherit;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--transition-base),
+    border-color var(--transition-base);
+}
+
+.connectBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.laterBtn {
+  appearance: none;
+  border: none;
+  background: none;
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0.4rem 0.2rem;
+  transition: color var(--transition-base);
+}
+
+.laterBtn:hover {
+  color: var(--text-strong);
+}
+
+@media (max-width: 640px) {
+  .actions {
+    width: 100%;
+  }
+  .connectBtn {
+    flex: 1;
+  }
+}
