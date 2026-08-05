@@ -8,18 +8,21 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from dependencies.auth import get_current_user
 from dependencies.database import get_db
+from enums.user import UserRole
 from models.user import User
 from schemas.marketplace_notifications import (
     MarkReadRequest,
     NotificationListResponse,
     NotificationResponse,
 )
+from schemas.me import TelegramConnectResponse
 from services import notification_service
+from services.telegram_notify_service import build_connect_url
 
 router = APIRouter(prefix="/marketplace/notifications", tags=["marketplace-notifications"])
 
@@ -50,6 +53,22 @@ async def get_notifications(
         total=total,
         page=page,
         page_size=page_size,
+    )
+
+
+@router.get("/telegram-connect", response_model=TelegramConnectResponse)
+async def get_telegram_connect(
+    user: Annotated[User, Depends(get_current_user)],
+) -> TelegramConnectResponse:
+    """Диплинк привязки Telegram-уведомлений для заказчика маркетплейса."""
+    if user.role != UserRole.CLIENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Привязка Telegram-уведомлений доступна заказчику",
+        )
+    return TelegramConnectResponse(
+        connect_url=build_connect_url(user.id),
+        connected=user.telegram_chat_id is not None,
     )
 
 

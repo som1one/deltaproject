@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { appConfig } from "@/lib/config";
 import type { ThreadsList } from "@/lib/types";
 import { Portrait } from "@/components/ui/bits";
 import { ThemeToggle } from "./theme-toggle";
@@ -381,6 +382,25 @@ export const MarketShell = ({ children }: { children: ReactNode }) => {
             <Link href="/terms" className={styles.footerLegalLink}>Условия использования</Link>
             <Link href="/support" className={styles.footerLegalLink}>Поддержка</Link>
           </nav>
+          <div className={styles.footerBridge}>
+            <a
+              href={appConfig.mainAppUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={styles.footerBridgeLink}
+            >
+              Сервис платформы moneymaxxxing
+            </a>
+            <span aria-hidden="true">·</span>
+            <a
+              href={`${appConfig.mainAppUrl}/register`}
+              target="_blank"
+              rel="noreferrer"
+              className={styles.footerBridgeLink}
+            >
+              Стать воркером
+            </a>
+          </div>
           <span className={styles.footerFine}>© {new Date().getFullYear()} looney moon</span>
         </div>
       </footer>

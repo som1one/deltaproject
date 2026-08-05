@@ -125,6 +125,12 @@ export type HeroConfigResponse = {
   authors_by_category: Record<string, BloggerCard[]>;
 };
 
+/** Привязка Telegram-бота для уведомлений: диплинк и текущий статус. */
+export type TelegramConnectStatus = {
+  connect_url: string;
+  connected: boolean;
+};
+
 /** Действующие тарифы платформы — для публичных документов (оферта). */
 export type MarketplaceTariffs = {
   platform_commission_pct: number;

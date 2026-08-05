@@ -22,7 +22,13 @@ function RegisterForm() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
 
-  const nextPath = searchParams.get("next") || "/catalog";
+  // Явный next (deep-link, например форма оффера) в приоритете, но только
+  // внутренний путь: «//evil.com» и абсолютные URL — это open redirect.
+  const explicitNext = searchParams.get("next");
+  const nextPath =
+    explicitNext && explicitNext.startsWith("/") && !explicitNext.startsWith("//")
+      ? explicitNext
+      : "/catalog";
 
   useEffect(() => {
     const urlRef = searchParams.get("ref");
@@ -118,7 +124,7 @@ function RegisterForm() {
       </form>
       <p className={styles.switchLine}>
         Уже есть аккаунт?{" "}
-        <Link href={`/auth/login${nextPath !== "/catalog" ? `?next=${encodeURIComponent(nextPath)}` : ""}`}>
+        <Link href={`/auth/login${explicitNext ? `?next=${encodeURIComponent(explicitNext)}` : ""}`}>
           Войти
         </Link>
       </p>

@@ -714,6 +714,25 @@
   color: var(--ink);
 }
 
+/* Бренд-мост: маркетплейс — сервис платформы moneymaxxxing. */
+.footerBridge {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 13px;
+  color: var(--faint);
+}
+
+.footerBridgeLink {
+  color: var(--muted);
+  transition: color var(--dur) var(--ease);
+}
+
+.footerBridgeLink:hover {
+  color: var(--ink);
+}
+
 .footerFine {
   font-size: 13px;
   color: var(--faint);
@@ -748,5 +767,9 @@
   .footerLegal {
     justify-content: center;
     gap: 10px 20px;
+  }
+
+  .footerBridge {
+    justify-content: center;
   }
 }

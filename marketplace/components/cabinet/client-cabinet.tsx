@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, ArrowUpRight, MessageSquareText, Settings } from "lucide-react";
+import { ArrowRight, ArrowUpRight, MessageSquareText, Send, Settings } from "lucide-react";
 
 import { StampBadge } from "@/components/ui/bits";
 import { api } from "@/lib/api";
@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth-context";
 import { formatMoney } from "@/lib/format";
 import { ACTIVE_ORDER_STATUSES, TERMINAL_ORDER_STATUSES } from "@/lib/order-status";
 import { dealNo } from "@/lib/registry";
-import type { Order, OrdersResponse, UserMeRead } from "@/lib/types";
+import type { Order, OrdersResponse, TelegramConnectStatus, UserMeRead } from "@/lib/types";
 
 import ui from "@/components/ui/ui.module.css";
 import land from "@/components/landing/landing.module.css";
@@ -42,6 +42,13 @@ export function ClientCabinet() {
   const { data: ordersResp, isLoading: ordersLoading } = useQuery<OrdersResponse>({
     queryKey: ORDERS_KEY,
     queryFn: () => api.getOrders("?page_size=50"),
+  });
+
+  // Привязка Telegram-бота: пока запрос не ответил (или упал) — блок не показываем.
+  const { data: telegram } = useQuery<TelegramConnectStatus>({
+    queryKey: ["telegram-connect"],
+    queryFn: api.getTelegramConnect,
+    refetchOnWindowFocus: true,
   });
 
   const orders = useMemo(() => {
@@ -176,6 +183,35 @@ export function ClientCabinet() {
               <Settings size={15} /> Настроить аккаунт
             </Link>
           </section>
+
+          {telegram && (
+            <section className={`${ui.card} ${s.panel}`}>
+              <h2 className={s.panelTitle} style={{ marginBottom: 6 }}>
+                Уведомления в Telegram
+              </h2>
+              <p className={ui.fine} style={{ margin: "0 0 14px" }}>
+                Статусы сделок и новые сообщения — от бота платформы, даже когда
+                вкладка закрыта.
+              </p>
+              {telegram.connected ? (
+                <div className={ui.noticeSuccess}>Подключены</div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={`${ui.btnLine} ${ui.btnSmall} ${ui.btnBlock}`}
+                    style={{ gap: 8 }}
+                    onClick={() => window.open(telegram.connect_url, "_blank", "noopener")}
+                  >
+                    <Send size={15} /> Подключить бота
+                  </button>
+                  <p className={ui.fine} style={{ margin: "10px 0 0", textAlign: "center" }}>
+                    После перехода нажмите Start в боте.
+                  </p>
+                </>
+              )}
+            </section>
+          )}
         </aside>
       </div>
     </>

@@ -256,6 +256,11 @@ echo "[deploy] health check"
 for i in 1 2 3 4 5; do
   if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
     echo "[deploy] backend healthy"
+    # Вебхук Telegram-бота уведомлений: сервер регистрирует его сам, секрет
+    # производный от JWT_SECRET_KEY (см. telegram_bot_webhook_secret_effective)
+    echo "[deploy] telegram bot webhook"
+    "$PYTHON_BIN" -m scripts.set_telegram_webhook \
+      || echo "[deploy] set_telegram_webhook не отработал — бот без вебхука, посмотрите лог"
     exit 0
   fi
   sleep 2

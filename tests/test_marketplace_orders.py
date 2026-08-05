@@ -25,6 +25,9 @@ def _make_client_user(referred_by: uuid.UUID | None = None) -> MagicMock:
     user.role = UserRole.CLIENT
     user.is_active = True
     user.marketplace_referred_by = referred_by
+    # Без телеграм-привязки: notify_user_telegram не должен слать в тестах
+    user.telegram_chat_id = None
+    user.email = "client@example.com"
     return user
 
 
@@ -35,6 +38,8 @@ def _make_blogger_user() -> MagicMock:
     user.role = UserRole.BLOGER
     user.is_active = True
     user.marketplace_referred_by = None
+    user.telegram_chat_id = None
+    user.email = "blogger@example.com"
     return user
 
 
@@ -45,6 +50,8 @@ def _make_worker_user() -> MagicMock:
     user.role = UserRole.WORKER
     user.is_active = True
     user.marketplace_referred_by = None
+    user.telegram_chat_id = None
+    user.email = "worker@example.com"
     return user
 
 
@@ -570,7 +577,12 @@ async def test_submit_work_200_success() -> None:
         # send_message (system) грузит получателя — клиента
         recipient_result = MagicMock()
         recipient_result.scalar_one_or_none = MagicMock(return_value=client)
-        session.execute = AsyncMock(side_effect=[order_result, recipient_result])
+        # telegram-уведомление грузит клиента ещё раз
+        tg_client_result = MagicMock()
+        tg_client_result.scalar_one_or_none = MagicMock(return_value=client)
+        session.execute = AsyncMock(
+            side_effect=[order_result, recipient_result, tg_client_result]
+        )
         session.add = MagicMock()
         session.flush = AsyncMock()
         session.commit = AsyncMock()

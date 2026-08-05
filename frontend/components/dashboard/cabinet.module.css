@@ -413,6 +413,25 @@
   gap: 0.75rem;
 }
 
+.scriptHint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+
+/* Плейсхолдеры в теле скрипта и подставленная реф-ссылка. */
+.scriptToken {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--text-strong);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.05em 0.35em;
+  border-radius: 4px;
+  overflow-wrap: break-word;
+  word-break: break-all;
+}
+
 /* Чипы категорий: на десктопе переносятся, на мобиле — одна
    горизонтальная лента со скроллом (никогда не в столбик). */
 .chipRow {

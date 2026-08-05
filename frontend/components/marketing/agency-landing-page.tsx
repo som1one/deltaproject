@@ -5,7 +5,9 @@ import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "fr
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnimatedSection, StaggerGroup, StaggerItem } from "@/components/common/animated-section";
+import { formatMoney } from "@/lib/format";
 import { useSessionTarget } from "@/lib/use-session-target";
+import { exampleCommissionKopeks, formatPctBare, usePlatformTariffs } from "@/lib/use-tariffs";
 import styles from "@/components/marketing/landing.module.css";
 
 const QUOTE = "«Великое рождается из тишины, а не из шума».";
@@ -13,7 +15,11 @@ const AUTHOR = "Томас Карлейль";
 
 
 
-const processSteps: { num: string; title: string; text: string }[] = [
+/* Ставка воркера приходит живой из GET /marketplace/tariffs;
+   пока не загрузилась (или сеть недоступна) — текст без числа. */
+const buildProcessSteps = (
+  workerPct: string | null,
+): { num: string; title: string; text: string }[] => [
   {
     num: "01",
     title: "Получите ссылку",
@@ -32,7 +38,9 @@ const processSteps: { num: string; title: string; text: string }[] = [
   {
     num: "04",
     title: "Комиссия на балансе",
-    text: "После завершения заказа система начисляет ваш процент автоматически. Выводите на карту в любой момент.",
+    text: workerPct
+      ? `Когда заказчик принимает работу (или через 3 дня — автоматически), ваши ${workerPct}% от суммы заказа зачисляются на баланс. Выводите на карту в любой момент.`
+      : "Когда заказчик принимает работу (или через 3 дня — автоматически), ваш процент зачисляется на баланс. Выводите на карту в любой момент.",
   },
 ];
 
@@ -239,6 +247,13 @@ export const AgencyLandingPage = () => {
   const session = useSessionTarget();
   const isLoggedIn = session.ready && session.isAuthenticated && Boolean(session.href);
 
+  const tariffs = usePlatformTariffs();
+  const workerPct = tariffs ? formatPctBare(tariffs.worker_referral_commission_pct) : null;
+  const workerExample = tariffs
+    ? formatMoney(exampleCommissionKopeks(tariffs.worker_referral_commission_pct))
+    : null;
+  const processSteps = useMemo(() => buildProcessSteps(workerPct), [workerPct]);
+
   const primaryCtaHref = isLoggedIn ? (session.href as string) : "/register";
   const primaryCtaLabel = isLoggedIn ? (session.label as string) : "Начать зарабатывать";
   const secondaryCtaHref = isLoggedIn ? (session.href as string) : "/blogger/login";
@@ -430,6 +445,11 @@ export const AgencyLandingPage = () => {
               <p className={styles.roleCardLead}>
                 Делитесь реферальной ссылкой по готовым скриптам. Заказчик привязывается к вам
                 навсегда — комиссия с каждого его заказа начисляется автоматически.
+              </p>
+              <p className={styles.roleCardRate}>
+                {workerPct
+                  ? `Ставка — ${workerPct}% с каждого оплаченного заказа: заказ на 10 000 ₽ приносит вам ${workerExample}.`
+                  : "Ставка фиксирована и начисляется с каждого оплаченного заказа приведённого заказчика."}
               </p>
               <div className={styles.roleCardSpacer} />
               <span className={styles.roleCardCta}>

@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Annotated
@@ -40,10 +41,13 @@ from services import (
     marketplace_review_service,
     notification_service,
     settlement_account_service,
+    telegram_notify_service,
 )
 from services.marketplace_order_flow_service import OrderFlowError
 from services.marketplace_review_service import ReviewError
 from services.order_state_machine import transition_order
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/marketplace/orders", tags=["marketplace-orders"])
 
@@ -568,7 +572,7 @@ async def confirm_order(
 
     from services import marketplace_escrow_service
 
-    await marketplace_escrow_service.distribute_funds(
+    dist = await marketplace_escrow_service.distribute_funds(
         order_id=order.id,
         db=db,
     )
@@ -617,6 +621,21 @@ async def confirm_order(
 
     await db.commit()
     await db.refresh(order)
+
+    # Telegram — после успешного коммита: суммы уже реально зачислены;
+    # сбой рассылки не должен превратить завершённый заказ в 500
+    try:
+        await telegram_notify_service.send_order_completed_telegrams(
+            db,
+            order,
+            blogger_share=dist.blogger_share,
+            worker_share=dist.worker_share,
+            blogger_referral_share=dist.blogger_referral_share,
+        )
+    except Exception:  # pragma: no cover
+        logger.warning(
+            "Telegram-рассылка по завершённому заказу %s не удалась", order.id
+        )
     return OrderResponse.model_validate(order)
 
 

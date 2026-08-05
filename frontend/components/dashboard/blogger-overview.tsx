@@ -12,6 +12,7 @@ import { StatusPill } from "@/components/common/ui";
 
 import { BalanceCard } from "./balance-card";
 import { Section } from "./section";
+import { TelegramConnectRow } from "./telegram-connect-row";
 import { ledgerTone } from "./ledger";
 import styles from "./blogger-overview.module.css";
 
@@ -245,6 +246,8 @@ export const BloggerOverview = ({
       </div>
 
       <ReferralInvite referralUrl={referralUrl} stats={statsQuery.data ?? null} />
+
+      <TelegramConnectRow />
 
       <Section
         label="Последние операции"

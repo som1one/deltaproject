@@ -19,6 +19,7 @@ from enums.marketplace import MarketplaceOrderStatus
 from models.marketplace_escrow_ledger import MarketplaceEscrowEntry
 from models.marketplace_order import MarketplaceOrder
 from models.user import User
+from services import telegram_notify_service
 from services.notification_service import notify
 from services.order_state_machine import transition_order
 
@@ -220,6 +221,16 @@ async def confirm_payment(
         },
     )
 
+    blogger_user = (
+        await db.execute(select(User).where(User.id == order.blogger_id))
+    ).scalar_one_or_none()
+    if blogger_user is not None:
+        telegram_notify_service.notify_user_telegram(
+            blogger_user,
+            "Заказ оплачен, деньги в эскроу — можно приступать: "
+            f"{telegram_notify_service.order_url(order.id)}",
+        )
+
     await db.flush()
 
     return order
@@ -327,6 +338,29 @@ async def process_refund(
             "reason": reason,
         },
     )
+
+    participants = (
+        await db.execute(
+            select(User).where(User.id.in_([order.client_id, order.blogger_id]))
+        )
+    ).scalars().all()
+    users_by_id = {u.id: u for u in participants}
+    order_link = telegram_notify_service.order_url(order.id)
+    reason_text = telegram_notify_service.escape_html(reason)
+    client_user = users_by_id.get(order.client_id)
+    if client_user is not None:
+        telegram_notify_service.notify_user_telegram(
+            client_user,
+            f"По заказу оформлен возврат {telegram_notify_service.format_rub(order.amount_kopeks)}: "
+            f"{reason_text}. Подробности: {order_link}",
+        )
+    blogger_user = users_by_id.get(order.blogger_id)
+    if blogger_user is not None:
+        telegram_notify_service.notify_user_telegram(
+            blogger_user,
+            f"По заказу оформлен возврат средств заказчику: {reason_text}. "
+            f"Подробности: {order_link}",
+        )
 
     await db.flush()
 

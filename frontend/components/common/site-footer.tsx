@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import { appConfig } from "@/lib/config";
 import styles from "./site-footer.module.css";
 
 export function SiteFooter() {
@@ -11,6 +13,9 @@ export function SiteFooter() {
         <div className={styles.top}>
           <span className={styles.logo}>moneymaxxxing</span>
           <div className={styles.links}>
+            <a href={appConfig.marketplaceUrl}>
+              Каталог авторов — marketplace.moneymaxxxing.ru
+            </a>
             <Link href="/privacy">Политика конфиденциальности</Link>
             <Link href="/terms">Условия использования</Link>
           </div>

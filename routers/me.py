@@ -26,6 +26,7 @@ from schemas.me import (
     MeDealsResponse,
     MeStatsResponse,
     PayoutCardSet,
+    TelegramConnectResponse,
     UserMePatch,
     UserMeRead,
     WorkerMeStatsRead,
@@ -41,6 +42,7 @@ from services.me_service import (
     set_me_payout_card,
     user_to_me_read,
 )
+from services.telegram_notify_service import build_connect_url
 from services.worker_message_script_service import list_worker_script_categories, list_worker_scripts_public
 from sqlalchemy import select
 from utils.blogger_cabinet_unlock import BLOGGER_CABINET_COOKIE_NAME, create_blogger_cabinet_unlock_token
@@ -187,6 +189,22 @@ async def get_me_stats(
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Неизвестная роль",
+    )
+
+
+@router.get("/telegram-connect", response_model=TelegramConnectResponse)
+async def get_telegram_connect(
+    user: Annotated[User, Depends(get_current_user)],
+) -> TelegramConnectResponse:
+    """Диплинк привязки Telegram-уведомлений (кабинет воркера и блогера)."""
+    if user.role not in (UserRole.WORKER, UserRole.BLOGER):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Привязка Telegram-уведомлений доступна работнику и блогеру",
+        )
+    return TelegramConnectResponse(
+        connect_url=build_connect_url(user.id),
+        connected=user.telegram_chat_id is not None,
     )
 
 

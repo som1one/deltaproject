@@ -230,6 +230,12 @@ export const api = {
       auth: true,
       credentials: "include",
     }),
+  /** Диплинк подключения Telegram-бота уведомлений (Worker/Bloger). */
+  getTelegramConnect: () =>
+    request<{ connect_url: string; connected: boolean }>("/me/telegram-connect", {
+      auth: true,
+      credentials: "include",
+    }),
   getMyDeals: () =>
     request<MeDealsResponse>("/me/deals", {
       auth: true,

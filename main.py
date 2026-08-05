@@ -42,6 +42,7 @@ from routers import (
     me,
     question,
     referral,
+    telegram_bot,
     telegram_channel,
     webhooks_yookassa,
     worker_message_scripts_admin,
@@ -184,6 +185,7 @@ def create_app() -> FastAPI:
     app.include_router(worker_message_scripts_admin.router)
     app.include_router(telegram_channel.router)
     app.include_router(webhooks_yookassa.router)
+    app.include_router(telegram_bot.router)
     app.include_router(marketplace.router)
     app.include_router(marketplace_auth.router)
     app.include_router(marketplace_blogger_profile.router)

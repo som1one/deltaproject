@@ -15,6 +15,20 @@ export const appConfig = {
   mainAppUrl: process.env.NEXT_PUBLIC_MAIN_APP_URL ?? "https://moneymaxxxing.ru",
 };
 
+/** Канонический публичный адрес маркетплейса — для metadata, robots и sitemap. */
+export const SITE_URL = "https://marketplace.moneymaxxxing.ru";
+
+/**
+ * Абсолютный URL API для серверного контекста (generateMetadata, sitemap).
+ * Читаем env напрямую: NEXT_PUBLIC_* инлайнится только в клиентский бандл,
+ * а на сервере значение доступно в рантайме. Если переменная не задана или
+ * не абсолютная — возвращаем null, вызывающий код падает в фолбэк.
+ */
+export const serverApiBaseUrl = (): string | null => {
+  const url = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+  return url.startsWith("http") ? url.replace(/\/$/, "") : null;
+};
+
 /**
  * Загруженные изображения хранятся на бэкенде и отдаются по /uploads/...
  * Относительные ссылки из API дополняем до абсолютных.

@@ -20,6 +20,7 @@ import type {
   Review,
   ServiceType,
   SupportTicket,
+  TelegramConnectStatus,
   ThreadsList,
   UserMeRead,
   UserPeek,
@@ -580,6 +581,12 @@ export const api = {
       `/marketplace/payments/${orderId}/create`,
       { method: "POST", auth: true },
     ),
+
+  // ─── Notifications ─────────────────────────────────────────────────────────
+  getTelegramConnect: () =>
+    request<TelegramConnectStatus>("/marketplace/notifications/telegram-connect", {
+      auth: true,
+    }),
 
   // ─── Support ───────────────────────────────────────────────────────────────
   createTicket: (body: { subject: string; order_id?: string; message: string }) =>

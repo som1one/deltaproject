@@ -6,6 +6,8 @@ import { useState } from "react";
 
 import { AnimatedSection, StaggerGroup, StaggerItem } from "@/components/common/animated-section";
 import { SiteFooter } from "@/components/common/site-footer";
+import { formatMoney } from "@/lib/format";
+import { exampleCommissionKopeks, formatPctBare, usePlatformTariffs } from "@/lib/use-tariffs";
 import styles from "@/components/marketing/info-page.module.css";
 
 const faqs: { q: string; a: string }[] = [
@@ -32,6 +34,11 @@ const faqs: { q: string; a: string }[] = [
   {
     q: "Как работает реферальная ссылка?",
     a: "У каждого воркера есть персональная ссылка на маркетплейс. Заказчик, зарегистрировавшийся по ней, привязывается к воркеру навсегда: процент начисляется с каждого его заказа, а не только с первого.",
+  },
+  {
+    q: "Сколько зарабатывает воркер?",
+    // Ставка подставляется живой из GET /marketplace/tariffs — см. FaqPage.
+    a: "Воркер получает процент с каждого оплаченного заказа приведённого заказчика. Деньги зачисляются на баланс не в момент оплаты, а когда заказчик принимает работу — или автоматически через 3 дня после сдачи работы автором.",
   },
   {
     q: "Когда начисляется комиссия?",
@@ -70,30 +77,46 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
   );
 };
 
-export const FaqPage = () => (
-  <main className={styles.page}>
-    <AnimatedSection>
-      <section className={styles.hero}>
-        <p className={styles.heroEyebrow}>FAQ</p>
-        <h1 className={styles.heroTitle}>
-          Главные вопросы.<br />
-          <em>Прямые ответы.</em>
-        </h1>
-        <p className={styles.heroLead}>
-          Если что-то осталось непонятным — напишите нам в Telegram. Мы не любим долгие переписки и
-          отвечаем по делу.
-        </p>
-      </section>
-    </AnimatedSection>
+export const FaqPage = () => {
+  const tariffs = usePlatformTariffs();
 
-    <StaggerGroup className={styles.faqList}>
-      {faqs.map((item) => (
-        <StaggerItem key={item.q}>
-          <FaqItem q={item.q} a={item.a} />
-        </StaggerItem>
-      ))}
-    </StaggerGroup>
+  // «Сколько зарабатывает воркер?» — с живой цифрой, когда тарифы загрузились.
+  const liveFaqs = tariffs
+    ? faqs.map((item) =>
+        item.q === "Сколько зарабатывает воркер?"
+          ? {
+              ...item,
+              a: `Воркер получает ${formatPctBare(tariffs.worker_referral_commission_pct)}% с каждого оплаченного заказа приведённого заказчика: заказ на 10 000 ₽ приносит ${formatMoney(exampleCommissionKopeks(tariffs.worker_referral_commission_pct))}. Деньги зачисляются на баланс не в момент оплаты, а когда заказчик принимает работу — или автоматически через 3 дня после сдачи работы автором.`,
+            }
+          : item,
+      )
+    : faqs;
 
-    <SiteFooter />
-  </main>
-);
+  return (
+    <main className={styles.page}>
+      <AnimatedSection>
+        <section className={styles.hero}>
+          <p className={styles.heroEyebrow}>FAQ</p>
+          <h1 className={styles.heroTitle}>
+            Главные вопросы.<br />
+            <em>Прямые ответы.</em>
+          </h1>
+          <p className={styles.heroLead}>
+            Если что-то осталось непонятным — напишите нам в Telegram. Мы не любим долгие переписки и
+            отвечаем по делу.
+          </p>
+        </section>
+      </AnimatedSection>
+
+      <StaggerGroup className={styles.faqList}>
+        {liveFaqs.map((item) => (
+          <StaggerItem key={item.q}>
+            <FaqItem q={item.q} a={item.a} />
+          </StaggerItem>
+        ))}
+      </StaggerGroup>
+
+      <SiteFooter />
+    </main>
+  );
+};

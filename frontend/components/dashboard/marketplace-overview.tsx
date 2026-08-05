@@ -5,12 +5,16 @@ import { useQuery } from "@tanstack/react-query";
 
 import { appConfig } from "@/lib/config";
 import { formatMoney, formatNumber } from "@/lib/format";
+import { DEFAULT_MARKETPLACE_CATEGORIES } from "@/lib/marketplace-categories";
 import { tokenStorage } from "@/lib/storage";
+import { exampleCommissionKopeks, formatPctBare, usePlatformTariffs } from "@/lib/use-tariffs";
+import { CopyButton } from "@/components/common/copy-button";
 import { useToast } from "@/components/common/toast";
 import type { UserMeRead } from "@/lib/types";
 
 import { BalanceCard } from "./balance-card";
 import { Section } from "./section";
+import { TelegramConnectRow } from "./telegram-connect-row";
 import styles from "./marketplace-overview.module.css";
 
 /* =========================================================
@@ -41,6 +45,18 @@ type CommissionListResponse = {
 
 type ChartPeriod = "week" | "month" | "all";
 
+type BloggerCard = {
+  user_id: string;
+  name: string;
+  category: string;
+  average_price_kopeks: number;
+};
+
+type BloggerCatalogResponse = {
+  items: BloggerCard[];
+  total: number;
+};
+
 /* =========================================================
    Helpers
    ========================================================= */
@@ -61,6 +77,9 @@ const formatChartDate = (dateStr: string): string => {
   const d = new Date(dateStr);
   return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 };
+
+const categoryLabel = (value: string): string =>
+  DEFAULT_MARKETPLACE_CATEGORIES.find((c) => c.value === value)?.label || value;
 
 /** Accumulate commissions by day into a running balance series. */
 const buildBalanceSeries = (
@@ -213,6 +232,7 @@ export const MarketplaceOverview = ({
   const { toast: pushToast } = useToast();
   const [copied, setCopied] = useState(false);
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("month");
+  const tariffs = usePlatformTariffs();
 
   const statsQuery = useQuery({
     queryKey: ["marketplace", "worker", "stats"],
@@ -237,9 +257,52 @@ export const MarketplaceOverview = ({
     },
   });
 
+  // Публичный каталог — для блока «Куда вести заказчика».
+  const bloggersQuery = useQuery({
+    queryKey: ["marketplace", "bloggers", "for-links"],
+    queryFn: async (): Promise<BloggerCatalogResponse | null> => {
+      const res = await fetch(
+        `${appConfig.apiBaseUrl}/marketplace/bloggers?page=1&page_size=6&sort=rating`,
+      );
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+
   const stats = statsQuery.data;
   const allCommissions = commissionsQuery.data?.items || [];
   const recentCommissions = allCommissions.slice(0, 5);
+
+  // Реф-код — из уже пришедшей ссылки вида {marketplace}/?ref={код}.
+  const refCode = useMemo(() => {
+    if (!referralUrl) return null;
+    try {
+      return new URL(referralUrl).searchParams.get("ref");
+    } catch {
+      return null;
+    }
+  }, [referralUrl]);
+
+  // Адрес маркетплейса: конфигурация фронта, origin реф-ссылки — как fallback
+  // (в dev-окружении env может указывать не туда, ссылка из API — источник истины).
+  const marketplaceBase = useMemo(() => {
+    if (process.env.NEXT_PUBLIC_MARKETPLACE_URL) {
+      return process.env.NEXT_PUBLIC_MARKETPLACE_URL.replace(/\/+$/, "");
+    }
+    if (referralUrl) {
+      try {
+        return new URL(referralUrl).origin;
+      } catch {
+        // падаем на appConfig ниже
+      }
+    }
+    return appConfig.marketplaceUrl.replace(/\/+$/, "");
+  }, [referralUrl]);
+
+  const workerPct = tariffs ? formatPctBare(tariffs.worker_referral_commission_pct) : null;
+  const workerExample = tariffs
+    ? formatMoney(exampleCommissionKopeks(tariffs.worker_referral_commission_pct))
+    : null;
 
   const chartData = useMemo(
     () => buildBalanceSeries(allCommissions, chartPeriod),
@@ -308,6 +371,17 @@ export const MarketplaceOverview = ({
 
           <div className={styles.sideBlock}>
             <p className={styles.sideLabel}>Реферальная ссылка</p>
+            {workerPct ? (
+              <div className={styles.refRate}>
+                <p className={styles.refRateLine}>
+                  Ваша ставка — <strong>{workerPct}%</strong> с каждого оплаченного заказа
+                  приведённого заказчика.
+                </p>
+                <p className={styles.refRateExample}>
+                  Заказ на 10 000 ₽ → {workerExample} вам
+                </p>
+              </div>
+            ) : null}
             <p className={styles.refUrl}>
               {referralLoading ? "Получаем ссылку…" : referralUrl || "не получена"}
             </p>
@@ -322,7 +396,46 @@ export const MarketplaceOverview = ({
             <p className={styles.sideHint}>
               Заказчик, пришедший по ссылке, привязывается к вам навсегда.
             </p>
+
+            {refCode ? (
+              <div className={styles.destBlock}>
+                <p className={styles.destLabel}>Куда вести заказчика</p>
+                <ul className={styles.destList}>
+                  <li className={styles.destRow}>
+                    <span className={styles.destMain}>
+                      <span className={styles.destName}>Каталог авторов</span>
+                      <span className={styles.destMeta}>все блогеры площадки</span>
+                    </span>
+                    <CopyButton
+                      value={`${marketplaceBase}/catalog?ref=${refCode}`}
+                      kind="inline"
+                      label="Скопировать"
+                      toastText="Ссылка на каталог скопирована"
+                    />
+                  </li>
+                  {(bloggersQuery.data?.items || []).map((blogger) => (
+                    <li key={blogger.user_id} className={styles.destRow}>
+                      <span className={styles.destMain}>
+                        <span className={styles.destName}>{blogger.name}</span>
+                        <span className={styles.destMeta}>
+                          {categoryLabel(blogger.category)} · от{" "}
+                          {formatMoney(blogger.average_price_kopeks)}
+                        </span>
+                      </span>
+                      <CopyButton
+                        value={`${marketplaceBase}/bloggers/${blogger.user_id}?ref=${refCode}`}
+                        kind="inline"
+                        label="Скопировать"
+                        toastText={`Ссылка на автора «${blogger.name}» скопирована`}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
+
+          <TelegramConnectRow />
         </aside>
       </div>
 
@@ -406,7 +519,8 @@ export const MarketplaceOverview = ({
                 <div className={styles.activityItemMain}>
                   <span className={styles.activityItemName}>{entry.client_name}</span>
                   <span className={styles.activityItemOrder}>
-                    заказ на {formatMoney(entry.order_amount_kopeks)}
+                    заказ на {formatMoney(entry.order_amount_kopeks)} · ставка{" "}
+                    {formatPctBare(entry.commission_pct)}%
                   </span>
                 </div>
                 <div className={styles.activityItemRight}>
@@ -454,8 +568,9 @@ export const MarketplaceOverview = ({
             <span className={styles.howStepNum}>04</span>
             <span className={styles.howStepTitle}>Комиссия начисляется сама</span>
             <span className={styles.howStepDesc}>
-              После оплаты заказа ваш процент автоматически падает на баланс.
-              Свежие начисления — здесь в обзоре, полная история — в «Финансах».
+              Когда заказчик принимает работу (или через 3 дня — автоматически),
+              ваш процент зачисляется на баланс. Свежие начисления — здесь в обзоре,
+              полная история — в «Финансах».
             </span>
           </li>
           <li className={styles.howStep}>

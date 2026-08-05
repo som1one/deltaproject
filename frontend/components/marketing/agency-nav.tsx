@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 
+import { appConfig } from "@/lib/config";
 import { useSessionTarget } from "@/lib/use-session-target";
 import styles from "@/components/marketing/agency-nav.module.css";
 
+// «Каталог» ведёт на маркетплейс — внешний адрес, рендерится <a>, не <Link>.
 const NAV_ITEMS = [
   { href: "/#about", label: "О платформе" },
+  { href: `${appConfig.marketplaceUrl}/catalog`, label: "Каталог", external: true },
   { href: "/faq", label: "FAQ" },
   { href: "/contacts", label: "Контакты" },
 ];
@@ -28,11 +31,17 @@ export const AgencyNav = () => {
       </Link>
 
       <nav className={styles.links} aria-label="Основная навигация">
-        {NAV_ITEMS.map(({ href, label }) => (
-          <Link key={href} href={href}>
-            {label}
-          </Link>
-        ))}
+        {NAV_ITEMS.map(({ href, label, external }) =>
+          external ? (
+            <a key={href} href={href}>
+              {label}
+            </a>
+          ) : (
+            <Link key={href} href={href}>
+              {label}
+            </Link>
+          ),
+        )}
         <Link href={cta.href}>{cta.label}</Link>
       </nav>
     </header>

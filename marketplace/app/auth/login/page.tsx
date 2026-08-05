@@ -33,9 +33,13 @@ function LoginForm() {
   const [error, setError] = useState("");
 
   // После входа ведём в личный кабинет (хаб «где всё смотреть»), а не в витрину.
-  // Явный next (deep-link с закрытой страницы) по-прежнему в приоритете.
+  // Явный next (deep-link с закрытой страницы) в приоритете, но только
+  // внутренний путь: «//evil.com» и абсолютные URL — это open redirect.
   const explicitNext = searchParams.get("next");
-  const nextPath = explicitNext || "/cabinet";
+  const nextPath =
+    explicitNext && explicitNext.startsWith("/") && !explicitNext.startsWith("//")
+      ? explicitNext
+      : "/cabinet";
 
   const loginMutation = useMutation({
     mutationFn: () => api.login({ email: form.email.trim(), password: form.password }),

@@ -628,6 +628,34 @@ const ProfileTab = ({
    Scripts tab — worker only
    ========================================================= */
 
+/* {ССЫЛКА} подставляется реальной реф-ссылкой воркера и в тексте,
+   и при копировании; {ПРОДУКТ} остаётся плейсхолдером — его
+   воркер заменяет сам, поэтому подсвечиваем моноширинным. */
+
+const SCRIPT_TOKEN_SPLIT = /(\{ССЫЛКА\}|\{ПРОДУКТ\})/;
+
+const substituteScriptBody = (body: string, referralUrl: string | null): string =>
+  referralUrl ? body.split("{ССЫЛКА}").join(referralUrl) : body;
+
+const renderScriptBody = (body: string, referralUrl: string | null): ReactNode =>
+  body.split(SCRIPT_TOKEN_SPLIT).map((part, index) => {
+    if (part === "{ССЫЛКА}") {
+      return (
+        <span key={index} className={styles.scriptToken}>
+          {referralUrl || part}
+        </span>
+      );
+    }
+    if (part === "{ПРОДУКТ}") {
+      return (
+        <span key={index} className={styles.scriptToken}>
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+
 const ScriptsTab = ({
   search,
   onSearch,
@@ -636,6 +664,7 @@ const ScriptsTab = ({
   categories,
   scripts,
   loading,
+  referralUrl,
 }: {
   search: string;
   onSearch: (value: string) => void;
@@ -644,12 +673,17 @@ const ScriptsTab = ({
   categories: string[];
   scripts: Awaited<ReturnType<typeof api.getWorkerScripts>> | undefined;
   loading: boolean;
+  referralUrl: string | null;
 }) => (
   <Section
     label="Скрипты сообщений"
-    lead="Готовые шаблоны для переписки. Нажмите «Скопировать» — текст уйдёт в буфер."
+    lead="Готовые шаблоны для переписки. Нажмите «Скопировать» — текст уйдёт в буфер, ваша реферальная ссылка уже подставлена."
   >
     <div className={styles.scriptTools}>
+      <p className={styles.scriptHint}>
+        <span className={styles.scriptToken}>{"{ПРОДУКТ}"}</span> замените на то, что
+        продаёт собеседник.
+      </p>
       <TextInput
         value={search}
         onChange={(event) => onSearch(event.target.value)}
@@ -697,10 +731,10 @@ const ScriptsTab = ({
             {script.keywords.length > 0 ? (
               <p className={styles.scriptKeywords}>{script.keywords.join(" · ")}</p>
             ) : null}
-            <p className={styles.scriptBody}>{script.body}</p>
+            <p className={styles.scriptBody}>{renderScriptBody(script.body, referralUrl)}</p>
             <div className={styles.scriptActions}>
               <CopyButton
-                value={script.body}
+                value={substituteScriptBody(script.body, referralUrl)}
                 kind="secondary"
                 label="Скопировать"
                 toastText={`Скрипт «${script.title}» скопирован`}
@@ -842,6 +876,7 @@ const WorkerCabinet = ({ me }: { me: UserMeRead }) => {
             categories={scriptCategoriesQuery.data?.categories ?? []}
             scripts={scriptsQuery.data}
             loading={scriptsQuery.isLoading}
+            referralUrl={referralQuery.data?.referral_url ?? null}
           />
         ) : null}
 

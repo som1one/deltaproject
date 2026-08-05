@@ -16,6 +16,7 @@ from enums.user import UserRole
 from models.marketplace_escrow_ledger import MarketplaceEscrowEntry
 from models.marketplace_referral import MarketplaceReferral
 from models.user import User
+from services import telegram_notify_service
 
 
 class ReferralAlreadyAssignedError(Exception):
@@ -155,6 +156,13 @@ async def assign_referral(
 
     user.marketplace_referred_by = worker_id
     await db.flush()
+
+    telegram_notify_service.notify_user_telegram(
+        worker,
+        "По вашей ссылке зарегистрировался заказчик "
+        f"{telegram_notify_service.escape_html(user.name)}. "
+        "Вы будете получать комиссию с каждого его оплаченного заказа.",
+    )
 
 
 def get_worker_id_for_order(user: User) -> uuid.UUID | None:

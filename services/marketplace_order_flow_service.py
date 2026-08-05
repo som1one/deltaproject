@@ -22,7 +22,12 @@ from models.marketplace_order import MarketplaceOrder
 from models.marketplace_service_type import MarketplaceServiceType
 from models.marketplace_settings import MarketplaceSettings
 from models.user import User
-from services import marketplace_escrow_service, marketplace_message_service, notification_service
+from services import (
+    marketplace_escrow_service,
+    marketplace_message_service,
+    notification_service,
+    telegram_notify_service,
+)
 from services.marketplace_referral_service import (
     get_worker_id_for_order,
     resolve_blogger_referrer_id,
@@ -190,6 +195,13 @@ async def create_offer(
         },
     )
 
+    recipient_user = blogger_user if recipient_id == blogger_id else client
+    telegram_notify_service.notify_user_telegram(
+        recipient_user,
+        f"Вам предложили сделку на {telegram_notify_service.format_rub(order.amount_kopeks)}. "
+        f"Принять или отклонить: {telegram_notify_service.order_url(order.id)}",
+    )
+
     return order
 
 
@@ -265,12 +277,28 @@ async def accept_offer(
         actor_id=actor.id,
         text="Предложение принято. Ожидается оплата на счёт платформы.",
     )
+    counterpart_id = (
+        order.client_id if actor.id != order.client_id else order.blogger_id
+    )
     await notification_service.notify(
         db=db,
-        user_id=order.client_id if actor.id != order.client_id else order.blogger_id,
+        user_id=counterpart_id,
         event_type="order_accepted",
         payload={"order_id": str(order.id), "by_name": actor.name},
     )
+
+    counterpart = (
+        await db.execute(select(User).where(User.id == counterpart_id))
+    ).scalar_one_or_none()
+    if counterpart is not None:
+        if counterpart_id == order.client_id:
+            telegram_text = (
+                "Оффер принят — оплатите заказ, чтобы автор приступил: "
+                f"{telegram_notify_service.order_url(order.id)}"
+            )
+        else:
+            telegram_text = "Клиент принял ваш оффер, ждём оплату."
+        telegram_notify_service.notify_user_telegram(counterpart, telegram_text)
     return order
 
 
@@ -329,6 +357,17 @@ async def submit_work(
         event_type="work_submitted",
         payload={"order_id": str(order.id), "blogger_name": actor.name},
     )
+
+    client = (
+        await db.execute(select(User).where(User.id == order.client_id))
+    ).scalar_one_or_none()
+    if client is not None:
+        telegram_notify_service.notify_user_telegram(
+            client,
+            f"Автор сдал работу. Проверьте в течение {REVIEW_WINDOW_DAYS} дней, "
+            "иначе заказ примется автоматически: "
+            f"{telegram_notify_service.order_url(order.id)}",
+        )
     return order
 
 
@@ -359,6 +398,17 @@ async def request_changes(
         event_type="work_changes_requested",
         payload={"order_id": str(order.id), "reason": reason},
     )
+
+    blogger = (
+        await db.execute(select(User).where(User.id == order.blogger_id))
+    ).scalar_one_or_none()
+    if blogger is not None:
+        telegram_notify_service.notify_user_telegram(
+            blogger,
+            "Заказчик вернул работу на доработку: "
+            f"{telegram_notify_service.escape_html(reason)}. "
+            f"Подробности: {telegram_notify_service.order_url(order.id)}",
+        )
     return order
 
 
@@ -409,7 +459,7 @@ async def auto_complete_overdue_reviews(db: AsyncSession) -> int:
                     reason="Авто-подтверждение: заказчик не ответил в течение 3 дней",
                 )
                 order.completed_at = now
-                await marketplace_escrow_service.distribute_funds(
+                dist = await marketplace_escrow_service.distribute_funds(
                     order_id=order.id, db=db
                 )
                 await notification_service.notify(
@@ -438,6 +488,20 @@ async def auto_complete_overdue_reviews(db: AsyncSession) -> int:
                             "amount": order.amount_kopeks,
                         },
                     )
+            # Telegram — вне savepoint: сбой рассылки не должен «отменить»
+            # уже завершённый заказ в глазах вызывающего цикла
+            try:
+                await telegram_notify_service.send_order_completed_telegrams(
+                    db,
+                    order,
+                    blogger_share=dist.blogger_share,
+                    worker_share=dist.worker_share,
+                    blogger_referral_share=dist.blogger_referral_share,
+                )
+            except Exception:  # pragma: no cover
+                logger.warning(
+                    "Telegram-рассылка по завершённому заказу %s не удалась", order.id
+                )
             completed += 1
         except Exception:  # pragma: no cover — savepoint откатил только этот заказ
             logger.exception("Авто-приёмка заказа %s не удалась", order.id)

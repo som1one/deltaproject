@@ -83,6 +83,47 @@ const DEFAULT_BRIEF =
 /** Пункт «своих условий» в селекте услуг. */
 const CUSTOM_SERVICE = "custom";
 
+/* ── Черновик оффера ──────────────────────────────────────────
+   Неавторизованный сабмит уводит на логин, и до этого фикса форма
+   стиралась. Теперь перед редиректом черновик уезжает в localStorage
+   (ключ по id автора), при возврате восстанавливается вместе с
+   раскрытой формой, а после создания сделки или явной отмены — чистится. */
+const DRAFT_KEY_PREFIX = "mm:offer-draft:";
+
+type OfferDraft = {
+  amountRub: string;
+  serviceId: string;
+  deadlineDays: string;
+  publishDate: string;
+  brief: string;
+  formOpen: boolean;
+};
+
+const readOfferDraft = (bloggerId: string): OfferDraft | null => {
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY_PREFIX + bloggerId);
+    return raw ? (JSON.parse(raw) as OfferDraft) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveOfferDraft = (bloggerId: string, draft: OfferDraft) => {
+  try {
+    window.localStorage.setItem(DRAFT_KEY_PREFIX + bloggerId, JSON.stringify(draft));
+  } catch {
+    // квота/приватный режим — молча пропускаем, хуже не станет
+  }
+};
+
+const clearOfferDraft = (bloggerId: string) => {
+  try {
+    window.localStorage.removeItem(DRAFT_KEY_PREFIX + bloggerId);
+  } catch {
+    // ignore
+  }
+};
+
 /* Иконки для плиток прайс-листа — чередуются по кругу. */
 const PRICE_ICONS = [Clapperboard, Megaphone, Tag, Film];
 
@@ -285,6 +326,41 @@ export default function BloggerProfilePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blogger]);
 
+  // Восстановление черновика (например, после возврата с логина). Ставит
+  // amountRub раньше, чем догрузится профиль, поэтому префилл выше его не трёт.
+  useEffect(() => {
+    if (!bloggerUserId) return;
+    const draft = readOfferDraft(bloggerUserId);
+    if (!draft) return;
+    if (draft.amountRub) setAmountRub(draft.amountRub);
+    if (draft.serviceId) setServiceId(draft.serviceId);
+    setDeadlineDays(draft.deadlineDays ?? "");
+    setPublishDate(draft.publishDate ?? "");
+    if (draft.brief) setBrief(draft.brief);
+    if (draft.formOpen) setFormOpen(true);
+  }, [bloggerUserId]);
+
+  const persistDraft = () =>
+    saveOfferDraft(bloggerUserId, {
+      amountRub,
+      serviceId,
+      deadlineDays,
+      publishDate,
+      brief,
+      formOpen: true,
+    });
+
+  const cancelForm = () => {
+    clearOfferDraft(bloggerUserId);
+    setFormOpen(false);
+    setFormError("");
+    setServiceId(CUSTOM_SERVICE);
+    setDeadlineDays("");
+    setPublishDate("");
+    setBrief(DEFAULT_BRIEF);
+    setAmountRub(blogger ? String(Math.round(blogger.average_price_kopeks / 100)) : "");
+  };
+
   /* Подтверждённая админом статистика важнее «сырых» полей профиля,
      но демо-профили держат данные в самих полях — берём и то и другое. */
   const stats = blogger?.audience_stats;
@@ -314,6 +390,7 @@ export default function BloggerProfilePage() {
 
   const goToChat = () => {
     const target = `/chats/${blogger?.user_id ?? bloggerUserId}`;
+    if (!isAuthenticated && formOpen) persistDraft();
     router.push(isAuthenticated ? target : `/auth/login?next=${target}`);
   };
 
@@ -340,10 +417,12 @@ export default function BloggerProfilePage() {
       });
     },
     onSuccess: (order) => {
+      clearOfferDraft(bloggerUserId);
       router.push(`/orders/${order.id}`);
     },
     onError: (err: Error) => {
       if (err instanceof ApiError && err.status === 401) {
+        persistDraft();
         router.push(`/auth/login?next=/bloggers/${bloggerUserId}`);
         return;
       }
@@ -355,6 +434,7 @@ export default function BloggerProfilePage() {
     event.preventDefault();
     setFormError("");
     if (!isAuthenticated) {
+      persistDraft();
       router.push(`/auth/login?next=/bloggers/${bloggerUserId}`);
       return;
     }
@@ -772,11 +852,20 @@ export default function BloggerProfilePage() {
                           {isHydrated && !isAuthenticated && (
                             <p className={ui.fine} style={{ textAlign: "center" }}>
                               Нужен аккаунт заказчика —{" "}
-                              <Link href={`/auth/register?next=/bloggers/${bloggerUserId}`} className={ui.link}>
+                              <Link
+                                href={`/auth/register?next=/bloggers/${bloggerUserId}`}
+                                className={ui.link}
+                                onClick={persistDraft}
+                              >
                                 создать за минуту
                               </Link>
                             </p>
                           )}
+                          <p className={ui.fine} style={{ textAlign: "center", margin: 0 }}>
+                            <button type="button" className={ui.link} onClick={cancelForm}>
+                              Отменить и очистить форму
+                            </button>
+                          </p>
                         </form>
                       )}
 

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum as SQLEnum, Float, ForeignKey, Index, Integer, String, text
+from sqlalchemy import BigInteger, Boolean, DateTime, Enum as SQLEnum, Float, ForeignKey, Index, Integer, String, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -87,3 +87,6 @@ class User(Base):
         default=0,
         server_default=text("0"),
     )
+    # Telegram-чат для уведомлений бота: привязывается диплинком /start <payload>
+    # (см. services/telegram_notify_service.py). Читается только по user — индекс не нужен.
+    telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)

@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 from uuid import UUID
 
 from pydantic import AliasChoices, Field
@@ -256,12 +258,46 @@ class Settings(BaseSettings):
         "redirect_uri для SSO-входа блогера (см. _validate_marketplace_redirect)",
     )
 
+    main_frontend_url: str = Field(
+        default="https://moneymaxxxing.ru",
+        validation_alias="MAIN_FRONTEND_URL",
+        description="Базовый URL главного сайта — ссылки на кабинет воркера "
+        "в Telegram-уведомлениях",
+    )
+
+    telegram_bot_webhook_secret: str = Field(
+        default="",
+        validation_alias="TELEGRAM_BOT_WEBHOOK_SECRET",
+        description="Секрет вебхука POST /webhooks/telegram (query ?secret=… или "
+        "заголовок X-Telegram-Bot-Api-Secret-Token); пусто — используется "
+        "производный от JWT_SECRET_KEY (см. telegram_bot_webhook_secret_effective)",
+    )
+
     uploads_dir: str = Field(
         default="uploads",
         validation_alias="UPLOADS_DIR",
         description="Директория для загруженных изображений (аватары, скриншоты "
         "статистики); раздаётся приложением по /uploads",
     )
+
+    @property
+    def telegram_bot_webhook_secret_effective(self) -> str:
+        """Секрет вебхука бота: явный из env или производный от jwt-секрета.
+
+        Производный вариант позволяет проду самонастроиться (деплой сам
+        вызывает setWebhook) — отдельный секрет нигде хранить не нужно.
+        Пустой jwt-секрет (не бывает на проде) — вебхук отключён.
+        """
+        explicit = self.telegram_bot_webhook_secret.strip()
+        if explicit:
+            return explicit
+        if not self.jwt_secret_key.strip():
+            return ""
+        return hmac.new(
+            self.jwt_secret_key.encode("utf-8"),
+            b"telegram-bot-webhook",
+            hashlib.sha256,
+        ).hexdigest()[:32]
 
     @property
     def yukassa_payout_active(self) -> bool:

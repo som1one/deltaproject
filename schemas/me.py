@@ -34,6 +34,13 @@ class UserMeRead(BaseModel):
     referral_invite_url: str | None = None
 
 
+class TelegramConnectResponse(BaseModel):
+    """Диплинк привязки Telegram-уведомлений (общий контракт /me и маркетплейса)."""
+
+    connect_url: str
+    connected: bool
+
+
 class CabinetUnlockBody(BaseModel):
     pin: Annotated[str, Field(min_length=1, max_length=64)]
 

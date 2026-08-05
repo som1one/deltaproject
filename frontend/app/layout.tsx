@@ -2,10 +2,12 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
 import { AppProviders } from "@/components/providers/app-providers";
+import { YandexMetrika } from "@/components/common/yandex-metrika";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://moneymaxxxing.ru"),
   title: {
     default: "moneymaxxxing — сообщество по ворку",
     template: "%s · moneymaxxxing",
@@ -67,6 +69,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       </head>
       <body>
         <AppProviders>{children}</AppProviders>
+        <YandexMetrika />
       </body>
     </html>
   );

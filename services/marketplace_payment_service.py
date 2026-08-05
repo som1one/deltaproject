@@ -402,7 +402,21 @@ class PaymentService:
             },
         )
 
+        blogger_user = (
+            await db.execute(select(User).where(User.id == order.blogger_id))
+        ).scalar_one_or_none()
+
         await db.commit()
+
+        # Telegram — после успешного коммита: заказ уже реально в эскроу
+        if blogger_user is not None:
+            from services import telegram_notify_service
+
+            telegram_notify_service.notify_user_telegram(
+                blogger_user,
+                "Заказ оплачен, деньги в эскроу — можно приступать: "
+                f"{telegram_notify_service.order_url(order.id)}",
+            )
 
         logger.info("Payment succeeded: order %s → ESCROW_HELD", order.id)
 
