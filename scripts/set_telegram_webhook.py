@@ -53,7 +53,14 @@ async def main() -> int:
     url = args.url or default_webhook_url(secret)
     result = await _bot_api_call(
         "setWebhook",
-        {"url": url, "secret_token": secret},
+        {
+            "url": url,
+            "secret_token": secret,
+            # Обязательно явно: иначе Telegram сохранит прежний фильтр
+            # (у бота исторически стоял ["channel_post","my_chat_member"]),
+            # и /start до вебхука не дойдёт.
+            "allowed_updates": json.dumps(["message"]),
+        },
     )
     print("setWebhook:", json.dumps(result, ensure_ascii=False, indent=2))
 
