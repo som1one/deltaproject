@@ -64,6 +64,25 @@ async def main() -> int:
     )
     print("setWebhook:", json.dumps(result, ensure_ascii=False, indent=2))
 
+    # Меню команд в клиенте: без него воркер не узнает, что бот умеет
+    # больше, чем присылать уведомления. Админские команды сюда не
+    # добавляем — они не должны маячить у всех подряд.
+    commands = await _bot_api_call(
+        "setMyCommands",
+        {
+            "commands": json.dumps(
+                [
+                    {"command": "stats", "description": "Мои цифры: баланс и заработок"},
+                    {"command": "ref", "description": "Моя реферальная ссылка"},
+                    {"command": "scripts", "description": "Заготовки сообщений"},
+                    {"command": "help", "description": "Что умеет бот"},
+                ],
+                ensure_ascii=False,
+            )
+        },
+    )
+    print("setMyCommands:", json.dumps(commands, ensure_ascii=False, indent=2))
+
     info = await _bot_api_call("getWebhookInfo", {})
     print("getWebhookInfo:", json.dumps(info, ensure_ascii=False, indent=2))
 

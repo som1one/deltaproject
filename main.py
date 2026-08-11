@@ -102,6 +102,30 @@ async def _order_autocomplete_loop() -> None:
             logger.exception("Ошибка фоновой авто-приёмки заказов")
 
 
+async def _worker_nudge_loop() -> None:
+    """Авто-пинки простаивающим воркерам: один проход в сутки.
+
+    Защита от повторов живёт в БД (`worker_nudge_log`, окно остывания на
+    каждый триггер), а не в таймере — поэтому частые рестарты деплоя не
+    превращаются в спам. Первый проход через час после старта, чтобы
+    выкатка не совпадала с рассылкой.
+    """
+    from core.database import get_session_factory
+    from services.worker_nudge_service import run_auto_nudges
+
+    await asyncio.sleep(3600)
+    while True:
+        try:
+            session_factory = get_session_factory()
+            async with session_factory() as session:
+                sent = await run_auto_nudges(session)
+                if sent:
+                    logger.info("Авто-пинки воркерам: отправлено — %d", sent)
+        except Exception:  # pragma: no cover
+            logger.exception("Ошибка фоновых авто-пинков воркерам")
+        await asyncio.sleep(86_400)
+
+
 async def _chat_uploads_cleanup_loop() -> None:
     """Вложения чата храним неделю: раз в час удаляем устаревшие файлы.
 
@@ -140,13 +164,22 @@ async def lifespan(_app: FastAPI):
     uploads_cleanup_task = asyncio.create_task(
         _chat_uploads_cleanup_loop(), name="chat-uploads-cleanup"
     )
+    worker_nudge_task = asyncio.create_task(
+        _worker_nudge_loop(), name="worker-nudge"
+    )
 
     yield
 
     purge_task.cancel()
     autocomplete_task.cancel()
     uploads_cleanup_task.cancel()
-    for task in (purge_task, autocomplete_task, uploads_cleanup_task):
+    worker_nudge_task.cancel()
+    for task in (
+        purge_task,
+        autocomplete_task,
+        uploads_cleanup_task,
+        worker_nudge_task,
+    ):
         try:
             await task
         except (asyncio.CancelledError, Exception):  # pragma: no cover

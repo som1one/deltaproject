@@ -42,6 +42,7 @@ from models.user import User
 from models.user_session import UserSession
 from models.worker_stat import WorkerStat
 from models.worker_message_script import WorkerMessageScript
+from models.worker_nudge_log import WorkerNudgeLog
 
 __all__ = [
     "AdminAuditLog",
@@ -87,4 +88,5 @@ __all__ = [
     "WithdrawalStatus",
     "WorkerStat",
     "WorkerMessageScript",
+    "WorkerNudgeLog",
 ]
