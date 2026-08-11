@@ -12,6 +12,8 @@ import type {
   AdminUserStatsResponse,
   AuthTokensResponse,
   BloggerOptionRead,
+  BroadcastPreview,
+  BroadcastResult,
   DealRead,
   LedgerEntryRead,
   LedgerListResponse,
@@ -19,6 +21,8 @@ import type {
   MarketplaceWithdrawalRead,
   MeDealsResponse,
   MeStatsResponse,
+  NudgeLogResponse,
+  NudgeRuleRead,
   PayoutWidgetConfigResponse,
   PlatformFinanceDashboard,
   QuestionResponse,
@@ -31,6 +35,8 @@ import type {
   TelegramChannelStatsResponse,
   TelegramOAuthConfigResponse,
   UserMeRead,
+  WorkerBotOverview,
+  WorkerBotSettingsRead,
   WorkerMessageScriptRead,
   WorkerScriptCategoriesResponse,
 } from "@/lib/types";
@@ -448,4 +454,44 @@ export const api = {
       `/admin/telegram-channel/check/${telegramUserId}`,
       { auth: true },
     ),
+
+  // ─── Бот воркеров: настройки, ростер, рассылки ──────────────────────────
+  getWorkerBotOverview: () =>
+    request<WorkerBotOverview>("/admin/worker-bot/overview", { auth: true }),
+  updateWorkerBotSettings: (body: { auto_nudges_enabled: boolean; paused_until: string | null }) =>
+    request<WorkerBotSettingsRead>("/admin/worker-bot/settings", {
+      method: "PUT",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  getWorkerBotNudges: () =>
+    request<NudgeRuleRead[]>("/admin/worker-bot/nudges", { auth: true }),
+  patchWorkerBotNudge: (
+    kind: string,
+    body: {
+      is_enabled?: boolean;
+      cooldown_days?: number;
+      threshold_days?: number;
+      text_template?: string;
+    },
+  ) =>
+    request<NudgeRuleRead>(`/admin/worker-bot/nudges/${kind}`, {
+      method: "PATCH",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  previewWorkerBotBroadcast: (body: { segment: string; text: string }) =>
+    request<BroadcastPreview>("/admin/worker-bot/broadcast/preview", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  sendWorkerBotBroadcast: (body: { segment: string; text: string }) =>
+    request<BroadcastResult>("/admin/worker-bot/broadcast", {
+      method: "POST",
+      auth: true,
+      body: JSON.stringify(body),
+    }),
+  getWorkerBotNudgeLog: (limit = 50) =>
+    request<NudgeLogResponse>(`/admin/worker-bot/nudge-log?limit=${limit}`, { auth: true }),
 };

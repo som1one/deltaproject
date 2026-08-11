@@ -482,3 +482,74 @@ export type AdminDailySeriesResponse = {
   days: number;
   series: DailyCountPoint[];
 };
+
+// ─── Управление ботом воркеров ────────────────────────────────────────────
+
+export type WorkerBotSettingsRead = {
+  auto_nudges_enabled: boolean;
+  paused_until: string | null;
+};
+
+export type NudgeRuleRead = {
+  kind: string;
+  title: string;
+  is_enabled: boolean;
+  cooldown_days: number;
+  threshold_days: number;
+  text_template: string;
+  updated_at: string | null;
+};
+
+export type WorkerBotSegment = {
+  key: string;
+  description: string;
+  total: number | null;
+  reachable: number | null;
+};
+
+export type WorkerBotRosterItem = {
+  user_id: string;
+  name: string;
+  referrals: number;
+  earnings_kopeks: number;
+  days_silent: number | null;
+  days_since_registration: number | null;
+  bot_connected: boolean;
+};
+
+export type WorkerBotOverview = {
+  settings: WorkerBotSettingsRead;
+  segments: WorkerBotSegment[];
+  roster: WorkerBotRosterItem[];
+  total_workers: number;
+  total_referrals: number;
+  total_earnings_kopeks: number;
+  bot_connected_count: number;
+};
+
+export type BroadcastPreview = {
+  segment: string;
+  description: string;
+  total: number;
+  reachable: number;
+  names: string[];
+};
+
+export type BroadcastResult = {
+  delivered: number;
+  skipped_no_chat: number;
+  failed: number;
+  failures: string[];
+};
+
+export type NudgeLogItem = {
+  user_id: string;
+  name: string;
+  kind: string;
+  sent_at: string;
+};
+
+export type NudgeLogResponse = {
+  items: NudgeLogItem[];
+  total: number;
+};

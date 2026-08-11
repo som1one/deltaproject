@@ -23,6 +23,7 @@ from services.worker_nudge_service import (
     BroadcastReport,
     WorkerRow,
     _select_nudge,
+    default_rule_map,
     filter_segment,
     render_roster,
 )
@@ -135,32 +136,69 @@ class TestAutoNudgeSelection:
 
     def test_fresh_worker_is_not_nudged(self) -> None:
         """Первые три дня не трогаем — человек ещё разбирается."""
-        assert _select_nudge(_row(referrals=0, registered_days_ago=1)) is None
+        assert _select_nudge(_row(referrals=0, registered_days_ago=1), default_rule_map()) is None
 
     def test_no_referrals_after_three_days(self) -> None:
-        nudge = _select_nudge(_row(referrals=0, registered_days_ago=5))
-        assert nudge is not None and nudge.key == "no_referrals"
+        nudge = _select_nudge(_row(referrals=0, registered_days_ago=5), default_rule_map())
+        assert nudge is not None and nudge.kind == "no_referrals"
 
     def test_referrals_without_money_gets_no_orders(self) -> None:
-        nudge = _select_nudge(_row(referrals=4, earnings=0))
-        assert nudge is not None and nudge.key == "no_orders"
+        nudge = _select_nudge(_row(referrals=4, earnings=0), default_rule_map())
+        assert nudge is not None and nudge.kind == "no_orders"
 
     def test_silence_nudge_for_earning_worker(self) -> None:
         nudge = _select_nudge(
-            _row(referrals=2, earnings=90_000, silent_days=DEFAULT_SILENT_DAYS + 1)
+            _row(referrals=2, earnings=90_000, silent_days=DEFAULT_SILENT_DAYS + 1),
+            default_rule_map(),
         )
-        assert nudge is not None and nudge.key == "silent"
+        assert nudge is not None and nudge.kind == "silent"
 
     def test_active_earning_worker_is_left_alone(self) -> None:
-        assert _select_nudge(_row(referrals=3, earnings=120_000, silent_days=0)) is None
+        assert _select_nudge(_row(referrals=3, earnings=120_000, silent_days=0), default_rule_map()) is None
 
     @pytest.mark.parametrize("registered_days_ago", [None, 0, 2])
     def test_no_referrals_needs_known_registration_age(
         self, registered_days_ago: int | None
     ) -> None:
         row = _row(referrals=0, registered_days_ago=registered_days_ago, silent_days=0)
-        nudge = _select_nudge(row)
-        assert nudge is None or nudge.key != "no_referrals"
+        nudge = _select_nudge(row, default_rule_map())
+        assert nudge is None or nudge.kind != "no_referrals"
+
+    def test_disabled_rule_is_skipped(self) -> None:
+        """Выключенный в админке триггер не должен срабатывать."""
+        rules = default_rule_map()
+        rules["no_referrals"].is_enabled = False
+        assert _select_nudge(_row(referrals=0, registered_days_ago=30, silent_days=0), rules) is None
+
+    def test_disabled_rule_does_not_block_the_next_one(self) -> None:
+        """Выключение одного триггера не должно глушить остальные."""
+        rules = default_rule_map()
+        rules["no_referrals"].is_enabled = False
+        row = _row(
+            referrals=0,
+            registered_days_ago=30,
+            silent_days=DEFAULT_SILENT_DAYS + 1,
+        )
+        nudge = _select_nudge(row, rules)
+        assert nudge is not None and nudge.kind == "silent"
+
+    def test_threshold_comes_from_the_rule_not_from_code(self) -> None:
+        """Порог правится в админке — хардкод 3 дня больше не действует."""
+        rules = default_rule_map()
+        rules["no_referrals"].threshold_days = 30
+        assert _select_nudge(_row(referrals=0, registered_days_ago=10), rules) is None
+
+        rules["no_referrals"].threshold_days = 1
+        nudge = _select_nudge(_row(referrals=0, registered_days_ago=10), rules)
+        assert nudge is not None and nudge.kind == "no_referrals"
+
+    def test_rule_carries_its_own_text(self) -> None:
+        """Отправка берёт текст из правила, а не из кодовой константы."""
+        rules = default_rule_map()
+        rules["no_referrals"].text_template = "Новый текст {cabinet}"
+        nudge = _select_nudge(_row(referrals=0, registered_days_ago=10), rules)
+        assert nudge is not None
+        assert nudge.text_template == "Новый текст {cabinet}"
 
 
 class TestRoster:

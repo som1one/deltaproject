@@ -48,9 +48,10 @@ import { ChartRangeSwitch, DailyBarsChart, type ChartRange } from "@/components/
 import { FinanceAnalyticsTab } from "@/components/admin/finance-analytics";
 import { CopyButton } from "@/components/common/copy-button";
 import { AdminMarketplacePanel, type AdminMarketplaceTab } from "@/components/admin/marketplace-panel";
+import { WorkerBotPanel } from "@/components/admin/worker-bot-panel";
 
 type AdminSection =
-  | "overview" | "stats" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "ledger" | "finance" | "finance-analytics" | "scripts" | "telegram"
+  | "overview" | "stats" | "users" | "user-ledger" | "user-balance" | "user-card" | "create-blogger" | "ledger" | "finance" | "finance-analytics" | "scripts" | "telegram" | "worker-bot"
   | "mp-dashboard" | "mp-stats" | "mp-orders" | "mp-payments" | "mp-settings" | "mp-tickets" | "mp-bloggers" | "mp-services" | "mp-moderation" | "mp-premium" | "mp-hero" | "mp-withdrawals";
 
 type AdminModalState =
@@ -159,6 +160,11 @@ const sectionMeta: Record<AdminSection, { label: string; title: string; lead: st
     label: "Telegram",
     title: "Подписка на Telegram-канал",
     lead: "Обязательная подписка при регистрации. Статистика подписок, управление каналом.",
+  },
+  "worker-bot": {
+    label: "Бот воркеров",
+    title: "Бот воркеров",
+    lead: "Авто-пинки, адресные рассылки и сводка по тем, кто простаивает.",
   },
   "create-blogger": {
     label: "Создать блогера",
@@ -1835,6 +1841,10 @@ export const AdminDashboard = () => {
       );
     }
 
+    if (section === "worker-bot") {
+      return <WorkerBotPanel />;
+    }
+
     if (section === "scripts") {
       return (
         <div className={styles.sideLayout}>
@@ -2370,7 +2380,7 @@ export const AdminDashboard = () => {
         >
           <button
             type="button"
-            className={`${styles.headerSection}${section === "scripts" || section === "telegram" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "tools" ? ` ${styles.headerSectionHover}` : ""}`}
+            className={`${styles.headerSection}${section === "scripts" || section === "telegram" || section === "worker-bot" ? ` ${styles.headerSectionActive}` : ""}${activeMenu === "tools" ? ` ${styles.headerSectionHover}` : ""}`}
             onClick={() => { activeMenu === "tools" ? (setActiveMenu(null), setDrawerOpen(false)) : openMenu("tools"); }}
           >
             Инструменты
@@ -2396,6 +2406,14 @@ export const AdminDashboard = () => {
               >
                 <span className={styles.dropdownItemLabel}>Telegram-канал</span>
                 <span className={styles.dropdownItemDesc}>Обязательная подписка, статистика, управление.</span>
+              </button>
+              <button
+                type="button"
+                className={`${styles.dropdownItem}${section === "worker-bot" ? ` ${styles.dropdownItemActive}` : ""}`}
+                onClick={() => { setSection("worker-bot"); setActiveMenu(null); setDrawerOpen(false); }}
+              >
+                <span className={styles.dropdownItemLabel}>Бот воркеров</span>
+                <span className={styles.dropdownItemDesc}>Авто-пинки, рассылки, кто простаивает.</span>
               </button>
             </div>
           )}

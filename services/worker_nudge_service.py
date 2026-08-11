@@ -30,7 +30,9 @@ from enums.user import UserRole
 from models.marketplace_escrow_ledger import MarketplaceEscrowEntry
 from models.user import User
 from models.user_session import UserSession
+from models.worker_bot_settings import WorkerBotSettings
 from models.worker_nudge_log import WorkerNudgeLog
+from models.worker_nudge_rule import WorkerNudgeRule
 from services.telegram_channel_service import (
     _bot_api_call,
     check_user_subscribed,
@@ -353,17 +355,25 @@ async def broadcast(rows: list[WorkerRow], text: str) -> BroadcastReport:
 
 @dataclass(frozen=True)
 class NudgeKind:
-    """Триггер авто-пинка: когда срабатывает и что пишем."""
+    """Триггер авто-пинка: значения по умолчанию для засева правил в БД.
+
+    Рабочие значения живут в `worker_nudge_rules` и правятся из админки;
+    отсюда берётся только первичное наполнение таблицы.
+    """
 
     key: str
+    title: str
     cooldown_days: int
+    threshold_days: int
     text: str
 
 
 AUTO_NUDGES: tuple[NudgeKind, ...] = (
     NudgeKind(
         key="no_referrals",
+        title="Никого не привёл",
         cooldown_days=7,
+        threshold_days=3,
         text=(
             "Вы зарегистрировались как воркер, но пока не привели ни одного "
             "заказчика. Заработок идёт с процента от их заказов — пока нет "
@@ -373,7 +383,9 @@ AUTO_NUDGES: tuple[NudgeKind, ...] = (
     ),
     NudgeKind(
         key="no_orders",
+        title="Привёл, но не заработал",
         cooldown_days=14,
+        threshold_days=0,
         text=(
             "У вас есть приведённые заказчики, но ни один пока не оформил "
             "заказ. Обычно помогает написать им напрямую — напомнить про "
@@ -383,7 +395,9 @@ AUTO_NUDGES: tuple[NudgeKind, ...] = (
     ),
     NudgeKind(
         key="silent",
+        title="Пропал с площадки",
         cooldown_days=14,
+        threshold_days=DEFAULT_SILENT_DAYS,
         text=(
             "Вас давно не было на площадке. Заказчики приходят и уходят, "
             "а комиссия капает только тем, кто в контуре.\n\n"
@@ -393,17 +407,107 @@ AUTO_NUDGES: tuple[NudgeKind, ...] = (
 )
 
 
-def _select_nudge(row: WorkerRow) -> NudgeKind | None:
-    """Какой пинок положен воркеру прямо сейчас (первый подходящий)."""
+def default_rule_map() -> dict[str, WorkerNudgeRule]:
+    """Правила из кодовых дефолтов — для засева таблицы и для тестов."""
+    return {
+        nudge.key: WorkerNudgeRule(
+            kind=nudge.key,
+            is_enabled=True,
+            cooldown_days=nudge.cooldown_days,
+            threshold_days=nudge.threshold_days,
+            text_template=nudge.text,
+        )
+        for nudge in AUTO_NUDGES
+    }
+
+
+async def get_bot_settings(db: AsyncSession) -> WorkerBotSettings:
+    """Singleton-настройки бота; отсутствуют — создаём выключенными.
+
+    Выключено по умолчанию осознанно: рассылка живым людям не должна
+    начинаться сама по факту выкатки.
+    """
+    row = (
+        await db.execute(select(WorkerBotSettings).limit(1))
+    ).scalar_one_or_none()
+    if row is None:
+        row = WorkerBotSettings(auto_nudges_enabled=False)
+        db.add(row)
+        await db.flush()
+    return row
+
+
+async def get_or_seed_rules(db: AsyncSession) -> list[WorkerNudgeRule]:
+    """Правила из БД; недостающие досеваются из кодовых дефолтов."""
+    rows = list(
+        (
+            await db.execute(select(WorkerNudgeRule).order_by(WorkerNudgeRule.kind))
+        ).scalars().all()
+    )
+    known = {row.kind for row in rows}
+    missing = [nudge for nudge in AUTO_NUDGES if nudge.key not in known]
+    if not missing:
+        return rows
+
+    for nudge in missing:
+        db.add(
+            WorkerNudgeRule(
+                kind=nudge.key,
+                is_enabled=True,
+                cooldown_days=nudge.cooldown_days,
+                threshold_days=nudge.threshold_days,
+                text_template=nudge.text,
+            )
+        )
+    await db.flush()
+    return list(
+        (
+            await db.execute(select(WorkerNudgeRule).order_by(WorkerNudgeRule.kind))
+        ).scalars().all()
+    )
+
+
+def _select_nudge(
+    row: WorkerRow,
+    rules: dict[str, WorkerNudgeRule],
+) -> WorkerNudgeRule | None:
+    """Какое правило сработало для воркера (первое подходящее).
+
+    Порядок фиксированный: сначала «никого не привёл» — она самая
+    информативная, дальше по убыванию конкретики. Выключенное в админке
+    правило пропускается, а не блокирует следующие.
+    """
     days_registered = row.days_since_registration
     days_silent = row.days_silent
 
-    if row.referrals == 0 and days_registered is not None and days_registered >= 3:
-        return AUTO_NUDGES[0]
-    if row.referrals > 0 and row.earnings_kopeks == 0:
-        return AUTO_NUDGES[1]
-    if days_silent is not None and days_silent >= DEFAULT_SILENT_DAYS:
-        return AUTO_NUDGES[2]
+    no_referrals = rules.get("no_referrals")
+    if (
+        no_referrals is not None
+        and no_referrals.is_enabled
+        and row.referrals == 0
+        and days_registered is not None
+        and days_registered >= no_referrals.threshold_days
+    ):
+        return no_referrals
+
+    no_orders = rules.get("no_orders")
+    if (
+        no_orders is not None
+        and no_orders.is_enabled
+        and row.referrals > 0
+        and row.earnings_kopeks == 0
+    ):
+        return no_orders
+
+    silent = rules.get("silent")
+    if (
+        silent is not None
+        and silent.is_enabled
+        and days_silent is not None
+        and days_silent >= silent.threshold_days
+    ):
+        return silent
+
     return None
 
 
@@ -430,6 +534,19 @@ async def run_auto_nudges(db: AsyncSession) -> int:
     Отправленное пишется в `worker_nudge_log`, поэтому повтор невозможен
     раньше, чем через `cooldown_days` соответствующего триггера.
     """
+    bot_settings = await get_bot_settings(db)
+    rules = {rule.kind: rule for rule in await get_or_seed_rules(db)}
+    # Засев дефолтов и singleton-строку закрепляем сразу: иначе они
+    # потеряются на раннем return и будут пересоздаваться каждый проход.
+    await db.commit()
+
+    if not bot_settings.auto_nudges_enabled:
+        logger.info("Авто-пинки выключены в админке — проход пропущен")
+        return 0
+    if bot_settings.paused_until is not None and bot_settings.paused_until > _now():
+        logger.info("Авто-пинки на паузе до %s", bot_settings.paused_until)
+        return 0
+
     rows = await collect_worker_rows(db)
     invite = await channel_invite_line(db)
     sent = 0
@@ -437,17 +554,17 @@ async def run_auto_nudges(db: AsyncSession) -> int:
     for row in rows:
         if not row.bot_connected:
             continue
-        nudge = _select_nudge(row)
+        nudge = _select_nudge(row, rules)
         if nudge is None:
             continue
-        if await _recently_nudged(db, row.user.id, nudge.key, nudge.cooldown_days):
+        if await _recently_nudged(db, row.user.id, nudge.kind, nudge.cooldown_days):
             continue
 
         chat_id = resolve_chat_id(row.user)
         if chat_id is None:
             continue
 
-        text = nudge.text.format(cabinet=cabinet_url()) + invite
+        text = nudge.text_template.format(cabinet=cabinet_url()) + invite
         try:
             data = await _bot_api_call(
                 "sendMessage",
@@ -460,7 +577,7 @@ async def run_auto_nudges(db: AsyncSession) -> int:
             )
         except Exception:  # pragma: no cover
             logger.warning(
-                "Авто-пинок %s: сбой отправки user=%s", nudge.key, row.user.id,
+                "Авто-пинок %s: сбой отправки user=%s", nudge.kind, row.user.id,
                 exc_info=True,
             )
             continue
@@ -468,13 +585,13 @@ async def run_auto_nudges(db: AsyncSession) -> int:
         if not data.get("ok"):
             logger.info(
                 "Авто-пинок %s не доставлен user=%s: %s",
-                nudge.key,
+                nudge.kind,
                 row.user.id,
                 data.get("description", "unknown"),
             )
             continue
 
-        db.add(WorkerNudgeLog(user_id=row.user.id, kind=nudge.key))
+        db.add(WorkerNudgeLog(user_id=row.user.id, kind=nudge.kind))
         sent += 1
         await asyncio.sleep(_BROADCAST_DELAY_SECONDS)
 

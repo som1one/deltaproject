@@ -40,9 +40,11 @@ from models.support_ticket import SupportTicket
 from models.telegram_channel_sub import TelegramChannelConfig, TelegramChannelSubscription
 from models.user import User
 from models.user_session import UserSession
+from models.worker_bot_settings import WorkerBotSettings
 from models.worker_stat import WorkerStat
 from models.worker_message_script import WorkerMessageScript
 from models.worker_nudge_log import WorkerNudgeLog
+from models.worker_nudge_rule import WorkerNudgeRule
 
 __all__ = [
     "AdminAuditLog",
@@ -86,7 +88,9 @@ __all__ = [
     "UserRole",
     "UserSession",
     "WithdrawalStatus",
+    "WorkerBotSettings",
     "WorkerStat",
     "WorkerMessageScript",
     "WorkerNudgeLog",
+    "WorkerNudgeRule",
 ]
