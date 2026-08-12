@@ -167,11 +167,7 @@ async def _dispatch(*, db: AsyncSession, chat_id: int, text: str) -> None:
     is_admin = user.role in (UserRole.ADMIN, UserRole.TECH_ADMIN)
 
     if command == "/help":
-        await _reply(
-            chat_id,
-            _help_text(is_admin=is_admin)
-            + await worker_nudge_service.channel_invite_line(db),
-        )
+        await _reply(chat_id, _help_text(is_admin=is_admin))
     elif command == "/stats":
         await _handle_stats(db=db, chat_id=chat_id, user=user)
     elif command == "/ref":

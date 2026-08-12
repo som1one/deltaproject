@@ -274,13 +274,7 @@ class TestDispatchAccess:
         async def fake_resolve(db: object, chat_id: int) -> User | None:
             return user
 
-        async def fake_invite(db: object) -> str:
-            return ""
-
         monkeypatch.setattr(telegram_bot, "_resolve_user", fake_resolve)
-        monkeypatch.setattr(
-            telegram_bot.worker_nudge_service, "channel_invite_line", fake_invite
-        )
         await telegram_bot._dispatch(db=None, chat_id=1, text=text)
 
     @pytest.mark.asyncio

@@ -252,20 +252,6 @@ async def filter_not_in_channel(
     return result
 
 
-async def channel_invite_line(db: AsyncSession) -> str:
-    """Строка-приглашение в канал для текстов бота; пусто — канала нет.
-
-    Канал пушится с каждого касания бота (приветствие, привязка, подсказка,
-    авто-пинки): это единственный способ дотянуться до людей, которые уже
-    в контуре, не тратя на них отдельную рассылку.
-    """
-    config = await get_channel_config(db)
-    if config is None or not config.channel_url:
-        return ""
-    title = escape_html(config.channel_title or "канал площадки")
-    return f"\n\nНовости и разборы сделок — в канале: {config.channel_url} ({title})"
-
-
 def render_roster(rows: list[WorkerRow], *, limit: int = 20) -> str:
     """Сводка «кто чем занят» для админа — текст сообщения в бот."""
     if not rows:
@@ -548,7 +534,6 @@ async def run_auto_nudges(db: AsyncSession) -> int:
         return 0
 
     rows = await collect_worker_rows(db)
-    invite = await channel_invite_line(db)
     sent = 0
 
     for row in rows:
@@ -564,7 +549,7 @@ async def run_auto_nudges(db: AsyncSession) -> int:
         if chat_id is None:
             continue
 
-        text = nudge.text_template.format(cabinet=cabinet_url()) + invite
+        text = nudge.text_template.format(cabinet=cabinet_url())
         try:
             data = await _bot_api_call(
                 "sendMessage",
