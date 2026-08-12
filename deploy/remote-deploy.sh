@@ -43,6 +43,62 @@ ensure_swap() {
 }
 ensure_swap || echo "[deploy] swap не поднялся — продолжаю (мало прав?); при OOM добавьте swap вручную"
 
+# ─────────────────────────────────────────────────────────────────────────
+# Входящие вебхуки Telegram.
+#
+# Симптом блокировки: getWebhookInfo отдаёт last_error_message="Connection
+# timed out" и растущий pending_update_count, при этом та же точка снаружи
+# отвечает за доли секунды. То есть режется конкретно трафик от подсетей
+# Telegram — обычно fail2ban после серии запросов или закрытый ufw.
+#
+# Правила только разрешающие и идемпотентные. Блок целиком под `set +e`:
+# диагностика firewall'а не имеет права уронить деплой (наверху set -e).
+# ─────────────────────────────────────────────────────────────────────────
+TELEGRAM_NETS="149.154.160.0/20 91.108.4.0/22"
+
+allow_telegram_inbound() {
+  (
+    set +e
+    echo "[deploy] telegram inbound: диагностика"
+
+    if command -v ufw >/dev/null 2>&1; then
+      echo "[deploy]   ufw:"
+      $SUDO ufw status 2>/dev/null | head -20 | sed 's/^/[deploy]     /'
+      for net in $TELEGRAM_NETS; do
+        if $SUDO ufw allow from "$net" comment "telegram webhook" >/dev/null 2>&1; then
+          echo "[deploy]   ufw allow $net — ок"
+        else
+          echo "[deploy]   ufw allow $net — не применилось"
+        fi
+      done
+    else
+      echo "[deploy]   ufw не установлен"
+    fi
+
+    if command -v fail2ban-client >/dev/null 2>&1; then
+      echo "[deploy]   fail2ban:"
+      $SUDO fail2ban-client status 2>/dev/null | sed 's/^/[deploy]     /'
+      jails=$($SUDO fail2ban-client status 2>/dev/null \
+        | sed -n 's/.*Jail list:[[:space:]]*//p' | tr -d ' ' | tr ',' ' ')
+      for jail in $jails; do
+        banned=$($SUDO fail2ban-client status "$jail" 2>/dev/null \
+          | sed -n 's/.*Banned IP list:[[:space:]]*//p')
+        case "$banned" in
+          *149.154.*|*91.108.*)
+            echo "[deploy]   !! в jail $jail забанены адреса Telegram" ;;
+        esac
+        for net in $TELEGRAM_NETS; do
+          $SUDO fail2ban-client set "$jail" unbanip "$net" >/dev/null 2>&1
+        done
+      done
+      echo "[deploy]   fail2ban: разбан подсетей Telegram выполнен"
+    else
+      echo "[deploy]   fail2ban не установлен"
+    fi
+  ) || true
+}
+allow_telegram_inbound
+
 echo "[deploy] git pull"
 git fetch --all --prune
 git reset --hard origin/main
