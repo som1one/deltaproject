@@ -76,13 +76,22 @@ _RETRYABLE_CODES = {429, 500, 502, 503, 504}
 _BOT_API_ATTEMPTS = 3
 
 
-async def _bot_api_call(method: str, params: dict) -> dict:
+async def _bot_api_call(
+    method: str,
+    params: dict,
+    *,
+    timeout: float = 15.0,
+) -> dict:
     """Вызов Telegram Bot API (с учётом прокси). Возвращает распарсенный JSON.
 
     Транзиентные сбои (сеть, 429, 5xx) ретраит до трёх попыток с короткой
     паузой. На окончательной ошибке возвращает ``{"ok": False,
     "description": <текст>}`` — вызывающие сами решают, fail-open или
     fail-closed.
+
+    ``timeout`` — таймаут HTTP-клиента. Дефолт подходит обычным вызовам;
+    long polling (getUpdates) держит соединение открытым и передаёт больше,
+    иначе клиент рвёт запрос раньше, чем Telegram успевает ответить.
     """
     bot_token = settings.telegram_oauth_bot_token.strip()
     if not bot_token:
@@ -110,7 +119,7 @@ async def _bot_api_call(method: str, params: dict) -> dict:
         data: dict | None = None
         try:
             async with httpx.AsyncClient(
-                timeout=15.0, transport=transport, trust_env=False,
+                timeout=timeout, transport=transport, trust_env=False,
             ) as client:
                 resp = await client.get(url, params=params, headers=headers)
                 data = resp.json()

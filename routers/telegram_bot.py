@@ -118,23 +118,32 @@ async def telegram_webhook(
     if not isinstance(body, dict):
         return {"ok": True}
 
+    try:
+        await handle_update(db, body)
+    except Exception:  # pragma: no cover — апдейт всегда подтверждаем
+        logger.exception("Telegram webhook: ошибка обработки апдейта")
+
+    return {"ok": True}
+
+
+async def handle_update(db: AsyncSession, body: dict) -> None:
+    """Разобрать апдейт Telegram и выполнить команду.
+
+    Общая точка входа обоих транспортов — вебхука и long polling
+    (services/telegram_polling_service.py). Всё, что не текстовое сообщение
+    в чате, тихо игнорируется.
+    """
     message = body.get("message")
     if not isinstance(message, dict):
-        return {"ok": True}
+        return
     text = message.get("text")
     chat = message.get("chat")
     if not isinstance(text, str) or not isinstance(chat, dict):
-        return {"ok": True}
+        return
     chat_id = chat.get("id")
     if not isinstance(chat_id, int):
-        return {"ok": True}
-
-    try:
-        await _dispatch(db=db, chat_id=chat_id, text=text.strip())
-    except Exception:  # pragma: no cover — апдейт всегда подтверждаем
-        logger.exception("Telegram webhook: ошибка обработки chat_id=%s", chat_id)
-
-    return {"ok": True}
+        return
+    await _dispatch(db=db, chat_id=chat_id, text=text.strip())
 
 
 # ─── Диспетчер ──────────────────────────────────────────────────────────────

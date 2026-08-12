@@ -136,6 +136,13 @@ sync_env_kv TELEGRAM_OAUTH_FRONTEND_CALLBACK_URL "https://$MAIN_DOMAIN/tg/callba
 # Канонический домен маркетплейса. Из него бэкенд строит реф-ссылки воркеров,
 # return_url ЮKassa, allow-list redirect_uri SSO-входа блогера и ссылку
 # админ-импersonation; главный сайт — кнопку «в маркетплейс» (вшивается в билд).
+# Бот забирает апдейты сам (getUpdates), а не ждёт вебхук: входящее
+# направление на этом хостинге режется fail2ban'ом, чья цепочка стоит выше
+# правил ufw, и бот периодически замолкал. Включаем ровно на одном процессе —
+# бэкенд единственный, кто это делает.
+echo "[deploy] telegram bot: long polling"
+sync_env_kv TELEGRAM_BOT_POLLING 1
+
 echo "[deploy] marketplace canonical domain → marketplace.moneymaxxxing.ru"
 sync_env_kv MARKETPLACE_FRONTEND_URL "https://marketplace.moneymaxxxing.ru"
 sync_env_kv NEXT_PUBLIC_MARKETPLACE_URL "https://marketplace.moneymaxxxing.ru" "$REPO_DIR/frontend/.env.local"
@@ -312,11 +319,12 @@ echo "[deploy] health check"
 for i in 1 2 3 4 5; do
   if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
     echo "[deploy] backend healthy"
-    # Вебхук Telegram-бота уведомлений: сервер регистрирует его сам, секрет
-    # производный от JWT_SECRET_KEY (см. telegram_bot_webhook_secret_effective)
-    echo "[deploy] telegram bot webhook"
+    # Транспорт бота и меню команд. При TELEGRAM_BOT_POLLING=1 скрипт снимает
+    # вебхук (иначе getUpdates ловит 409 Conflict), иначе регистрирует его;
+    # setMyCommands выполняется в обоих режимах.
+    echo "[deploy] telegram bot transport + commands"
     "$PYTHON_BIN" -m scripts.set_telegram_webhook \
-      || echo "[deploy] set_telegram_webhook не отработал — бот без вебхука, посмотрите лог"
+      || echo "[deploy] set_telegram_webhook не отработал — посмотрите лог"
     exit 0
   fi
   sleep 2

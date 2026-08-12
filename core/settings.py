@@ -265,6 +265,15 @@ class Settings(BaseSettings):
         "в Telegram-уведомлениях",
     )
 
+    telegram_bot_polling: bool = Field(
+        default=False,
+        validation_alias="TELEGRAM_BOT_POLLING",
+        description="Забирать апдейты бота через getUpdates вместо вебхука. "
+        "Включать ТОЛЬКО на одном процессе: два параллельных getUpdates с "
+        "одним токеном воруют апдейты друг у друга (см. "
+        "services/telegram_polling_service.py)",
+    )
+
     telegram_bot_webhook_secret: str = Field(
         default="",
         validation_alias="TELEGRAM_BOT_WEBHOOK_SECRET",

@@ -41,28 +41,38 @@ async def main() -> int:
     )
     args = parser.parse_args()
 
-    secret = settings.telegram_bot_webhook_secret_effective
-    if not secret:
+    # В режиме long polling вебхук не просто не нужен — он ломает getUpdates
+    # (409 Conflict). Поэтому здесь его наоборот снимаем, а меню команд
+    # регистрируем как обычно: оно от транспорта не зависит.
+    if settings.telegram_bot_polling:
+        result = await _bot_api_call("deleteWebhook", {"drop_pending_updates": "false"})
         print(
-            "Секрет вебхука пуст (нет ни TELEGRAM_BOT_WEBHOOK_SECRET, ни "
-            "JWT_SECRET_KEY) — вебхук будет отвечать 403. Задайте и повторите.",
-            file=sys.stderr,
+            "режим long polling — deleteWebhook:",
+            json.dumps(result, ensure_ascii=False, indent=2),
         )
-        return 1
+    else:
+        secret = settings.telegram_bot_webhook_secret_effective
+        if not secret:
+            print(
+                "Секрет вебхука пуст (нет ни TELEGRAM_BOT_WEBHOOK_SECRET, ни "
+                "JWT_SECRET_KEY) — вебхук будет отвечать 403. Задайте и повторите.",
+                file=sys.stderr,
+            )
+            return 1
 
-    url = args.url or default_webhook_url(secret)
-    result = await _bot_api_call(
-        "setWebhook",
-        {
-            "url": url,
-            "secret_token": secret,
-            # Обязательно явно: иначе Telegram сохранит прежний фильтр
-            # (у бота исторически стоял ["channel_post","my_chat_member"]),
-            # и /start до вебхука не дойдёт.
-            "allowed_updates": json.dumps(["message"]),
-        },
-    )
-    print("setWebhook:", json.dumps(result, ensure_ascii=False, indent=2))
+        url = args.url or default_webhook_url(secret)
+        result = await _bot_api_call(
+            "setWebhook",
+            {
+                "url": url,
+                "secret_token": secret,
+                # Обязательно явно: иначе Telegram сохранит прежний фильтр
+                # (у бота исторически стоял ["channel_post","my_chat_member"]),
+                # и /start до вебхука не дойдёт.
+                "allowed_updates": json.dumps(["message"]),
+            },
+        )
+        print("setWebhook:", json.dumps(result, ensure_ascii=False, indent=2))
 
     # Меню команд в клиенте: без него воркер не узнает, что бот умеет
     # больше, чем присылать уведомления. Админские команды сюда не

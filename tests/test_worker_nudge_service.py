@@ -342,3 +342,46 @@ class TestDispatchAccess:
         """В группах Telegram присылает /help@looneymoonbot."""
         await self._run(monkeypatch, _worker(), "/help@looneymoonbot")
         assert "/stats" in replies[0]
+
+
+class TestHandleUpdate:
+    """Разбор апдейта — общая точка вебхука и long polling."""
+
+    @pytest.fixture
+    def dispatched(self, monkeypatch: pytest.MonkeyPatch) -> list[tuple[int, str]]:
+        seen: list[tuple[int, str]] = []
+
+        async def fake_dispatch(*, db: object, chat_id: int, text: str) -> None:
+            seen.append((chat_id, text))
+
+        monkeypatch.setattr(telegram_bot, "_dispatch", fake_dispatch)
+        return seen
+
+    @pytest.mark.asyncio
+    async def test_text_message_is_dispatched(
+        self, dispatched: list[tuple[int, str]]
+    ) -> None:
+        await telegram_bot.handle_update(
+            None, {"message": {"text": "  /stats  ", "chat": {"id": 42}}}
+        )
+        assert dispatched == [(42, "/stats")]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "body",
+        [
+            {},
+            {"message": None},
+            {"message": {"chat": {"id": 1}}},
+            {"message": {"text": "hi"}},
+            {"message": {"text": "hi", "chat": {}}},
+            {"message": {"text": 123, "chat": {"id": 1}}},
+            {"edited_message": {"text": "hi", "chat": {"id": 1}}},
+        ],
+    )
+    async def test_non_text_updates_are_ignored(
+        self, dispatched: list[tuple[int, str]], body: dict
+    ) -> None:
+        """Мусорный апдейт не должен ронять цикл поллинга."""
+        await telegram_bot.handle_update(None, body)
+        assert dispatched == []

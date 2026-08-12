@@ -169,18 +169,29 @@ async def lifespan(_app: FastAPI):
         _worker_nudge_loop(), name="worker-nudge"
     )
 
+    # Long polling вместо вебхука — только если включено явно. Два процесса
+    # с одним токеном воруют апдейты друг у друга, поэтому по умолчанию off.
+    polling_task = None
+    if settings.telegram_bot_polling:
+        from services.telegram_polling_service import run_polling
+
+        polling_task = asyncio.create_task(run_polling(), name="telegram-polling")
+        logger.info("Telegram: режим long polling включён")
+
     yield
 
-    purge_task.cancel()
-    autocomplete_task.cancel()
-    uploads_cleanup_task.cancel()
-    worker_nudge_task.cancel()
-    for task in (
+    background_tasks = [
         purge_task,
         autocomplete_task,
         uploads_cleanup_task,
         worker_nudge_task,
-    ):
+    ]
+    if polling_task is not None:
+        background_tasks.append(polling_task)
+
+    for task in background_tasks:
+        task.cancel()
+    for task in background_tasks:
         try:
             await task
         except (asyncio.CancelledError, Exception):  # pragma: no cover
