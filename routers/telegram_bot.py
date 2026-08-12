@@ -142,10 +142,7 @@ async def telegram_webhook(
 async def _dispatch(*, db: AsyncSession, chat_id: int, text: str) -> None:
     """Разобрать сообщение и выполнить команду."""
     if text == "/start":
-        await _reply(
-            chat_id,
-            _greeting_text() + await worker_nudge_service.channel_invite_line(db),
-        )
+        await _reply(chat_id, _greeting_text())
         return
 
     if text.startswith("/start "):
@@ -225,12 +222,7 @@ async def _handle_connect(*, db: AsyncSession, chat_id: int, payload: str) -> No
         return
     user.telegram_chat_id = chat_id
     await db.commit()
-    # Момент привязки — пик готовности: человек только что сам нажал кнопку.
-    # Приглашение в канал здесь конвертит лучше, чем отдельная рассылка потом.
-    await _reply(
-        chat_id,
-        _CONNECTED_TEXT + await worker_nudge_service.channel_invite_line(db),
-    )
+    await _reply(chat_id, _CONNECTED_TEXT)
 
 
 # ─── Команды пользователя ───────────────────────────────────────────────────
